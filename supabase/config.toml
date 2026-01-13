@@ -1,1 +1,7 @@
 project_id = "bcltzwpnhfpbfiuhfkxi"
+
+[functions.google-drive-upload]
+verify_jwt = false
+
+[functions.weekly-backup]
+verify_jwt = false
