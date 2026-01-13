@@ -71,14 +71,14 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r-0">
-      <SidebarHeader className="p-4">
-        <Link to="/" className="flex items-center gap-3">
-          <img src={mekongLogo} alt="Mekong Logo" className="h-12 w-auto" />
+      <SidebarHeader className="p-3">
+        <Link to="/" className="flex items-center gap-3 bg-white rounded-lg p-2.5">
+          <img src={mekongLogo} alt="Mekong Logo" className="h-10 w-auto" />
           <div className="flex flex-col">
-            <span className="font-bold text-lg text-sidebar-foreground">
+            <span className="font-bold text-sm text-primary">
               Mekong Labour
             </span>
-            <span className="text-xs text-sidebar-foreground/70">
+            <span className="text-xs text-muted-foreground">
               Phần mềm quản lý TTS
             </span>
           </div>
