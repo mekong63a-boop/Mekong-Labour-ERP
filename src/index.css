@@ -1,91 +1,136 @@
 @tailwind base;
+
+/* Print styles */
+@media print {
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-trainee-page {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Hide non-printable elements */
+  .print\:hidden {
+    display: none !important;
+  }
+}
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 222.2 84% 4.9%;
+    /* Mekong Labour Brand Colors */
+    --background: 210 20% 98%;
+    --foreground: 145 100% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 145 100% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 145 100% 15%;
 
-    --primary: 150 63% 25%;
+    /* Mekong Green - Primary Brand #006633 */
+    --primary: 151 100% 20%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 150 20% 95%;
-    --secondary-foreground: 150 63% 25%;
+    /* Orange - Accent Brand */
+    --secondary: 28 81% 52%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 20% 94%;
+    --muted-foreground: 145 40% 35%;
 
-    --accent: 150 20% 95%;
-    --accent-foreground: 150 63% 25%;
+    --accent: 28 81% 52%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 150 63% 25%;
+    --border: 210 20% 88%;
+    --input: 210 20% 88%;
+    --input-empty: 45 70% 75%;
+    --ring: 151 100% 20%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 150 63% 25%;
+    /* Status Colors */
+    --status-new: 210 100% 50%;
+    --status-passed: 142 76% 36%;
+    --status-training: 45 93% 47%;
+    --status-waiting: 262 83% 58%;
+    --status-departed: 151 100% 20%;
+    --status-finished: 142 76% 36%;
+    --status-blacklist: 0 72% 51%;
+
+    /* Warning Colors */
+    --warning: 45 93% 47%;
+    --warning-foreground: 145 100% 10%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --info: 210 100% 50%;
+    --info-foreground: 0 0% 100%;
+
+    /* Sidebar - Mekong Green */
+    --sidebar-background: 151 100% 20%;
     --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 150 63% 25%;
-    --sidebar-accent: 150 50% 20%;
+    --sidebar-primary-foreground: 151 100% 20%;
+    --sidebar-accent: 151 100% 25%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 150 50% 20%;
-    --sidebar-ring: 0 0% 100%;
-    --sidebar-muted: 150 40% 80%;
+    --sidebar-border: 151 100% 25%;
+    --sidebar-ring: 28 81% 52%;
+
+    /* Chart Colors */
+    --chart-1: 151 100% 20%;
+    --chart-2: 28 81% 52%;
+    --chart-3: 142 76% 36%;
+    --chart-4: 262 83% 58%;
+    --chart-5: 45 93% 47%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 145 50% 6%;
+    --foreground: 210 20% 98%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 145 40% 10%;
+    --card-foreground: 210 20% 98%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 145 40% 10%;
+    --popover-foreground: 210 20% 98%;
 
-    --primary: 150 63% 35%;
+    --primary: 151 100% 25%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 28 81% 52%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 145 30% 16%;
+    --muted-foreground: 210 20% 70%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 28 81% 52%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 150 63% 35%;
+    --border: 145 30% 20%;
+    --input: 145 30% 20%;
+    --input-empty: 45 50% 40%;
+    --ring: 28 81% 52%;
 
-    --sidebar-background: 150 63% 20%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 150 63% 25%;
-    --sidebar-accent: 150 50% 15%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 150 50% 15%;
-    --sidebar-ring: 0 0% 100%;
+    --sidebar-background: 151 100% 15%;
+    --sidebar-foreground: 210 20% 98%;
+    --sidebar-primary: 28 81% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 151 100% 20%;
+    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-border: 151 100% 20%;
+    --sidebar-ring: 28 81% 52%;
   }
 }
 
@@ -95,6 +140,197 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Be Vietnam Pro', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Be Vietnam Pro', sans-serif;
+    font-weight: 600;
+  }
+}
+
+@layer components {
+  .status-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .status-new {
+    @apply bg-blue-100 text-blue-800;
+  }
+
+  .status-passed {
+    @apply bg-green-100 text-green-800;
+  }
+
+  .status-training {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+
+  .status-waiting {
+    @apply bg-purple-100 text-purple-800;
+  }
+
+  .status-departed {
+    @apply bg-primary/10 text-primary;
+  }
+
+  .status-finished {
+    @apply bg-emerald-100 text-emerald-800;
+  }
+
+  .status-blacklist {
+    @apply bg-red-100 text-red-800;
+  }
+
+  .warning-label {
+    @apply inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium;
+  }
+
+  .warning-yellow {
+    @apply bg-yellow-400/20 text-yellow-700 border border-yellow-400;
+  }
+
+  .warning-red {
+    @apply bg-red-500/20 text-red-700 border border-red-500;
+  }
+
+  .data-table {
+    @apply w-full text-sm;
+  }
+
+  .data-table th {
+    @apply bg-muted/50 text-left font-semibold text-muted-foreground px-4 py-3 border-b;
+  }
+
+  .data-table td {
+    @apply px-4 py-3 border-b border-border/50;
+  }
+
+  .data-table tr:hover {
+    @apply bg-muted/30;
+  }
+
+  .metric-card {
+    @apply bg-card rounded-lg border shadow-sm p-5 transition-all hover:shadow-md;
+  }
+
+  .metric-value {
+    @apply text-3xl font-bold text-foreground;
+  }
+
+  .metric-label {
+    @apply text-sm text-muted-foreground mt-1;
+  }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-3 text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground rounded-lg transition-all;
+  }
+
+  .sidebar-link.active {
+    @apply bg-sidebar-accent text-sidebar-foreground font-medium;
+  }
+
+  .page-header {
+    @apply flex items-center justify-between mb-6;
+  }
+
+  .page-title {
+    @apply text-2xl font-bold text-foreground;
+  }
+
+  .card-header-custom {
+    @apply flex items-center justify-between pb-4 border-b mb-4;
+  }
+
+  .action-button {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all;
+  }
+
+  .masked-data {
+    @apply tracking-widest;
+  }
+
+  /* Required field label with red asterisk */
+  .required-label::after {
+    content: ' *';
+    @apply text-destructive;
+  }
+
+  /* Form validation error styles */
+  .input-error {
+    @apply border-destructive ring-1 ring-destructive focus-visible:ring-destructive;
+  }
+
+  /* Image upload error styles */
+  .upload-error {
+    @apply border-2 border-dashed border-destructive/50 bg-destructive/5;
+  }
+}
+
+@layer utilities {
+  /* Empty field styles - yellow border + subtle yellow background when field is empty */
+  .input-empty {
+    border-color: hsl(var(--input-empty)) !important;
+    background-color: hsl(var(--input-empty) / 0.18) !important;
+  }
+
+  .dark .input-empty {
+    background-color: hsl(var(--input-empty) / 0.12) !important;
+  }
+
+  /* Radix Select marks placeholder state via data-placeholder */
+  .select-trigger[data-placeholder] {
+    border-color: hsl(var(--input-empty)) !important;
+    background-color: hsl(var(--input-empty) / 0.18) !important;
+  }
+
+  .dark .select-trigger[data-placeholder] {
+    background-color: hsl(var(--input-empty) / 0.12) !important;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-pulse-subtle {
+    animation: pulseSubtle 2s infinite;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pulseSubtle {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(151 100% 30%) 100%);
+  }
+
+  .gradient-accent {
+    background: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(28 81% 62%) 100%);
+  }
+
+  .gradient-mekong {
+    background: linear-gradient(135deg, hsl(151 100% 20%) 0%, hsl(151 100% 30%) 100%);
   }
 }
