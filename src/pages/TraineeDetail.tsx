@@ -16,7 +16,7 @@ export default function TraineeDetail() {
 
   if (error) {
     return (
-      <div className="container py-8">
+      <div className="py-8">
         <div className="text-center text-destructive">
           Lỗi khi tải dữ liệu: {error.message}
         </div>
@@ -26,7 +26,7 @@ export default function TraineeDetail() {
 
   if (isLoading) {
     return (
-      <div className="container py-8">
+      <div className="py-8">
         <Skeleton className="h-8 w-48 mb-4" />
         <Skeleton className="h-64 w-full mb-4" />
         <Skeleton className="h-64 w-full" />
@@ -36,7 +36,7 @@ export default function TraineeDetail() {
 
   if (!trainee) {
     return (
-      <div className="container py-8">
+      <div className="py-8">
         <div className="text-center text-muted-foreground">
           Không tìm thấy thực tập sinh
         </div>
@@ -45,7 +45,7 @@ export default function TraineeDetail() {
   }
 
   return (
-    <div className="container py-8">
+    <div className="space-y-6">
       <Button
         variant="ghost"
         className="mb-4"

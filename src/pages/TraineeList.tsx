@@ -31,8 +31,8 @@ export default function TraineeList() {
   }
 
   return (
-    <div className="container py-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Danh sách thực tập sinh</h1>
       </div>
 
