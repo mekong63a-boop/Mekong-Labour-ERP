@@ -100,29 +100,29 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
               active && "bg-sidebar-accent"
             )}
           >
-            <div className="flex items-center gap-3">
-              <item.icon className="h-5 w-5 flex-shrink-0" />
+            <div className="flex items-center gap-2.5">
+              <item.icon className="h-4 w-4 flex-shrink-0" />
               {!collapsed && <span>{item.label}</span>}
             </div>
             {!collapsed &&
               (isExpanded ? (
-                <ChevronUp className="h-4 w-4" />
+                <ChevronUp className="h-3.5 w-3.5" />
               ) : (
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-3.5 w-3.5" />
               ))}
           </button>
           {!collapsed && isExpanded && (
-            <div className="ml-4 mt-1 space-y-1 border-l border-sidebar-border pl-4">
+            <div className="ml-3 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-3">
               {item.children?.map((child) => (
                 <Link
                   key={child.path}
                   to={child.path}
                   className={cn(
-                    "sidebar-link py-2 text-sm",
+                    "sidebar-link py-2",
                     isActive(child.path) && "bg-sidebar-accent font-medium"
                   )}
                 >
-                  <child.icon className="h-4 w-4 flex-shrink-0" />
+                  <child.icon className="h-3.5 w-3.5 flex-shrink-0" />
                   <span>{child.label}</span>
                 </Link>
               ))}
@@ -138,7 +138,7 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
         to={item.path}
         className={cn("sidebar-link", active && "bg-sidebar-accent font-medium")}
       >
-        <item.icon className="h-5 w-5 flex-shrink-0" />
+        <item.icon className="h-4 w-4 flex-shrink-0" />
         {!collapsed && <span>{item.label}</span>}
       </Link>
     );
@@ -148,22 +148,22 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
     <aside
       className={cn(
         "flex flex-col bg-sidebar-background text-sidebar-foreground h-screen transition-all duration-300",
-        collapsed ? "w-16" : "w-64"
+        collapsed ? "w-16" : "w-60"
       )}
     >
       {/* Logo Header */}
-      <div className="p-3">
+      <div className="p-2">
         <Link
           to="/"
-          className="flex items-center gap-3 bg-white rounded-lg p-2.5"
+          className="flex items-center gap-2.5 bg-white rounded-lg p-2"
         >
-          <img src={mekongLogo} alt="Mekong Logo" className="h-10 w-auto" />
+          <img src={mekongLogo} alt="Mekong Logo" className="h-9 w-auto" />
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="font-bold text-sm text-primary">
+              <span className="font-bold text-sm text-primary leading-tight">
                 Mekong Labour
               </span>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-[11px] text-muted-foreground leading-tight">
                 Phần mềm quản lý TTS
               </span>
             </div>
@@ -172,12 +172,12 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
       </div>
 
       {/* Main Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+      <nav className="flex-1 overflow-y-auto px-2 py-1.5 space-y-0.5 scrollbar-thin scrollbar-thumb-sidebar-accent scrollbar-track-transparent">
         {menuItems.map(renderMenuItem)}
       </nav>
 
       {/* Bottom Navigation */}
-      <div className="border-t border-sidebar-border px-3 py-2 space-y-1">
+      <div className="border-t border-sidebar-border px-2 py-1.5 space-y-0.5">
         {bottomMenuItems.map((item) => (
           <Link
             key={item.path}
@@ -187,22 +187,22 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
               isActive(item.path) && "bg-sidebar-accent font-medium"
             )}
           >
-            <item.icon className="h-5 w-5 flex-shrink-0" />
+            <item.icon className="h-4 w-4 flex-shrink-0" />
             {!collapsed && <span>{item.label}</span>}
           </Link>
         ))}
       </div>
 
       {/* User Info */}
-      <div className="border-t border-sidebar-border p-3">
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-sidebar-accent flex items-center justify-center flex-shrink-0">
-            <span className="text-sm font-medium">M</span>
+      <div className="border-t border-sidebar-border p-2">
+        <div className="flex items-center gap-2.5">
+          <div className="h-7 w-7 rounded-full bg-sidebar-accent flex items-center justify-center flex-shrink-0">
+            <span className="text-xs font-medium">M</span>
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="text-sm font-medium">Mekong</span>
-              <span className="text-xs text-sidebar-foreground/70">Admin</span>
+              <span className="text-sm font-medium leading-tight">Mekong</span>
+              <span className="text-[11px] text-sidebar-foreground/70 leading-tight">Admin</span>
             </div>
           )}
         </div>

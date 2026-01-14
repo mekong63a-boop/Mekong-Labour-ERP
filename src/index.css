@@ -75,14 +75,14 @@
     --info: 210 100% 50%;
     --info-foreground: 0 0% 100%;
 
-    /* Sidebar - Mekong Green */
-    --sidebar-background: 151 100% 20%;
+    /* Sidebar - Mekong Green #006633 */
+    --sidebar-background: 150 100% 20%;
     --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 151 100% 20%;
-    --sidebar-accent: 151 100% 25%;
+    --sidebar-primary-foreground: 150 100% 20%;
+    --sidebar-accent: 150 70% 35%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 151 100% 25%;
+    --sidebar-border: 150 60% 30%;
     --sidebar-ring: 28 81% 52%;
 
     /* Chart Colors */
@@ -224,7 +224,7 @@
   }
 
   .sidebar-link {
-    @apply flex items-center gap-3 px-4 py-3 text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground rounded-lg transition-all;
+    @apply flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground rounded-md transition-all text-sm;
   }
 
   .sidebar-link.active {
