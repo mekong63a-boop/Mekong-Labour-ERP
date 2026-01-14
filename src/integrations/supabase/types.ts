@@ -14,74 +14,844 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendance: {
+        Row: {
+          class_id: string
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          status: string
+          trainee_id: string
+          updated_at: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          date: string
+          id?: string
+          notes?: string | null
+          status?: string
+          trainee_id: string
+          updated_at?: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          trainee_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_teachers: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          role: string | null
+          teacher_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          role?: string | null
+          teacher_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          role?: string | null
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_teachers_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_teachers_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classes: {
+        Row: {
+          code: string
+          created_at: string
+          expected_end_date: string | null
+          id: string
+          level: string | null
+          max_students: number | null
+          name: string
+          schedule: string | null
+          start_date: string | null
+          status: string | null
+          target_audience: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expected_end_date?: string | null
+          id?: string
+          level?: string | null
+          max_students?: number | null
+          name: string
+          schedule?: string | null
+          start_date?: string | null
+          status?: string | null
+          target_audience?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expected_end_date?: string | null
+          id?: string
+          level?: string | null
+          max_students?: number | null
+          name?: string
+          schedule?: string | null
+          start_date?: string | null
+          status?: string | null
+          target_audience?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      companies: {
+        Row: {
+          address: string | null
+          code: string
+          country: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          name_japanese: string | null
+          notes: string | null
+          phone: string | null
+          position: string | null
+          representative: string | null
+          status: string | null
+          updated_at: string
+          work_address: string | null
+        }
+        Insert: {
+          address?: string | null
+          code: string
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          name_japanese?: string | null
+          notes?: string | null
+          phone?: string | null
+          position?: string | null
+          representative?: string | null
+          status?: string | null
+          updated_at?: string
+          work_address?: string | null
+        }
+        Update: {
+          address?: string | null
+          code?: string
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          name_japanese?: string | null
+          notes?: string | null
+          phone?: string | null
+          position?: string | null
+          representative?: string | null
+          status?: string | null
+          updated_at?: string
+          work_address?: string | null
+        }
+        Relationships: []
+      }
+      education_history: {
+        Row: {
+          created_at: string
+          end_year: number | null
+          id: string
+          level: string | null
+          major: string | null
+          school_name: string
+          start_year: number | null
+          trainee_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_year?: number | null
+          id?: string
+          level?: string | null
+          major?: string | null
+          school_name: string
+          start_year?: number | null
+          trainee_id: string
+        }
+        Update: {
+          created_at?: string
+          end_year?: number | null
+          id?: string
+          level?: string | null
+          major?: string | null
+          school_name?: string
+          start_year?: number | null
+          trainee_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "education_history_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_members: {
+        Row: {
+          birth_year: number | null
+          created_at: string
+          full_name: string
+          gender: string | null
+          id: string
+          income: string | null
+          location: string | null
+          occupation: string | null
+          relationship: string
+          trainee_id: string
+        }
+        Insert: {
+          birth_year?: number | null
+          created_at?: string
+          full_name: string
+          gender?: string | null
+          id?: string
+          income?: string | null
+          location?: string | null
+          occupation?: string | null
+          relationship: string
+          trainee_id: string
+        }
+        Update: {
+          birth_year?: number | null
+          created_at?: string
+          full_name?: string
+          gender?: string | null
+          id?: string
+          income?: string | null
+          location?: string | null
+          occupation?: string | null
+          relationship?: string
+          trainee_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_members_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_history: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          expected_entry_month: string | null
+          id: string
+          interview_date: string | null
+          job_category_id: string | null
+          notes: string | null
+          result: string | null
+          trainee_id: string
+          union_id: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          expected_entry_month?: string | null
+          id?: string
+          interview_date?: string | null
+          job_category_id?: string | null
+          notes?: string | null
+          result?: string | null
+          trainee_id: string
+          union_id?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          expected_entry_month?: string | null
+          id?: string
+          interview_date?: string | null
+          job_category_id?: string | null
+          notes?: string | null
+          result?: string | null
+          trainee_id?: string
+          union_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_history_job_category_id_fkey"
+            columns: ["job_category_id"]
+            isOneToOne: false
+            referencedRelation: "job_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_history_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_history_union_id_fkey"
+            columns: ["union_id"]
+            isOneToOne: false
+            referencedRelation: "unions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      japan_relatives: {
+        Row: {
+          address_japan: string | null
+          age: number | null
+          created_at: string
+          full_name: string
+          gender: string | null
+          id: string
+          relationship: string | null
+          residence_status: string | null
+          trainee_id: string
+        }
+        Insert: {
+          address_japan?: string | null
+          age?: number | null
+          created_at?: string
+          full_name: string
+          gender?: string | null
+          id?: string
+          relationship?: string | null
+          residence_status?: string | null
+          trainee_id: string
+        }
+        Update: {
+          address_japan?: string | null
+          age?: number | null
+          created_at?: string
+          full_name?: string
+          gender?: string | null
+          id?: string
+          relationship?: string | null
+          residence_status?: string | null
+          trainee_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "japan_relatives_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_categories: {
+        Row: {
+          category: string | null
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          name_japanese: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          name_japanese?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          name_japanese?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          code: string
+          company_id: string | null
+          contract_term: number | null
+          created_at: string
+          expected_interview_date: string | null
+          gender_requirement: string | null
+          id: string
+          image_url: string | null
+          job_category_id: string | null
+          notes: string | null
+          quantity: number | null
+          status: string | null
+          union_id: string | null
+          updated_at: string
+          work_address: string | null
+        }
+        Insert: {
+          code: string
+          company_id?: string | null
+          contract_term?: number | null
+          created_at?: string
+          expected_interview_date?: string | null
+          gender_requirement?: string | null
+          id?: string
+          image_url?: string | null
+          job_category_id?: string | null
+          notes?: string | null
+          quantity?: number | null
+          status?: string | null
+          union_id?: string | null
+          updated_at?: string
+          work_address?: string | null
+        }
+        Update: {
+          code?: string
+          company_id?: string | null
+          contract_term?: number | null
+          created_at?: string
+          expected_interview_date?: string | null
+          gender_requirement?: string | null
+          id?: string
+          image_url?: string | null
+          job_category_id?: string | null
+          notes?: string | null
+          quantity?: number | null
+          status?: string | null
+          union_id?: string | null
+          updated_at?: string
+          work_address?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_job_category_id_fkey"
+            columns: ["job_category_id"]
+            isOneToOne: false
+            referencedRelation: "job_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_union_id_fkey"
+            columns: ["union_id"]
+            isOneToOne: false
+            referencedRelation: "unions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teachers: {
+        Row: {
+          code: string
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          phone: string | null
+          specialty: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          phone?: string | null
+          specialty?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          phone?: string | null
+          specialty?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       trainees: {
         Row: {
+          absconded_date: string | null
           birth_date: string | null
+          birthplace: string | null
+          blood_group: string | null
+          cccd_date: string | null
+          cccd_number: string | null
+          cccd_place: string | null
+          class_id: string | null
+          coe_date: string | null
+          contract_end_date: string | null
+          contract_term: number | null
           created_at: string | null
+          current_address: string | null
+          current_situation: string | null
           departure_date: string | null
+          document_submission_date: string | null
+          dominant_hand: string | null
+          drinking: string | null
+          early_return_date: string | null
+          early_return_reason: string | null
+          education_level: string | null
+          email: string | null
+          enrollment_status: string | null
+          entry_date: string | null
+          ethnicity: string | null
           expected_entry_month: string | null
+          expected_return_date: string | null
           facebook: string | null
           full_name: string
           furigana: string | null
           gender: string | null
+          health_status: string | null
+          height: number | null
+          hobbies: string | null
+          household_address: string | null
           id: string
+          interview_count: number | null
+          interview_pass_date: string | null
+          job_category_id: string | null
+          marital_status: string | null
           notes: string | null
+          nyukan_entry_date: string | null
+          otit_entry_date: string | null
+          parent_phone_1: string | null
+          parent_phone_2: string | null
+          passport_date: string | null
+          passport_number: string | null
+          permanent_address: string | null
           phone: string | null
+          photo_url: string | null
           progression_stage:
             | Database["public"]["Enums"]["progression_stage"]
             | null
+          receiving_company_id: string | null
+          registration_date: string | null
           return_date: string | null
           simple_status: Database["public"]["Enums"]["simple_status"] | null
+          smoking: string | null
+          source: string | null
+          tattoo: boolean | null
+          temp_address: string | null
           trainee_code: string
           trainee_type: Database["public"]["Enums"]["trainee_type"] | null
+          union_id: string | null
           updated_at: string | null
+          visa_date: string | null
+          vision_left: number | null
+          vision_right: number | null
+          weight: number | null
           zalo: string | null
         }
         Insert: {
+          absconded_date?: string | null
           birth_date?: string | null
+          birthplace?: string | null
+          blood_group?: string | null
+          cccd_date?: string | null
+          cccd_number?: string | null
+          cccd_place?: string | null
+          class_id?: string | null
+          coe_date?: string | null
+          contract_end_date?: string | null
+          contract_term?: number | null
           created_at?: string | null
+          current_address?: string | null
+          current_situation?: string | null
           departure_date?: string | null
+          document_submission_date?: string | null
+          dominant_hand?: string | null
+          drinking?: string | null
+          early_return_date?: string | null
+          early_return_reason?: string | null
+          education_level?: string | null
+          email?: string | null
+          enrollment_status?: string | null
+          entry_date?: string | null
+          ethnicity?: string | null
           expected_entry_month?: string | null
+          expected_return_date?: string | null
           facebook?: string | null
           full_name: string
           furigana?: string | null
           gender?: string | null
+          health_status?: string | null
+          height?: number | null
+          hobbies?: string | null
+          household_address?: string | null
           id?: string
+          interview_count?: number | null
+          interview_pass_date?: string | null
+          job_category_id?: string | null
+          marital_status?: string | null
           notes?: string | null
+          nyukan_entry_date?: string | null
+          otit_entry_date?: string | null
+          parent_phone_1?: string | null
+          parent_phone_2?: string | null
+          passport_date?: string | null
+          passport_number?: string | null
+          permanent_address?: string | null
           phone?: string | null
+          photo_url?: string | null
           progression_stage?:
             | Database["public"]["Enums"]["progression_stage"]
             | null
+          receiving_company_id?: string | null
+          registration_date?: string | null
           return_date?: string | null
           simple_status?: Database["public"]["Enums"]["simple_status"] | null
+          smoking?: string | null
+          source?: string | null
+          tattoo?: boolean | null
+          temp_address?: string | null
           trainee_code: string
           trainee_type?: Database["public"]["Enums"]["trainee_type"] | null
+          union_id?: string | null
           updated_at?: string | null
+          visa_date?: string | null
+          vision_left?: number | null
+          vision_right?: number | null
+          weight?: number | null
           zalo?: string | null
         }
         Update: {
+          absconded_date?: string | null
           birth_date?: string | null
+          birthplace?: string | null
+          blood_group?: string | null
+          cccd_date?: string | null
+          cccd_number?: string | null
+          cccd_place?: string | null
+          class_id?: string | null
+          coe_date?: string | null
+          contract_end_date?: string | null
+          contract_term?: number | null
           created_at?: string | null
+          current_address?: string | null
+          current_situation?: string | null
           departure_date?: string | null
+          document_submission_date?: string | null
+          dominant_hand?: string | null
+          drinking?: string | null
+          early_return_date?: string | null
+          early_return_reason?: string | null
+          education_level?: string | null
+          email?: string | null
+          enrollment_status?: string | null
+          entry_date?: string | null
+          ethnicity?: string | null
           expected_entry_month?: string | null
+          expected_return_date?: string | null
           facebook?: string | null
           full_name?: string
           furigana?: string | null
           gender?: string | null
+          health_status?: string | null
+          height?: number | null
+          hobbies?: string | null
+          household_address?: string | null
           id?: string
+          interview_count?: number | null
+          interview_pass_date?: string | null
+          job_category_id?: string | null
+          marital_status?: string | null
           notes?: string | null
+          nyukan_entry_date?: string | null
+          otit_entry_date?: string | null
+          parent_phone_1?: string | null
+          parent_phone_2?: string | null
+          passport_date?: string | null
+          passport_number?: string | null
+          permanent_address?: string | null
           phone?: string | null
+          photo_url?: string | null
           progression_stage?:
             | Database["public"]["Enums"]["progression_stage"]
             | null
+          receiving_company_id?: string | null
+          registration_date?: string | null
           return_date?: string | null
           simple_status?: Database["public"]["Enums"]["simple_status"] | null
+          smoking?: string | null
+          source?: string | null
+          tattoo?: boolean | null
+          temp_address?: string | null
           trainee_code?: string
           trainee_type?: Database["public"]["Enums"]["trainee_type"] | null
+          union_id?: string | null
           updated_at?: string | null
+          visa_date?: string | null
+          vision_left?: number | null
+          vision_right?: number | null
+          weight?: number | null
           zalo?: string | null
         }
         Relationships: []
+      }
+      unions: {
+        Row: {
+          address: string | null
+          code: string
+          contact_person: string | null
+          country: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          name_japanese: string | null
+          notes: string | null
+          phone: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          code: string
+          contact_person?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          name_japanese?: string | null
+          notes?: string | null
+          phone?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          code?: string
+          contact_person?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          name_japanese?: string | null
+          notes?: string | null
+          phone?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      work_history: {
+        Row: {
+          company_name: string
+          created_at: string
+          end_date: string | null
+          id: string
+          position: string | null
+          start_date: string | null
+          trainee_id: string
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          position?: string | null
+          start_date?: string | null
+          trainee_id: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          position?: string | null
+          start_date?: string | null
+          trainee_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_history_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
