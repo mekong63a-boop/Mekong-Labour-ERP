@@ -21,6 +21,7 @@ import { format } from "date-fns";
 import { PhotoUpload } from "@/components/trainees/PhotoUpload";
 import { useTrainee, useUpdateTrainee } from "@/hooks/useTrainees";
 import { useKatakanaConverter } from "@/hooks/useKatakanaConverter";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 // Options
 const TRAINEE_TYPES = ["Thực tập sinh", "Kỹ năng đặc định", "Kỹ sư", "Du học sinh", "Thực tập sinh số 3"];
@@ -28,14 +29,29 @@ const GENDERS = ["Nam", "Nữ"];
 const MARITAL_STATUSES = ["Độc thân", "Đã kết hôn", "Ly hôn", "Góa"];
 const SIMPLE_STATUSES = ["Đăng ký mới", "Đang học", "Bảo lưu", "Dừng chương trình", "Không học", "Hủy", "Đang ở Nhật", "Rời công ty"];
 const EDUCATION_LEVELS = ["THPT", "Trung cấp", "Cao đẳng", "Đại học", "Sau đại học", "Khác"];
-const ETHNICITIES = ["Kinh", "Tày", "Thái", "Mường", "Khmer", "Nùng", "H'Mông", "Khác"];
+const ETHNICITIES = ["Kinh", "Tày", "Thái", "Mường", "Khmer", "Nùng", "H'Mông", "Dao", "Gia Rai", "Ê Đê", "Ba Na", "Khác"];
 const SOURCES = ["Facebook", "Zalo", "Giới thiệu", "Website", "Hội chợ việc làm", "Trường học", "Khác"];
 const BLOOD_GROUPS = ["A", "B", "AB", "O"];
 const DOMINANT_HANDS = ["Tay phải", "Tay trái", "Cả hai"];
 const YES_NO = ["Có", "Không"];
 const SMOKING_OPTIONS = ["Không", "Thỉnh thoảng", "Thường xuyên"];
 const DRINKING_OPTIONS = ["Không", "Thỉnh thoảng", "Thường xuyên"];
-const PROVINCES = ["Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ", "An Giang", "Bà Rịa - Vũng Tàu", "Bắc Giang", "Bắc Kạn", "Bạc Liêu", "Khác"];
+const PROVINCES = [
+  "An Giang", "Bà Rịa - Vũng Tàu", "Bạc Liêu", "Bắc Giang", "Bắc Kạn", "Bắc Ninh",
+  "Bến Tre", "Bình Dương", "Bình Định", "Bình Phước", "Bình Thuận", "Cà Mau",
+  "Cao Bằng", "Cần Thơ", "Đà Nẵng", "Đắk Lắk", "Đắk Nông", "Điện Biên", "Đồng Nai",
+  "Đồng Tháp", "Gia Lai", "Hà Giang", "Hà Nam", "Hà Nội", "Hà Tĩnh", "Hải Dương",
+  "Hải Phòng", "Hậu Giang", "Hòa Bình", "Hưng Yên", "Khánh Hòa", "Kiên Giang",
+  "Kon Tum", "Lai Châu", "Lạng Sơn", "Lào Cai", "Lâm Đồng", "Long An", "Nam Định",
+  "Nghệ An", "Ninh Bình", "Ninh Thuận", "Phú Thọ", "Phú Yên", "Quảng Bình",
+  "Quảng Nam", "Quảng Ngãi", "Quảng Ninh", "Quảng Trị", "Sóc Trăng", "Sơn La",
+  "Tây Ninh", "Thái Bình", "Thái Nguyên", "Thanh Hóa", "Thừa Thiên Huế", "Tiền Giang",
+  "TP. Hồ Chí Minh", "Trà Vinh", "Tuyên Quang", "Vĩnh Long", "Vĩnh Phúc", "Yên Bái"
+];
+const PROGRESSION_STAGES = [
+  "Chưa đậu", "Đậu phỏng vấn", "Nộp hồ sơ", "OTIT", "Nyukan", "COE", "Visa", 
+  "Xuất cảnh", "Đang làm việc", "Hoàn thành hợp đồng", "Bỏ trốn", "Về trước hạn"
+];
 
 interface FormData {
   trainee_code: string;
@@ -62,7 +78,7 @@ interface FormData {
   parent_phone_1: string;
   parent_phone_2: string;
   simple_status: string;
-  current_situation: string;
+  progression_stage: string;
   registration_date: string;
   height: string;
   vision_left: string;
@@ -77,6 +93,23 @@ interface FormData {
   health_status: string;
   notes: string;
   photo_url: string;
+  // Status-related dates
+  entry_date: string;
+  reserve_date: string;
+  stop_date: string;
+  cancel_date: string;
+  // Progression stage dates
+  interview_pass_date: string;
+  document_submission_date: string;
+  otit_entry_date: string;
+  nyukan_entry_date: string;
+  coe_date: string;
+  visa_date: string;
+  departure_date: string;
+  absconded_date: string;
+  early_return_date: string;
+  early_return_reason: string;
+  return_date: string;
 }
 
 interface TraineeFormContentProps {
@@ -127,7 +160,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     parent_phone_1: "",
     parent_phone_2: "",
     simple_status: "Đăng ký mới",
-    current_situation: "",
+    progression_stage: "Chưa đậu",
     registration_date: format(new Date(), "yyyy-MM-dd"),
     height: "",
     vision_left: "",
@@ -142,6 +175,23 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     health_status: "",
     notes: "",
     photo_url: "",
+    // Status-related dates
+    entry_date: "",
+    reserve_date: "",
+    stop_date: "",
+    cancel_date: "",
+    // Progression stage dates
+    interview_pass_date: "",
+    document_submission_date: "",
+    otit_entry_date: "",
+    nyukan_entry_date: "",
+    coe_date: "",
+    visa_date: "",
+    departure_date: "",
+    absconded_date: "",
+    early_return_date: "",
+    early_return_reason: "",
+    return_date: "",
   });
 
   const [errors, setErrors] = useState<Partial<FormData>>({});
@@ -174,7 +224,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         parent_phone_1: trainee.parent_phone_1 || "",
         parent_phone_2: trainee.parent_phone_2 || "",
         simple_status: trainee.simple_status || "Đăng ký mới",
-        current_situation: trainee.current_situation || "",
+        progression_stage: trainee.progression_stage || "Chưa đậu",
         registration_date: trainee.registration_date || format(new Date(), "yyyy-MM-dd"),
         height: trainee.height?.toString() || "",
         vision_left: trainee.vision_left?.toString() || "",
@@ -189,6 +239,23 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         health_status: trainee.health_status || "",
         notes: trainee.notes || "",
         photo_url: trainee.photo_url || "",
+        // Status-related dates
+        entry_date: trainee.entry_date || "",
+        reserve_date: "",
+        stop_date: "",
+        cancel_date: "",
+        // Progression stage dates
+        interview_pass_date: trainee.interview_pass_date || "",
+        document_submission_date: trainee.document_submission_date || "",
+        otit_entry_date: trainee.otit_entry_date || "",
+        nyukan_entry_date: trainee.nyukan_entry_date || "",
+        coe_date: trainee.coe_date || "",
+        visa_date: trainee.visa_date || "",
+        departure_date: trainee.departure_date || "",
+        absconded_date: trainee.absconded_date || "",
+        early_return_date: trainee.early_return_date || "",
+        early_return_reason: trainee.early_return_reason || "",
+        return_date: trainee.return_date || "",
       });
     }
   }, [isEditMode, trainee]);
@@ -215,7 +282,11 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   const validateForm = () => {
     const newErrors: Partial<FormData> = {};
 
-    if (!formData.trainee_code.trim()) newErrors.trainee_code = "Bắt buộc";
+    if (!formData.trainee_code.trim()) {
+      newErrors.trainee_code = "Bắt buộc";
+    } else if (!/^\d{6}$/.test(formData.trainee_code)) {
+      newErrors.trainee_code = "Mã phải gồm 6 số";
+    }
     if (!formData.full_name.trim()) newErrors.full_name = "Bắt buộc";
     if (!formData.source.trim()) newErrors.source = "Bắt buộc";
     if (!formData.birth_date) newErrors.birth_date = "Bắt buộc";
@@ -251,7 +322,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     parent_phone_1: formData.parent_phone_1 || null,
     parent_phone_2: formData.parent_phone_2 || null,
     simple_status: formData.simple_status as any,
-    current_situation: formData.current_situation || null,
+    progression_stage: formData.progression_stage as any || null,
     registration_date: formData.registration_date || null,
     height: formData.height ? parseFloat(formData.height) : null,
     vision_left: formData.vision_left ? parseFloat(formData.vision_left) : null,
@@ -266,6 +337,19 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     health_status: formData.health_status || null,
     notes: formData.notes || null,
     photo_url: formData.photo_url || null,
+    // Progression stage dates
+    interview_pass_date: formData.interview_pass_date || null,
+    document_submission_date: formData.document_submission_date || null,
+    otit_entry_date: formData.otit_entry_date || null,
+    nyukan_entry_date: formData.nyukan_entry_date || null,
+    coe_date: formData.coe_date || null,
+    visa_date: formData.visa_date || null,
+    departure_date: formData.departure_date || null,
+    entry_date: formData.entry_date || null,
+    absconded_date: formData.absconded_date || null,
+    early_return_date: formData.early_return_date || null,
+    early_return_reason: formData.early_return_reason || null,
+    return_date: formData.return_date || null,
   });
 
   const handleSubmit = async () => {
@@ -388,11 +472,18 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                           Mã học viên <span className="text-destructive">*</span>
                         </Label>
                         <Input
-                          placeholder="MK001"
+                          placeholder="123456"
                           value={formData.trainee_code}
-                          onChange={(e) => updateField("trainee_code", e.target.value.toUpperCase())}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                            updateField("trainee_code", value);
+                          }}
+                          maxLength={6}
                           className={cn("w-24", getInputClass(formData.trainee_code, errors.trainee_code))}
                         />
+                        {errors.trainee_code && (
+                          <span className="text-xs text-destructive">{errors.trainee_code}</span>
+                        )}
                       </div>
                     </div>
 
@@ -457,19 +548,14 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Nơi sinh</Label>
-                      <Select
+                      <SearchableSelect
+                        options={PROVINCES}
                         value={formData.birthplace}
                         onValueChange={(v) => updateField("birthplace", v)}
-                      >
-                        <SelectTrigger className={getSelectClass(formData.birthplace)}>
-                          <SelectValue placeholder="Chọn tỉnh/thành" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {PROVINCES.map((p) => (
-                            <SelectItem key={p} value={p}>{p}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        placeholder="Chọn tỉnh/thành"
+                        searchPlaceholder="Tìm tỉnh/thành..."
+                        emptyText="Không tìm thấy."
+                      />
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">
@@ -508,19 +594,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   </div>
 
                   {/* Third Row - Documents */}
-                  <div className="grid grid-cols-5 gap-3">
-                    <div>
-                      <Label className="text-xs text-muted-foreground">
-                        Mã HV <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        placeholder="009415"
-                        value={formData.trainee_code}
-                        onChange={(e) => updateField("trainee_code", e.target.value)}
-                        className={getInputClass(formData.trainee_code, errors.trainee_code)}
-                        disabled={isEditMode}
-                      />
-                    </div>
+                  <div className="grid grid-cols-4 gap-3">
                     <div>
                       <Label className="text-xs text-muted-foreground">Số CCCD/CMND</Label>
                       <Input
@@ -563,19 +637,14 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   <div className="grid grid-cols-4 gap-3">
                     <div>
                       <Label className="text-xs text-muted-foreground">Dân tộc</Label>
-                      <Select
+                      <SearchableSelect
+                        options={ETHNICITIES}
                         value={formData.ethnicity}
                         onValueChange={(v) => updateField("ethnicity", v)}
-                      >
-                        <SelectTrigger className={getSelectClass(formData.ethnicity)}>
-                          <SelectValue placeholder="Chọn dân tộc" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ETHNICITIES.map((e) => (
-                            <SelectItem key={e} value={e}>{e}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        placeholder="Chọn dân tộc"
+                        searchPlaceholder="Tìm dân tộc..."
+                        emptyText="Không tìm thấy."
+                      />
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Số điện thoại</Label>
@@ -879,22 +948,189 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                       </SelectContent>
                     </Select>
                   </div>
+                  
+                  {/* Conditional date fields based on simple_status */}
+                  {formData.simple_status === "Đang học" && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ngày nhập học</Label>
+                      <Input
+                        type="date"
+                        value={formData.entry_date}
+                        onChange={(e) => updateField("entry_date", e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {formData.simple_status === "Bảo lưu" && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ngày bảo lưu</Label>
+                      <Input
+                        type="date"
+                        value={formData.reserve_date}
+                        onChange={(e) => updateField("reserve_date", e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {formData.simple_status === "Dừng chương trình" && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ngày dừng chương trình</Label>
+                      <Input
+                        type="date"
+                        value={formData.stop_date}
+                        onChange={(e) => updateField("stop_date", e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {formData.simple_status === "Hủy" && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ngày hủy</Label>
+                      <Input
+                        type="date"
+                        value={formData.cancel_date}
+                        onChange={(e) => updateField("cancel_date", e.target.value)}
+                      />
+                    </div>
+                  )}
+
                   <div>
-                    <Label className="text-xs text-muted-foreground">Tình trạng hiện tại</Label>
+                    <Label className="text-xs text-muted-foreground">Tình trạng tiến trình</Label>
                     <Select
-                      value={formData.current_situation}
-                      onValueChange={(v) => updateField("current_situation", v)}
+                      value={formData.progression_stage}
+                      onValueChange={(v) => updateField("progression_stage", v)}
                     >
-                      <SelectTrigger className={getSelectClass(formData.current_situation)}>
+                      <SelectTrigger className={getSelectClass(formData.progression_stage)}>
                         <SelectValue placeholder="Chọn" />
                       </SelectTrigger>
                       <SelectContent>
-                        {["Đang đi làm", "Thất nghiệp", "Đang đi học", "Khác"].map((s) => (
+                        {PROGRESSION_STAGES.map((s) => (
                           <SelectItem key={s} value={s}>{s}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Conditional date fields based on progression_stage */}
+                  {formData.progression_stage === "Đậu phỏng vấn" && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ngày đậu PV</Label>
+                      <Input
+                        type="date"
+                        value={formData.interview_pass_date}
+                        onChange={(e) => updateField("interview_pass_date", e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {formData.progression_stage === "Nộp hồ sơ" && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ngày nộp HS</Label>
+                      <Input
+                        type="date"
+                        value={formData.document_submission_date}
+                        onChange={(e) => updateField("document_submission_date", e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {formData.progression_stage === "OTIT" && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ngày vào OTIT</Label>
+                      <Input
+                        type="date"
+                        value={formData.otit_entry_date}
+                        onChange={(e) => updateField("otit_entry_date", e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {formData.progression_stage === "Nyukan" && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ngày vào Nyukan</Label>
+                      <Input
+                        type="date"
+                        value={formData.nyukan_entry_date}
+                        onChange={(e) => updateField("nyukan_entry_date", e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {formData.progression_stage === "COE" && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ngày có COE</Label>
+                      <Input
+                        type="date"
+                        value={formData.coe_date}
+                        onChange={(e) => updateField("coe_date", e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {formData.progression_stage === "Visa" && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ngày có Visa</Label>
+                      <Input
+                        type="date"
+                        value={formData.visa_date}
+                        onChange={(e) => updateField("visa_date", e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {formData.progression_stage === "Xuất cảnh" && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ngày xuất cảnh</Label>
+                      <Input
+                        type="date"
+                        value={formData.departure_date}
+                        onChange={(e) => updateField("departure_date", e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {formData.progression_stage === "Đang làm việc" && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ngày bắt đầu làm việc</Label>
+                      <Input
+                        type="date"
+                        value={formData.entry_date}
+                        onChange={(e) => updateField("entry_date", e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {formData.progression_stage === "Bỏ trốn" && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ngày bỏ trốn</Label>
+                      <Input
+                        type="date"
+                        value={formData.absconded_date}
+                        onChange={(e) => updateField("absconded_date", e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {formData.progression_stage === "Hoàn thành hợp đồng" && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ngày hoàn thành HĐ</Label>
+                      <Input
+                        type="date"
+                        value={formData.return_date}
+                        onChange={(e) => updateField("return_date", e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {formData.progression_stage === "Về trước hạn" && (
+                    <>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Ngày về nước trước hạn</Label>
+                        <Input
+                          type="date"
+                          value={formData.early_return_date}
+                          onChange={(e) => updateField("early_return_date", e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Lý do về trước hạn</Label>
+                        <Textarea
+                          placeholder="Nhập lý do..."
+                          value={formData.early_return_reason}
+                          onChange={(e) => updateField("early_return_reason", e.target.value)}
+                          className="min-h-16"
+                        />
+                      </div>
+                    </>
+                  )}
+
                   <div>
                     <Label className="text-xs text-muted-foreground">Ngày đăng ký</Label>
                     <Input
