@@ -35,27 +35,18 @@ type MenuItem = {
 
 const menuItems: MenuItem[] = [
   { path: "/", icon: LayoutDashboard, label: "Tổng quan" },
-  { path: "/trainees", icon: Users, label: "Học viên" },
-  { path: "/orders", icon: ClipboardList, label: "Đơn hàng" },
-  { path: "/partners", icon: Building2, label: "Đối tác" },
-  {
-    path: "/internal-ops",
-    icon: Building2,
-    label: "Nghiệp vụ nội bộ",
-    children: [
-      { path: "/training", icon: GraduationCap, label: "Đào tạo" },
-      { path: "/dormitory", icon: Home, label: "Quản lý KTX" },
-      { path: "/legal", icon: FileSpreadsheet, label: "Hồ sơ / Pháp lý" },
-    ],
-  },
-  { path: "/post-departure", icon: Plane, label: "Nghiệp vụ sau xuất cảnh" },
-  { path: "/handbook", icon: BookOpen, label: "Cẩm nang tư vấn" },
-  { path: "/violations", icon: AlertTriangle, label: "Blacklist" },
-  { path: "/reports", icon: FileSpreadsheet, label: "Báo cáo" },
-  { path: "/internal-union", icon: Users, label: "Công đoàn" },
-  { path: "/glossary", icon: Languages, label: "Từ điển chuyên ngành" },
-  { path: "/system-monitor", icon: Monitor, label: "Giám sát hệ thống" },
-  { path: "/admin", icon: Shield, label: "Quản trị" },
+  { path: "/profile", icon: Users, label: "Hồ sơ" },
+  { path: "/trainees", icon: ClipboardList, label: "Danh sách" },
+  { path: "/recruitment", icon: Users, label: "Chiêu sinh" },
+  { path: "/enrollment", icon: GraduationCap, label: "Nghiệp vụ nhập học" },
+  { path: "/departure", icon: Plane, label: "Nghiệp vụ làm xuất cảnh" },
+  { path: "/training-program", icon: BookOpen, label: "Chương trình tu sửa" },
+  { path: "/training", icon: GraduationCap, label: "Đào tạo" },
+  { path: "/contracts", icon: FileSpreadsheet, label: "Hợp đồng" },
+  { path: "/union", icon: Users, label: "Công đoàn" },
+  { path: "/foreign-affairs", icon: Languages, label: "Tu điển chuyên ngành" },
+  { path: "/statistics", icon: Monitor, label: "Chiến sự trí thống" },
+  { path: "/admin", icon: Shield, label: "Quản lý" },
 ];
 
 const bottomMenuItems: MenuItem[] = [
@@ -136,7 +127,10 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
       <Link
         key={item.path}
         to={item.path}
-        className={cn("sidebar-link", active && "bg-sidebar-accent font-medium")}
+        className={cn(
+          "sidebar-link",
+          active && "bg-sidebar-accent text-white font-medium"
+        )}
       >
         <item.icon className="h-4 w-4 flex-shrink-0" />
         {!collapsed && <span>{item.label}</span>}
@@ -147,23 +141,23 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex flex-col bg-sidebar-background text-sidebar-foreground h-screen transition-all duration-300",
+        "flex flex-col bg-sidebar-background text-sidebar-foreground h-screen transition-all duration-300 border-r border-sidebar-border",
         collapsed ? "w-16" : "w-60"
       )}
     >
       {/* Logo Header */}
-      <div className="p-2">
+      <div className="p-3 border-b border-sidebar-border">
         <Link
           to="/"
-          className="flex items-center gap-2.5 bg-white rounded-lg p-2"
+          className="flex items-center gap-3"
         >
-          <img src={mekongLogo} alt="Mekong Logo" className="h-9 w-auto" />
+          <img src={mekongLogo} alt="Mekong Logo" className="h-10 w-auto" />
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="font-bold text-sm text-primary leading-tight">
+              <span className="font-bold text-base text-primary leading-tight">
                 Mekong Labour
               </span>
-              <span className="text-[11px] text-muted-foreground leading-tight">
+              <span className="text-xs text-gray-500 leading-tight">
                 Phần mềm quản lý TTS
               </span>
             </div>
@@ -177,14 +171,14 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
       </nav>
 
       {/* Bottom Navigation */}
-      <div className="border-t border-sidebar-border px-2 py-1.5 space-y-0.5">
+      <div className="border-t border-sidebar-border px-3 py-2 space-y-1">
         {bottomMenuItems.map((item) => (
           <Link
             key={item.path}
             to={item.path}
             className={cn(
               "sidebar-link",
-              isActive(item.path) && "bg-sidebar-accent font-medium"
+              isActive(item.path) && "bg-sidebar-accent text-white font-medium"
             )}
           >
             <item.icon className="h-4 w-4 flex-shrink-0" />
@@ -194,15 +188,14 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
       </div>
 
       {/* User Info */}
-      <div className="border-t border-sidebar-border p-2">
-        <div className="flex items-center gap-2.5">
-          <div className="h-7 w-7 rounded-full bg-sidebar-accent flex items-center justify-center flex-shrink-0">
-            <span className="text-xs font-medium">M</span>
+      <div className="border-t border-sidebar-border p-3">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+            <span className="text-sm font-medium text-white">M</span>
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="text-sm font-medium leading-tight">Mekong</span>
-              <span className="text-[11px] text-sidebar-foreground/70 leading-tight">Admin</span>
+              <span className="text-sm font-medium text-gray-800 leading-tight">MEKONG</span>
             </div>
           )}
         </div>
