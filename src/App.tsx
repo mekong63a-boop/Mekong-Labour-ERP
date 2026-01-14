@@ -7,6 +7,10 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import TraineeList from "./pages/TraineeList";
 import TraineeDetail from "./pages/TraineeDetail";
+import EducationDashboard from "./pages/education/EducationDashboard";
+import TeacherList from "./pages/education/TeacherList";
+import ClassList from "./pages/education/ClassList";
+import AttendanceCalendar from "./pages/education/AttendanceCalendar";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,7 +26,15 @@ const App = () => (
             <Route path="/" element={<Dashboard />} />
             <Route path="/trainees" element={<TraineeList />} />
             <Route path="/hoc-vien" element={<TraineeList />} />
+            <Route path="/trainees/new" element={<TraineeList />} />
             <Route path="/trainees/:id" element={<TraineeDetail />} />
+            {/* Education Module */}
+            <Route path="/education" element={<EducationDashboard />} />
+            <Route path="/training" element={<EducationDashboard />} />
+            <Route path="/education/teachers" element={<TeacherList />} />
+            <Route path="/education/classes" element={<ClassList />} />
+            <Route path="/education/classes/:id/attendance" element={<AttendanceCalendar />} />
+            <Route path="/education/attendance" element={<ClassList />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
