@@ -147,7 +147,7 @@ export function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex flex-col bg-sidebar-background text-sidebar-foreground h-screen transition-all duration-300",
+        "flex flex-col bg-sidebar text-sidebar-foreground h-screen transition-all duration-300",
         collapsed ? "w-16" : "w-60"
       )}
     >
