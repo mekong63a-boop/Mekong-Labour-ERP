@@ -7,6 +7,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import TraineeList from "./pages/TraineeList";
 import TraineeDetail from "./pages/TraineeDetail";
+import TraineeForm from "./pages/TraineeForm";
 import EducationDashboard from "./pages/education/EducationDashboard";
 import TeacherList from "./pages/education/TeacherList";
 import ClassList from "./pages/education/ClassList";
@@ -26,7 +27,7 @@ const App = () => (
             <Route path="/" element={<Dashboard />} />
             <Route path="/trainees" element={<TraineeList />} />
             <Route path="/hoc-vien" element={<TraineeList />} />
-            <Route path="/trainees/new" element={<TraineeList />} />
+            <Route path="/trainees/new" element={<TraineeForm />} />
             <Route path="/trainees/:id" element={<TraineeDetail />} />
             {/* Education Module */}
             <Route path="/education" element={<EducationDashboard />} />
