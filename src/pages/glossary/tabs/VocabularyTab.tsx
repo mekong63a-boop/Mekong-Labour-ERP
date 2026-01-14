@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, Save, X, Pencil, Trash2 } from "lucide-react";
+import { Search, Plus, Save, X, Pencil, Trash2, Download, Upload } from "lucide-react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 interface Vocabulary {
   id: string;
@@ -24,6 +25,7 @@ const VocabularyTab = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ vietnamese: "", japanese: "", category: "Chung" });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: vocabularies = [], isLoading } = useQuery({
     queryKey: ["vocabulary", search, categoryFilter],
@@ -106,11 +108,61 @@ const VocabularyTab = () => {
     }
   };
 
+  // Export to Excel
+  const handleExport = () => {
+    const exportData = vocabularies.map((v, index) => ({
+      "STT": index + 1,
+      "Tiếng Việt": v.vietnamese,
+      "Tiếng Nhật": v.japanese,
+      "Danh mục": v.category,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Từ vựng");
+    XLSX.writeFile(wb, `tu_vung_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success("Xuất Excel thành công");
+  };
+
+  // Import from Excel
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+      const vocabsToInsert = jsonData.map((row) => ({
+        vietnamese: row["Tiếng Việt"] || row.vietnamese || "",
+        japanese: row["Tiếng Nhật"] || row.japanese || "",
+        category: row["Danh mục"] || row.category || "Chung",
+      })).filter(v => v.vietnamese && v.japanese);
+
+      if (vocabsToInsert.length === 0) {
+        toast.error("Không tìm thấy dữ liệu hợp lệ trong file");
+        return;
+      }
+
+      const { error } = await supabase.from("vocabulary").insert(vocabsToInsert);
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ["vocabulary"] });
+      toast.success(`Đã import ${vocabsToInsert.length} từ vựng`);
+    } catch (error: any) {
+      toast.error("Lỗi khi import: " + error.message);
+    }
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   return (
     <div className="space-y-4">
       {/* Search and Filter */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="relative flex-1 min-w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Tìm kiếm từ vựng..."
@@ -130,10 +182,27 @@ const VocabularyTab = () => {
             ))}
           </SelectContent>
         </Select>
-        <Button onClick={() => setShowAddForm(true)} className="ml-auto">
-          <Plus className="h-4 w-4 mr-2" />
-          Thêm từ mới
-        </Button>
+        <div className="flex gap-2 ml-auto">
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept=".xlsx,.xls"
+            onChange={handleImport}
+          />
+          <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="h-4 w-4 mr-2" />
+            Import Excel
+          </Button>
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="h-4 w-4 mr-2" />
+            Export Excel
+          </Button>
+          <Button onClick={() => setShowAddForm(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Thêm từ mới
+          </Button>
+        </div>
       </div>
 
       {/* Add/Edit Form */}
