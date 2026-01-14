@@ -28,6 +28,7 @@ const App = () => (
             <Route path="/trainees" element={<TraineeList />} />
             <Route path="/hoc-vien" element={<TraineeList />} />
             <Route path="/trainees/new" element={<TraineeForm />} />
+            <Route path="/trainees/:id/edit" element={<TraineeForm />} />
             <Route path="/trainees/:id" element={<TraineeDetail />} />
             {/* Education Module */}
             <Route path="/education" element={<EducationDashboard />} />

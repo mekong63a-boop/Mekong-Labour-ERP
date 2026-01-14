@@ -73,7 +73,7 @@ export default function TraineeDetail() {
             </p>
           </div>
         </div>
-        <Button variant="outline" className="gap-2">
+        <Button onClick={() => navigate(`/trainees/${id}/edit`)} className="gap-2">
           <Edit className="h-4 w-4" />
           Chỉnh sửa
         </Button>

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,11 +13,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Camera, Save, X, CreditCard } from "lucide-react";
+import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { PhotoUpload } from "@/components/trainees/PhotoUpload";
+import { CCCDScanner } from "@/components/trainees/CCCDScanner";
+import { useTrainee, useUpdateTrainee } from "@/hooks/useTrainees";
 
 // Options
 const TRAINEE_TYPES = ["Thực tập sinh", "Kỹ năng đặc định", "Kỹ sư", "Du học sinh", "Thực tập sinh số 3"];
@@ -32,6 +35,7 @@ const DOMINANT_HANDS = ["Tay phải", "Tay trái", "Cả hai"];
 const YES_NO = ["Có", "Không"];
 const SMOKING_OPTIONS = ["Không", "Thỉnh thoảng", "Thường xuyên"];
 const DRINKING_OPTIONS = ["Không", "Thỉnh thoảng", "Thường xuyên"];
+const PROVINCES = ["Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ", "An Giang", "Bà Rịa - Vũng Tàu", "Bắc Giang", "Bắc Kạn", "Bạc Liêu", "Khác"];
 
 interface FormData {
   trainee_code: string;
@@ -44,6 +48,7 @@ interface FormData {
   marital_status: string;
   cccd_number: string;
   cccd_date: string;
+  cccd_place: string;
   passport_number: string;
   passport_date: string;
   ethnicity: string;
@@ -71,13 +76,30 @@ interface FormData {
   blood_group: string;
   health_status: string;
   notes: string;
+  photo_url: string;
+}
+
+interface TraineeFormContentProps {
+  isEditMode: boolean;
+  traineeId?: string;
 }
 
 export default function TraineeForm() {
+  const { id } = useParams();
+  const isEditMode = !!id;
+
+  return <TraineeFormContent isEditMode={isEditMode} traineeId={id} />;
+}
+
+function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("personal");
+
+  // Fetch existing trainee data if editing
+  const { data: trainee, isLoading: isLoadingTrainee } = useTrainee(traineeId || "");
+  const updateTraineeMutation = useUpdateTrainee();
 
   const [formData, setFormData] = useState<FormData>({
     trainee_code: "",
@@ -90,6 +112,7 @@ export default function TraineeForm() {
     marital_status: "",
     cccd_number: "",
     cccd_date: "",
+    cccd_place: "",
     passport_number: "",
     passport_date: "",
     ethnicity: "",
@@ -117,15 +140,74 @@ export default function TraineeForm() {
     blood_group: "",
     health_status: "",
     notes: "",
+    photo_url: "",
   });
 
   const [errors, setErrors] = useState<Partial<FormData>>({});
+
+  // Populate form with trainee data when editing
+  useEffect(() => {
+    if (isEditMode && trainee) {
+      setFormData({
+        trainee_code: trainee.trainee_code || "",
+        full_name: trainee.full_name || "",
+        furigana: trainee.furigana || "",
+        trainee_type: trainee.trainee_type || "",
+        birth_date: trainee.birth_date || "",
+        birthplace: trainee.birthplace || "",
+        gender: trainee.gender || "",
+        marital_status: trainee.marital_status || "",
+        cccd_number: trainee.cccd_number || "",
+        cccd_date: trainee.cccd_date || "",
+        cccd_place: trainee.cccd_place || "",
+        passport_number: trainee.passport_number || "",
+        passport_date: trainee.passport_date || "",
+        ethnicity: trainee.ethnicity || "",
+        phone: trainee.phone || "",
+        source: trainee.source || "",
+        education_level: trainee.education_level || "",
+        temp_address: trainee.temp_address || "",
+        email: trainee.email || "",
+        permanent_address: trainee.permanent_address || "",
+        facebook: trainee.facebook || "",
+        parent_phone_1: trainee.parent_phone_1 || "",
+        parent_phone_2: trainee.parent_phone_2 || "",
+        simple_status: trainee.simple_status || "Đăng ký mới",
+        current_situation: trainee.current_situation || "",
+        registration_date: trainee.registration_date || format(new Date(), "yyyy-MM-dd"),
+        height: trainee.height?.toString() || "",
+        vision_left: trainee.vision_left?.toString() || "",
+        vision_right: trainee.vision_right?.toString() || "",
+        dominant_hand: trainee.dominant_hand || "",
+        hobbies: trainee.hobbies || "",
+        weight: trainee.weight?.toString() || "",
+        smoking: trainee.smoking || "",
+        tattoo: trainee.tattoo ? "Có" : "Không",
+        drinking: trainee.drinking || "",
+        blood_group: trainee.blood_group || "",
+        health_status: trainee.health_status || "",
+        notes: trainee.notes || "",
+        photo_url: trainee.photo_url || "",
+      });
+    }
+  }, [isEditMode, trainee]);
 
   const updateField = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
+  };
+
+  const handleCCCDData = (data: any) => {
+    if (data.full_name) updateField("full_name", data.full_name);
+    if (data.birth_date) updateField("birth_date", data.birth_date);
+    if (data.gender) updateField("gender", data.gender);
+    if (data.cccd_number) updateField("cccd_number", data.cccd_number);
+    if (data.cccd_date) updateField("cccd_date", data.cccd_date);
+    if (data.cccd_place) updateField("cccd_place", data.cccd_place);
+    if (data.permanent_address) updateField("permanent_address", data.permanent_address);
+    if (data.ethnicity) updateField("ethnicity", data.ethnicity);
   };
 
   const validateForm = () => {
@@ -142,6 +224,48 @@ export default function TraineeForm() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const buildTraineeData = () => ({
+    trainee_code: formData.trainee_code,
+    full_name: formData.full_name,
+    furigana: formData.furigana || null,
+    trainee_type: formData.trainee_type as any,
+    birth_date: formData.birth_date || null,
+    birthplace: formData.birthplace || null,
+    gender: formData.gender || null,
+    marital_status: formData.marital_status || null,
+    cccd_number: formData.cccd_number || null,
+    cccd_date: formData.cccd_date || null,
+    cccd_place: formData.cccd_place || null,
+    passport_number: formData.passport_number || null,
+    passport_date: formData.passport_date || null,
+    ethnicity: formData.ethnicity || null,
+    phone: formData.phone || null,
+    source: formData.source || null,
+    education_level: formData.education_level || null,
+    temp_address: formData.temp_address || null,
+    email: formData.email || null,
+    permanent_address: formData.permanent_address || null,
+    facebook: formData.facebook || null,
+    parent_phone_1: formData.parent_phone_1 || null,
+    parent_phone_2: formData.parent_phone_2 || null,
+    simple_status: formData.simple_status as any,
+    current_situation: formData.current_situation || null,
+    registration_date: formData.registration_date || null,
+    height: formData.height ? parseFloat(formData.height) : null,
+    vision_left: formData.vision_left ? parseFloat(formData.vision_left) : null,
+    vision_right: formData.vision_right ? parseFloat(formData.vision_right) : null,
+    dominant_hand: formData.dominant_hand || null,
+    hobbies: formData.hobbies || null,
+    weight: formData.weight ? parseFloat(formData.weight) : null,
+    smoking: formData.smoking || null,
+    tattoo: formData.tattoo === "Có",
+    drinking: formData.drinking || null,
+    blood_group: formData.blood_group || null,
+    health_status: formData.health_status || null,
+    notes: formData.notes || null,
+    photo_url: formData.photo_url || null,
+  });
+
   const handleSubmit = async () => {
     if (!validateForm()) {
       toast({
@@ -153,53 +277,24 @@ export default function TraineeForm() {
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from("trainees").insert({
-        trainee_code: formData.trainee_code,
-        full_name: formData.full_name,
-        furigana: formData.furigana || null,
-        trainee_type: formData.trainee_type as any,
-        birth_date: formData.birth_date || null,
-        birthplace: formData.birthplace || null,
-        gender: formData.gender || null,
-        marital_status: formData.marital_status || null,
-        cccd_number: formData.cccd_number || null,
-        cccd_date: formData.cccd_date || null,
-        passport_number: formData.passport_number || null,
-        passport_date: formData.passport_date || null,
-        ethnicity: formData.ethnicity || null,
-        phone: formData.phone || null,
-        source: formData.source || null,
-        education_level: formData.education_level || null,
-        temp_address: formData.temp_address || null,
-        email: formData.email || null,
-        permanent_address: formData.permanent_address || null,
-        facebook: formData.facebook || null,
-        parent_phone_1: formData.parent_phone_1 || null,
-        parent_phone_2: formData.parent_phone_2 || null,
-        simple_status: formData.simple_status as any,
-        current_situation: formData.current_situation || null,
-        registration_date: formData.registration_date || null,
-        height: formData.height ? parseFloat(formData.height) : null,
-        vision_left: formData.vision_left ? parseFloat(formData.vision_left) : null,
-        vision_right: formData.vision_right ? parseFloat(formData.vision_right) : null,
-        dominant_hand: formData.dominant_hand || null,
-        hobbies: formData.hobbies || null,
-        weight: formData.weight ? parseFloat(formData.weight) : null,
-        smoking: formData.smoking || null,
-        tattoo: formData.tattoo === "Có",
-        drinking: formData.drinking || null,
-        blood_group: formData.blood_group || null,
-        health_status: formData.health_status || null,
-        notes: formData.notes || null,
-      });
+      const traineeData = buildTraineeData();
 
-      if (error) throw error;
+      if (isEditMode && traineeId) {
+        await updateTraineeMutation.mutateAsync({
+          id: traineeId,
+          updates: traineeData,
+        });
+        toast({ title: "Cập nhật học viên thành công" });
+      } else {
+        const { error } = await supabase.from("trainees").insert(traineeData);
+        if (error) throw error;
+        toast({ title: "Thêm học viên thành công" });
+      }
 
-      toast({ title: "Thêm học viên thành công" });
       navigate("/trainees");
     } catch (error: any) {
       toast({
-        title: "Lỗi khi thêm học viên",
+        title: isEditMode ? "Lỗi khi cập nhật học viên" : "Lỗi khi thêm học viên",
         description: error.message,
         variant: "destructive",
       });
@@ -224,6 +319,14 @@ export default function TraineeForm() {
     );
   };
 
+  if (isEditMode && isLoadingTrainee) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -233,7 +336,7 @@ export default function TraineeForm() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-xl font-semibold text-primary">
-            Học viên: Mới - Chưa có tên
+            Học viên: {formData.trainee_code || "Mới"} - {formData.full_name || "Chưa có tên"}
           </h1>
         </div>
         <div className="flex gap-2">
@@ -241,8 +344,8 @@ export default function TraineeForm() {
             Hủy bỏ
           </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting} className="gap-2">
-            <Save className="h-4 w-4" />
-            Lưu lại
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {isEditMode ? "Cập nhật" : "Lưu lại"}
           </Button>
         </div>
       </div>
@@ -272,12 +375,11 @@ export default function TraineeForm() {
                 <CardContent className="space-y-4">
                   <div className="flex gap-4">
                     {/* Photo Upload */}
-                    <div className="flex-shrink-0">
-                      <div className="w-24 h-32 border-2 border-dashed border-muted-foreground/30 rounded-lg flex flex-col items-center justify-center text-muted-foreground hover:border-primary/50 cursor-pointer transition-colors">
-                        <Camera className="h-8 w-8 mb-1" />
-                        <span className="text-xs">Ảnh 3x4</span>
-                      </div>
-                    </div>
+                    <PhotoUpload
+                      currentPhotoUrl={formData.photo_url}
+                      onPhotoChange={(url) => updateField("photo_url", url || "")}
+                      traineeCode={formData.trainee_code}
+                    />
 
                     {/* First Row */}
                     <div className="flex-1 grid grid-cols-3 gap-3">
@@ -348,7 +450,7 @@ export default function TraineeForm() {
                           <SelectValue placeholder="Chọn tỉnh/thành" />
                         </SelectTrigger>
                         <SelectContent>
-                          {["Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ", "An Giang", "Bà Rịa - Vũng Tàu", "Bắc Giang", "Bắc Kạn", "Bạc Liêu", "Khác"].map((p) => (
+                          {PROVINCES.map((p) => (
                             <SelectItem key={p} value={p}>{p}</SelectItem>
                           ))}
                         </SelectContent>
@@ -401,6 +503,7 @@ export default function TraineeForm() {
                         value={formData.trainee_code}
                         onChange={(e) => updateField("trainee_code", e.target.value)}
                         className={getInputClass(formData.trainee_code, errors.trainee_code)}
+                        disabled={isEditMode}
                       />
                     </div>
                     <div>
@@ -525,7 +628,7 @@ export default function TraineeForm() {
                     <div>
                       <Label className="text-xs text-muted-foreground">Email / Zalo</Label>
                       <Input
-                        placeholder="0901234567"
+                        placeholder="email@example.com"
                         value={formData.email}
                         onChange={(e) => updateField("email", e.target.value)}
                         className={getInputClass(formData.email)}
@@ -792,34 +895,23 @@ export default function TraineeForm() {
                 <CardHeader className="py-3">
                   <CardTitle className="text-base font-semibold">Quét CCCD</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button variant="outline" className="w-full gap-2">
-                    <CreditCard className="h-4 w-4" />
-                    Mặt trước
-                  </Button>
-                  <Button variant="outline" className="w-full gap-2">
-                    <CreditCard className="h-4 w-4" />
-                    Mặt sau
-                  </Button>
+                <CardContent>
+                  <CCCDScanner onDataExtracted={handleCCCDData} />
                 </CardContent>
               </Card>
             </div>
           </div>
         </TabsContent>
 
-        <TabsContent value="history" className="mt-4">
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              Vui lòng lưu thông tin cá nhân trước khi thêm lý lịch
-            </CardContent>
+        <TabsContent value="history">
+          <Card className="p-8 text-center text-muted-foreground">
+            <p>Lý lịch cá nhân sẽ được thêm sau khi tạo học viên</p>
           </Card>
         </TabsContent>
 
-        <TabsContent value="project" className="mt-4">
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              Vui lòng lưu thông tin cá nhân trước khi thêm dự án
-            </CardContent>
+        <TabsContent value="project">
+          <Card className="p-8 text-center text-muted-foreground">
+            <p>Thông tin dự án và phỏng vấn sẽ được thêm sau khi tạo học viên</p>
           </Card>
         </TabsContent>
       </Tabs>
