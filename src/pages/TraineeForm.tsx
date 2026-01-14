@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,9 +29,8 @@ const TRAINEE_TYPES = ["Thực tập sinh", "Kỹ năng đặc định", "Kỹ s
 const GENDERS = ["Nam", "Nữ"];
 const MARITAL_STATUSES = ["Độc thân", "Đã kết hôn", "Ly hôn", "Góa"];
 const SIMPLE_STATUSES = ["Đăng ký mới", "Đang học", "Bảo lưu", "Dừng chương trình", "Không học", "Hủy", "Đang ở Nhật", "Rời công ty"];
-const EDUCATION_LEVELS = ["THPT", "Trung cấp", "Cao đẳng", "Đại học", "Sau đại học", "Khác"];
+const EDUCATION_LEVELS = ["THCS", "THPT", "TTGDTX", "TRUNG CẤP", "CAO ĐẲNG", "ĐẠI HỌC"];
 const ETHNICITIES = ["Kinh", "Tày", "Thái", "Mường", "Khmer", "Nùng", "H'Mông", "Dao", "Gia Rai", "Ê Đê", "Ba Na", "Khác"];
-const SOURCES = ["Facebook", "Zalo", "Giới thiệu", "Website", "Hội chợ việc làm", "Trường học", "Khác"];
 const BLOOD_GROUPS = ["A", "B", "AB", "O"];
 const DOMINANT_HANDS = ["Tay phải", "Tay trái", "Cả hai"];
 const YES_NO = ["Có", "Không"];
@@ -130,6 +130,19 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("personal");
   const { convertToKatakana } = useKatakanaConverter();
+
+  // Fetch referral sources from database
+  const { data: referralSources = [] } = useQuery({
+    queryKey: ["referral_sources"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("referral_sources")
+        .select("*")
+        .order("name");
+      if (error) throw error;
+      return data?.map((s) => s.name) || [];
+    },
+  });
 
   // Fetch existing trainee data if editing
   const { data: trainee, isLoading: isLoadingTrainee } = useTrainee(traineeId || "");
@@ -277,6 +290,11 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     if (katakana) {
       updateField("furigana", katakana);
     }
+  };
+
+  // Handle address fields - auto convert to uppercase
+  const handleAddressChange = (field: keyof FormData, value: string) => {
+    updateField(field, value.toUpperCase());
   };
 
   const validateForm = () => {
@@ -659,35 +677,29 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                       <Label className="text-xs text-muted-foreground">
                         Nguồn <span className="text-destructive">*</span>
                       </Label>
-                      <Select
+                      <SearchableSelect
+                        options={referralSources.length > 0 ? referralSources : ["Chưa có dữ liệu"]}
                         value={formData.source}
                         onValueChange={(v) => updateField("source", v)}
-                      >
-                        <SelectTrigger className={getSelectClass(formData.source, errors.source)}>
-                          <SelectValue placeholder="Chọn nguồn" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {SOURCES.map((s) => (
-                            <SelectItem key={s} value={s}>{s}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        placeholder="Chọn nguồn"
+                        searchPlaceholder="Tìm nguồn..."
+                        emptyText="Không tìm thấy."
+                        className={errors.source ? "border-destructive" : ""}
+                      />
+                      {errors.source && (
+                        <span className="text-xs text-destructive">{errors.source}</span>
+                      )}
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Trình độ</Label>
-                      <Select
+                      <SearchableSelect
+                        options={EDUCATION_LEVELS}
                         value={formData.education_level}
                         onValueChange={(v) => updateField("education_level", v)}
-                      >
-                        <SelectTrigger className={getSelectClass(formData.education_level)}>
-                          <SelectValue placeholder="Chọn" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {EDUCATION_LEVELS.map((e) => (
-                            <SelectItem key={e} value={e}>{e}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        placeholder="Chọn trình độ"
+                        searchPlaceholder="Tìm trình độ..."
+                        emptyText="Không tìm thấy."
+                      />
                     </div>
                   </div>
                 </CardContent>
@@ -703,9 +715,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                     <div>
                       <Label className="text-xs text-muted-foreground">Địa chỉ Tạm trú</Label>
                       <Input
-                        placeholder="Địa chỉ hiện tại"
+                        placeholder="ĐỊA CHỈ HIỆN TẠI"
                         value={formData.temp_address}
-                        onChange={(e) => updateField("temp_address", e.target.value)}
+                        onChange={(e) => handleAddressChange("temp_address", e.target.value)}
                         className={getInputClass(formData.temp_address)}
                       />
                     </div>
@@ -723,9 +735,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                     <div>
                       <Label className="text-xs text-muted-foreground">Địa chỉ Thường trú</Label>
                       <Input
-                        placeholder="Địa chỉ hộ khẩu"
+                        placeholder="ĐỊA CHỈ HỘ KHẨU"
                         value={formData.permanent_address}
-                        onChange={(e) => updateField("permanent_address", e.target.value)}
+                        onChange={(e) => handleAddressChange("permanent_address", e.target.value)}
                         className={getInputClass(formData.permanent_address)}
                       />
                     </div>
@@ -734,7 +746,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                       <Input
                         placeholder="https://facebook.com/..."
                         value={formData.facebook}
-                        onChange={(e) => updateField("facebook", e.target.value)}
+                        onChange={(e) => handleAddressChange("facebook", e.target.value)}
                         className={getInputClass(formData.facebook)}
                       />
                     </div>
@@ -1136,8 +1148,14 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                     <Input
                       type="date"
                       value={formData.registration_date}
+                      disabled={!isEditMode}
+                      readOnly={!isEditMode}
+                      className={!isEditMode ? "bg-muted cursor-not-allowed" : ""}
                       onChange={(e) => updateField("registration_date", e.target.value)}
                     />
+                    {!isEditMode && (
+                      <p className="text-xs text-muted-foreground mt-1">Tự động lấy ngày hiện tại</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
