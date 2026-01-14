@@ -436,6 +436,30 @@ export type Database = {
         }
         Relationships: []
       }
+      katakana_names: {
+        Row: {
+          created_at: string
+          id: string
+          katakana: string
+          updated_at: string
+          vietnamese_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          katakana: string
+          updated_at?: string
+          vietnamese_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          katakana?: string
+          updated_at?: string
+          vietnamese_name?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           code: string
@@ -511,6 +535,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      referral_sources: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       teachers: {
         Row: {
@@ -812,6 +857,33 @@ export type Database = {
           phone?: string | null
           status?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      vocabulary: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          japanese: string
+          updated_at: string
+          vietnamese: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          japanese: string
+          updated_at?: string
+          vietnamese: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          japanese?: string
+          updated_at?: string
+          vietnamese?: string
         }
         Relationships: []
       }

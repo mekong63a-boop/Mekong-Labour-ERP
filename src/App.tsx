@@ -12,6 +12,7 @@ import EducationDashboard from "./pages/education/EducationDashboard";
 import TeacherList from "./pages/education/TeacherList";
 import ClassList from "./pages/education/ClassList";
 import AttendanceCalendar from "./pages/education/AttendanceCalendar";
+import GlossaryPage from "./pages/glossary/GlossaryPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,8 @@ const App = () => (
             <Route path="/education/classes" element={<ClassList />} />
             <Route path="/education/classes/:id/attendance" element={<AttendanceCalendar />} />
             <Route path="/education/attendance" element={<ClassList />} />
+            {/* Glossary */}
+            <Route path="/glossary" element={<GlossaryPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
