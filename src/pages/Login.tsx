@@ -350,7 +350,7 @@ export default function Login() {
 
         {/* Footer */}
         <p className="text-center text-white/40 text-sm mt-8 font-medium">
-          © 2025 Mekong Connect Hub. All rights reserved.
+          © 2026 Mekong Connect Hub. All rights reserved.
         </p>
       </div>
     </div>
