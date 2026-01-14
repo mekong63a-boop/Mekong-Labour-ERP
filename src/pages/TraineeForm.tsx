@@ -22,6 +22,7 @@ import { format } from "date-fns";
 import { PhotoUpload } from "@/components/trainees/PhotoUpload";
 import { useTrainee, useUpdateTrainee } from "@/hooks/useTrainees";
 import { useKatakanaConverter } from "@/hooks/useKatakanaConverter";
+import { useUserRole } from "@/hooks/useUserRole";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 
 // Options
@@ -130,6 +131,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("personal");
   const { convertToKatakana } = useKatakanaConverter();
+  const { isAdmin } = useUserRole();
 
   // Fetch referral sources from database
   const { data: referralSources = [] } = useQuery({
@@ -1148,13 +1150,16 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                     <Input
                       type="date"
                       value={formData.registration_date}
-                      disabled={!isEditMode}
-                      readOnly={!isEditMode}
-                      className={!isEditMode ? "bg-muted cursor-not-allowed" : ""}
+                      disabled={!isEditMode || (isEditMode && !isAdmin)}
+                      readOnly={!isEditMode || (isEditMode && !isAdmin)}
+                      className={(!isEditMode || (isEditMode && !isAdmin)) ? "bg-muted cursor-not-allowed" : ""}
                       onChange={(e) => updateField("registration_date", e.target.value)}
                     />
                     {!isEditMode && (
                       <p className="text-xs text-muted-foreground mt-1">Tự động lấy ngày hiện tại</p>
+                    )}
+                    {isEditMode && !isAdmin && (
+                      <p className="text-xs text-muted-foreground mt-1">Chỉ Admin mới có thể chỉnh sửa</p>
                     )}
                   </div>
                 </CardContent>
