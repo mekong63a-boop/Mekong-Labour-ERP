@@ -19,8 +19,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { PhotoUpload } from "@/components/trainees/PhotoUpload";
-import { CCCDScanner } from "@/components/trainees/CCCDScanner";
 import { useTrainee, useUpdateTrainee } from "@/hooks/useTrainees";
+import { useKatakanaConverter } from "@/hooks/useKatakanaConverter";
 
 // Options
 const TRAINEE_TYPES = ["Thực tập sinh", "Kỹ năng đặc định", "Kỹ sư", "Du học sinh", "Thực tập sinh số 3"];
@@ -96,6 +96,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("personal");
+  const { convertToKatakana } = useKatakanaConverter();
 
   // Fetch existing trainee data if editing
   const { data: trainee, isLoading: isLoadingTrainee } = useTrainee(traineeId || "");
@@ -199,15 +200,16 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     }
   };
 
-  const handleCCCDData = (data: any) => {
-    if (data.full_name) updateField("full_name", data.full_name);
-    if (data.birth_date) updateField("birth_date", data.birth_date);
-    if (data.gender) updateField("gender", data.gender);
-    if (data.cccd_number) updateField("cccd_number", data.cccd_number);
-    if (data.cccd_date) updateField("cccd_date", data.cccd_date);
-    if (data.cccd_place) updateField("cccd_place", data.cccd_place);
-    if (data.permanent_address) updateField("permanent_address", data.permanent_address);
-    if (data.ethnicity) updateField("ethnicity", data.ethnicity);
+  // Handle full name change - auto convert to uppercase and generate Katakana
+  const handleFullNameChange = (value: string) => {
+    const upperValue = value.toUpperCase();
+    updateField("full_name", upperValue);
+    
+    // Auto-generate Katakana from the name
+    const katakana = convertToKatakana(upperValue);
+    if (katakana) {
+      updateField("furigana", katakana);
+    }
   };
 
   const validateForm = () => {
@@ -374,12 +376,25 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex gap-4">
-                    {/* Photo Upload */}
-                    <PhotoUpload
-                      currentPhotoUrl={formData.photo_url}
-                      onPhotoChange={(url) => updateField("photo_url", url || "")}
-                      traineeCode={formData.trainee_code}
-                    />
+                    {/* Photo Upload + Trainee Code */}
+                    <div className="flex-shrink-0 space-y-2">
+                      <PhotoUpload
+                        currentPhotoUrl={formData.photo_url}
+                        onPhotoChange={(url) => updateField("photo_url", url || "")}
+                        traineeCode={formData.trainee_code}
+                      />
+                      <div>
+                        <Label className="text-xs text-muted-foreground">
+                          Mã học viên <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                          placeholder="MK001"
+                          value={formData.trainee_code}
+                          onChange={(e) => updateField("trainee_code", e.target.value.toUpperCase())}
+                          className={cn("w-24", getInputClass(formData.trainee_code, errors.trainee_code))}
+                        />
+                      </div>
+                    </div>
 
                     {/* First Row */}
                     <div className="flex-1 grid grid-cols-3 gap-3">
@@ -390,7 +405,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                         <Input
                           placeholder="NGUYỄN VĂN A"
                           value={formData.full_name}
-                          onChange={(e) => updateField("full_name", e.target.value.toUpperCase())}
+                          onChange={(e) => handleFullNameChange(e.target.value)}
                           className={getInputClass(formData.full_name, errors.full_name)}
                         />
                         {errors.full_name && (
@@ -891,14 +906,6 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="py-3">
-                  <CardTitle className="text-base font-semibold">Quét CCCD</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CCCDScanner onDataExtracted={handleCCCDData} />
-                </CardContent>
-              </Card>
             </div>
           </div>
         </TabsContent>

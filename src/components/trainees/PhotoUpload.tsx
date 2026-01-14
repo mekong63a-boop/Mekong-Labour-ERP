@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
-import { Camera, Upload, X } from "lucide-react";
+import { Camera, Upload, X, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -13,6 +14,7 @@ interface PhotoUploadProps {
 export function PhotoUpload({ currentPhotoUrl, onPhotoChange, traineeCode }: PhotoUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentPhotoUrl || null);
+  const [showFullImage, setShowFullImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -58,6 +60,7 @@ export function PhotoUpload({ currentPhotoUrl, onPhotoChange, traineeCode }: Pho
         .getPublicUrl(filePath);
 
       onPhotoChange(publicUrl);
+      setPreviewUrl(publicUrl);
       toast({ title: "Tải ảnh thành công" });
     } catch (error: any) {
       console.error("Upload error:", error);
@@ -81,65 +84,88 @@ export function PhotoUpload({ currentPhotoUrl, onPhotoChange, traineeCode }: Pho
   };
 
   return (
-    <div className="flex-shrink-0">
-      <input
-        type="file"
-        ref={fileInputRef}
-        className="hidden"
-        accept="image/*"
-        onChange={handleFileSelect}
-      />
+    <>
+      <div className="flex-shrink-0">
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          accept="image/*"
+          onChange={handleFileSelect}
+        />
 
-      {previewUrl ? (
-        <div className="relative w-24 h-32 rounded-lg overflow-hidden group">
-          <img
-            src={previewUrl}
-            alt="Ảnh học viên"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-white hover:bg-white/20"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-            >
-              <Upload className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-white hover:bg-white/20"
-              onClick={handleRemovePhoto}
-              disabled={isUploading}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          {isUploading && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        {previewUrl ? (
+          <div className="relative w-24 h-32 rounded-lg overflow-hidden group">
+            <img
+              src={previewUrl}
+              alt="Ảnh học viên"
+              className="w-full h-full object-cover cursor-pointer"
+              onClick={() => setShowFullImage(true)}
+            />
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-white hover:bg-white/20"
+                onClick={() => setShowFullImage(true)}
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-white hover:bg-white/20"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+              >
+                <Upload className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-white hover:bg-white/20"
+                onClick={handleRemovePhoto}
+                disabled={isUploading}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-          )}
-        </div>
-      ) : (
-        <div
-          className="w-24 h-32 border-2 border-dashed border-muted-foreground/30 rounded-lg flex flex-col items-center justify-center text-muted-foreground hover:border-primary/50 cursor-pointer transition-colors"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          {isUploading ? (
-            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <>
-              <Camera className="h-8 w-8 mb-1" />
-              <span className="text-xs">Ảnh 3x4</span>
-            </>
-          )}
-        </div>
-      )}
-    </div>
+            {isUploading && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div
+            className="w-24 h-32 border-2 border-dashed border-muted-foreground/30 rounded-lg flex flex-col items-center justify-center text-muted-foreground hover:border-primary/50 cursor-pointer transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {isUploading ? (
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <>
+                <Camera className="h-8 w-8 mb-1" />
+                <span className="text-xs">Ảnh 3x4</span>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Full Image Dialog */}
+      <Dialog open={showFullImage} onOpenChange={setShowFullImage}>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden">
+          <img
+            src={previewUrl || ""}
+            alt="Ảnh học viên"
+            className="w-full h-auto max-h-[80vh] object-contain"
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
