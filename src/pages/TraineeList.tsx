@@ -117,7 +117,7 @@ export default function TraineeList() {
             Theo dõi và quản lý danh sách học viên
           </p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => navigate("/trainees/new")}>
           <Plus className="h-4 w-4" />
           Thêm mới
         </Button>
