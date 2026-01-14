@@ -75,15 +75,16 @@
     --info: 210 100% 50%;
     --info-foreground: 0 0% 100%;
 
-    /* Sidebar - White background with green active state */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 40%;
-    --sidebar-primary: 151 100% 20%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 142 70% 45%;
+    /* Sidebar - Mekong Green #006633 */
+    --sidebar-background: 151 100% 20%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 151 100% 20%;
+    /* lighter green for hover/active */
+    --sidebar-accent: 151 80% 28%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 90%;
-    --sidebar-ring: 151 100% 20%;
+    --sidebar-border: 151 70% 18%;
+    --sidebar-ring: 28 81% 52%;
 
     /* Chart Colors */
     --chart-1: 151 100% 20%;
@@ -224,11 +225,11 @@
   }
 
   .sidebar-link {
-    @apply flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground hover:bg-gray-100 rounded-lg transition-all text-sm;
+    @apply flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground rounded-lg transition-all text-sm;
   }
 
   .sidebar-link.active {
-    @apply bg-sidebar-accent text-white font-medium;
+    @apply bg-sidebar-accent text-sidebar-foreground font-medium;
   }
 
   .page-header {
