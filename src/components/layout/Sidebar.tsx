@@ -69,11 +69,11 @@ const menuItems: MenuItem[] = [
   { path: "/reports", icon: FileSpreadsheet, label: "Báo cáo", permission: "orders" },
   { path: "/glossary", icon: Languages, label: "Từ điển chuyên ngành", permission: "glossary" },
   { path: "/system-monitor", icon: Monitor, label: "Giám sát hệ thống", permission: "settings" },
-  { path: "/admin", icon: Shield, label: "Quản trị", permission: "settings" },
+  { path: "/admin/users", icon: Shield, label: "Quản lý phân quyền", permission: "settings" },
 ];
 
 const bottomMenuItems: MenuItem[] = [
-  { path: "/settings", icon: Settings, label: "Cài đặt", permission: "settings" },
+  { path: "/change-password", icon: Settings, label: "Đổi mật khẩu", permission: "all" },
 ];
 
 interface SidebarProps {

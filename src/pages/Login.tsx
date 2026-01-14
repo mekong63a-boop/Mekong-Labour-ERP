@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -242,7 +242,15 @@ export default function Login() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="login-password" className="text-white font-medium">Mật khẩu</Label>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="login-password" className="text-white font-medium">Mật khẩu</Label>
+                        <Link 
+                          to="/forgot-password" 
+                          className="text-sm text-[hsl(152,50%,60%)] hover:text-[hsl(152,50%,70%)] transition-colors"
+                        >
+                          Quên mật khẩu?
+                        </Link>
+                      </div>
                       <Input
                         id="login-password"
                         type="password"
