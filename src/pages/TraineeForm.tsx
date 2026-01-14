@@ -1150,9 +1150,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                     <Input
                       type="date"
                       value={formData.registration_date}
-                      disabled={!isEditMode || (isEditMode && !isAdmin)}
-                      readOnly={!isEditMode || (isEditMode && !isAdmin)}
-                      className={(!isEditMode || (isEditMode && !isAdmin)) ? "bg-muted cursor-not-allowed" : ""}
+                      disabled={!isAdmin}
+                      readOnly={!isAdmin}
+                      className={!isAdmin ? "bg-muted cursor-not-allowed" : ""}
                       onChange={(e) => updateField("registration_date", e.target.value)}
                     />
                     {!isEditMode && (
