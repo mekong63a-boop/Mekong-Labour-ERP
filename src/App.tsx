@@ -14,6 +14,7 @@ import EducationDashboard from "./pages/education/EducationDashboard";
 import TeacherList from "./pages/education/TeacherList";
 import ClassList from "./pages/education/ClassList";
 import AttendanceCalendar from "./pages/education/AttendanceCalendar";
+import TestScoresPage from "./pages/education/TestScoresPage";
 import GlossaryPage from "./pages/glossary/GlossaryPage";
 import OrderList from "./pages/orders/OrderList";
 import InternalUnionPage from "./pages/internal-union/InternalUnionPage";
@@ -149,6 +150,14 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRoles={["admin", "manager", "teacher"]}>
                     <AttendanceCalendar />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/education/classes/:classId/test-scores"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager", "teacher"]}>
+                    <TestScoresPage />
                   </ProtectedRoute>
                 }
               />
