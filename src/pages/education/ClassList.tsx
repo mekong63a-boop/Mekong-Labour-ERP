@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -19,7 +21,19 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +49,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useClasses, useCreateClass } from "@/hooks/useEducation";
+import { 
+  useClasses, 
+  useCreateClass, 
+  useUpdateClass, 
+  useDeleteClass,
+  useTeachers,
+  useClassStudents,
+  useAvailableTrainees,
+  useAssignTraineesToClass,
+  useRemoveTraineeFromClass,
+  useClassTeachers,
+  useAssignTeacherToClass,
+  useRemoveTeacherFromClass,
+  Class,
+} from "@/hooks/useEducation";
 import { 
   Plus, 
   Search, 
@@ -50,7 +78,8 @@ import {
   GraduationCap,
   Pencil,
   CheckCircle,
-  Trash2
+  Trash2,
+  X,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -60,10 +89,26 @@ const TARGET_AUDIENCES = ["Thực tập sinh", "Kỹ năng đặc định", "K�
 
 export default function ClassList() {
   const { data: classes, isLoading } = useClasses();
+  const { data: teachers } = useTeachers();
   const createClass = useCreateClass();
+  const updateClass = useUpdateClass();
+  const deleteClass = useDeleteClass();
+  const assignTrainees = useAssignTraineesToClass();
+  const removeTrainee = useRemoveTraineeFromClass();
+  const assignTeacher = useAssignTeacherToClass();
+  const removeTeacher = useRemoveTeacherFromClass();
   const { toast } = useToast();
+  
   const [searchQuery, setSearchQuery] = useState("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isAssignTraineeDialogOpen, setIsAssignTraineeDialogOpen] = useState(false);
+  const [isAssignTeacherDialogOpen, setIsAssignTeacherDialogOpen] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+  const [selectedTraineeIds, setSelectedTraineeIds] = useState<string[]>([]);
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
+  
   const [formData, setFormData] = useState({
     code: "",
     name: "",
@@ -73,6 +118,11 @@ export default function ClassList() {
     schedule: "",
     start_date: "",
   });
+
+  // Fetch available trainees and class students when dialog opens
+  const { data: availableTrainees } = useAvailableTrainees();
+  const { data: classStudents } = useClassStudents(selectedClass?.id || "");
+  const { data: classTeachers } = useClassTeachers(selectedClass?.id || "");
 
   const filteredClasses = classes?.filter((c) =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -91,19 +141,152 @@ export default function ClassList() {
         start_date: formData.start_date || null,
       });
       toast({ title: "Thêm lớp học thành công" });
-      setIsDialogOpen(false);
-      setFormData({
-        code: "",
-        name: "",
-        level: "N5",
-        target_audience: "Thực tập sinh",
-        max_students: 30,
-        schedule: "",
-        start_date: "",
-      });
+      setIsCreateDialogOpen(false);
+      resetForm();
     } catch (error) {
       toast({ title: "Lỗi khi thêm lớp học", variant: "destructive" });
     }
+  };
+
+  const handleEdit = async () => {
+    if (!selectedClass) return;
+    
+    try {
+      await updateClass.mutateAsync({
+        id: selectedClass.id,
+        updates: {
+          code: formData.code,
+          name: formData.name,
+          level: formData.level,
+          target_audience: formData.target_audience,
+          max_students: formData.max_students,
+          schedule: formData.schedule,
+          start_date: formData.start_date || null,
+        },
+      });
+      toast({ title: "Cập nhật lớp học thành công" });
+      setIsEditDialogOpen(false);
+      setSelectedClass(null);
+    } catch (error) {
+      toast({ title: "Lỗi khi cập nhật lớp học", variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedClass) return;
+    
+    try {
+      await deleteClass.mutateAsync(selectedClass.id);
+      toast({ title: "Xóa lớp học thành công" });
+      setIsDeleteDialogOpen(false);
+      setSelectedClass(null);
+    } catch (error) {
+      toast({ title: "Lỗi khi xóa lớp học", variant: "destructive" });
+    }
+  };
+
+  const handleEndClass = async (classData: Class) => {
+    try {
+      await updateClass.mutateAsync({
+        id: classData.id,
+        updates: { status: "Đã kết thúc" },
+      });
+      toast({ title: "Đã kết thúc lớp học" });
+    } catch (error) {
+      toast({ title: "Lỗi khi kết thúc lớp học", variant: "destructive" });
+    }
+  };
+
+  const handleAssignTrainees = async () => {
+    if (!selectedClass || selectedTraineeIds.length === 0) return;
+    
+    try {
+      await assignTrainees.mutateAsync({
+        classId: selectedClass.id,
+        traineeIds: selectedTraineeIds,
+      });
+      toast({ title: `Đã gán ${selectedTraineeIds.length} học viên vào lớp` });
+      setIsAssignTraineeDialogOpen(false);
+      setSelectedTraineeIds([]);
+    } catch (error) {
+      toast({ title: "Lỗi khi gán học viên", variant: "destructive" });
+    }
+  };
+
+  const handleRemoveTrainee = async (traineeId: string) => {
+    try {
+      await removeTrainee.mutateAsync(traineeId);
+      toast({ title: "Đã xóa học viên khỏi lớp" });
+    } catch (error) {
+      toast({ title: "Lỗi khi xóa học viên", variant: "destructive" });
+    }
+  };
+
+  const handleAssignTeacher = async () => {
+    if (!selectedClass || !selectedTeacherId) return;
+    
+    try {
+      await assignTeacher.mutateAsync({
+        classId: selectedClass.id,
+        teacherId: selectedTeacherId,
+      });
+      toast({ title: "Đã gán giáo viên vào lớp" });
+      setSelectedTeacherId("");
+    } catch (error) {
+      toast({ title: "Lỗi khi gán giáo viên", variant: "destructive" });
+    }
+  };
+
+  const handleRemoveTeacher = async (classTeacherId: string) => {
+    try {
+      await removeTeacher.mutateAsync(classTeacherId);
+      toast({ title: "Đã xóa giáo viên khỏi lớp" });
+    } catch (error) {
+      toast({ title: "Lỗi khi xóa giáo viên", variant: "destructive" });
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      code: "",
+      name: "",
+      level: "N5",
+      target_audience: "Thực tập sinh",
+      max_students: 30,
+      schedule: "",
+      start_date: "",
+    });
+  };
+
+  const openEditDialog = (classData: Class) => {
+    setSelectedClass(classData);
+    setFormData({
+      code: classData.code,
+      name: classData.name,
+      level: classData.level || "N5",
+      target_audience: classData.target_audience || "Thực tập sinh",
+      max_students: classData.max_students || 30,
+      schedule: classData.schedule || "",
+      start_date: classData.start_date || "",
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const openAssignTraineeDialog = (classData: Class) => {
+    setSelectedClass(classData);
+    setSelectedTraineeIds([]);
+    setIsAssignTraineeDialogOpen(true);
+  };
+
+  const openAssignTeacherDialog = (classData: Class) => {
+    setSelectedClass(classData);
+    setSelectedTeacherId("");
+    setIsAssignTeacherDialogOpen(true);
+  };
+
+  const openDeleteDialog = (classData: Class) => {
+    setSelectedClass(classData);
+    setIsDeleteDialogOpen(true);
   };
 
   const formatDate = (dateStr: string | null) => {
@@ -115,36 +298,112 @@ export default function ClassList() {
     }
   };
 
-  const handleAction = (action: string, classId: string, className: string) => {
+  const handleAction = (action: string, classData: Class) => {
     switch (action) {
       case "test_scores":
-        toast({ title: `Điểm kiểm tra - ${className}`, description: "Chức năng đang phát triển" });
+        toast({ title: `Điểm kiểm tra - ${classData.name}`, description: "Chức năng đang phát triển" });
         break;
       case "review":
-        toast({ title: `Nhận xét/Blacklist - ${className}`, description: "Chức năng đang phát triển" });
+        toast({ title: `Nhận xét/Blacklist - ${classData.name}`, description: "Chức năng đang phát triển" });
         break;
       case "export":
-        toast({ title: `Xuất dữ liệu - ${className}`, description: "Chức năng đang phát triển" });
-        break;
-      case "add_trainee":
-        toast({ title: `Thêm học viên - ${className}`, description: "Chức năng đang phát triển" });
-        break;
-      case "assign_teacher":
-        toast({ title: `Gán giáo viên - ${className}`, description: "Chức năng đang phát triển" });
-        break;
-      case "edit":
-        toast({ title: `Sửa thông tin - ${className}`, description: "Chức năng đang phát triển" });
-        break;
-      case "end_class":
-        toast({ title: `Kết thúc lớp - ${className}`, description: "Chức năng đang phát triển" });
-        break;
-      case "delete":
-        toast({ title: `Xóa lớp - ${className}`, description: "Chức năng đang phát triển", variant: "destructive" });
+        toast({ title: `Xuất dữ liệu - ${classData.name}`, description: "Chức năng đang phát triển" });
         break;
       default:
         break;
     }
   };
+
+  // Get assigned teacher IDs to filter them out
+  const assignedTeacherIds = classTeachers?.map(ct => (ct.teacher as any)?.id).filter(Boolean) || [];
+  const availableTeachersForClass = teachers?.filter(t => !assignedTeacherIds.includes(t.id)) || [];
+
+  const renderFormFields = () => (
+    <div className="space-y-4 py-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Mã lớp *</Label>
+          <Input
+            placeholder="LOP001"
+            value={formData.code}
+            onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+          />
+        </div>
+        <div>
+          <Label>Tên lớp *</Label>
+          <Input
+            placeholder="Lớp N5 - Khóa 1"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Cấp độ</Label>
+          <Select
+            value={formData.level}
+            onValueChange={(value) => setFormData({ ...formData, level: value })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LEVELS.map((level) => (
+                <SelectItem key={level} value={level}>
+                  {level}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Đối tượng</Label>
+          <Select
+            value={formData.target_audience}
+            onValueChange={(value) => setFormData({ ...formData, target_audience: value })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TARGET_AUDIENCES.map((ta) => (
+                <SelectItem key={ta} value={ta}>
+                  {ta}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Sĩ số tối đa</Label>
+          <Input
+            type="number"
+            value={formData.max_students}
+            onChange={(e) => setFormData({ ...formData, max_students: parseInt(e.target.value) || 30 })}
+          />
+        </div>
+        <div>
+          <Label>Ngày khai giảng</Label>
+          <Input
+            type="date"
+            value={formData.start_date}
+            onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+          />
+        </div>
+      </div>
+      <div>
+        <Label>Lịch học</Label>
+        <Input
+          placeholder="Thứ 2,4,6 - 8:00-11:00"
+          value={formData.schedule}
+          onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
+        />
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -163,9 +422,9 @@ export default function ClassList() {
             </p>
           </div>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={resetForm}>
               <Plus className="mr-2 h-4 w-4" />
               Thêm lớp học
             </Button>
@@ -174,98 +433,15 @@ export default function ClassList() {
             <DialogHeader>
               <DialogTitle>Thêm lớp học mới</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Mã lớp *</Label>
-                  <Input
-                    placeholder="LOP001"
-                    value={formData.code}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Tên lớp *</Label>
-                  <Input
-                    placeholder="Lớp N5 - Khóa 1"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Cấp độ</Label>
-                  <Select
-                    value={formData.level}
-                    onValueChange={(value) => setFormData({ ...formData, level: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LEVELS.map((level) => (
-                        <SelectItem key={level} value={level}>
-                          {level}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Đối tượng</Label>
-                  <Select
-                    value={formData.target_audience}
-                    onValueChange={(value) => setFormData({ ...formData, target_audience: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TARGET_AUDIENCES.map((ta) => (
-                        <SelectItem key={ta} value={ta}>
-                          {ta}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Sĩ số tối đa</Label>
-                  <Input
-                    type="number"
-                    value={formData.max_students}
-                    onChange={(e) => setFormData({ ...formData, max_students: parseInt(e.target.value) || 30 })}
-                  />
-                </div>
-                <div>
-                  <Label>Ngày khai giảng</Label>
-                  <Input
-                    type="date"
-                    value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div>
-                <Label>Lịch học</Label>
-                <Input
-                  placeholder="Thứ 2,4,6 - 8:00-11:00"
-                  value={formData.schedule}
-                  onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Hủy
-                </Button>
-                <Button onClick={handleCreate} disabled={createClass.isPending}>
-                  Thêm
-                </Button>
-              </div>
-            </div>
+            {renderFormFields()}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                Hủy
+              </Button>
+              <Button onClick={handleCreate} disabled={createClass.isPending}>
+                Thêm
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
@@ -333,6 +509,8 @@ export default function ClassList() {
                         className={
                           cls.status === "Đang hoạt động"
                             ? "bg-green-100 text-green-800"
+                            : cls.status === "Đã kết thúc"
+                            ? "bg-gray-100 text-gray-600"
                             : "bg-muted text-muted-foreground"
                         }
                       >
@@ -353,39 +531,39 @@ export default function ClassList() {
                               Điểm danh
                             </Link>
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAction("test_scores", cls.id, cls.name)}>
+                          <DropdownMenuItem onClick={() => handleAction("test_scores", cls)}>
                             <ClipboardCheck className="mr-2 h-4 w-4" />
                             Điểm kiểm tra
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAction("review", cls.id, cls.name)}>
+                          <DropdownMenuItem onClick={() => handleAction("review", cls)}>
                             <MessageSquare className="mr-2 h-4 w-4" />
                             Nhận xét/Blacklist
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAction("export", cls.id, cls.name)}>
+                          <DropdownMenuItem onClick={() => handleAction("export", cls)}>
                             <Download className="mr-2 h-4 w-4" />
                             Xuất dữ liệu
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleAction("add_trainee", cls.id, cls.name)}>
+                          <DropdownMenuItem onClick={() => openAssignTraineeDialog(cls)}>
                             <UserPlus className="mr-2 h-4 w-4" />
                             Gán học viên
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAction("assign_teacher", cls.id, cls.name)}>
+                          <DropdownMenuItem onClick={() => openAssignTeacherDialog(cls)}>
                             <GraduationCap className="mr-2 h-4 w-4" />
                             Gán giáo viên
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleAction("edit", cls.id, cls.name)}>
+                          <DropdownMenuItem onClick={() => openEditDialog(cls)}>
                             <Pencil className="mr-2 h-4 w-4" />
                             Sửa thông tin lớp
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAction("end_class", cls.id, cls.name)}>
+                          <DropdownMenuItem onClick={() => handleEndClass(cls)}>
                             <CheckCircle className="mr-2 h-4 w-4" />
                             Kết thúc lớp học
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
-                            onClick={() => handleAction("delete", cls.id, cls.name)}
+                            onClick={() => openDeleteDialog(cls)}
                             className="text-destructive focus:text-destructive"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
@@ -401,6 +579,203 @@ export default function ClassList() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Sửa thông tin lớp học</DialogTitle>
+          </DialogHeader>
+          {renderFormFields()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleEdit} disabled={updateClass.isPending}>
+              Lưu thay đổi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Trainee Dialog */}
+      <Dialog open={isAssignTraineeDialogOpen} onOpenChange={setIsAssignTraineeDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Gán học viên vào lớp {selectedClass?.name}</DialogTitle>
+            <DialogDescription>
+              Chọn học viên chưa có lớp để gán vào lớp này
+            </DialogDescription>
+          </DialogHeader>
+          
+          {/* Current students */}
+          {classStudents && classStudents.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Học viên hiện tại ({classStudents.length})</Label>
+              <ScrollArea className="h-32 border rounded-md p-2">
+                <div className="space-y-1">
+                  {classStudents.map((student) => (
+                    <div key={student.id} className="flex items-center justify-between py-1 px-2 bg-muted/50 rounded">
+                      <span className="text-sm">{student.trainee_code} - {student.full_name}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveTrainee(student.id)}
+                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
+
+          {/* Available trainees */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Học viên chưa có lớp ({availableTrainees?.length || 0})</Label>
+            {availableTrainees && availableTrainees.length > 0 ? (
+              <ScrollArea className="h-64 border rounded-md p-2">
+                <div className="space-y-1">
+                  {availableTrainees.map((trainee) => (
+                    <div 
+                      key={trainee.id} 
+                      className="flex items-center gap-2 py-1 px-2 hover:bg-muted/50 rounded cursor-pointer"
+                      onClick={() => {
+                        setSelectedTraineeIds(prev => 
+                          prev.includes(trainee.id) 
+                            ? prev.filter(id => id !== trainee.id)
+                            : [...prev, trainee.id]
+                        );
+                      }}
+                    >
+                      <Checkbox 
+                        checked={selectedTraineeIds.includes(trainee.id)}
+                        onCheckedChange={(checked) => {
+                          setSelectedTraineeIds(prev => 
+                            checked 
+                              ? [...prev, trainee.id]
+                              : prev.filter(id => id !== trainee.id)
+                          );
+                        }}
+                      />
+                      <span className="text-sm">{trainee.trainee_code} - {trainee.full_name}</span>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground border rounded-md">
+                Không có học viên nào chưa được gán lớp
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAssignTraineeDialogOpen(false)}>
+              Đóng
+            </Button>
+            <Button 
+              onClick={handleAssignTrainees} 
+              disabled={selectedTraineeIds.length === 0 || assignTrainees.isPending}
+            >
+              Gán {selectedTraineeIds.length > 0 ? `(${selectedTraineeIds.length})` : ""}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Teacher Dialog */}
+      <Dialog open={isAssignTeacherDialogOpen} onOpenChange={setIsAssignTeacherDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Gán giáo viên vào lớp {selectedClass?.name}</DialogTitle>
+          </DialogHeader>
+          
+          {/* Current teachers */}
+          {classTeachers && classTeachers.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Giáo viên hiện tại</Label>
+              <div className="space-y-1 border rounded-md p-2">
+                {classTeachers.map((ct) => {
+                  const teacher = ct.teacher as any;
+                  return (
+                    <div key={ct.id} className="flex items-center justify-between py-1 px-2 bg-muted/50 rounded">
+                      <span className="text-sm">
+                        {teacher?.code} - {teacher?.full_name}
+                        {teacher?.specialty && <span className="text-muted-foreground ml-2">({teacher.specialty})</span>}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveTeacher(ct.id)}
+                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Add new teacher */}
+          <div className="space-y-2">
+            <Label>Thêm giáo viên</Label>
+            <div className="flex gap-2">
+              <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Chọn giáo viên..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableTeachersForClass.map((teacher) => (
+                    <SelectItem key={teacher.id} value={teacher.id}>
+                      {teacher.code} - {teacher.full_name}
+                      {teacher.specialty && ` (${teacher.specialty})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button 
+                onClick={handleAssignTeacher}
+                disabled={!selectedTeacherId || assignTeacher.isPending}
+              >
+                Thêm
+              </Button>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAssignTeacherDialogOpen(false)}>
+              Đóng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa lớp học</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa lớp <strong>{selectedClass?.name}</strong>? 
+              Hành động này không thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

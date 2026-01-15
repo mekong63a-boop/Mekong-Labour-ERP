@@ -12,12 +12,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Eye, RefreshCw } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Plus, Search, Eye, RefreshCw, Trash2 } from "lucide-react";
 import { format, addYears } from "date-fns";
 import { usePagination } from "@/hooks/usePagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTraineesPaginated, TraineeListItem } from "@/hooks/useTraineesPaginated";
 import { useTraineeStageCounts, StageCounts } from "@/hooks/useTraineeStageCounts";
+import { useDeleteTrainee } from "@/hooks/useTrainees";
+import { useUserRole } from "@/hooks/useUserRole";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { useToast } from "@/hooks/use-toast";
 import { StageTabsGrid, STAGE_TABS } from "@/components/trainees/StageTabsGrid";
@@ -25,8 +37,12 @@ import { StageTabsGrid, STAGE_TABS } from "@/components/trainees/StageTabsGrid";
 export default function TraineeList() {
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [traineeToDelete, setTraineeToDelete] = useState<TraineeListItem | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isAdmin } = useUserRole();
+  const deleteTrainee = useDeleteTrainee();
   
   // Debounce search query (300ms delay)
   const debouncedSearch = useDebounce(searchQuery, 300);
@@ -76,6 +92,25 @@ export default function TraineeList() {
       });
     }
   }, [isError, error, toast]);
+
+  const handleDeleteTrainee = async () => {
+    if (!traineeToDelete) return;
+    
+    try {
+      await deleteTrainee.mutateAsync(traineeToDelete.id);
+      toast({ title: "Đã xóa học viên thành công" });
+      setDeleteDialogOpen(false);
+      setTraineeToDelete(null);
+    } catch (error) {
+      toast({ title: "Lỗi khi xóa học viên", variant: "destructive" });
+    }
+  };
+
+  const openDeleteDialog = (trainee: TraineeListItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setTraineeToDelete(trainee);
+    setDeleteDialogOpen(true);
+  };
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "—";
@@ -318,16 +353,30 @@ export default function TraineeList() {
 
     const actionColumn = (
       <TableCell className="text-center">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/trainees/${trainee.id}`);
-          }}
-        >
-          <Eye className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center justify-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/trainees/${trainee.id}`);
+            }}
+            title="Xem chi tiết"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => openDeleteDialog(trainee, e)}
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              title="Xóa học viên"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </TableCell>
     );
 
@@ -596,6 +645,29 @@ export default function TraineeList() {
           )}
         </>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa học viên</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa học viên <strong>{traineeToDelete?.full_name}</strong> ({traineeToDelete?.trainee_code})? 
+              Hành động này không thể hoàn tác và sẽ xóa tất cả dữ liệu liên quan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteTrainee}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteTrainee.isPending}
+            >
+              {deleteTrainee.isPending ? "Đang xóa..." : "Xóa"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
