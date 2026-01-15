@@ -15,7 +15,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useClass, useClassStudents, useAttendance, useUpsertAttendance, useClasses } from "@/hooks/useEducation";
+import { useClass, useClassStudents, useAttendance, useUpsertAttendance, useDeleteAttendance, useClasses } from "@/hooks/useEducation";
 import { ArrowLeft, ChevronLeft, ChevronRight, Check, X, Clock, Save, RefreshCw, RotateCcw, AlertCircle } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isAfter, startOfDay, isSameDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -386,6 +386,7 @@ export default function AttendanceCalendar() {
   const { data: students, isLoading: studentsLoading } = useClassStudents(classId || "");
   const { data: attendance, isLoading: attendanceLoading, refetch } = useAttendance(classId || "", monthStr);
   const upsertAttendance = useUpsertAttendance();
+  const deleteAttendance = useDeleteAttendance();
   const { toast } = useToast();
 
   // Check if can edit a specific day (admin can edit any day, teacher only today)
@@ -444,7 +445,8 @@ export default function AttendanceCalendar() {
 
   const handleSaveAll = async () => {
     try {
-      const promises: Promise<any>[] = [];
+      const upsertPromises: Promise<any>[] = [];
+      const deletePromises: Promise<any>[] = [];
       
       pendingChanges.forEach((value, key) => {
         // Key format: "uuid_yyyy-MM-dd" - use underscore to separate trainee_id and date
@@ -453,7 +455,8 @@ export default function AttendanceCalendar() {
         const dateStr = key.substring(lastUnderscoreIndex + 1);
         
         if (value.status && value.status !== "-") {
-          promises.push(
+          // Upsert for non-empty status
+          upsertPromises.push(
             upsertAttendance.mutateAsync({
               trainee_id: traineeId,
               class_id: classId!,
@@ -462,10 +465,19 @@ export default function AttendanceCalendar() {
               notes: value.notes || null,
             })
           );
+        } else if (value.status === "-") {
+          // Delete for reset to "-"
+          deletePromises.push(
+            deleteAttendance.mutateAsync({
+              trainee_id: traineeId,
+              class_id: classId!,
+              date: dateStr,
+            })
+          );
         }
       });
       
-      await Promise.all(promises);
+      await Promise.all([...upsertPromises, ...deletePromises]);
       setPendingChanges(new Map());
       refetch();
       toast({ title: "Đã lưu điểm danh thành công" });

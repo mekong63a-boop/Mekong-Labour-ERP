@@ -183,6 +183,24 @@ export function useUpsertAttendance() {
   });
 }
 
+export function useDeleteAttendance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ trainee_id, class_id, date }: { trainee_id: string; class_id: string; date: string }) => {
+      const { error } = await supabase
+        .from("attendance")
+        .delete()
+        .eq("trainee_id", trainee_id)
+        .eq("class_id", class_id)
+        .eq("date", date);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["attendance"] });
+    },
+  });
+}
+
 // Class students (trainees in a class)
 export function useClassStudents(classId: string) {
   return useQuery({
