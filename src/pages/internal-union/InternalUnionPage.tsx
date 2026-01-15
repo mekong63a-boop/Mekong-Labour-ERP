@@ -564,14 +564,14 @@ const InternalUnionPage = () => {
             <div className="space-y-2">
               <Label>Thành viên liên quan</Label>
               <Select
-                value={transactionForm.member_id}
-                onValueChange={(value) => setTransactionForm({ ...transactionForm, member_id: value })}
+                value={transactionForm.member_id || "none"}
+                onValueChange={(value) => setTransactionForm({ ...transactionForm, member_id: value === "none" ? "" : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="-- Không chọn --" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">-- Không chọn --</SelectItem>
+                  <SelectItem value="none">-- Không chọn --</SelectItem>
                   {members.map((member) => (
                     <SelectItem key={member.id} value={member.id}>
                       {member.member_code} - {member.full_name}
