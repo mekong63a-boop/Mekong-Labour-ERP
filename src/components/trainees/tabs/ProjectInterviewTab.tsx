@@ -24,7 +24,11 @@ export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
     }
   };
 
-  const getResultBadge = (result: string | null) => {
+  // Check if trainee has passed interview (to determine if we should show "Chờ kết quả")
+  const hasPassedInterview = trainee.progression_stage && 
+    trainee.progression_stage !== "Chưa đậu";
+
+  const getResultBadge = (result: string | null, isLatestInterview: boolean) => {
     switch (result?.toLowerCase()) {
       case "đậu":
       case "passed":
@@ -44,6 +48,15 @@ export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
         );
       case "chờ":
       case "pending":
+        // If trainee has passed interview, show "Đậu" instead of "Chờ kết quả" for the latest interview
+        if (hasPassedInterview && isLatestInterview) {
+          return (
+            <Badge className="bg-green-100 text-green-800">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Đậu
+            </Badge>
+          );
+        }
         return (
           <Badge className="bg-yellow-100 text-yellow-800">
             <Clock className="h-3 w-3 mr-1" />
@@ -51,6 +64,15 @@ export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
           </Badge>
         );
       default:
+        // If no result but trainee has passed interview and this is the latest interview
+        if (!result && hasPassedInterview && isLatestInterview) {
+          return (
+            <Badge className="bg-green-100 text-green-800">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Đậu
+            </Badge>
+          );
+        }
         return <Badge variant="secondary">{result || "—"}</Badge>;
     }
   };
@@ -128,9 +150,9 @@ export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
               </p>
             </div>
             <div className="p-3 border rounded-lg text-center">
-              <p className="text-xs text-muted-foreground">Visa</p>
+              <p className="text-xs text-muted-foreground">Xuất cảnh</p>
               <p className="font-medium text-sm mt-1">
-                {formatDate(trainee.visa_date)}
+                {formatDate(trainee.departure_date)}
               </p>
             </div>
           </div>
@@ -225,7 +247,7 @@ export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
                           {formatDate(interview.interview_date)}
                         </p>
                       </div>
-                      {getResultBadge(interview.result)}
+                      {getResultBadge(interview.result, index === 0)}
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm mt-3">
                       <div>

@@ -368,7 +368,19 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   }, [isEditMode, japanRelativesData]);
 
   const updateField = (field: keyof FormData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const newData = { ...prev, [field]: value };
+      
+      // Auto-change simple_status to "Đang ở Nhật" when progression_stage changes to "Xuất cảnh" or later stages
+      if (field === "progression_stage") {
+        const japanStages = ["Xuất cảnh", "Đang làm việc"];
+        if (japanStages.includes(value)) {
+          newData.simple_status = "Đang ở Nhật";
+        }
+      }
+      
+      return newData;
+    });
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
