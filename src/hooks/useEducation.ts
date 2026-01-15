@@ -309,3 +309,178 @@ export function useRemoveTeacherFromClass() {
     },
   });
 }
+
+// Test Scores hooks
+export function useTestScores(classId: string, testName?: string) {
+  return useQuery({
+    queryKey: ["test-scores", classId, testName],
+    queryFn: async () => {
+      let query = supabase
+        .from("test_scores")
+        .select(`
+          *,
+          trainee:trainees(id, trainee_code, full_name)
+        `)
+        .eq("class_id", classId)
+        .order("test_date", { ascending: false });
+      
+      if (testName) {
+        query = query.eq("test_name", testName);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!classId,
+  });
+}
+
+export function useTestNames(classId: string) {
+  return useQuery({
+    queryKey: ["test-names", classId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("test_scores")
+        .select("test_name, test_date, max_score")
+        .eq("class_id", classId)
+        .order("test_date", { ascending: false });
+      
+      if (error) throw error;
+      
+      // Get unique test names
+      const uniqueTests = data.reduce((acc: any[], curr) => {
+        if (!acc.find(t => t.test_name === curr.test_name)) {
+          acc.push(curr);
+        }
+        return acc;
+      }, []);
+      
+      return uniqueTests;
+    },
+    enabled: !!classId,
+  });
+}
+
+export function useUpsertTestScore() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (score: {
+      class_id: string;
+      trainee_id: string;
+      test_name: string;
+      test_date: string;
+      max_score: number;
+      score: number | null;
+      notes?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from("test_scores")
+        .upsert(score, { onConflict: "class_id,trainee_id,test_name" })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["test-scores"] });
+      queryClient.invalidateQueries({ queryKey: ["test-names"] });
+    },
+  });
+}
+
+export function useBulkUpsertTestScores() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (scores: {
+      class_id: string;
+      trainee_id: string;
+      test_name: string;
+      test_date: string;
+      max_score: number;
+      score: number | null;
+      notes?: string;
+    }[]) => {
+      const { data, error } = await supabase
+        .from("test_scores")
+        .upsert(scores)
+        .select();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["test-scores"] });
+      queryClient.invalidateQueries({ queryKey: ["test-names"] });
+    },
+  });
+}
+
+// Trainee Reviews hooks
+export function useTraineeReviews(traineeId?: string, classId?: string) {
+  return useQuery({
+    queryKey: ["trainee-reviews", traineeId, classId],
+    queryFn: async () => {
+      let query = supabase
+        .from("trainee_reviews")
+        .select(`
+          *,
+          trainee:trainees(id, trainee_code, full_name)
+        `)
+        .order("created_at", { ascending: false });
+      
+      if (traineeId) {
+        query = query.eq("trainee_id", traineeId);
+      }
+      if (classId) {
+        query = query.eq("class_id", classId);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!traineeId || !!classId,
+  });
+}
+
+export function useCreateReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (review: {
+      trainee_id: string;
+      class_id?: string;
+      review_type: string;
+      rating?: number;
+      content: string;
+      is_blacklisted?: boolean;
+      blacklist_reason?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from("trainee_reviews")
+        .insert(review)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trainee-reviews"] });
+    },
+  });
+}
+
+export function useDeleteReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (reviewId: string) => {
+      const { error } = await supabase
+        .from("trainee_reviews")
+        .delete()
+        .eq("id", reviewId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trainee-reviews"] });
+    },
+  });
+}
