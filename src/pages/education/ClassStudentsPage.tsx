@@ -178,14 +178,14 @@ function calculateAverageScore(
   return Math.round((total / studentScores.length) * 10) / 10;
 }
 
-// Get grade based on average score
+// Get grade based on average score (0-100 scale: A=90-100, B=70-89, C=60-69, D=40-59, E=0-39)
 function getGrade(avgScore: number | null): { label: string; color: string } {
   if (avgScore === null) return { label: "—", color: "bg-muted text-muted-foreground" };
-  if (avgScore >= 9) return { label: "Xuất sắc", color: "bg-green-100 text-green-700" };
-  if (avgScore >= 8) return { label: "Giỏi", color: "bg-blue-100 text-blue-700" };
-  if (avgScore >= 6.5) return { label: "Khá", color: "bg-yellow-100 text-yellow-700" };
-  if (avgScore >= 5) return { label: "TB", color: "bg-orange-100 text-orange-700" };
-  return { label: "Yếu", color: "bg-red-100 text-red-700" };
+  if (avgScore >= 90) return { label: "A", color: "bg-green-100 text-green-700" };
+  if (avgScore >= 70) return { label: "B", color: "bg-blue-100 text-blue-700" };
+  if (avgScore >= 60) return { label: "C", color: "bg-yellow-100 text-yellow-700" };
+  if (avgScore >= 40) return { label: "D", color: "bg-orange-100 text-orange-700" };
+  return { label: "E", color: "bg-red-100 text-red-700" };
 }
 
 // Get attendance badge
@@ -353,7 +353,7 @@ export default function ClassStudentsPage() {
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge className={grade.color}>
-                        {avgScore !== null ? `${avgScore} - ${grade.label}` : grade.label}
+                        {grade.label}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">

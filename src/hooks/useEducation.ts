@@ -436,12 +436,45 @@ export function useBulkUpsertTestScores() {
       score: number | null;
       notes?: string;
     }[]) => {
-      const { data, error } = await supabase
-        .from("test_scores")
-        .upsert(scores)
-        .select();
-      if (error) throw error;
-      return data;
+      // Process scores one by one with upsert to handle conflicts properly
+      const results = [];
+      for (const score of scores) {
+        // First check if record exists
+        const { data: existing } = await supabase
+          .from("test_scores")
+          .select("id")
+          .eq("class_id", score.class_id)
+          .eq("trainee_id", score.trainee_id)
+          .eq("test_name", score.test_name)
+          .maybeSingle();
+        
+        if (existing) {
+          // Update existing record
+          const { data, error } = await supabase
+            .from("test_scores")
+            .update({
+              score: score.score,
+              max_score: score.max_score,
+              test_date: score.test_date,
+              notes: score.notes,
+            })
+            .eq("id", existing.id)
+            .select()
+            .single();
+          if (error) throw error;
+          results.push(data);
+        } else {
+          // Insert new record
+          const { data, error } = await supabase
+            .from("test_scores")
+            .insert(score)
+            .select()
+            .single();
+          if (error) throw error;
+          results.push(data);
+        }
+      }
+      return results;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["test-scores"] });
