@@ -202,57 +202,51 @@ export default function EducationDashboard() {
 
       {/* Gender Statistics Chart - Compact */}
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Thống kê học viên theo giới tính</CardTitle>
+        <CardHeader className="pb-1">
+          <CardTitle className="text-sm">Thống kê học viên</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            {/* Compact Chart */}
-            <div className="flex-1">
+        <CardContent className="pt-2">
+          <div className="flex gap-3 items-center">
+            {/* Very Compact Chart */}
+            <div className="w-32 flex-shrink-0">
               {genderStatsLoading ? (
-                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-16 w-full" />
               ) : (
-                <ResponsiveContainer width="100%" height={140}>
-                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                    <YAxis tick={{ fontSize: 10 }} width={30} />
+                <ResponsiveContainer width="100%" height={60}>
+                  <BarChart data={chartData} margin={{ top: 0, right: 0, left: -30, bottom: 0 }}>
+                    <XAxis dataKey="name" tick={{ fontSize: 7 }} axisLine={false} tickLine={false} />
+                    <YAxis hide />
                     <Tooltip 
                       formatter={(value, name) => [value, name === "Nam" ? "Nam" : "Nữ"]}
-                      contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 12 }}
+                      contentStyle={{ borderRadius: 4, border: "1px solid #e2e8f0", fontSize: 10, padding: "4px 8px" }}
                     />
-                    <Bar dataKey="Nam" fill="hsl(210, 70%, 50%)" radius={[2, 2, 0, 0]} />
-                    <Bar dataKey="Nữ" fill="hsl(340, 70%, 60%)" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="Nam" fill="hsl(210, 70%, 50%)" radius={[1, 1, 0, 0]} barSize={8} />
+                    <Bar dataKey="Nữ" fill="hsl(340, 70%, 60%)" radius={[1, 1, 0, 0]} barSize={8} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
             </div>
-            {/* Compact Stats */}
-            <div className="flex flex-col gap-2 min-w-[180px]">
-              <div className="p-2 bg-muted/50 rounded-lg flex justify-between items-center">
-                <span className="text-xs text-muted-foreground">Đang học</span>
-                <span className="font-bold text-sm">
-                  {genderStats?.studying.total || 0}
-                  <span className="text-xs font-normal text-muted-foreground ml-1">
-                    (<span className="text-blue-600">♂{genderStats?.studying.male || 0}</span>/<span className="text-pink-600">♀{genderStats?.studying.female || 0}</span>)
-                  </span>
+            {/* Compact Stats Row */}
+            <div className="flex gap-2 flex-1 text-xs">
+              <div className="px-2 py-1 bg-muted/50 rounded flex items-center gap-1">
+                <span className="text-muted-foreground">Đang học:</span>
+                <span className="font-bold">{genderStats?.studying.total || 0}</span>
+                <span className="text-muted-foreground">
+                  (<span className="text-blue-600">♂{genderStats?.studying.male || 0}</span>/<span className="text-pink-600">♀{genderStats?.studying.female || 0}</span>)
                 </span>
               </div>
-              <div className="p-2 bg-green-50 rounded-lg flex justify-between items-center">
-                <span className="text-xs text-muted-foreground">Đậu PV</span>
-                <span className="font-bold text-sm text-green-600">
-                  {genderStats?.passed.total || 0}
-                  <span className="text-xs font-normal text-muted-foreground ml-1">
-                    (<span className="text-blue-600">♂{genderStats?.passed.male || 0}</span>/<span className="text-pink-600">♀{genderStats?.passed.female || 0}</span>)
-                  </span>
+              <div className="px-2 py-1 bg-green-50 rounded flex items-center gap-1">
+                <span className="text-muted-foreground">Đậu PV:</span>
+                <span className="font-bold text-green-600">{genderStats?.passed.total || 0}</span>
+                <span className="text-muted-foreground">
+                  (<span className="text-blue-600">♂{genderStats?.passed.male || 0}</span>/<span className="text-pink-600">♀{genderStats?.passed.female || 0}</span>)
                 </span>
               </div>
-              <div className="p-2 bg-orange-50 rounded-lg flex justify-between items-center">
-                <span className="text-xs text-muted-foreground">Chưa đậu</span>
-                <span className="font-bold text-sm text-orange-600">
-                  {genderStats?.notPassed.total || 0}
-                  <span className="text-xs font-normal text-muted-foreground ml-1">
-                    (<span className="text-blue-600">♂{genderStats?.notPassed.male || 0}</span>/<span className="text-pink-600">♀{genderStats?.notPassed.female || 0}</span>)
-                  </span>
+              <div className="px-2 py-1 bg-orange-50 rounded flex items-center gap-1">
+                <span className="text-muted-foreground">Chưa đậu:</span>
+                <span className="font-bold text-orange-600">{genderStats?.notPassed.total || 0}</span>
+                <span className="text-muted-foreground">
+                  (<span className="text-blue-600">♂{genderStats?.notPassed.male || 0}</span>/<span className="text-pink-600">♀{genderStats?.notPassed.female || 0}</span>)
                 </span>
               </div>
             </div>
