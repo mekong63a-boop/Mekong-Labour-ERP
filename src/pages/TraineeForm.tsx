@@ -1240,16 +1240,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   </div>
 
                   {/* Conditional date fields based on progression_stage */}
-                  {formData.progression_stage === "Đậu phỏng vấn" && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Ngày đậu PV</Label>
-                      <Input
-                        type="date"
-                        value={formData.interview_pass_date}
-                        onChange={(e) => updateField("interview_pass_date", e.target.value)}
-                      />
-                    </div>
-                  )}
+                  {/* Note: "Đậu phỏng vấn" no longer shows date here as it's already in "Dự án và Phỏng vấn" tab */}
                   {formData.progression_stage === "Nộp hồ sơ" && (
                     <div>
                       <Label className="text-xs text-muted-foreground">Ngày nộp HS</Label>
