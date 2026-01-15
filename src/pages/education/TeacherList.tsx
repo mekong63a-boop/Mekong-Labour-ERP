@@ -50,6 +50,8 @@ export default function TeacherList() {
     email: "",
     specialty: "Tiếng Nhật",
     status: "Đang làm việc",
+    class_start_date: "",
+    class_end_date: "",
   });
 
   const filteredTeachers = teachers?.filter((t) =>
@@ -65,6 +67,8 @@ export default function TeacherList() {
       email: "",
       specialty: "Tiếng Nhật",
       status: "Đang làm việc",
+      class_start_date: "",
+      class_end_date: "",
     });
   };
 
@@ -93,6 +97,8 @@ export default function TeacherList() {
       email: teacher.email || "",
       specialty: teacher.specialty || "Tiếng Nhật",
       status: teacher.status || "Đang làm việc",
+      class_start_date: (teacher as any).class_start_date || "",
+      class_end_date: (teacher as any).class_end_date || "",
     });
     setIsEditDialogOpen(true);
   };
@@ -113,7 +119,9 @@ export default function TeacherList() {
           email: formData.email || null,
           specialty: formData.specialty || null,
           status: formData.status,
-        })
+          class_start_date: formData.class_start_date || null,
+          class_end_date: formData.class_end_date || null,
+        } as any)
         .eq("id", editingTeacher.id);
 
       if (error) throw error;
@@ -249,6 +257,8 @@ export default function TeacherList() {
                   <TableHead>Họ và tên</TableHead>
                   <TableHead>Chuyên môn</TableHead>
                   <TableHead>Liên hệ</TableHead>
+                  <TableHead className="w-28">Ngày nhận lớp</TableHead>
+                  <TableHead className="w-28">Ngày kết thúc</TableHead>
                   <TableHead className="w-32">Trạng thái</TableHead>
                   <TableHead className="w-20 text-center">Thao tác</TableHead>
                 </TableRow>
@@ -274,6 +284,12 @@ export default function TeacherList() {
                           </span>
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {(teacher as any).class_start_date || "—"}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {(teacher as any).class_end_date || "—"}
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -372,6 +388,24 @@ export default function TeacherList() {
                     <SelectItem value="Đã nghỉ">Đã nghỉ</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Ngày nhận lớp</Label>
+                <Input
+                  type="date"
+                  value={formData.class_start_date}
+                  onChange={(e) => setFormData({ ...formData, class_start_date: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Ngày kết thúc lớp</Label>
+                <Input
+                  type="date"
+                  value={formData.class_end_date}
+                  onChange={(e) => setFormData({ ...formData, class_end_date: e.target.value })}
+                />
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-4">

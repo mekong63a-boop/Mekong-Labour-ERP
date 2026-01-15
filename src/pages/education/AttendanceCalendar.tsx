@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/popover";
 import { useClass, useClassStudents, useAttendance, useUpsertAttendance, useClasses } from "@/hooks/useEducation";
 import { ArrowLeft, ChevronLeft, ChevronRight, Check, X, Clock, Save, RefreshCw, RotateCcw } from "lucide-react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isAfter, startOfDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -197,10 +197,15 @@ export default function AttendanceCalendar() {
   const upsertAttendance = useUpsertAttendance();
   const { toast } = useToast();
 
+  // Only show days up to today (not future days)
   const daysInMonth = useMemo(() => {
     const start = startOfMonth(currentMonth);
     const end = endOfMonth(currentMonth);
-    return eachDayOfInterval({ start, end });
+    const today = startOfDay(new Date());
+    const allDays = eachDayOfInterval({ start, end });
+    
+    // Filter to only show days up to today
+    return allDays.filter(day => !isAfter(startOfDay(day), today));
   }, [currentMonth]);
 
   const getAttendanceForDay = (traineeId: string, date: Date) => {

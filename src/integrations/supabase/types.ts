@@ -589,6 +589,8 @@ export type Database = {
       }
       teachers: {
         Row: {
+          class_end_date: string | null
+          class_start_date: string | null
           code: string
           created_at: string
           email: string | null
@@ -600,6 +602,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          class_end_date?: string | null
+          class_start_date?: string | null
           code: string
           created_at?: string
           email?: string | null
@@ -611,6 +615,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          class_end_date?: string | null
+          class_start_date?: string | null
           code?: string
           created_at?: string
           email?: string | null
