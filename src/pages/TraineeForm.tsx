@@ -27,6 +27,7 @@ import { SearchableSelect } from "@/components/ui/searchable-select";
 import { EducationHistoryForm, EducationItem } from "@/components/trainees/forms/EducationHistoryForm";
 import { WorkHistoryForm, WorkItem } from "@/components/trainees/forms/WorkHistoryForm";
 import { FamilyMembersForm, FamilyItem } from "@/components/trainees/forms/FamilyMembersForm";
+import { JapanRelativesForm, JapanRelativeItem } from "@/components/trainees/forms/JapanRelativesForm";
 import { ProjectInterviewForm } from "@/components/trainees/forms/ProjectInterviewForm";
 
 // Options
@@ -144,6 +145,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   const [educationItems, setEducationItems] = useState<EducationItem[]>([]);
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [familyItems, setFamilyItems] = useState<FamilyItem[]>([]);
+  const [japanRelativeItems, setJapanRelativeItems] = useState<JapanRelativeItem[]>([]);
   
   // Project & Interview form state
   const [projectData, setProjectData] = useState({
@@ -496,12 +498,30 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
               full_name: item.full_name,
               gender: item.gender || null,
               birth_year: item.birth_year ? parseInt(item.birth_year) : null,
-              location: item.location || null,
+              location: item.living_status || null,
               occupation: item.occupation || null,
               income: item.income || null,
             }));
           if (familyData.length > 0) {
             await supabase.from("family_members").insert(familyData);
+          }
+        }
+        
+        // Save japan relatives
+        if (japanRelativeItems.length > 0) {
+          const japanData = japanRelativeItems
+            .filter(item => item.full_name)
+            .map(item => ({
+              trainee_id: newTraineeId,
+              full_name: item.full_name,
+              relationship: item.relationship || null,
+              age: item.age ? parseInt(item.age) : null,
+              gender: item.gender || null,
+              address_japan: item.address_japan || null,
+              residence_status: item.residence_status || null,
+            }));
+          if (japanData.length > 0) {
+            await supabase.from("japan_relatives").insert(japanData);
           }
         }
         
@@ -1302,6 +1322,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
           <EducationHistoryForm items={educationItems} onChange={setEducationItems} />
           <WorkHistoryForm items={workItems} onChange={setWorkItems} />
           <FamilyMembersForm items={familyItems} onChange={setFamilyItems} />
+          <JapanRelativesForm items={japanRelativeItems} onChange={setJapanRelativeItems} />
         </TabsContent>
 
         <TabsContent value="project" className="mt-4">

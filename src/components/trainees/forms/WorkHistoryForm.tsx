@@ -7,6 +7,7 @@ export interface WorkItem {
   id?: string;
   company_name: string;
   position: string;
+  company_name_japanese: string;
   start_date: string;
   end_date: string;
 }
@@ -20,7 +21,7 @@ export function WorkHistoryForm({ items, onChange }: WorkHistoryFormProps) {
   const addItem = () => {
     onChange([
       ...items,
-      { company_name: "", position: "", start_date: "", end_date: "" },
+      { company_name: "", position: "", company_name_japanese: "", start_date: "", end_date: "" },
     ]);
   };
 
@@ -55,10 +56,11 @@ export function WorkHistoryForm({ items, onChange }: WorkHistoryFormProps) {
       <CardContent className="space-y-2">
         {/* Header */}
         <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-1">
-          <div className="col-span-4">Công ty</div>
-          <div className="col-span-4">Chức vụ / Công việc</div>
-          <div className="col-span-2">Từ ngày</div>
-          <div className="col-span-1">Đến ngày</div>
+          <div className="col-span-3">Công ty</div>
+          <div className="col-span-2">Công việc</div>
+          <div className="col-span-3">Công ty (tiếng Nhật)</div>
+          <div className="col-span-2">Ngày bắt đầu</div>
+          <div className="col-span-1">Ngày kết thúc</div>
           <div className="col-span-1"></div>
         </div>
 
@@ -70,7 +72,7 @@ export function WorkHistoryForm({ items, onChange }: WorkHistoryFormProps) {
         ) : (
           items.map((item, index) => (
             <div key={index} className="grid grid-cols-12 gap-2 items-center">
-              <div className="col-span-4">
+              <div className="col-span-3">
                 <Input
                   placeholder="Tên công ty"
                   value={item.company_name}
@@ -78,11 +80,19 @@ export function WorkHistoryForm({ items, onChange }: WorkHistoryFormProps) {
                   className="input-empty"
                 />
               </div>
-              <div className="col-span-4">
+              <div className="col-span-2">
                 <Input
-                  placeholder="Mô tả công việc"
+                  placeholder="Công việc"
                   value={item.position}
                   onChange={(e) => updateItem(index, "position", e.target.value)}
+                  className="input-empty"
+                />
+              </div>
+              <div className="col-span-3">
+                <Input
+                  placeholder="Tên công ty tiếng Nhật"
+                  value={item.company_name_japanese}
+                  onChange={(e) => updateItem(index, "company_name_japanese", e.target.value)}
                   className="input-empty"
                 />
               </div>
