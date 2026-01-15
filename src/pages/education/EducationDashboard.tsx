@@ -200,135 +200,134 @@ export default function EducationDashboard() {
         </Card>
       </div>
 
-      {/* Gender Statistics Chart - Compact */}
-      <Card>
-        <CardHeader className="pb-1">
-          <CardTitle className="text-sm">Thống kê học viên</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-2">
-          <div className="flex gap-3 items-center">
-            {/* Very Compact Chart */}
-            <div className="w-32 flex-shrink-0">
-              {genderStatsLoading ? (
-                <Skeleton className="h-16 w-full" />
-              ) : (
-                <ResponsiveContainer width="100%" height={60}>
-                  <BarChart data={chartData} margin={{ top: 0, right: 0, left: -30, bottom: 0 }}>
-                    <XAxis dataKey="name" tick={{ fontSize: 7 }} axisLine={false} tickLine={false} />
-                    <YAxis hide />
-                    <Tooltip 
-                      formatter={(value, name) => [value, name === "Nam" ? "Nam" : "Nữ"]}
-                      contentStyle={{ borderRadius: 4, border: "1px solid #e2e8f0", fontSize: 10, padding: "4px 8px" }}
-                    />
-                    <Bar dataKey="Nam" fill="hsl(210, 70%, 50%)" radius={[1, 1, 0, 0]} barSize={8} />
-                    <Bar dataKey="Nữ" fill="hsl(340, 70%, 60%)" radius={[1, 1, 0, 0]} barSize={8} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-            {/* Compact Stats Row */}
-            <div className="flex gap-2 flex-1 text-xs">
-              <div className="px-2 py-1 bg-muted/50 rounded flex items-center gap-1">
-                <span className="text-muted-foreground">Đang học:</span>
-                <span className="font-bold">{genderStats?.studying.total || 0}</span>
-                <span className="text-muted-foreground">
-                  (<span className="text-blue-600">♂{genderStats?.studying.male || 0}</span>/<span className="text-pink-600">♀{genderStats?.studying.female || 0}</span>)
-                </span>
-              </div>
-              <div className="px-2 py-1 bg-green-50 rounded flex items-center gap-1">
-                <span className="text-muted-foreground">Đậu PV:</span>
-                <span className="font-bold text-green-600">{genderStats?.passed.total || 0}</span>
-                <span className="text-muted-foreground">
-                  (<span className="text-blue-600">♂{genderStats?.passed.male || 0}</span>/<span className="text-pink-600">♀{genderStats?.passed.female || 0}</span>)
-                </span>
-              </div>
-              <div className="px-2 py-1 bg-orange-50 rounded flex items-center gap-1">
-                <span className="text-muted-foreground">Chưa đậu:</span>
-                <span className="font-bold text-orange-600">{genderStats?.notPassed.total || 0}</span>
-                <span className="text-muted-foreground">
-                  (<span className="text-blue-600">♂{genderStats?.notPassed.male || 0}</span>/<span className="text-pink-600">♀{genderStats?.notPassed.female || 0}</span>)
-                </span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Absent/Late List with Date Filter */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-orange-500" />
-            Danh sách vắng / trễ
-          </CardTitle>
-          <div className="flex items-center gap-2">
+      {/* Two Column Layout: Absent/Late (Left) + Statistics (Right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Left: Absent/Late List */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-orange-500" />
+              Danh sách vắng / trễ
+            </CardTitle>
             <Input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-40"
+              className="w-36"
             />
-          </div>
-        </CardHeader>
-        <CardContent>
-          {absentLateLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ) : !absentLate || absentLate.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <BookOpen className="h-10 w-10 mx-auto mb-2 opacity-50" />
-              <p>Không có học viên vắng hoặc đi trễ trong ngày {format(parseISO(selectedDate), "dd/MM/yyyy")}</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {absentLate.map((record: any) => (
-                <div
-                  key={record.id}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                      {record.status === "late" ? (
-                        <Clock className="h-5 w-5 text-yellow-600" />
-                      ) : (
-                        <AlertCircle className="h-5 w-5 text-red-500" />
-                      )}
+          </CardHeader>
+          <CardContent>
+            {absentLateLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : !absentLate || absentLate.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <BookOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Không có học viên vắng hoặc đi trễ trong ngày {format(parseISO(selectedDate), "dd/MM/yyyy")}</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {absentLate.map((record: any) => (
+                  <div
+                    key={record.id}
+                    className="flex items-center justify-between p-2 rounded-lg border bg-muted/30"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                        {record.status === "late" ? (
+                          <Clock className="h-4 w-4 text-yellow-600" />
+                        ) : (
+                          <AlertCircle className="h-4 w-4 text-red-500" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{record.trainees?.full_name || "—"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {record.trainees?.trainee_code} • {record.classes?.name || "—"}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-sm">{record.trainees?.full_name || "—"}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {record.trainees?.trainee_code} • {record.classes?.name || "—"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
                     <Badge
                       variant="outline"
                       className={
                         record.status === "late"
-                          ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                          ? "bg-yellow-50 text-yellow-700 border-yellow-200 text-xs"
                           : record.status === "excused"
-                          ? "bg-blue-50 text-blue-700 border-blue-200"
-                          : "bg-red-50 text-red-700 border-red-200"
+                          ? "bg-blue-50 text-blue-700 border-blue-200 text-xs"
+                          : "bg-red-50 text-red-700 border-red-200 text-xs"
                       }
                     >
-                      {record.status === "late" ? "Đi trễ" : 
-                       record.status === "excused" ? "Vắng có phép" : "Vắng không phép"}
+                      {record.status === "late" ? "Trễ" : 
+                       record.status === "excused" ? "Có phép" : "Không phép"}
                     </Badge>
-                    {record.notes && (
-                      <span className="text-xs text-muted-foreground max-w-[150px] truncate" title={record.notes}>
-                        {record.notes}
-                      </span>
-                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Right: Gender Statistics */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Thống kê học viên theo giới tính</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {genderStatsLoading ? (
+              <Skeleton className="h-40 w-full" />
+            ) : (
+              <div className="space-y-4">
+                {/* Chart */}
+                <ResponsiveContainer width="100%" height={160}>
+                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} width={30} />
+                    <Tooltip 
+                      formatter={(value, name) => [value, name === "Nam" ? "Nam" : "Nữ"]}
+                      contentStyle={{ borderRadius: 6, border: "1px solid #e2e8f0", fontSize: 12 }}
+                    />
+                    <Bar dataKey="Nam" fill="hsl(210, 70%, 50%)" radius={[3, 3, 0, 0]} name="Nam" />
+                    <Bar dataKey="Nữ" fill="hsl(340, 70%, 60%)" radius={[3, 3, 0, 0]} name="Nữ" />
+                  </BarChart>
+                </ResponsiveContainer>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="p-3 bg-muted/50 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground mb-1">Đang học</p>
+                    <p className="text-2xl font-bold">{genderStats?.studying.total || 0}</p>
+                    <p className="text-xs mt-1">
+                      <span className="text-blue-600 font-medium">♂ {genderStats?.studying.male || 0}</span>
+                      <span className="mx-1 text-muted-foreground">/</span>
+                      <span className="text-pink-600 font-medium">♀ {genderStats?.studying.female || 0}</span>
+                    </p>
+                  </div>
+                  <div className="p-3 bg-green-50 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground mb-1">Đậu PV</p>
+                    <p className="text-2xl font-bold text-green-600">{genderStats?.passed.total || 0}</p>
+                    <p className="text-xs mt-1">
+                      <span className="text-blue-600 font-medium">♂ {genderStats?.passed.male || 0}</span>
+                      <span className="mx-1 text-muted-foreground">/</span>
+                      <span className="text-pink-600 font-medium">♀ {genderStats?.passed.female || 0}</span>
+                    </p>
+                  </div>
+                  <div className="p-3 bg-orange-50 rounded-lg text-center">
+                    <p className="text-xs text-muted-foreground mb-1">Chưa đậu</p>
+                    <p className="text-2xl font-bold text-orange-600">{genderStats?.notPassed.total || 0}</p>
+                    <p className="text-xs mt-1">
+                      <span className="text-blue-600 font-medium">♂ {genderStats?.notPassed.male || 0}</span>
+                      <span className="mx-1 text-muted-foreground">/</span>
+                      <span className="text-pink-600 font-medium">♀ {genderStats?.notPassed.female || 0}</span>
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
