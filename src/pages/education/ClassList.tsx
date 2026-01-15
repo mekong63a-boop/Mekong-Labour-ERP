@@ -20,6 +20,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -29,7 +36,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useClasses, useCreateClass } from "@/hooks/useEducation";
-import { Plus, Search, ArrowLeft, Users, Calendar } from "lucide-react";
+import { 
+  Plus, 
+  Search, 
+  ArrowLeft, 
+  Users, 
+  Calendar, 
+  MoreHorizontal,
+  ClipboardCheck,
+  MessageSquare,
+  Download,
+  UserPlus,
+  GraduationCap,
+  Pencil,
+  CheckCircle,
+  Trash2
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -90,6 +112,37 @@ export default function ClassList() {
       return format(new Date(dateStr), "dd/MM/yyyy");
     } catch {
       return "—";
+    }
+  };
+
+  const handleAction = (action: string, classId: string, className: string) => {
+    switch (action) {
+      case "test_scores":
+        toast({ title: `Điểm kiểm tra - ${className}`, description: "Chức năng đang phát triển" });
+        break;
+      case "review":
+        toast({ title: `Nhận xét/Blacklist - ${className}`, description: "Chức năng đang phát triển" });
+        break;
+      case "export":
+        toast({ title: `Xuất dữ liệu - ${className}`, description: "Chức năng đang phát triển" });
+        break;
+      case "add_trainee":
+        toast({ title: `Thêm học viên - ${className}`, description: "Chức năng đang phát triển" });
+        break;
+      case "assign_teacher":
+        toast({ title: `Gán giáo viên - ${className}`, description: "Chức năng đang phát triển" });
+        break;
+      case "edit":
+        toast({ title: `Sửa thông tin - ${className}`, description: "Chức năng đang phát triển" });
+        break;
+      case "end_class":
+        toast({ title: `Kết thúc lớp - ${className}`, description: "Chức năng đang phát triển" });
+        break;
+      case "delete":
+        toast({ title: `Xóa lớp - ${className}`, description: "Chức năng đang phát triển", variant: "destructive" });
+        break;
+      default:
+        break;
     }
   };
 
@@ -255,7 +308,7 @@ export default function ClassList() {
                   <TableHead>Ngày KG</TableHead>
                   <TableHead className="w-24">Sĩ số</TableHead>
                   <TableHead className="w-32">Trạng thái</TableHead>
-                  <TableHead className="w-20">Thao tác</TableHead>
+                  <TableHead className="w-28 text-center">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -287,11 +340,59 @@ export default function ClassList() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link to={`/education/classes/${cls.id}/attendance`}>
-                          <Calendar className="h-4 w-4" />
-                        </Link>
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-52">
+                          <DropdownMenuItem asChild>
+                            <Link to={`/education/classes/${cls.id}/attendance`} className="flex items-center">
+                              <Calendar className="mr-2 h-4 w-4" />
+                              Điểm danh
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleAction("test_scores", cls.id, cls.name)}>
+                            <ClipboardCheck className="mr-2 h-4 w-4" />
+                            Điểm kiểm tra
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleAction("review", cls.id, cls.name)}>
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            Nhận xét/Blacklist
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleAction("export", cls.id, cls.name)}>
+                            <Download className="mr-2 h-4 w-4" />
+                            Xuất dữ liệu
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleAction("add_trainee", cls.id, cls.name)}>
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            Gán học viên
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleAction("assign_teacher", cls.id, cls.name)}>
+                            <GraduationCap className="mr-2 h-4 w-4" />
+                            Gán giáo viên
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleAction("edit", cls.id, cls.name)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Sửa thông tin lớp
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleAction("end_class", cls.id, cls.name)}>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Kết thúc lớp học
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => handleAction("delete", cls.id, cls.name)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Xóa lớp
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
