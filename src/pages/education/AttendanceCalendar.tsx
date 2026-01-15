@@ -24,7 +24,8 @@ import { cn } from "@/lib/utils";
 const ATTENDANCE_STATUS = [
   { value: "-", label: "-", display: "-", color: "" },
   { value: "present", label: "Có mặt", display: "✓", color: "text-green-600" },
-  { value: "excused", label: "Vắng có phép", display: "✗", color: "text-red-500" },
+  { value: "excused", label: "Vắng có phép", display: "P", color: "text-blue-500" },
+  { value: "unexcused", label: "Vắng không phép", display: "✗", color: "text-red-600" },
   { value: "late", label: "Đi trễ", display: "⏱", color: "text-orange-500" },
 ];
 
@@ -124,10 +125,18 @@ export default function AttendanceCalendar() {
 
   const getTraineeStats = (traineeId: string) => {
     const traineeAttendance = attendance?.filter(a => a.trainee_id === traineeId) || [];
+    const presentCount = traineeAttendance.filter(a => a.status === "present").length;
     const lateCount = traineeAttendance.filter(a => a.status === "late").length;
-    const absentCount = traineeAttendance.filter(a => a.status === "excused" || a.status === "unexcused").length;
+    const excusedCount = traineeAttendance.filter(a => a.status === "excused").length;
+    const unexcusedCount = traineeAttendance.filter(a => a.status === "unexcused").length;
     
-    return { lateCount, absentCount };
+    // Calculate attendance rate (present + late count as attending)
+    const totalDays = presentCount + lateCount + excusedCount + unexcusedCount;
+    const attendanceRate = totalDays > 0 
+      ? Math.round(((presentCount + lateCount) / totalDays) * 100) 
+      : 0;
+    
+    return { presentCount, lateCount, excusedCount, unexcusedCount, attendanceRate, totalDays };
   };
 
   const isLoading = classLoading || studentsLoading || attendanceLoading;
@@ -316,12 +325,37 @@ export default function AttendanceCalendar() {
                       </th>
                     );
                   })}
-                  <th className="text-center p-2 min-w-[80px] border-r bg-orange-50">
-                    Lý do đi trễ
-                  </th>
-                  <th className="text-center p-2 min-w-[80px] bg-red-50">
-                    Lý do vắng
-                  </th>
+                  {activeTab === "daily" ? (
+                    <>
+                      <th className="text-center p-2 min-w-[80px] border-r bg-orange-50">
+                        Đi trễ
+                      </th>
+                      <th className="text-center p-2 min-w-[80px] border-r bg-blue-50">
+                        Vắng CP
+                      </th>
+                      <th className="text-center p-2 min-w-[80px] bg-red-50">
+                        Vắng KP
+                      </th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="text-center p-2 min-w-[70px] border-r bg-green-50">
+                        Có mặt
+                      </th>
+                      <th className="text-center p-2 min-w-[70px] border-r bg-orange-50">
+                        Đi trễ
+                      </th>
+                      <th className="text-center p-2 min-w-[70px] border-r bg-blue-50">
+                        Vắng CP
+                      </th>
+                      <th className="text-center p-2 min-w-[70px] border-r bg-red-50">
+                        Vắng KP
+                      </th>
+                      <th className="text-center p-2 min-w-[90px] bg-primary/10">
+                        Tỷ lệ CC
+                      </th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -359,12 +393,14 @@ export default function AttendanceCalendar() {
                                   className={cn(
                                     "w-full h-8 rounded flex items-center justify-center gap-0.5 text-xs border hover:bg-muted/50 transition-colors",
                                     currentStatus === "present" && "text-green-600",
-                                    currentStatus === "excused" && "text-red-500 bg-red-50",
+                                    currentStatus === "excused" && "text-blue-500 bg-blue-50",
+                                    currentStatus === "unexcused" && "text-red-600 bg-red-50",
                                     currentStatus === "late" && "text-orange-500 bg-orange-50"
                                   )}
                                 >
                                   {currentStatus === "present" && <Check className="h-3 w-3" />}
-                                  {currentStatus === "excused" && <X className="h-3 w-3" />}
+                                  {currentStatus === "excused" && <span className="font-bold">P</span>}
+                                  {currentStatus === "unexcused" && <X className="h-3 w-3" />}
                                   {currentStatus === "late" && <Clock className="h-3 w-3" />}
                                   {currentStatus === "-" && <span className="text-muted-foreground">-</span>}
                                   <ChevronDown className="h-2.5 w-2.5 text-muted-foreground" />
@@ -387,7 +423,7 @@ export default function AttendanceCalendar() {
                                       ))}
                                     </SelectContent>
                                   </Select>
-                                  {(currentStatus === "excused" || currentStatus === "late") && (
+                                  {(currentStatus === "excused" || currentStatus === "unexcused" || currentStatus === "late") && (
                                     <Input
                                       placeholder="Ghi chú..."
                                       value={currentNotes}
@@ -406,20 +442,55 @@ export default function AttendanceCalendar() {
                           </td>
                         );
                       })}
-                      <td className="text-center p-2 border-r bg-orange-50/50">
-                        {stats.lateCount > 0 ? (
-                          <span className="text-orange-600 font-medium">{stats.lateCount} lần</span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </td>
-                      <td className="text-center p-2 bg-red-50/50">
-                        {stats.absentCount > 0 ? (
-                          <span className="text-red-600 font-medium">{stats.absentCount} lần</span>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </td>
+                      {activeTab === "daily" ? (
+                        <>
+                          <td className="text-center p-2 border-r bg-orange-50/50">
+                            {stats.lateCount > 0 ? (
+                              <span className="text-orange-600 font-medium">{stats.lateCount}</span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </td>
+                          <td className="text-center p-2 border-r bg-blue-50/50">
+                            {stats.excusedCount > 0 ? (
+                              <span className="text-blue-600 font-medium">{stats.excusedCount}</span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </td>
+                          <td className="text-center p-2 bg-red-50/50">
+                            {stats.unexcusedCount > 0 ? (
+                              <span className="text-red-600 font-medium">{stats.unexcusedCount}</span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="text-center p-2 border-r bg-green-50/50">
+                            <span className="text-green-600 font-medium">{stats.presentCount}</span>
+                          </td>
+                          <td className="text-center p-2 border-r bg-orange-50/50">
+                            <span className="text-orange-600 font-medium">{stats.lateCount}</span>
+                          </td>
+                          <td className="text-center p-2 border-r bg-blue-50/50">
+                            <span className="text-blue-600 font-medium">{stats.excusedCount}</span>
+                          </td>
+                          <td className="text-center p-2 border-r bg-red-50/50">
+                            <span className="text-red-600 font-medium">{stats.unexcusedCount}</span>
+                          </td>
+                          <td className="text-center p-2 bg-primary/10">
+                            <span className={cn(
+                              "font-bold",
+                              stats.attendanceRate >= 80 ? "text-green-600" : 
+                              stats.attendanceRate >= 60 ? "text-orange-600" : "text-red-600"
+                            )}>
+                              {stats.attendanceRate}%
+                            </span>
+                          </td>
+                        </>
+                      )}
                     </tr>
                   );
                 })}

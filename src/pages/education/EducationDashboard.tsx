@@ -149,8 +149,11 @@ export default function EducationDashboard() {
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="text-right text-sm text-muted-foreground">
-                        {cls.max_students || 50} học viên tối đa
+                      <div className="text-right">
+                        <span className="text-lg font-bold text-primary">
+                          {cls.current_students || 0}/{cls.max_students || 50}
+                        </span>
+                        <p className="text-xs text-muted-foreground">học viên</p>
                       </div>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
                         <MoreHorizontal className="h-4 w-4" />

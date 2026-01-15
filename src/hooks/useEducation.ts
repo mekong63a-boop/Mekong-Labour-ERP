@@ -44,12 +44,35 @@ export function useClasses() {
   return useQuery({
     queryKey: ["classes"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Get classes
+      const { data: classesData, error: classesError } = await supabase
         .from("classes")
         .select("*")
         .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as Class[];
+      if (classesError) throw classesError;
+      
+      // Get student counts per class
+      const { data: traineesData, error: traineesError } = await supabase
+        .from("trainees")
+        .select("class_id")
+        .not("class_id", "is", null);
+      if (traineesError) throw traineesError;
+      
+      // Count students per class
+      const studentCounts: Record<string, number> = {};
+      traineesData?.forEach(t => {
+        if (t.class_id) {
+          studentCounts[t.class_id] = (studentCounts[t.class_id] || 0) + 1;
+        }
+      });
+      
+      // Merge counts into classes
+      const classesWithCounts = classesData.map(c => ({
+        ...c,
+        current_students: studentCounts[c.id] || 0
+      }));
+      
+      return classesWithCounts as (Class & { current_students: number })[];
     },
   });
 }
