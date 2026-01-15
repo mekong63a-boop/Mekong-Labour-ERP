@@ -4,7 +4,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -21,22 +20,7 @@ import { useTraineesPaginated, TraineeListItem } from "@/hooks/useTraineesPagina
 import { useTraineeStageCounts, StageCounts } from "@/hooks/useTraineeStageCounts";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { useToast } from "@/hooks/use-toast";
-
-const PROGRESSION_TABS: { value: string; label: string; key: keyof StageCounts | null }[] = [
-  { value: "all", label: "Tất cả", key: "all" },
-  { value: "chua_dau", label: "Chưa đậu", key: "Chưa đậu" },
-  { value: "dau_pv", label: "Đậu phỏng vấn", key: "Đậu phỏng vấn" },
-  { value: "nop_hs", label: "Nộp hồ sơ", key: "Nộp hồ sơ" },
-  { value: "otit", label: "OTIT", key: "OTIT" },
-  { value: "nyukan", label: "Nyukan", key: "Nyukan" },
-  { value: "coe", label: "COE", key: "COE" },
-  { value: "visa", label: "Visa", key: "Visa" },
-  { value: "xuat_canh", label: "Xuất cảnh", key: "Xuất cảnh" },
-  { value: "dang_lam", label: "Đang làm việc", key: "Đang làm việc" },
-  { value: "bo_tron", label: "Bỏ trốn", key: "Bỏ trốn" },
-  { value: "ve_truoc", label: "Về trước hạn", key: "Về trước hạn" },
-  { value: "hoan_thanh", label: "Hoàn thành HĐ", key: "Hoàn thành hợp đồng" },
-];
+import { StageTabsGrid, STAGE_TABS } from "@/components/trainees/StageTabsGrid";
 
 export default function TraineeList() {
   const [activeTab, setActiveTab] = useState("all");
@@ -54,7 +38,7 @@ export default function TraineeList() {
   const { data: stageCounts, isLoading: isCountsLoading } = useTraineeStageCounts();
   
   // Get current progression stage for filtering
-  const activeTabConfig = PROGRESSION_TABS.find((t) => t.value === activeTab);
+  const activeTabConfig = STAGE_TABS.find((t) => t.value === activeTab);
   const progressionStage = activeTabConfig?.key === 'all' ? 'all' : activeTabConfig?.key || 'all';
   
   // Fetch trainees with pagination
@@ -520,34 +504,12 @@ export default function TraineeList() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
-          {PROGRESSION_TABS.map((tab) => {
-            const count = tab.key && stageCounts ? stageCounts[tab.key] : null;
-            return (
-              <TabsTrigger
-                key={tab.value}
-                value={tab.value}
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-3 py-1.5 gap-1.5"
-              >
-                {tab.label}
-                {count !== null && count !== undefined && (
-                  <span className={`
-                    inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 
-                    text-[10px] font-semibold rounded-full
-                    ${activeTab === tab.value 
-                      ? 'bg-primary-foreground/20 text-primary-foreground' 
-                      : 'bg-muted-foreground/20 text-muted-foreground'
-                    }
-                  `}>
-                    {isCountsLoading ? '...' : count.toLocaleString('vi-VN')}
-                  </span>
-                )}
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
-      </Tabs>
+      <StageTabsGrid
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        stageCounts={stageCounts}
+        isLoading={isCountsLoading}
+      />
 
       {/* Search */}
       <div className="flex items-center gap-4">
