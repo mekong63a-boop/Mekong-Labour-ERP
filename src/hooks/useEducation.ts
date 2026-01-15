@@ -187,3 +187,125 @@ export function useEducationStats() {
     },
   });
 }
+
+// Delete class
+export function useDeleteClass() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (classId: string) => {
+      const { error } = await supabase
+        .from("classes")
+        .delete()
+        .eq("id", classId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+    },
+  });
+}
+
+// Available trainees (not in any class)
+export function useAvailableTrainees() {
+  return useQuery({
+    queryKey: ["available-trainees"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trainees")
+        .select("id, trainee_code, full_name, class_id")
+        .is("class_id", null)
+        .order("full_name");
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+// Assign trainees to class
+export function useAssignTraineesToClass() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ classId, traineeIds }: { classId: string; traineeIds: string[] }) => {
+      const { error } = await supabase
+        .from("trainees")
+        .update({ class_id: classId })
+        .in("id", traineeIds);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["class-students"] });
+      queryClient.invalidateQueries({ queryKey: ["available-trainees"] });
+    },
+  });
+}
+
+// Remove trainee from class
+export function useRemoveTraineeFromClass() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (traineeId: string) => {
+      const { error } = await supabase
+        .from("trainees")
+        .update({ class_id: null })
+        .eq("id", traineeId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["class-students"] });
+      queryClient.invalidateQueries({ queryKey: ["available-trainees"] });
+    },
+  });
+}
+
+// Class teachers hooks
+export function useClassTeachers(classId: string) {
+  return useQuery({
+    queryKey: ["class-teachers", classId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("class_teachers")
+        .select(`
+          id,
+          role,
+          teacher:teachers(id, code, full_name, specialty)
+        `)
+        .eq("class_id", classId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!classId,
+  });
+}
+
+export function useAssignTeacherToClass() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ classId, teacherId, role }: { classId: string; teacherId: string; role?: string }) => {
+      const { error } = await supabase
+        .from("class_teachers")
+        .insert({ class_id: classId, teacher_id: teacherId, role: role || 'primary' });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["class-teachers"] });
+    },
+  });
+}
+
+export function useRemoveTeacherFromClass() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (classTeacherId: string) => {
+      const { error } = await supabase
+        .from("class_teachers")
+        .delete()
+        .eq("id", classTeacherId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["class-teachers"] });
+    },
+  });
+}

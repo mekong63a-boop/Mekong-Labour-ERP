@@ -58,3 +58,22 @@ export function useUpdateTrainee() {
     },
   });
 }
+
+export function useDeleteTrainee() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("trainees")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["trainees"] });
+      queryClient.invalidateQueries({ queryKey: ["trainee-stage-counts"] });
+    },
+  });
+}
