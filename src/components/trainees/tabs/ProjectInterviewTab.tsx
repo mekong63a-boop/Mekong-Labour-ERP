@@ -99,7 +99,7 @@ export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
           <div>
             <Label className="text-muted-foreground text-xs">Số lần phỏng vấn</Label>
             <p className="text-2xl font-bold text-primary">
-              {trainee.interview_count || 0}
+              {interviews?.length || 0}
             </p>
           </div>
           <div>
@@ -168,10 +168,6 @@ export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
           <div>
             <Label className="text-muted-foreground text-xs">Ngày xuất cảnh</Label>
             <p className="font-medium">{formatDate(trainee.departure_date)}</p>
-          </div>
-          <div>
-            <Label className="text-muted-foreground text-xs">Ngày nhập cảnh Nhật</Label>
-            <p className="font-medium">{formatDate(trainee.entry_date)}</p>
           </div>
           <div>
             <Label className="text-muted-foreground text-xs">Thời hạn hợp đồng</Label>
