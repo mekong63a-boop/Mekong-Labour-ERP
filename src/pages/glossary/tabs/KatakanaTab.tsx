@@ -93,6 +93,17 @@ const KatakanaTab = () => {
       return;
     }
 
+    // Check for duplicate when adding new
+    if (!editingId) {
+      const isDuplicate = names.some(
+        (item) => item.vietnamese_name.toLowerCase() === formData.vietnamese_name.toLowerCase()
+      );
+      if (isDuplicate) {
+        toast.error(`Tên "${formData.vietnamese_name}" đã tồn tại trong hệ thống!`);
+        return;
+      }
+    }
+
     if (editingId) {
       updateMutation.mutate({ id: editingId, ...formData });
     } else {

@@ -101,6 +101,17 @@ const VocabularyTab = () => {
       return;
     }
 
+    // Check for duplicate when adding new
+    if (!editingId) {
+      const isDuplicate = vocabularies.some(
+        (item) => item.vietnamese.toLowerCase() === formData.vietnamese.toLowerCase()
+      );
+      if (isDuplicate) {
+        toast.error(`Từ "${formData.vietnamese}" đã tồn tại trong hệ thống!`);
+        return;
+      }
+    }
+
     if (editingId) {
       updateMutation.mutate({ id: editingId, ...formData });
     } else {

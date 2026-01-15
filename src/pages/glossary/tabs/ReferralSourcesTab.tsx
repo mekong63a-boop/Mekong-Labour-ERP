@@ -92,6 +92,17 @@ const ReferralSourcesTab = () => {
       return;
     }
 
+    // Check for duplicate when adding new
+    if (!editingId) {
+      const isDuplicate = sources.some(
+        (item) => item.name.toLowerCase() === formData.name.toLowerCase()
+      );
+      if (isDuplicate) {
+        toast.error(`Nguồn "${formData.name}" đã tồn tại trong hệ thống!`);
+        return;
+      }
+    }
+
     if (editingId) {
       updateMutation.mutate({ id: editingId, ...formData });
     } else {
