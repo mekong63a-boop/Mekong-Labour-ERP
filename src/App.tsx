@@ -140,7 +140,15 @@ const App = () => (
                 path="/education/attendance"
                 element={
                   <ProtectedRoute allowedRoles={["admin", "manager", "teacher"]}>
-                    <ClassList />
+                    <AttendanceCalendar />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/education/attendance/:id"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager", "teacher"]}>
+                    <AttendanceCalendar />
                   </ProtectedRoute>
                 }
               />
