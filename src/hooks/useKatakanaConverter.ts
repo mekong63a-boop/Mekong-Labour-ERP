@@ -6,13 +6,14 @@ interface KatakanaName {
   katakana: string;
 }
 
-// Remove diacritics from Vietnamese text
+// Remove diacritics from Vietnamese text but keep Đ/đ distinct from D/d
+// They are different consonants in Vietnamese with different Katakana
 function removeDiacritics(str: string): string {
   return str
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/Đ/g, "D");
+    .replace(/[\u0300-\u036f]/g, "");
+  // Note: Do NOT convert Đ→D or đ→d as they are different consonants
+  // D = ジャ (ja/za sound), Đ = ダ (da sound)
 }
 
 export function useKatakanaConverter() {
