@@ -10,6 +10,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 
 
@@ -272,64 +273,37 @@ export default function EducationDashboard() {
           </CardContent>
         </Card>
 
-        {/* Right: Gender Statistics */}
+        {/* Right: Gender Statistics - Bar Chart */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Thống kê học viên theo giới tính</CardTitle>
           </CardHeader>
           <CardContent>
             {genderStatsLoading ? (
-              <Skeleton className="h-40 w-full" />
+              <Skeleton className="h-64 w-full" />
             ) : (
-              <div className="grid grid-cols-3 gap-4">
-                {/* Đang học */}
-                <div className="p-4 bg-muted/50 rounded-lg text-center">
-                  <p className="text-base font-semibold mb-2">Đang học</p>
-                  <div className="flex justify-center gap-3">
-                    <div className="bg-blue-100 text-blue-700 rounded-lg px-3 py-2">
-                      <p className="text-xs">Nam</p>
-                      <p className="text-xl font-bold">{genderStats?.studying.male || 0}</p>
-                    </div>
-                    <div className="bg-pink-100 text-pink-700 rounded-lg px-3 py-2">
-                      <p className="text-xs">Nữ</p>
-                      <p className="text-xl font-bold">{genderStats?.studying.female || 0}</p>
-                    </div>
-                  </div>
-                  <p className="text-lg font-bold mt-2">{genderStats?.studying.total || 0}</p>
-                </div>
-
-                {/* Đậu PV */}
-                <div className="p-4 bg-green-50 rounded-lg text-center">
-                  <p className="text-base font-semibold text-green-700 mb-2">Đậu PV</p>
-                  <div className="flex justify-center gap-3">
-                    <div className="bg-blue-100 text-blue-700 rounded-lg px-3 py-2">
-                      <p className="text-xs">Nam</p>
-                      <p className="text-xl font-bold">{genderStats?.passed.male || 0}</p>
-                    </div>
-                    <div className="bg-pink-100 text-pink-700 rounded-lg px-3 py-2">
-                      <p className="text-xs">Nữ</p>
-                      <p className="text-xl font-bold">{genderStats?.passed.female || 0}</p>
-                    </div>
-                  </div>
-                  <p className="text-lg font-bold text-green-700 mt-2">{genderStats?.passed.total || 0}</p>
-                </div>
-
-                {/* Chưa đậu */}
-                <div className="p-4 bg-orange-50 rounded-lg text-center">
-                  <p className="text-base font-semibold text-orange-700 mb-2">Chưa đậu</p>
-                  <div className="flex justify-center gap-3">
-                    <div className="bg-blue-100 text-blue-700 rounded-lg px-3 py-2">
-                      <p className="text-xs">Nam</p>
-                      <p className="text-xl font-bold">{genderStats?.notPassed.male || 0}</p>
-                    </div>
-                    <div className="bg-pink-100 text-pink-700 rounded-lg px-3 py-2">
-                      <p className="text-xs">Nữ</p>
-                      <p className="text-xl font-bold">{genderStats?.notPassed.female || 0}</p>
-                    </div>
-                  </div>
-                  <p className="text-lg font-bold text-orange-700 mt-2">{genderStats?.notPassed.total || 0}</p>
-                </div>
-              </div>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" tick={{ fontSize: 14, fontWeight: 600 }} />
+                  <YAxis />
+                  <Tooltip 
+                    formatter={(value: number, name: string) => [value, name]}
+                    labelStyle={{ fontWeight: 'bold' }}
+                  />
+                  <Legend />
+                  <Bar dataKey="Nam" fill="#3b82f6" name="Nam" radius={[4, 4, 0, 0]}>
+                    {chartData.map((_, index) => (
+                      <Cell key={`cell-male-${index}`} />
+                    ))}
+                  </Bar>
+                  <Bar dataKey="Nữ" fill="#ec4899" name="Nữ" radius={[4, 4, 0, 0]}>
+                    {chartData.map((_, index) => (
+                      <Cell key={`cell-female-${index}`} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             )}
           </CardContent>
         </Card>
