@@ -16,6 +16,7 @@ import ClassList from "./pages/education/ClassList";
 import AttendanceCalendar from "./pages/education/AttendanceCalendar";
 import GlossaryPage from "./pages/glossary/GlossaryPage";
 import OrderList from "./pages/orders/OrderList";
+import InternalUnionPage from "./pages/internal-union/InternalUnionPage";
 import PartnerList from "./pages/partners/PartnerList";
 import CompanyForm from "./pages/partners/CompanyForm";
 import UnionForm from "./pages/partners/UnionForm";
@@ -217,6 +218,16 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRoles={["admin", "manager", "staff"]}>
                     <GlossaryPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Internal Union - Admin, Manager */}
+              <Route
+                path="/internal-union"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <InternalUnionPage />
                   </ProtectedRoute>
                 }
               />
