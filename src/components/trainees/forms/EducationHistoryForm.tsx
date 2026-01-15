@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Plus, Minus, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,10 +14,12 @@ const EDUCATION_LEVELS = ["THCS", "THPT", "TTGDTX", "TRUNG CẤP", "CAO ĐẲNG"
 
 export interface EducationItem {
   id?: string;
-  school_name: string;
   level: string;
+  school_name: string;
   major: string;
+  start_month: string;
   start_year: string;
+  end_month: string;
   end_year: string;
 }
 
@@ -31,7 +32,7 @@ export function EducationHistoryForm({ items, onChange }: EducationHistoryFormPr
   const addItem = () => {
     onChange([
       ...items,
-      { school_name: "", level: "", major: "", start_year: "", end_year: "" },
+      { level: "", school_name: "", major: "", start_month: "", start_year: "", end_month: "", end_year: "" },
     ]);
   };
 
@@ -44,6 +45,8 @@ export function EducationHistoryForm({ items, onChange }: EducationHistoryFormPr
     updated[index] = { ...updated[index], [field]: value };
     onChange(updated);
   };
+
+  const months = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
 
   return (
     <Card>
@@ -66,11 +69,11 @@ export function EducationHistoryForm({ items, onChange }: EducationHistoryFormPr
       <CardContent className="space-y-2">
         {/* Header */}
         <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-1">
-          <div className="col-span-4">Trường</div>
-          <div className="col-span-2">Cấp Độ</div>
-          <div className="col-span-3">Chuyên Môn</div>
-          <div className="col-span-1">Năm vào</div>
-          <div className="col-span-1">Năm TN</div>
+          <div className="col-span-2">Trình độ</div>
+          <div className="col-span-3">Tên trường</div>
+          <div className="col-span-2">Chuyên môn</div>
+          <div className="col-span-2">Tháng/Năm nhập học</div>
+          <div className="col-span-2">Tháng/Năm tốt nghiệp</div>
           <div className="col-span-1"></div>
         </div>
 
@@ -82,14 +85,6 @@ export function EducationHistoryForm({ items, onChange }: EducationHistoryFormPr
         ) : (
           items.map((item, index) => (
             <div key={index} className="grid grid-cols-12 gap-2 items-center">
-              <div className="col-span-4">
-                <Input
-                  placeholder="Tên trường"
-                  value={item.school_name}
-                  onChange={(e) => updateItem(index, "school_name", e.target.value)}
-                  className="input-empty"
-                />
-              </div>
               <div className="col-span-2">
                 <Select
                   value={item.level}
@@ -107,26 +102,60 @@ export function EducationHistoryForm({ items, onChange }: EducationHistoryFormPr
               </div>
               <div className="col-span-3">
                 <Input
-                  placeholder="Chuyên ngành"
+                  placeholder="Tên trường"
+                  value={item.school_name}
+                  onChange={(e) => updateItem(index, "school_name", e.target.value)}
+                  className="input-empty"
+                />
+              </div>
+              <div className="col-span-2">
+                <Input
+                  placeholder="Chuyên môn"
                   value={item.major}
                   onChange={(e) => updateItem(index, "major", e.target.value)}
                   className="input-empty"
                 />
               </div>
-              <div className="col-span-1">
+              <div className="col-span-2 flex gap-1">
+                <Select
+                  value={item.start_month}
+                  onValueChange={(v) => updateItem(index, "start_month", v)}
+                >
+                  <SelectTrigger className="input-empty w-16">
+                    <SelectValue placeholder="Th" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Input
-                  placeholder="2018"
+                  placeholder="Năm"
                   value={item.start_year}
                   onChange={(e) => updateItem(index, "start_year", e.target.value)}
-                  className="input-empty"
+                  className="input-empty flex-1"
                 />
               </div>
-              <div className="col-span-1">
+              <div className="col-span-2 flex gap-1">
+                <Select
+                  value={item.end_month}
+                  onValueChange={(v) => updateItem(index, "end_month", v)}
+                >
+                  <SelectTrigger className="input-empty w-16">
+                    <SelectValue placeholder="Th" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Input
-                  placeholder="2021"
+                  placeholder="Năm"
                   value={item.end_year}
                   onChange={(e) => updateItem(index, "end_year", e.target.value)}
-                  className="input-empty"
+                  className="input-empty flex-1"
                 />
               </div>
               <div className="col-span-1 flex justify-center">
