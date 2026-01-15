@@ -14,9 +14,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
 import { useClass, useClassStudents, useAttendance, useUpsertAttendance, useClasses } from "@/hooks/useEducation";
-import { ArrowLeft, ChevronLeft, ChevronRight, Check, X, Clock, ChevronDown, Save, RefreshCw } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Check, X, Clock, Save, RefreshCw } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -36,6 +35,82 @@ const MONTHS = [
   "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
 ];
 
+// Attendance Cell Component with controlled popover
+function AttendanceCell({ 
+  day, 
+  studentId, 
+  getAttendanceForDay, 
+  handleStatusChange 
+}: {
+  day: Date;
+  studentId: string;
+  getAttendanceForDay: (traineeId: string, date: Date) => { status: string; notes?: string } | undefined;
+  handleStatusChange: (traineeId: string, date: Date, status: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const record = getAttendanceForDay(studentId, day);
+  const dayOfWeek = getDay(day);
+  const isWeekend = dayOfWeek === 0;
+  const currentStatus = record?.status || "-";
+
+  const handleSelect = (status: string) => {
+    handleStatusChange(studentId, day, status);
+    setOpen(false);
+  };
+
+  return (
+    <td
+      className={cn(
+        "text-center p-0.5 border-r",
+        isWeekend && "bg-red-50/50"
+      )}
+    >
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            className={cn(
+              "w-full h-8 rounded flex items-center justify-center text-xs border hover:bg-muted/50 transition-colors",
+              currentStatus === "present" && "text-green-600 bg-green-50",
+              currentStatus === "excused" && "text-blue-500 bg-blue-50",
+              currentStatus === "unexcused" && "text-red-600 bg-red-50",
+              currentStatus === "late" && "text-orange-500 bg-orange-50"
+            )}
+          >
+            {currentStatus === "present" && <Check className="h-4 w-4" />}
+            {currentStatus === "excused" && <span className="font-bold text-sm">P</span>}
+            {currentStatus === "unexcused" && <X className="h-4 w-4" />}
+            {currentStatus === "late" && <Clock className="h-4 w-4" />}
+            {currentStatus === "-" && <span className="text-muted-foreground">-</span>}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-1" align="start">
+          <div className="flex gap-1">
+            {ATTENDANCE_STATUS.filter(s => s.value !== "-").map((status) => (
+              <button
+                key={status.value}
+                onClick={() => handleSelect(status.value)}
+                className={cn(
+                  "w-10 h-10 rounded-md border-2 flex items-center justify-center transition-all hover:scale-110",
+                  status.value === "present" && "bg-green-100 border-green-500 hover:bg-green-200",
+                  status.value === "late" && "bg-orange-100 border-orange-500 hover:bg-orange-200",
+                  status.value === "excused" && "bg-blue-100 border-blue-500 hover:bg-blue-200",
+                  status.value === "unexcused" && "bg-red-100 border-red-500 hover:bg-red-200",
+                  currentStatus === status.value && "ring-2 ring-offset-1 ring-primary"
+                )}
+                title={status.label}
+              >
+                {status.value === "present" && <Check className="h-5 w-5 text-green-600" />}
+                {status.value === "late" && <Clock className="h-5 w-5 text-orange-600" />}
+                {status.value === "excused" && <span className="font-bold text-blue-600">P</span>}
+                {status.value === "unexcused" && <X className="h-5 w-5 text-red-600" />}
+              </button>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </td>
+  );
+}
 
 export default function AttendanceCalendar() {
   const { id: classId } = useParams<{ id: string }>();
@@ -355,76 +430,15 @@ export default function AttendanceCalendar() {
                           {student.full_name}
                         </span>
                       </td>
-                      {daysInMonth.map((day) => {
-                        const record = getAttendanceForDay(student.id, day);
-                        const dayOfWeek = getDay(day);
-                        const isWeekend = dayOfWeek === 0;
-                        const currentStatus = record?.status || "-";
-                        const currentNotes = record?.notes || "";
-                        
-                        return (
-                          <td
-                            key={day.toISOString()}
-                            className={cn(
-                              "text-center p-0.5 border-r",
-                              isWeekend && "bg-red-50/50"
-                            )}
-                          >
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <button
-                                  className={cn(
-                                    "w-full h-8 rounded flex items-center justify-center gap-0.5 text-xs border hover:bg-muted/50 transition-colors",
-                                    currentStatus === "present" && "text-green-600",
-                                    currentStatus === "excused" && "text-blue-500 bg-blue-50",
-                                    currentStatus === "unexcused" && "text-red-600 bg-red-50",
-                                    currentStatus === "late" && "text-orange-500 bg-orange-50"
-                                  )}
-                                >
-                                  {currentStatus === "present" && <Check className="h-3 w-3" />}
-                                  {currentStatus === "excused" && <span className="font-bold">P</span>}
-                                  {currentStatus === "unexcused" && <X className="h-3 w-3" />}
-                                  {currentStatus === "late" && <Clock className="h-3 w-3" />}
-                                  {currentStatus === "-" && <span className="text-muted-foreground">-</span>}
-                                  <ChevronDown className="h-2.5 w-2.5 text-muted-foreground" />
-                                </button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-48 p-2" align="start">
-                                <div className="space-y-2">
-                                  <Select
-                                    value={currentStatus}
-                                    onValueChange={(v) => handleStatusChange(student.id, day, v)}
-                                  >
-                                    <SelectTrigger className="w-full h-8 text-xs">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {ATTENDANCE_STATUS.map((status) => (
-                                        <SelectItem key={status.value} value={status.value}>
-                                          <span className={status.color}>{status.label}</span>
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  {(currentStatus === "excused" || currentStatus === "unexcused" || currentStatus === "late") && (
-                                    <Input
-                                      placeholder="Ghi chú..."
-                                      value={currentNotes}
-                                      onChange={(e) => handleNotesChange(student.id, day, e.target.value)}
-                                      className="h-8 text-xs"
-                                    />
-                                  )}
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                            {currentNotes && (
-                              <div className="text-[9px] text-muted-foreground truncate px-0.5">
-                                {currentNotes}
-                              </div>
-                            )}
-                          </td>
-                        );
-                      })}
+                      {daysInMonth.map((day) => (
+                        <AttendanceCell
+                          key={day.toISOString()}
+                          day={day}
+                          studentId={student.id}
+                          getAttendanceForDay={getAttendanceForDay}
+                          handleStatusChange={handleStatusChange}
+                        />
+                      ))}
                       <td className="text-center p-2 border-r bg-orange-50/50">
                         {stats.lateCount > 0 ? (
                           <span className="text-orange-600 font-medium">{stats.lateCount}</span>
