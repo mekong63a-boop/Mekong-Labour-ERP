@@ -466,14 +466,21 @@ export default function AttendanceCalendar() {
             })
           );
         } else if (value.status === "-") {
-          // Delete for reset to "-"
-          deletePromises.push(
-            deleteAttendance.mutateAsync({
-              trainee_id: traineeId,
-              class_id: classId!,
-              date: dateStr,
-            })
+          // Check if there's an existing record in the database to delete
+          const existingRecord = attendance?.find(
+            a => a.trainee_id === traineeId && a.date === dateStr
           );
+          
+          if (existingRecord) {
+            // Only delete if there was an existing record
+            deletePromises.push(
+              deleteAttendance.mutateAsync({
+                trainee_id: traineeId,
+                class_id: classId!,
+                date: dateStr,
+              })
+            );
+          }
         }
       });
       

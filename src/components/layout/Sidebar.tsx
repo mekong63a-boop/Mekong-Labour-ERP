@@ -42,18 +42,7 @@ const menuItems: MenuItem[] = [
   { path: "/trainees", icon: Users, label: "Học viên", permission: "trainees" },
   { path: "/orders", icon: ClipboardList, label: "Đơn hàng", permission: "orders" },
   { path: "/partners", icon: Building2, label: "Đối tác", permission: "orders" },
-  {
-    path: "/education",
-    icon: GraduationCap,
-    label: "Đào tạo",
-    permission: "education",
-    children: [
-      { path: "/education", icon: LayoutDashboard, label: "Tổng quan", permission: "education" },
-      { path: "/education/classes", icon: GraduationCap, label: "Danh sách lớp", permission: "education" },
-      { path: "/education/teachers", icon: Users, label: "Giáo viên", permission: "education" },
-      { path: "/education/attendance", icon: FileSpreadsheet, label: "Điểm danh", permission: "education" },
-    ],
-  },
+{ path: "/education", icon: GraduationCap, label: "Đào tạo", permission: "education" },
   {
     path: "/internal-ops",
     icon: Building2,
