@@ -241,6 +241,74 @@ export type Database = {
           },
         ]
       }
+      enrollment_history: {
+        Row: {
+          action_date: string
+          action_type: string
+          class_id: string | null
+          created_at: string
+          created_by: string | null
+          from_class_id: string | null
+          id: string
+          notes: string | null
+          to_class_id: string | null
+          trainee_id: string
+        }
+        Insert: {
+          action_date?: string
+          action_type: string
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          from_class_id?: string | null
+          id?: string
+          notes?: string | null
+          to_class_id?: string | null
+          trainee_id: string
+        }
+        Update: {
+          action_date?: string
+          action_type?: string
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          from_class_id?: string | null
+          id?: string
+          notes?: string | null
+          to_class_id?: string | null
+          trainee_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enrollment_history_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollment_history_from_class_id_fkey"
+            columns: ["from_class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollment_history_to_class_id_fkey"
+            columns: ["to_class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollment_history_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       family_members: {
         Row: {
           birth_year: number | null

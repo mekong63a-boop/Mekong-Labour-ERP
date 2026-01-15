@@ -92,23 +92,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
-// Hook to get detailed students for a class
-function useClassStudentsDetailed(classId: string) {
-  return useQuery({
-    queryKey: ["class-students-detailed", classId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("trainees")
-        .select("id, trainee_code, full_name, birth_date, birthplace, progression_stage")
-        .eq("class_id", classId)
-        .order("full_name");
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!classId,
-  });
-}
-
 const LEVELS = ["N5", "N4", "N3", "N2", "N1"];
 const TARGET_AUDIENCES = ["Thực tập sinh", "Kỹ năng đặc định", "Kỹ sư", "Du học sinh", "Khác"];
 
@@ -133,7 +116,6 @@ export default function ClassList() {
   const [isAssignTeacherDialogOpen, setIsAssignTeacherDialogOpen] = useState(false);
   const [isTestScoresDialogOpen, setIsTestScoresDialogOpen] = useState(false);
   const [isReviewsDialogOpen, setIsReviewsDialogOpen] = useState(false);
-  const [isStudentListDialogOpen, setIsStudentListDialogOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [selectedTraineeIds, setSelectedTraineeIds] = useState<string[]>([]);
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
@@ -151,7 +133,6 @@ export default function ClassList() {
   // Fetch available trainees and class students when dialog opens
   const { data: availableTrainees } = useAvailableTrainees();
   const { data: classStudents } = useClassStudents(selectedClass?.id || "");
-  const { data: classStudentsDetailed } = useClassStudentsDetailed(selectedClass?.id || "");
   const { data: classTeachers } = useClassTeachers(selectedClass?.id || "");
   const { data: attendance } = useAttendance(selectedClass?.id || "", format(new Date(), "yyyy-MM"));
   const { data: testScores } = useTestScores(selectedClass?.id || "");
@@ -351,7 +332,7 @@ export default function ClassList() {
         toast({ title: "Xuất dữ liệu thành công" });
         break;
       case "view_students":
-        setIsStudentListDialogOpen(true);
+        navigate(`/education/classes/${classData.id}/students`);
         break;
       default:
         break;
@@ -845,77 +826,6 @@ export default function ClassList() {
         />
       )}
 
-      {/* Student List Dialog */}
-      <Dialog open={isStudentListDialogOpen} onOpenChange={setIsStudentListDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Danh sách học viên - {selectedClass?.name}</DialogTitle>
-            <DialogDescription>
-              {classStudentsDetailed?.length || 0} học viên trong lớp
-            </DialogDescription>
-          </DialogHeader>
-          <ScrollArea className="h-[500px]">
-            {classStudentsDetailed && classStudentsDetailed.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="w-24">Mã HV</TableHead>
-                    <TableHead>Họ và tên</TableHead>
-                    <TableHead className="w-28">Ngày sinh</TableHead>
-                    <TableHead>Quê quán</TableHead>
-                    <TableHead className="w-32">Tình trạng</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {classStudentsDetailed.map((student) => (
-                    <TableRow key={student.id}>
-                      <TableCell className="font-mono text-sm">{student.trainee_code}</TableCell>
-                      <TableCell className="font-medium">{student.full_name}</TableCell>
-                      <TableCell className="text-sm">
-                        {student.birth_date 
-                          ? format(new Date(student.birth_date), "dd/MM/yyyy") 
-                          : "—"}
-                      </TableCell>
-                      <TableCell className="text-sm">{student.birthplace || "—"}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={
-                            student.progression_stage === "Chưa đậu"
-                              ? "bg-gray-100 text-gray-600"
-                              : student.progression_stage === "Đậu phỏng vấn"
-                              ? "bg-green-100 text-green-700"
-                              : student.progression_stage === "Nộp hồ sơ"
-                              ? "bg-blue-100 text-blue-700"
-                              : student.progression_stage === "OTIT"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : student.progression_stage === "Nyukan"
-                              ? "bg-purple-100 text-purple-700"
-                              : student.progression_stage === "COE"
-                              ? "bg-orange-100 text-orange-700"
-                              : "bg-muted text-muted-foreground"
-                          }
-                        >
-                          {student.progression_stage || "Chưa đậu"}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                Lớp chưa có học viên nào
-              </div>
-            )}
-          </ScrollArea>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsStudentListDialogOpen(false)}>
-              Đóng
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
