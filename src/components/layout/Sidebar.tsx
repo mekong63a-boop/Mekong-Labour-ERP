@@ -18,6 +18,7 @@ import {
   LogOut,
   ChevronDown,
   ChevronUp,
+  HandCoins,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import mekongLogo from "@/assets/mekong-logo.png";
@@ -68,6 +69,7 @@ const menuItems: MenuItem[] = [
   { path: "/violations", icon: AlertTriangle, label: "Blacklist", permission: "trainees" },
   { path: "/reports", icon: FileSpreadsheet, label: "Báo cáo", permission: "orders" },
   { path: "/glossary", icon: Languages, label: "Từ điển chuyên ngành", permission: "glossary" },
+  { path: "/internal-union", icon: HandCoins, label: "Công đoàn nội bộ", permission: "orders" },
   { path: "/system-monitor", icon: Monitor, label: "Giám sát hệ thống", permission: "settings" },
   { path: "/admin/users", icon: Shield, label: "Quản lý phân quyền", permission: "settings" },
 ];

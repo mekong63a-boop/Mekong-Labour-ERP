@@ -842,6 +842,89 @@ export type Database = {
         }
         Relationships: []
       }
+      union_members: {
+        Row: {
+          birth_date: string | null
+          created_at: string
+          end_date: string | null
+          full_name: string
+          hometown: string | null
+          id: string
+          join_date: string
+          member_code: string
+          notes: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          birth_date?: string | null
+          created_at?: string
+          end_date?: string | null
+          full_name: string
+          hometown?: string | null
+          id?: string
+          join_date?: string
+          member_code: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          birth_date?: string | null
+          created_at?: string
+          end_date?: string | null
+          full_name?: string
+          hometown?: string | null
+          id?: string
+          join_date?: string
+          member_code?: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      union_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          member_id: string | null
+          transaction_date: string
+          transaction_type: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          member_id?: string | null
+          transaction_date?: string
+          transaction_type: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          member_id?: string | null
+          transaction_date?: string
+          transaction_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "union_transactions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "union_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unions: {
         Row: {
           address: string | null
