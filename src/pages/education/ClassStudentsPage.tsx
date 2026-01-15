@@ -162,20 +162,24 @@ function calculateAttendanceRate(
   return Math.round((present / studentAttendance.length) * 100);
 }
 
-// Calculate average test score for a student
-function calculateAverageScore(
+// Get the most recent test score for a student
+function getLatestScore(
   testScores: any[] | undefined,
   traineeId: string
 ): number | null {
   if (!testScores || testScores.length === 0) return null;
   
-  const studentScores = testScores.filter(s => 
-    s.trainee_id === traineeId && s.score !== null
-  );
-  if (studentScores.length === 0) return null;
+  const studentScores = testScores
+    .filter(s => s.trainee_id === traineeId && s.score !== null)
+    .sort((a, b) => {
+      // Sort by test_date descending, then by created_at descending
+      const dateA = new Date(a.test_date || a.created_at);
+      const dateB = new Date(b.test_date || b.created_at);
+      return dateB.getTime() - dateA.getTime();
+    });
   
-  const total = studentScores.reduce((sum, s) => sum + (s.score || 0), 0);
-  return Math.round((total / studentScores.length) * 10) / 10;
+  if (studentScores.length === 0) return null;
+  return studentScores[0].score;
 }
 
 // Get grade based on average score (0-100 scale: A=90-100, B=70-89, C=60-69, D=40-59, E=0-39)
@@ -332,9 +336,9 @@ export default function ClassStudentsPage() {
             </TableHeader>
             <TableBody>
               {filteredStudents.map((student) => {
-                const avgScore = calculateAverageScore(testScores, student.id);
+                const latestScore = getLatestScore(testScores, student.id);
                 const attendanceRate = calculateAttendanceRate(attendance, student.id);
-                const grade = getGrade(avgScore);
+                const grade = getGrade(latestScore);
                 const attendanceBadge = getAttendanceBadge(attendanceRate);
 
                 return (
