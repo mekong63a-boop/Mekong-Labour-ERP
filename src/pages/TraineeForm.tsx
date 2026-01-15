@@ -19,11 +19,15 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { PhotoUpload } from "@/components/trainees/PhotoUpload";
+import { PhotoUpload, uploadPhoto } from "@/components/trainees/PhotoUpload";
 import { useTrainee, useUpdateTrainee } from "@/hooks/useTrainees";
 import { useKatakanaConverter } from "@/hooks/useKatakanaConverter";
 import { useUserRole } from "@/hooks/useUserRole";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { EducationHistoryForm, EducationItem } from "@/components/trainees/forms/EducationHistoryForm";
+import { WorkHistoryForm, WorkItem } from "@/components/trainees/forms/WorkHistoryForm";
+import { FamilyMembersForm, FamilyItem } from "@/components/trainees/forms/FamilyMembersForm";
+import { ProjectInterviewForm } from "@/components/trainees/forms/ProjectInterviewForm";
 
 // Options
 const TRAINEE_TYPES = ["Thực tập sinh", "Kỹ năng đặc định", "Kỹ sư", "Du học sinh", "Thực tập sinh số 3"];
@@ -132,6 +136,24 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   const [activeTab, setActiveTab] = useState("personal");
   const { convertToKatakana } = useKatakanaConverter();
   const { isAdmin } = useUserRole();
+  
+  // Pending photo file for upload on save
+  const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
+  
+  // History form states
+  const [educationItems, setEducationItems] = useState<EducationItem[]>([]);
+  const [workItems, setWorkItems] = useState<WorkItem[]>([]);
+  const [familyItems, setFamilyItems] = useState<FamilyItem[]>([]);
+  
+  // Project & Interview form state
+  const [projectData, setProjectData] = useState({
+    order_id: "",
+    interview_date: "",
+    expected_entry_month: "",
+    receiving_company_id: "",
+    union_id: "",
+    job_category_id: "",
+  });
 
   // Fetch referral sources from database
   const { data: referralSources = [] } = useQuery({
@@ -383,7 +405,38 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
 
     setIsSubmitting(true);
     try {
-      const traineeData = buildTraineeData();
+      let traineeData = buildTraineeData();
+      
+      // Upload pending photo if exists (only for new trainees)
+      if (!isEditMode && pendingPhotoFile) {
+        try {
+          const photoUrl = await uploadPhoto(pendingPhotoFile, formData.trainee_code);
+          traineeData = { ...traineeData, photo_url: photoUrl };
+        } catch (error: any) {
+          console.error("Photo upload error:", error);
+          toast({
+            title: "Lỗi khi tải ảnh",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+      }
+      
+      // Add project data to trainee
+      if (projectData.receiving_company_id) {
+        (traineeData as any).receiving_company_id = projectData.receiving_company_id;
+      }
+      if (projectData.union_id) {
+        (traineeData as any).union_id = projectData.union_id;
+      }
+      if (projectData.job_category_id) {
+        (traineeData as any).job_category_id = projectData.job_category_id;
+      }
+      if (projectData.expected_entry_month) {
+        (traineeData as any).expected_entry_month = projectData.expected_entry_month;
+      }
+
+      let newTraineeId: string | undefined;
 
       if (isEditMode && traineeId) {
         await updateTraineeMutation.mutateAsync({
@@ -392,9 +445,78 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         });
         toast({ title: "Cập nhật học viên thành công" });
       } else {
-        const { error } = await supabase.from("trainees").insert(traineeData);
+        const { data, error } = await supabase.from("trainees").insert(traineeData).select("id").single();
         if (error) throw error;
+        newTraineeId = data.id;
         toast({ title: "Thêm học viên thành công" });
+      }
+      
+      // Save history data for new trainees
+      if (!isEditMode && newTraineeId) {
+        // Save education history
+        if (educationItems.length > 0) {
+          const eduData = educationItems
+            .filter(item => item.school_name)
+            .map(item => ({
+              trainee_id: newTraineeId,
+              school_name: item.school_name,
+              level: item.level || null,
+              major: item.major || null,
+              start_year: item.start_year ? parseInt(item.start_year) : null,
+              end_year: item.end_year ? parseInt(item.end_year) : null,
+            }));
+          if (eduData.length > 0) {
+            await supabase.from("education_history").insert(eduData);
+          }
+        }
+        
+        // Save work history
+        if (workItems.length > 0) {
+          const workData = workItems
+            .filter(item => item.company_name)
+            .map(item => ({
+              trainee_id: newTraineeId,
+              company_name: item.company_name,
+              position: item.position || null,
+              start_date: item.start_date || null,
+              end_date: item.end_date || null,
+            }));
+          if (workData.length > 0) {
+            await supabase.from("work_history").insert(workData);
+          }
+        }
+        
+        // Save family members
+        if (familyItems.length > 0) {
+          const familyData = familyItems
+            .filter(item => item.full_name)
+            .map(item => ({
+              trainee_id: newTraineeId,
+              relationship: item.relationship || "Khác",
+              full_name: item.full_name,
+              gender: item.gender || null,
+              birth_year: item.birth_year ? parseInt(item.birth_year) : null,
+              location: item.location || null,
+              occupation: item.occupation || null,
+              income: item.income || null,
+            }));
+          if (familyData.length > 0) {
+            await supabase.from("family_members").insert(familyData);
+          }
+        }
+        
+        // Save interview history if there's interview data
+        if (projectData.interview_date || projectData.receiving_company_id) {
+          await supabase.from("interview_history").insert({
+            trainee_id: newTraineeId,
+            interview_date: projectData.interview_date || null,
+            company_id: projectData.receiving_company_id || null,
+            union_id: projectData.union_id || null,
+            job_category_id: projectData.job_category_id || null,
+            expected_entry_month: projectData.expected_entry_month || null,
+            result: "Chờ",
+          });
+        }
       }
 
       navigate("/trainees");
@@ -484,8 +606,15 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                     <div className="flex-shrink-0 space-y-2">
                       <PhotoUpload
                         currentPhotoUrl={formData.photo_url}
-                        onPhotoChange={(url) => updateField("photo_url", url || "")}
+                        onPhotoChange={(url, file) => {
+                          if (file && !isEditMode) {
+                            setPendingPhotoFile(file);
+                          } else {
+                            updateField("photo_url", url || "");
+                          }
+                        }}
                         traineeCode={formData.trainee_code}
+                        previewOnly={!isEditMode}
                       />
                       <div>
                         <Label className="text-xs text-muted-foreground">
@@ -1169,16 +1298,14 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
           </div>
         </TabsContent>
 
-        <TabsContent value="history">
-          <Card className="p-8 text-center text-muted-foreground">
-            <p>Lý lịch cá nhân sẽ được thêm sau khi tạo học viên</p>
-          </Card>
+        <TabsContent value="history" className="mt-4 space-y-4">
+          <EducationHistoryForm items={educationItems} onChange={setEducationItems} />
+          <WorkHistoryForm items={workItems} onChange={setWorkItems} />
+          <FamilyMembersForm items={familyItems} onChange={setFamilyItems} />
         </TabsContent>
 
-        <TabsContent value="project">
-          <Card className="p-8 text-center text-muted-foreground">
-            <p>Thông tin dự án và phỏng vấn sẽ được thêm sau khi tạo học viên</p>
-          </Card>
+        <TabsContent value="project" className="mt-4">
+          <ProjectInterviewForm data={projectData} onChange={setProjectData} />
         </TabsContent>
       </Tabs>
     </div>

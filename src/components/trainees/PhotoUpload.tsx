@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Camera, Upload, X, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -7,16 +7,26 @@ import { useToast } from "@/hooks/use-toast";
 
 interface PhotoUploadProps {
   currentPhotoUrl?: string;
-  onPhotoChange: (url: string | null) => void;
+  onPhotoChange: (url: string | null, file?: File | null) => void;
   traineeCode: string;
+  /** If true, only preview the photo locally without uploading to Supabase */
+  previewOnly?: boolean;
 }
 
-export function PhotoUpload({ currentPhotoUrl, onPhotoChange, traineeCode }: PhotoUploadProps) {
+export function PhotoUpload({ currentPhotoUrl, onPhotoChange, traineeCode, previewOnly = false }: PhotoUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentPhotoUrl || null);
   const [showFullImage, setShowFullImage] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Update preview when currentPhotoUrl changes (e.g., when loading existing trainee)
+  useEffect(() => {
+    if (currentPhotoUrl && !pendingFile) {
+      setPreviewUrl(currentPhotoUrl);
+    }
+  }, [currentPhotoUrl, pendingFile]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -43,7 +53,15 @@ export function PhotoUpload({ currentPhotoUrl, onPhotoChange, traineeCode }: Pho
     // Show preview immediately
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl(objectUrl);
+    setPendingFile(file);
 
+    if (previewOnly) {
+      // Just pass the file back without uploading
+      onPhotoChange(null, file);
+      return;
+    }
+
+    // Upload immediately (for edit mode)
     setIsUploading(true);
     try {
       const fileName = `${traineeCode || "new"}_${Date.now()}.${file.name.split(".").pop()}`;
@@ -61,6 +79,7 @@ export function PhotoUpload({ currentPhotoUrl, onPhotoChange, traineeCode }: Pho
 
       onPhotoChange(publicUrl);
       setPreviewUrl(publicUrl);
+      setPendingFile(null);
       toast({ title: "Tải ảnh thành công" });
     } catch (error: any) {
       console.error("Upload error:", error);
@@ -70,14 +89,20 @@ export function PhotoUpload({ currentPhotoUrl, onPhotoChange, traineeCode }: Pho
         variant: "destructive",
       });
       setPreviewUrl(currentPhotoUrl || null);
+      setPendingFile(null);
     } finally {
       setIsUploading(false);
     }
   };
 
   const handleRemovePhoto = () => {
+    // Revoke object URL to free memory
+    if (pendingFile && previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setPreviewUrl(null);
-    onPhotoChange(null);
+    setPendingFile(null);
+    onPhotoChange(null, null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -102,6 +127,11 @@ export function PhotoUpload({ currentPhotoUrl, onPhotoChange, traineeCode }: Pho
               className="w-full h-full object-cover cursor-pointer"
               onClick={() => setShowFullImage(true)}
             />
+            {pendingFile && previewOnly && (
+              <div className="absolute top-1 right-1">
+                <span className="bg-yellow-500 text-white text-[10px] px-1 rounded">Chưa lưu</span>
+              </div>
+            )}
             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
               <Button
                 type="button"
@@ -168,4 +198,22 @@ export function PhotoUpload({ currentPhotoUrl, onPhotoChange, traineeCode }: Pho
       </Dialog>
     </>
   );
+}
+
+// Helper function to upload a pending photo file
+export async function uploadPhoto(file: File, traineeCode: string): Promise<string> {
+  const fileName = `${traineeCode}_${Date.now()}.${file.name.split(".").pop()}`;
+  const filePath = `photos/${fileName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("trainee-photos")
+    .upload(filePath, file, { upsert: true });
+
+  if (uploadError) throw uploadError;
+
+  const { data: { publicUrl } } = supabase.storage
+    .from("trainee-photos")
+    .getPublicUrl(filePath);
+
+  return publicUrl;
 }
