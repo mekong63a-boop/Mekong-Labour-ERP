@@ -19,30 +19,54 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useTeachers, useCreateTeacher } from "@/hooks/useEducation";
-import { Plus, Search, ArrowLeft, Mail, Phone } from "lucide-react";
+import { useTeachers, useCreateTeacher, Teacher } from "@/hooks/useEducation";
+import { Plus, Search, ArrowLeft, Mail, Phone, Pencil } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function TeacherList() {
   const { data: teachers, isLoading } = useTeachers();
   const createTeacher = useCreateTeacher();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [formData, setFormData] = useState({
     code: "",
     full_name: "",
     phone: "",
     email: "",
     specialty: "Tiếng Nhật",
+    status: "Đang làm việc",
   });
 
   const filteredTeachers = teachers?.filter((t) =>
     t.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     t.code.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
+
+  const resetForm = () => {
+    setFormData({
+      code: "",
+      full_name: "",
+      phone: "",
+      email: "",
+      specialty: "Tiếng Nhật",
+      status: "Đang làm việc",
+    });
+  };
 
   const handleCreate = async () => {
     if (!formData.code || !formData.full_name) {
@@ -54,15 +78,53 @@ export default function TeacherList() {
       await createTeacher.mutateAsync(formData);
       toast({ title: "Thêm giáo viên thành công" });
       setIsDialogOpen(false);
-      setFormData({
-        code: "",
-        full_name: "",
-        phone: "",
-        email: "",
-        specialty: "Tiếng Nhật",
-      });
+      resetForm();
     } catch (error) {
       toast({ title: "Lỗi khi thêm giáo viên", variant: "destructive" });
+    }
+  };
+
+  const openEditDialog = (teacher: Teacher) => {
+    setEditingTeacher(teacher);
+    setFormData({
+      code: teacher.code,
+      full_name: teacher.full_name,
+      phone: teacher.phone || "",
+      email: teacher.email || "",
+      specialty: teacher.specialty || "Tiếng Nhật",
+      status: teacher.status || "Đang làm việc",
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!editingTeacher || !formData.code || !formData.full_name) {
+      toast({ title: "Vui lòng nhập mã và họ tên giáo viên", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("teachers")
+        .update({
+          code: formData.code,
+          full_name: formData.full_name,
+          phone: formData.phone || null,
+          email: formData.email || null,
+          specialty: formData.specialty || null,
+          status: formData.status,
+        })
+        .eq("id", editingTeacher.id);
+
+      if (error) throw error;
+      
+      queryClient.invalidateQueries({ queryKey: ["teachers"] });
+      toast({ title: "Cập nhật giáo viên thành công" });
+      setIsEditDialogOpen(false);
+      setEditingTeacher(null);
+      resetForm();
+    } catch (error) {
+      toast({ title: "Lỗi khi cập nhật giáo viên", variant: "destructive" });
     }
   };
 
@@ -188,6 +250,7 @@ export default function TeacherList() {
                   <TableHead>Chuyên môn</TableHead>
                   <TableHead>Liên hệ</TableHead>
                   <TableHead className="w-32">Trạng thái</TableHead>
+                  <TableHead className="w-20 text-center">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -223,6 +286,16 @@ export default function TeacherList() {
                         {teacher.status || "Đang làm việc"}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEditDialog(teacher)}
+                        title="Chỉnh sửa"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -230,6 +303,92 @@ export default function TeacherList() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Chỉnh sửa giáo viên</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Mã giáo viên *</Label>
+                <Input
+                  placeholder="GV001"
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Họ và tên *</Label>
+                <Input
+                  placeholder="Nguyễn Văn A"
+                  value={formData.full_name}
+                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Số điện thoại</Label>
+                <Input
+                  placeholder="0912345678"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  placeholder="email@example.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Chuyên môn</Label>
+                <Input
+                  placeholder="Tiếng Nhật"
+                  value={formData.specialty}
+                  onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Trạng thái</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(v) => setFormData({ ...formData, status: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Đang làm việc">Đang làm việc</SelectItem>
+                    <SelectItem value="Nghỉ phép">Nghỉ phép</SelectItem>
+                    <SelectItem value="Đã nghỉ">Đã nghỉ</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => {
+                setIsEditDialogOpen(false);
+                setEditingTeacher(null);
+                resetForm();
+              }}>
+                Hủy
+              </Button>
+              <Button onClick={handleUpdate}>
+                Cập nhật
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

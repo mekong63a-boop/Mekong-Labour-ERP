@@ -16,7 +16,6 @@ export const STAGE_TABS: StageTabConfig[] = [
   { value: "otit", label: "OTIT", key: "OTIT" },
   { value: "nyukan", label: "Nyukan", key: "Nyukan" },
   { value: "coe", label: "COE", key: "COE" },
-  { value: "visa", label: "Visa", key: "Visa" },
   { value: "xuat_canh", label: "Xuất cảnh", key: "Xuất cảnh" },
   { value: "dang_lam", label: "Đang làm việc", key: "Đang làm việc" },
   { value: "bo_tron", label: "Bỏ trốn", key: "Bỏ trốn" },
