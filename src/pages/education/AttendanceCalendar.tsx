@@ -16,10 +16,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useClass, useClassStudents, useAttendance, useUpsertAttendance, useClasses } from "@/hooks/useEducation";
-import { ArrowLeft, ChevronLeft, ChevronRight, Check, X, Clock, Save, RefreshCw, RotateCcw } from "lucide-react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isAfter, startOfDay } from "date-fns";
+import { ArrowLeft, ChevronLeft, ChevronRight, Check, X, Clock, Save, RefreshCw, RotateCcw, AlertCircle } from "lucide-react";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isAfter, startOfDay, isSameDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useUserRole } from "@/hooks/useUserRole";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ATTENDANCE_STATUS = [
   { value: "-", label: "-", display: "-", color: "" },
@@ -36,19 +38,21 @@ const MONTHS = [
   "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
 ];
 
-// Attendance Cell Component with controlled popover
+// Attendance Cell Component with controlled popover and role-based editing
 function AttendanceCell({ 
   day, 
   studentId, 
   getAttendanceForDay, 
   handleStatusChange,
   handleNotesChange,
+  canEdit,
 }: {
   day: Date;
   studentId: string;
   getAttendanceForDay: (traineeId: string, date: Date) => { status: string; notes?: string | null } | undefined;
   handleStatusChange: (traineeId: string, date: Date, status: string) => void;
   handleNotesChange: (traineeId: string, date: Date, notes: string) => void;
+  canEdit: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [noteInput, setNoteInput] = useState("");
@@ -87,6 +91,39 @@ function AttendanceCell({
     }
     setOpen(isOpen);
   };
+
+  // If cannot edit, just show status without popover
+  if (!canEdit) {
+    return (
+      <td
+        className={cn(
+          "text-center p-0.5 border-r",
+          isWeekend && "bg-red-50/50"
+        )}
+      >
+        <div
+          className={cn(
+            "w-full h-8 rounded flex items-center justify-center text-xs border",
+            currentStatus === "present" && "text-green-600 bg-green-50",
+            currentStatus === "excused" && "text-blue-500 bg-blue-50",
+            currentStatus === "unexcused" && "text-red-600 bg-red-50",
+            currentStatus === "late" && "text-orange-500 bg-orange-50"
+          )}
+        >
+          {currentStatus === "present" && <Check className="h-4 w-4" />}
+          {currentStatus === "excused" && <span className="font-bold text-sm">P</span>}
+          {currentStatus === "unexcused" && <X className="h-4 w-4" />}
+          {currentStatus === "late" && <Clock className="h-4 w-4" />}
+          {currentStatus === "-" && <span className="text-muted-foreground">-</span>}
+        </div>
+        {currentNotes && (
+          <div className="text-[8px] text-muted-foreground truncate px-0.5 max-w-[50px]" title={currentNotes}>
+            {currentNotes}
+          </div>
+        )}
+      </td>
+    );
+  }
 
   return (
     <td
@@ -182,13 +219,167 @@ function AttendanceCell({
   );
 }
 
+// Absent/Late List Component
+function AbsentLateList({ 
+  students, 
+  attendance, 
+  daysInMonth 
+}: { 
+  students: Array<{ id: string; trainee_code: string; full_name: string }>;
+  attendance: Array<{ trainee_id: string; date: string; status: string; notes: string | null }>;
+  daysInMonth: Date[];
+}) {
+  const absentLateRecords = useMemo(() => {
+    const records: Array<{
+      trainee: typeof students[0];
+      date: string;
+      status: string;
+      notes: string | null;
+    }> = [];
+
+    attendance.forEach(record => {
+      if (record.status === "late" || record.status === "excused" || record.status === "unexcused") {
+        const trainee = students.find(s => s.id === record.trainee_id);
+        if (trainee) {
+          records.push({
+            trainee,
+            date: record.date,
+            status: record.status,
+            notes: record.notes,
+          });
+        }
+      }
+    });
+
+    // Sort by date descending
+    return records.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [attendance, students]);
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "late": return "Đi trễ";
+      case "excused": return "Vắng có phép";
+      case "unexcused": return "Vắng không phép";
+      default: return status;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "late": return "bg-orange-100 text-orange-700 border-orange-300";
+      case "excused": return "bg-blue-100 text-blue-700 border-blue-300";
+      case "unexcused": return "bg-red-100 text-red-700 border-red-300";
+      default: return "bg-muted";
+    }
+  };
+
+  if (absentLateRecords.length === 0) {
+    return (
+      <div className="text-center py-12 text-muted-foreground border rounded-lg bg-green-50">
+        <Check className="h-12 w-12 mx-auto text-green-500 mb-2" />
+        <p className="font-medium text-green-700">Tuyệt vời! Không có học viên vắng hoặc đi trễ trong tháng này.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Late Records */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Clock className="h-5 w-5 text-orange-500" />
+            Đi trễ ({absentLateRecords.filter(r => r.status === "late").length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 max-h-[400px] overflow-y-auto">
+          {absentLateRecords.filter(r => r.status === "late").length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Không có</p>
+          ) : (
+            absentLateRecords.filter(r => r.status === "late").map((record, idx) => (
+              <div key={idx} className="p-2 bg-orange-50 rounded-lg border border-orange-200">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-medium text-sm">{record.trainee.full_name}</p>
+                    <p className="text-xs text-muted-foreground">{record.trainee.trainee_code}</p>
+                  </div>
+                  <span className="text-xs bg-orange-200 px-2 py-0.5 rounded">
+                    {format(new Date(record.date), "dd/MM")}
+                  </span>
+                </div>
+                {record.notes && (
+                  <p className="text-xs mt-1 text-orange-700 italic">Lý do: {record.notes}</p>
+                )}
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Absent Records */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <X className="h-5 w-5 text-red-500" />
+            Vắng ({absentLateRecords.filter(r => r.status === "excused" || r.status === "unexcused").length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 max-h-[400px] overflow-y-auto">
+          {absentLateRecords.filter(r => r.status === "excused" || r.status === "unexcused").length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Không có</p>
+          ) : (
+            absentLateRecords.filter(r => r.status === "excused" || r.status === "unexcused").map((record, idx) => (
+              <div 
+                key={idx} 
+                className={cn(
+                  "p-2 rounded-lg border",
+                  record.status === "excused" ? "bg-blue-50 border-blue-200" : "bg-red-50 border-red-200"
+                )}
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-medium text-sm">{record.trainee.full_name}</p>
+                    <p className="text-xs text-muted-foreground">{record.trainee.trainee_code}</p>
+                  </div>
+                  <div className="flex gap-1 items-center">
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded",
+                      record.status === "excused" ? "bg-blue-200" : "bg-red-200"
+                    )}>
+                      {record.status === "excused" ? "CP" : "KP"}
+                    </span>
+                    <span className="text-xs bg-muted px-2 py-0.5 rounded">
+                      {format(new Date(record.date), "dd/MM")}
+                    </span>
+                  </div>
+                </div>
+                {record.notes && (
+                  <p className={cn(
+                    "text-xs mt-1 italic",
+                    record.status === "excused" ? "text-blue-700" : "text-red-700"
+                  )}>
+                    Lý do: {record.notes}
+                  </p>
+                )}
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function AttendanceCalendar() {
   const { id: classId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [activeTab, setActiveTab] = useState<"daily" | "summary">("daily");
+  const [activeTab, setActiveTab] = useState<"daily" | "summary" | "absent-late">("daily");
   const [pendingChanges, setPendingChanges] = useState<Map<string, { status: string; notes: string }>>(new Map());
   const monthStr = format(currentMonth, "yyyy-MM");
+  
+  const { isAdmin, isTeacher } = useUserRole();
+  const today = startOfDay(new Date());
   
   const { data: classInfo, isLoading: classLoading } = useClass(classId || "");
   const { data: classes } = useClasses();
@@ -196,6 +387,13 @@ export default function AttendanceCalendar() {
   const { data: attendance, isLoading: attendanceLoading, refetch } = useAttendance(classId || "", monthStr);
   const upsertAttendance = useUpsertAttendance();
   const { toast } = useToast();
+
+  // Check if can edit a specific day (admin can edit any day, teacher only today)
+  const canEditDay = (day: Date) => {
+    if (isAdmin) return true;
+    if (isTeacher) return isSameDay(day, today);
+    return true; // staff/manager can edit any day
+  };
 
   // Only show days up to today (not future days)
   const daysInMonth = useMemo(() => {
@@ -293,6 +491,35 @@ export default function AttendanceCalendar() {
     return { presentCount, lateCount, excusedCount, unexcusedCount, attendanceRate, totalDays };
   };
 
+  // Get list of absent/late records for the current month
+  const getAbsentLateList = useMemo(() => {
+    if (!attendance || !students) return [];
+    
+    const absentLateRecords: Array<{
+      trainee: typeof students[0];
+      date: string;
+      status: string;
+      notes: string | null;
+    }> = [];
+
+    attendance.forEach(record => {
+      if (record.status === "late" || record.status === "excused" || record.status === "unexcused") {
+        const trainee = students.find(s => s.id === record.trainee_id);
+        if (trainee) {
+          absentLateRecords.push({
+            trainee,
+            date: record.date,
+            status: record.status,
+            notes: record.notes,
+          });
+        }
+      }
+    });
+
+    // Sort by date descending
+    return absentLateRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [attendance, students]);
+
   const isLoading = classLoading || studentsLoading || attendanceLoading;
 
   // If no classId, show class selection
@@ -354,19 +581,30 @@ export default function AttendanceCalendar() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <Button
           variant={activeTab === "daily" ? "default" : "outline"}
           onClick={() => setActiveTab("daily")}
           className={activeTab === "daily" ? "bg-primary text-primary-foreground" : ""}
+          size="sm"
         >
           Điểm danh theo ngày
         </Button>
         <Button
           variant={activeTab === "summary" ? "default" : "outline"}
           onClick={() => setActiveTab("summary")}
+          size="sm"
         >
           Thống kê tổng hợp
+        </Button>
+        <Button
+          variant={activeTab === "absent-late" ? "default" : "outline"}
+          onClick={() => setActiveTab("absent-late")}
+          size="sm"
+          className={activeTab === "absent-late" ? "bg-orange-500 text-white hover:bg-orange-600" : ""}
+        >
+          <AlertCircle className="h-4 w-4 mr-1" />
+          Vắng/Trễ
         </Button>
       </div>
 
@@ -447,6 +685,13 @@ export default function AttendanceCalendar() {
         <div className="text-center py-12 text-muted-foreground border rounded-lg">
           Chưa có học viên nào trong lớp
         </div>
+      ) : activeTab === "absent-late" ? (
+        // Absent/Late list view
+        <AbsentLateList 
+          students={students} 
+          attendance={attendance || []} 
+          daysInMonth={daysInMonth}
+        />
       ) : activeTab === "daily" ? (
         // Daily attendance view with calendar
         <div className="border rounded-lg overflow-hidden">
@@ -513,6 +758,7 @@ export default function AttendanceCalendar() {
                           getAttendanceForDay={getAttendanceForDay}
                           handleStatusChange={handleStatusChange}
                           handleNotesChange={handleNotesChange}
+                          canEdit={canEditDay(day)}
                         />
                       ))}
                       <td className="text-center p-2 border-r bg-orange-50/50">
