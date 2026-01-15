@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -15,7 +16,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useClass, useClassStudents, useAttendance, useUpsertAttendance, useClasses } from "@/hooks/useEducation";
-import { ArrowLeft, ChevronLeft, ChevronRight, Check, X, Clock, Save, RefreshCw } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Check, X, Clock, Save, RefreshCw, RotateCcw } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -40,22 +41,51 @@ function AttendanceCell({
   day, 
   studentId, 
   getAttendanceForDay, 
-  handleStatusChange 
+  handleStatusChange,
+  handleNotesChange,
 }: {
   day: Date;
   studentId: string;
-  getAttendanceForDay: (traineeId: string, date: Date) => { status: string; notes?: string } | undefined;
+  getAttendanceForDay: (traineeId: string, date: Date) => { status: string; notes?: string | null } | undefined;
   handleStatusChange: (traineeId: string, date: Date, status: string) => void;
+  handleNotesChange: (traineeId: string, date: Date, notes: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [noteInput, setNoteInput] = useState("");
   const record = getAttendanceForDay(studentId, day);
   const dayOfWeek = getDay(day);
   const isWeekend = dayOfWeek === 0;
   const currentStatus = record?.status || "-";
+  const currentNotes = record?.notes || "";
 
   const handleSelect = (status: string) => {
     handleStatusChange(studentId, day, status);
+    // Keep open if status needs notes
+    if (status !== "present" && status !== "-") {
+      // Don't close - allow user to add notes
+    } else {
+      setOpen(false);
+    }
+  };
+
+  const handleReset = () => {
+    handleStatusChange(studentId, day, "-");
+    handleNotesChange(studentId, day, "");
+    setNoteInput("");
     setOpen(false);
+  };
+
+  const handleSaveNotes = () => {
+    handleNotesChange(studentId, day, noteInput);
+    setOpen(false);
+  };
+
+  // Sync noteInput with currentNotes when opening
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isOpen) {
+      setNoteInput(currentNotes);
+    }
+    setOpen(isOpen);
   };
 
   return (
@@ -65,7 +95,7 @@ function AttendanceCell({
         isWeekend && "bg-red-50/50"
       )}
     >
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <button
             className={cn(
@@ -83,31 +113,71 @@ function AttendanceCell({
             {currentStatus === "-" && <span className="text-muted-foreground">-</span>}
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-1" align="start">
-          <div className="flex gap-1">
-            {ATTENDANCE_STATUS.filter(s => s.value !== "-").map((status) => (
-              <button
-                key={status.value}
-                onClick={() => handleSelect(status.value)}
-                className={cn(
-                  "w-10 h-10 rounded-md border-2 flex items-center justify-center transition-all hover:scale-110",
-                  status.value === "present" && "bg-green-100 border-green-500 hover:bg-green-200",
-                  status.value === "late" && "bg-orange-100 border-orange-500 hover:bg-orange-200",
-                  status.value === "excused" && "bg-blue-100 border-blue-500 hover:bg-blue-200",
-                  status.value === "unexcused" && "bg-red-100 border-red-500 hover:bg-red-200",
-                  currentStatus === status.value && "ring-2 ring-offset-1 ring-primary"
-                )}
-                title={status.label}
+        <PopoverContent className="w-56 p-2" align="start">
+          <div className="space-y-2">
+            {/* Status buttons */}
+            <div className="flex gap-1">
+              {ATTENDANCE_STATUS.filter(s => s.value !== "-").map((status) => (
+                <button
+                  key={status.value}
+                  onClick={() => handleSelect(status.value)}
+                  className={cn(
+                    "flex-1 h-10 rounded-md border-2 flex items-center justify-center transition-all hover:scale-105",
+                    status.value === "present" && "bg-green-100 border-green-500 hover:bg-green-200",
+                    status.value === "late" && "bg-orange-100 border-orange-500 hover:bg-orange-200",
+                    status.value === "excused" && "bg-blue-100 border-blue-500 hover:bg-blue-200",
+                    status.value === "unexcused" && "bg-red-100 border-red-500 hover:bg-red-200",
+                    currentStatus === status.value && "ring-2 ring-offset-1 ring-primary"
+                  )}
+                  title={status.label}
+                >
+                  {status.value === "present" && <Check className="h-5 w-5 text-green-600" />}
+                  {status.value === "late" && <Clock className="h-5 w-5 text-orange-600" />}
+                  {status.value === "excused" && <span className="font-bold text-blue-600">P</span>}
+                  {status.value === "unexcused" && <X className="h-5 w-5 text-red-600" />}
+                </button>
+              ))}
+            </div>
+            
+            {/* Notes input for late/absent */}
+            {(currentStatus === "late" || currentStatus === "excused" || currentStatus === "unexcused") && (
+              <div className="space-y-1">
+                <Input
+                  placeholder={currentStatus === "late" ? "Lý do đi trễ..." : "Lý do vắng..."}
+                  value={noteInput}
+                  onChange={(e) => setNoteInput(e.target.value)}
+                  className="h-8 text-xs"
+                />
+                <Button 
+                  size="sm" 
+                  className="w-full h-7 text-xs"
+                  onClick={handleSaveNotes}
+                >
+                  Lưu ghi chú
+                </Button>
+              </div>
+            )}
+            
+            {/* Reset button */}
+            {currentStatus !== "-" && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full h-7 text-xs text-muted-foreground"
+                onClick={handleReset}
               >
-                {status.value === "present" && <Check className="h-5 w-5 text-green-600" />}
-                {status.value === "late" && <Clock className="h-5 w-5 text-orange-600" />}
-                {status.value === "excused" && <span className="font-bold text-blue-600">P</span>}
-                {status.value === "unexcused" && <X className="h-5 w-5 text-red-600" />}
-              </button>
-            ))}
+                <RotateCcw className="h-3 w-3 mr-1" />
+                Xóa điểm danh
+              </Button>
+            )}
           </div>
         </PopoverContent>
       </Popover>
+      {currentNotes && (
+        <div className="text-[8px] text-muted-foreground truncate px-0.5 max-w-[50px]" title={currentNotes}>
+          {currentNotes}
+        </div>
+      )}
     </td>
   );
 }
@@ -437,6 +507,7 @@ export default function AttendanceCalendar() {
                           studentId={student.id}
                           getAttendanceForDay={getAttendanceForDay}
                           handleStatusChange={handleStatusChange}
+                          handleNotesChange={handleNotesChange}
                         />
                       ))}
                       <td className="text-center p-2 border-r bg-orange-50/50">

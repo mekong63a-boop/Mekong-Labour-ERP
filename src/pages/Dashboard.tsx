@@ -14,12 +14,20 @@ import { Button } from "@/components/ui/button";
 export default function Dashboard() {
   const { data: trainees, isLoading } = useTrainees();
 
+  // Calculate statistics with gender breakdown
+  const passedTrainees = trainees?.filter((t) => t.progression_stage === "Đậu phỏng vấn") || [];
+  const departedTrainees = trainees?.filter((t) => t.progression_stage === "Xuất cảnh" || t.progression_stage === "Đang làm việc") || [];
+
   const stats = {
     total: trainees?.length || 0,
     male: trainees?.filter((t) => t.gender === "Nam" || t.gender === "Male").length || 0,
     female: trainees?.filter((t) => t.gender === "Nữ" || t.gender === "Female").length || 0,
-    passed: trainees?.filter((t) => t.progression_stage === "Đậu phỏng vấn").length || 0,
-    departed: trainees?.filter((t) => t.progression_stage === "Xuất cảnh" || t.progression_stage === "Đang làm việc").length || 0,
+    passed: passedTrainees.length,
+    passedMale: passedTrainees.filter((t) => t.gender === "Nam" || t.gender === "Male").length,
+    passedFemale: passedTrainees.filter((t) => t.gender === "Nữ" || t.gender === "Female").length,
+    departed: departedTrainees.length,
+    departedMale: departedTrainees.filter((t) => t.gender === "Nam" || t.gender === "Male").length,
+    departedFemale: departedTrainees.filter((t) => t.gender === "Nữ" || t.gender === "Female").length,
   };
 
   const processingStages = [
@@ -98,11 +106,11 @@ export default function Dashboard() {
             <div className="flex gap-4 mt-2 text-sm">
               <span className="flex items-center gap-1">
                 <span className="h-2 w-2 rounded-full bg-blue-500" />
-                Nam: 0
+                Nam: {stats.passedMale}
               </span>
               <span className="flex items-center gap-1">
                 <span className="h-2 w-2 rounded-full bg-pink-500" />
-                Nữ: 0
+                Nữ: {stats.passedFemale}
               </span>
             </div>
           </CardContent>
@@ -122,11 +130,11 @@ export default function Dashboard() {
             <div className="flex gap-4 mt-2 text-sm">
               <span className="flex items-center gap-1">
                 <span className="h-2 w-2 rounded-full bg-blue-500" />
-                Nam: 0
+                Nam: {stats.departedMale}
               </span>
               <span className="flex items-center gap-1">
                 <span className="h-2 w-2 rounded-full bg-pink-500" />
-                Nữ: 0
+                Nữ: {stats.departedFemale}
               </span>
             </div>
           </CardContent>
