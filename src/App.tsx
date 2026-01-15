@@ -15,6 +15,7 @@ import TeacherList from "./pages/education/TeacherList";
 import ClassList from "./pages/education/ClassList";
 import AttendanceCalendar from "./pages/education/AttendanceCalendar";
 import GlossaryPage from "./pages/glossary/GlossaryPage";
+import OrderList from "./pages/orders/OrderList";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -139,6 +140,16 @@ const App = () => (
                 }
               />
               
+              {/* Orders - Admin, Manager */}
+              <Route
+                path="/orders"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <OrderList />
+                  </ProtectedRoute>
+                }
+              />
+
               {/* Glossary - Admin, Manager, Staff */}
               <Route
                 path="/glossary"
