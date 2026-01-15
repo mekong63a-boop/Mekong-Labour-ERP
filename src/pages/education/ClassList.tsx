@@ -523,7 +523,7 @@ export default function ClassList() {
                   <TableHead className="w-24">Mã lớp</TableHead>
                   <TableHead>Tên lớp</TableHead>
                   <TableHead>Cấp độ</TableHead>
-                  <TableHead>Đối tượng</TableHead>
+                  <TableHead>Giáo viên</TableHead>
                   <TableHead>Lịch học</TableHead>
                   <TableHead>Ngày KG</TableHead>
                   <TableHead className="w-24">Sĩ số</TableHead>
@@ -533,25 +533,24 @@ export default function ClassList() {
               </TableHeader>
               <TableBody>
                 {filteredClasses.map((cls) => (
-                  <TableRow key={cls.id}>
+                  <TableRow 
+                    key={cls.id} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleAction("view_students", cls)}
+                  >
                     <TableCell className="font-mono text-sm">{cls.code}</TableCell>
                     <TableCell className="font-medium">{cls.name}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{cls.level || "N5"}</Badge>
                     </TableCell>
-                    <TableCell className="text-sm">{cls.target_audience || "—"}</TableCell>
+                    <TableCell className="text-sm">{(cls as any).teacher_names || "—"}</TableCell>
                     <TableCell className="text-sm">{cls.schedule || "—"}</TableCell>
                     <TableCell className="text-sm">{formatDate(cls.start_date)}</TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-auto p-1 text-primary hover:underline"
-                        onClick={() => handleAction("view_students", cls)}
-                      >
-                        <Users className="h-3 w-3 mr-1" />
+                      <span className="flex items-center gap-1 text-primary">
+                        <Users className="h-3 w-3" />
                         {(cls as any).current_students || 0}/{cls.max_students || 50}
-                      </Button>
+                      </span>
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -566,7 +565,7 @@ export default function ClassList() {
                         {cls.status || "Đang hoạt động"}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">

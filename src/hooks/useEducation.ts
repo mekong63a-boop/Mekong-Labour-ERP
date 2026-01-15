@@ -44,10 +44,15 @@ export function useClasses() {
   return useQuery({
     queryKey: ["classes"],
     queryFn: async () => {
-      // Get classes
+      // Get classes with teachers
       const { data: classesData, error: classesError } = await supabase
         .from("classes")
-        .select("*")
+        .select(`
+          *,
+          class_teachers(
+            teacher:teachers(full_name)
+          )
+        `)
         .order("created_at", { ascending: false });
       if (classesError) throw classesError;
       
@@ -66,13 +71,20 @@ export function useClasses() {
         }
       });
       
-      // Merge counts into classes
-      const classesWithCounts = classesData.map(c => ({
-        ...c,
-        current_students: studentCounts[c.id] || 0
-      }));
+      // Merge counts and teacher names into classes
+      const classesWithCounts = classesData.map(c => {
+        const teacherNames = (c.class_teachers as any[])
+          ?.map(ct => ct.teacher?.full_name)
+          .filter(Boolean)
+          .join(", ") || "";
+        return {
+          ...c,
+          current_students: studentCounts[c.id] || 0,
+          teacher_names: teacherNames,
+        };
+      });
       
-      return classesWithCounts as (Class & { current_students: number })[];
+      return classesWithCounts as (Class & { current_students: number; teacher_names: string })[];
     },
   });
 }
