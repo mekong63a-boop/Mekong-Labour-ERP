@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useEducationStats, useClasses } from "@/hooks/useEducation";
-import { GraduationCap, Users, BookOpen, Calendar } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { useEducationStats } from "@/hooks/useEducation";
+import { GraduationCap, Users, BookOpen, Calendar, AlertCircle, Clock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -49,13 +52,45 @@ function useTraineeGenderStats() {
   });
 }
 
+// Hook to get absent/late attendance for a specific date
+function useAbsentLateAttendance(date: string) {
+  return useQuery({
+    queryKey: ["absent-late-attendance", date],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("attendance")
+        .select(`
+          id,
+          status,
+          notes,
+          date,
+          trainee_id,
+          trainees (
+            id,
+            trainee_code,
+            full_name
+          ),
+          classes (
+            id,
+            name,
+            code
+          )
+        `)
+        .eq("date", date)
+        .in("status", ["late", "excused", "unexcused"]);
+      
+      if (error) throw error;
+      return data || [];
+    },
+  });
+}
+
 export default function EducationDashboard() {
   const navigate = useNavigate();
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const { data: stats, isLoading: statsLoading } = useEducationStats();
-  const { data: classes, isLoading: classesLoading } = useClasses();
   const { data: genderStats, isLoading: genderStatsLoading } = useTraineeGenderStats();
-
-  const activeClasses = classes?.filter(c => c.status === "Đang hoạt động") || [];
+  const { data: absentLate, isLoading: absentLateLoading } = useAbsentLateAttendance(selectedDate);
 
   const chartData = [
     {
@@ -77,27 +112,13 @@ export default function EducationDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header - Removed top navigation buttons */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-primary">Quản lý Đào tạo</h1>
           <p className="text-muted-foreground text-sm">
             Tổng quan giáo viên, lớp học và điểm danh
           </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <Link to="/education/teachers">
-              <Users className="mr-2 h-4 w-4" />
-              Giáo viên
-            </Link>
-          </Button>
-          <Button asChild className="bg-primary">
-            <Link to="/education/classes">
-              <GraduationCap className="mr-2 h-4 w-4" />
-              Lớp học
-            </Link>
-          </Button>
         </div>
       </div>
 
@@ -155,7 +176,7 @@ export default function EducationDashboard() {
             <Calendar className="h-5 w-5 text-secondary" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{activeClasses.length}</div>
+            <div className="text-3xl font-bold">{stats?.activeClasses || 0}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {format(new Date(), "EEEE, dd/MM", { locale: vi })}
             </p>
@@ -239,42 +260,74 @@ export default function EducationDashboard() {
         </CardContent>
       </Card>
 
-      {/* Active Classes Only - Teachers/Classes lists removed */}
+      {/* Absent/Late List with Date Filter */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base">Lớp đang hoạt động</CardTitle>
-          <Button size="sm" variant="ghost" asChild>
-            <Link to="/education/classes">Xem tất cả</Link>
-          </Button>
+          <CardTitle className="text-base flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-orange-500" />
+            Danh sách vắng / trễ
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="w-40"
+            />
+          </div>
         </CardHeader>
         <CardContent>
-          {classesLoading ? (
+          {absentLateLoading ? (
             <div className="space-y-2">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
             </div>
-          ) : activeClasses.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">
-              Chưa có lớp học nào
-            </p>
+          ) : !absentLate || absentLate.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <BookOpen className="h-10 w-10 mx-auto mb-2 opacity-50" />
+              <p>Không có học viên vắng hoặc đi trễ trong ngày {format(parseISO(selectedDate), "dd/MM/yyyy")}</p>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {activeClasses.slice(0, 6).map((cls) => (
+            <div className="space-y-2">
+              {absentLate.map((record: any) => (
                 <div
-                  key={cls.id}
-                  onClick={() => navigate(`/education/attendance/${cls.id}`)}
-                  className="flex items-center justify-between p-3 rounded-lg border hover:border-primary hover:bg-muted/50 transition-colors cursor-pointer"
+                  key={record.id}
+                  className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
                 >
-                  <div>
-                    <p className="font-semibold text-foreground text-sm">{cls.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {cls.code} • {cls.level || "N5"}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                      {record.status === "late" ? (
+                        <Clock className="h-5 w-5 text-yellow-600" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-red-500" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{record.trainees?.full_name || "—"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {record.trainees?.trainee_code} • {record.classes?.name || "—"}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-xs text-muted-foreground">
-                      Tối đa: {cls.max_students || 50}
-                    </span>
+                  <div className="flex items-center gap-3">
+                    <Badge
+                      variant="outline"
+                      className={
+                        record.status === "late"
+                          ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                          : record.status === "excused"
+                          ? "bg-blue-50 text-blue-700 border-blue-200"
+                          : "bg-red-50 text-red-700 border-red-200"
+                      }
+                    >
+                      {record.status === "late" ? "Đi trễ" : 
+                       record.status === "excused" ? "Vắng có phép" : "Vắng không phép"}
+                    </Badge>
+                    {record.notes && (
+                      <span className="text-xs text-muted-foreground max-w-[150px] truncate" title={record.notes}>
+                        {record.notes}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
