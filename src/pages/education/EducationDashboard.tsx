@@ -1,13 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useEducationStats, useTeachers, useClasses } from "@/hooks/useEducation";
-import { GraduationCap, Users, BookOpen, Plus, Calendar } from "lucide-react";
-import { Link } from "react-router-dom";
+import { GraduationCap, Users, BookOpen, Calendar, MoreHorizontal } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 
 export default function EducationDashboard() {
+  const navigate = useNavigate();
   const { data: stats, isLoading: statsLoading } = useEducationStats();
   const { data: teachers, isLoading: teachersLoading } = useTeachers();
   const { data: classes, isLoading: classesLoading } = useClasses();
@@ -20,7 +22,7 @@ export default function EducationDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Quản lý Đào tạo</h1>
+          <h1 className="text-2xl font-bold text-primary">Quản lý Đào tạo</h1>
           <p className="text-muted-foreground text-sm">
             Tổng quan giáo viên, lớp học và điểm danh
           </p>
@@ -32,7 +34,7 @@ export default function EducationDashboard() {
               Giáo viên
             </Link>
           </Button>
-          <Button asChild>
+          <Button asChild className="bg-primary">
             <Link to="/education/classes">
               <GraduationCap className="mr-2 h-4 w-4" />
               Lớp học
@@ -133,24 +135,28 @@ export default function EducationDashboard() {
                 Chưa có lớp học nào
               </p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {activeClasses.slice(0, 5).map((cls) => (
-                  <Link
+                  <div
                     key={cls.id}
-                    to={`/education/classes/${cls.id}`}
-                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                    onClick={() => navigate(`/education/attendance/${cls.id}`)}
+                    className="flex items-center justify-between p-3 rounded-lg border hover:border-primary hover:bg-muted/50 transition-colors cursor-pointer"
                   >
                     <div>
-                      <p className="font-medium">{cls.name}</p>
+                      <p className="font-semibold text-foreground">{cls.name}</p>
                       <p className="text-sm text-muted-foreground">
                         Mã lớp: {cls.code} • Cấp độ: {cls.level || "N5"}
                       </p>
                     </div>
-                    <div className="text-right text-sm text-muted-foreground">
-                      <p>{cls.schedule || "—"}</p>
-                      <p>{cls.max_students || 0} học viên tối đa</p>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right text-sm text-muted-foreground">
+                        {cls.max_students || 50} học viên tối đa
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             )}
@@ -175,28 +181,28 @@ export default function EducationDashboard() {
                 Chưa có giáo viên nào
               </p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {activeTeachers.slice(0, 5).map((teacher) => (
                   <div
                     key={teacher.id}
                     className="flex items-center justify-between p-3 rounded-lg border"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-primary font-medium">
-                          {teacher.full_name.charAt(0)}
-                        </span>
-                      </div>
+                      <Avatar className="h-10 w-10 bg-primary/10 border-2 border-primary/20">
+                        <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                          {teacher.full_name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
                       <div>
-                        <p className="font-medium">{teacher.full_name}</p>
+                        <p className="font-semibold text-foreground uppercase">{teacher.full_name}</p>
                         <p className="text-sm text-muted-foreground">
                           {teacher.specialty || "Tiếng Nhật"}
                         </p>
                       </div>
                     </div>
-                    <div className="text-right text-sm text-muted-foreground">
-                      <p>{teacher.phone || "—"}</p>
-                    </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
                   </div>
                 ))}
               </div>

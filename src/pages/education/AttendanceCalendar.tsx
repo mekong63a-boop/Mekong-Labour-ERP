@@ -1,8 +1,6 @@
 import { useState, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -11,28 +9,52 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useClass, useClassStudents, useAttendance, useUpsertAttendance } from "@/hooks/useEducation";
-import { ArrowLeft, ChevronLeft, ChevronRight, Check, X, Clock, AlertCircle } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { useClass, useClassStudents, useAttendance, useUpsertAttendance, useClasses } from "@/hooks/useEducation";
+import { ArrowLeft, ChevronLeft, ChevronRight, Check, X, Clock, ChevronDown, Save, RefreshCw } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from "date-fns";
 import { vi } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 const ATTENDANCE_STATUS = [
-  { value: "present", label: "Có mặt", icon: Check, color: "bg-green-500" },
-  { value: "excused", label: "Vắng có phép", icon: Clock, color: "bg-yellow-500" },
-  { value: "unexcused", label: "Vắng không phép", icon: X, color: "bg-red-500" },
-  { value: "late", label: "Đi trễ", icon: AlertCircle, color: "bg-orange-500" },
+  { value: "-", label: "-", display: "-", color: "" },
+  { value: "present", label: "Có mặt", display: "✓", color: "text-green-600" },
+  { value: "excused", label: "Vắng có phép", display: "✗", color: "text-red-500" },
+  { value: "late", label: "Đi trễ", display: "⏱", color: "text-orange-500" },
 ];
+
+const DAY_NAMES = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+const DAY_NAMES_SHORT = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+
+const MONTHS = [
+  "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6",
+  "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
+];
+
+interface AttendanceNote {
+  traineeId: string;
+  date: string;
+  note: string;
+}
 
 export default function AttendanceCalendar() {
   const { id: classId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [activeTab, setActiveTab] = useState<"daily" | "summary">("daily");
+  const [pendingChanges, setPendingChanges] = useState<Map<string, { status: string; notes: string }>>(new Map());
   const monthStr = format(currentMonth, "yyyy-MM");
   
   const { data: classInfo, isLoading: classLoading } = useClass(classId || "");
+  const { data: classes } = useClasses();
   const { data: students, isLoading: studentsLoading } = useClassStudents(classId || "");
-  const { data: attendance, isLoading: attendanceLoading } = useAttendance(classId || "", monthStr);
+  const { data: attendance, isLoading: attendanceLoading, refetch } = useAttendance(classId || "", monthStr);
   const upsertAttendance = useUpsertAttendance();
   const { toast } = useToast();
 
@@ -42,182 +64,377 @@ export default function AttendanceCalendar() {
     return eachDayOfInterval({ start, end });
   }, [currentMonth]);
 
-  const weekdays = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
-
   const getAttendanceForDay = (traineeId: string, date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
+    const key = `${traineeId}-${dateStr}`;
+    
+    // Check pending changes first
+    if (pendingChanges.has(key)) {
+      return pendingChanges.get(key);
+    }
+    
     return attendance?.find(
       (a) => a.trainee_id === traineeId && a.date === dateStr
     );
   };
 
-  const handleAttendanceClick = async (traineeId: string, date: Date, currentStatus: string | null) => {
-    const statuses = ["present", "excused", "unexcused", "late"];
-    const currentIndex = currentStatus ? statuses.indexOf(currentStatus) : -1;
-    const nextStatus = statuses[(currentIndex + 1) % statuses.length];
+  const handleStatusChange = (traineeId: string, date: Date, newStatus: string) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    const key = `${traineeId}-${dateStr}`;
+    const existing = pendingChanges.get(key) || { status: "-", notes: "" };
     
+    setPendingChanges(new Map(pendingChanges.set(key, {
+      ...existing,
+      status: newStatus
+    })));
+  };
+
+  const handleNotesChange = (traineeId: string, date: Date, notes: string) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    const key = `${traineeId}-${dateStr}`;
+    const existing = pendingChanges.get(key) || { status: "-", notes: "" };
+    
+    setPendingChanges(new Map(pendingChanges.set(key, {
+      ...existing,
+      notes
+    })));
+  };
+
+  const handleSaveAll = async () => {
     try {
-      await upsertAttendance.mutateAsync({
-        trainee_id: traineeId,
-        class_id: classId!,
-        date: format(date, "yyyy-MM-dd"),
-        status: nextStatus,
+      const promises: Promise<any>[] = [];
+      
+      pendingChanges.forEach((value, key) => {
+        const [traineeId, dateStr] = key.split('-', 2);
+        const fullDateStr = key.substring(traineeId.length + 1);
+        
+        if (value.status && value.status !== "-") {
+          promises.push(
+            upsertAttendance.mutateAsync({
+              trainee_id: traineeId,
+              class_id: classId!,
+              date: fullDateStr,
+              status: value.status,
+              notes: value.notes || null,
+            })
+          );
+        }
       });
+      
+      await Promise.all(promises);
+      setPendingChanges(new Map());
+      toast({ title: "Đã lưu điểm danh thành công" });
     } catch (error) {
-      toast({ title: "Lỗi khi cập nhật điểm danh", variant: "destructive" });
+      toast({ title: "Lỗi khi lưu điểm danh", variant: "destructive" });
     }
   };
 
-  const getStatusIcon = (status: string | null) => {
-    const statusConfig = ATTENDANCE_STATUS.find((s) => s.value === status);
-    if (!statusConfig) return null;
-    const Icon = statusConfig.icon;
-    return <Icon className="h-3 w-3" />;
-  };
-
-  const getStatusColor = (status: string | null) => {
-    const statusConfig = ATTENDANCE_STATUS.find((s) => s.value === status);
-    return statusConfig?.color || "bg-muted";
+  const getTraineeStats = (traineeId: string) => {
+    const traineeAttendance = attendance?.filter(a => a.trainee_id === traineeId) || [];
+    const lateCount = traineeAttendance.filter(a => a.status === "late").length;
+    const absentCount = traineeAttendance.filter(a => a.status === "excused" || a.status === "unexcused").length;
+    
+    return { lateCount, absentCount };
   };
 
   const isLoading = classLoading || studentsLoading || attendanceLoading;
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+  // If no classId, show class selection
+  if (!classId) {
+    const activeClasses = classes?.filter(c => c.status === "Đang hoạt động") || [];
+    
+    return (
+      <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link to="/education/classes">
+            <Link to="/education">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Điểm danh</h1>
-            <p className="text-muted-foreground text-sm">
-              {classInfo?.name || "Đang tải..."} • {classInfo?.code}
+            <h1 className="text-2xl font-bold text-primary">Điểm danh</h1>
+            <p className="text-muted-foreground text-sm">Chọn lớp học để điểm danh</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {activeClasses.map((cls) => (
+            <div
+              key={cls.id}
+              onClick={() => navigate(`/education/attendance/${cls.id}`)}
+              className="p-4 border rounded-lg hover:border-primary hover:bg-muted/50 cursor-pointer transition-colors"
+            >
+              <h3 className="font-semibold text-lg">{cls.name}</h3>
+              <p className="text-sm text-muted-foreground">
+                Mã lớp: {cls.code} • Cấp độ: {cls.level || "N5"}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link to="/education/attendance">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-primary">Điểm danh</h1>
+            <p className="text-primary/80 text-sm">
+              {classInfo?.name} ({classInfo?.code})
             </p>
           </div>
         </div>
+        <Button variant="ghost" size="icon" onClick={() => refetch()}>
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2">
+        <Button
+          variant={activeTab === "daily" ? "default" : "outline"}
+          onClick={() => setActiveTab("daily")}
+          className={activeTab === "daily" ? "bg-primary text-primary-foreground" : ""}
+        >
+          Điểm danh theo ngày
+        </Button>
+        <Button
+          variant={activeTab === "summary" ? "default" : "outline"}
+          onClick={() => setActiveTab("summary")}
+        >
+          Thống kê tổng hợp
+        </Button>
       </div>
 
       {/* Month Navigation */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="min-w-40 text-center">
-                {format(currentMonth, "MMMM yyyy", { locale: vi })}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </CardTitle>
-            <div className="flex gap-2">
-              {ATTENDANCE_STATUS.map((status) => (
-                <div key={status.value} className="flex items-center gap-1 text-xs">
-                  <div className={cn("h-3 w-3 rounded", status.color)} />
-                  <span>{status.label}</span>
-                </div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          
+          <Select
+            value={currentMonth.getMonth().toString()}
+            onValueChange={(v) => {
+              const newDate = new Date(currentMonth);
+              newDate.setMonth(parseInt(v));
+              setCurrentMonth(newDate);
+            }}
+          >
+            <SelectTrigger className="w-[120px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MONTHS.map((month, i) => (
+                <SelectItem key={i} value={i.toString()}>{month}</SelectItem>
               ))}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-            </div>
-          ) : !students || students.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Chưa có học viên nào trong lớp
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-2 sticky left-0 bg-background min-w-40">
-                      Học viên
-                    </th>
-                    {daysInMonth.map((day) => {
-                      const dayOfWeek = getDay(day);
-                      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-                      return (
-                        <th
-                          key={day.toISOString()}
-                          className={cn(
-                            "text-center p-1 min-w-8",
-                            isWeekend && "bg-muted/50"
-                          )}
-                        >
-                          <div className="text-[10px] text-muted-foreground">
-                            {weekdays[dayOfWeek]}
-                          </div>
-                          <div className="font-medium">{format(day, "d")}</div>
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {students.map((student) => (
-                    <tr key={student.id} className="border-b hover:bg-muted/30">
-                      <td className="p-2 sticky left-0 bg-background">
-                        <div>
-                          <p className="font-medium">{student.full_name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {student.trainee_code}
-                          </p>
+            </SelectContent>
+          </Select>
+          
+          <Select
+            value={currentMonth.getFullYear().toString()}
+            onValueChange={(v) => {
+              const newDate = new Date(currentMonth);
+              newDate.setFullYear(parseInt(v));
+              setCurrentMonth(newDate);
+            }}
+          >
+            <SelectTrigger className="w-[100px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[2024, 2025, 2026, 2027].map((year) => (
+                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <Button 
+          onClick={handleSaveAll} 
+          disabled={pendingChanges.size === 0 || upsertAttendance.isPending}
+          className="bg-primary text-primary-foreground"
+        >
+          <Save className="h-4 w-4 mr-2" />
+          Lưu điểm danh
+        </Button>
+      </div>
+
+      {/* Attendance Table */}
+      {isLoading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      ) : !students || students.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground border rounded-lg">
+          Chưa có học viên nào trong lớp
+        </div>
+      ) : (
+        <div className="border rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/30">
+                <tr className="border-b">
+                  <th className="text-left p-2 sticky left-0 bg-muted/30 min-w-[60px] border-r">
+                    Mã HV
+                  </th>
+                  <th className="text-left p-2 sticky left-[60px] bg-muted/30 min-w-[140px] border-r">
+                    Họ tên
+                  </th>
+                  {daysInMonth.map((day) => {
+                    const dayOfWeek = getDay(day);
+                    const isWeekend = dayOfWeek === 0;
+                    return (
+                      <th
+                        key={day.toISOString()}
+                        className={cn(
+                          "text-center p-1 min-w-[60px] border-r",
+                          isWeekend && "bg-red-50 text-red-600"
+                        )}
+                      >
+                        <div className="text-[10px] font-normal">
+                          {format(day, "dd")}
                         </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {DAY_NAMES_SHORT[dayOfWeek]}
+                        </div>
+                      </th>
+                    );
+                  })}
+                  <th className="text-center p-2 min-w-[80px] border-r bg-orange-50">
+                    Lý do đi trễ
+                  </th>
+                  <th className="text-center p-2 min-w-[80px] bg-red-50">
+                    Lý do vắng
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {students.map((student) => {
+                  const stats = getTraineeStats(student.id);
+                  
+                  return (
+                    <tr key={student.id} className="border-b hover:bg-muted/20">
+                      <td className="p-2 sticky left-0 bg-background border-r text-xs text-primary font-medium">
+                        {student.trainee_code}
+                      </td>
+                      <td className="p-2 sticky left-[60px] bg-background border-r">
+                        <span className="font-medium text-primary text-sm">
+                          {student.full_name}
+                        </span>
                       </td>
                       {daysInMonth.map((day) => {
                         const record = getAttendanceForDay(student.id, day);
                         const dayOfWeek = getDay(day);
-                        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                        const isWeekend = dayOfWeek === 0;
+                        const currentStatus = record?.status || "-";
+                        const currentNotes = record?.notes || "";
                         
                         return (
                           <td
                             key={day.toISOString()}
                             className={cn(
-                              "text-center p-1",
-                              isWeekend && "bg-muted/50"
+                              "text-center p-0.5 border-r",
+                              isWeekend && "bg-red-50/50"
                             )}
                           >
-                            <button
-                              onClick={() => handleAttendanceClick(student.id, day, record?.status || null)}
-                              className={cn(
-                                "h-6 w-6 rounded flex items-center justify-center text-white transition-colors",
-                                record?.status ? getStatusColor(record.status) : "bg-muted hover:bg-muted-foreground/20"
-                              )}
-                              disabled={upsertAttendance.isPending}
-                            >
-                              {getStatusIcon(record?.status || null)}
-                            </button>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <button
+                                  className={cn(
+                                    "w-full h-8 rounded flex items-center justify-center gap-0.5 text-xs border hover:bg-muted/50 transition-colors",
+                                    currentStatus === "present" && "text-green-600",
+                                    currentStatus === "excused" && "text-red-500 bg-red-50",
+                                    currentStatus === "late" && "text-orange-500 bg-orange-50"
+                                  )}
+                                >
+                                  {currentStatus === "present" && <Check className="h-3 w-3" />}
+                                  {currentStatus === "excused" && <X className="h-3 w-3" />}
+                                  {currentStatus === "late" && <Clock className="h-3 w-3" />}
+                                  {currentStatus === "-" && <span className="text-muted-foreground">-</span>}
+                                  <ChevronDown className="h-2.5 w-2.5 text-muted-foreground" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-48 p-2" align="start">
+                                <div className="space-y-2">
+                                  <Select
+                                    value={currentStatus}
+                                    onValueChange={(v) => handleStatusChange(student.id, day, v)}
+                                  >
+                                    <SelectTrigger className="w-full h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {ATTENDANCE_STATUS.map((status) => (
+                                        <SelectItem key={status.value} value={status.value}>
+                                          <span className={status.color}>{status.label}</span>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  {(currentStatus === "excused" || currentStatus === "late") && (
+                                    <Input
+                                      placeholder="Ghi chú..."
+                                      value={currentNotes}
+                                      onChange={(e) => handleNotesChange(student.id, day, e.target.value)}
+                                      className="h-8 text-xs"
+                                    />
+                                  )}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                            {currentNotes && (
+                              <div className="text-[9px] text-muted-foreground truncate px-0.5">
+                                {currentNotes}
+                              </div>
+                            )}
                           </td>
                         );
                       })}
+                      <td className="text-center p-2 border-r bg-orange-50/50">
+                        {stats.lateCount > 0 ? (
+                          <span className="text-orange-600 font-medium">{stats.lateCount} lần</span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </td>
+                      <td className="text-center p-2 bg-red-50/50">
+                        {stats.absentCount > 0 ? (
+                          <span className="text-red-600 font-medium">{stats.absentCount} lần</span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
