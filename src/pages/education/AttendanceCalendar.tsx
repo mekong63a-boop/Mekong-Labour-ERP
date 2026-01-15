@@ -60,7 +60,7 @@ export default function AttendanceCalendar() {
 
   const getAttendanceForDay = (traineeId: string, date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
-    const key = `${traineeId}-${dateStr}`;
+    const key = `${traineeId}_${dateStr}`;
     
     // Check pending changes first
     if (pendingChanges.has(key)) {
@@ -74,7 +74,7 @@ export default function AttendanceCalendar() {
 
   const handleStatusChange = (traineeId: string, date: Date, newStatus: string) => {
     const dateStr = format(date, "yyyy-MM-dd");
-    const key = `${traineeId}-${dateStr}`;
+    const key = `${traineeId}_${dateStr}`;
     const existing = pendingChanges.get(key) || { status: "-", notes: "" };
     
     setPendingChanges(new Map(pendingChanges.set(key, {
@@ -85,7 +85,7 @@ export default function AttendanceCalendar() {
 
   const handleNotesChange = (traineeId: string, date: Date, notes: string) => {
     const dateStr = format(date, "yyyy-MM-dd");
-    const key = `${traineeId}-${dateStr}`;
+    const key = `${traineeId}_${dateStr}`;
     const existing = pendingChanges.get(key) || { status: "-", notes: "" };
     
     setPendingChanges(new Map(pendingChanges.set(key, {
@@ -99,15 +99,17 @@ export default function AttendanceCalendar() {
       const promises: Promise<any>[] = [];
       
       pendingChanges.forEach((value, key) => {
-        const [traineeId, dateStr] = key.split('-', 2);
-        const fullDateStr = key.substring(traineeId.length + 1);
+        // Key format: "uuid_yyyy-MM-dd" - use underscore to separate trainee_id and date
+        const lastUnderscoreIndex = key.lastIndexOf('_');
+        const traineeId = key.substring(0, lastUnderscoreIndex);
+        const dateStr = key.substring(lastUnderscoreIndex + 1);
         
         if (value.status && value.status !== "-") {
           promises.push(
             upsertAttendance.mutateAsync({
               trainee_id: traineeId,
               class_id: classId!,
-              date: fullDateStr,
+              date: dateStr,
               status: value.status,
               notes: value.notes || null,
             })
@@ -117,8 +119,10 @@ export default function AttendanceCalendar() {
       
       await Promise.all(promises);
       setPendingChanges(new Map());
+      refetch();
       toast({ title: "Đã lưu điểm danh thành công" });
     } catch (error) {
+      console.error("Save attendance error:", error);
       toast({ title: "Lỗi khi lưu điểm danh", variant: "destructive" });
     }
   };
@@ -293,7 +297,8 @@ export default function AttendanceCalendar() {
         <div className="text-center py-12 text-muted-foreground border rounded-lg">
           Chưa có học viên nào trong lớp
         </div>
-      ) : (
+      ) : activeTab === "daily" ? (
+        // Daily attendance view with calendar
         <div className="border rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -325,37 +330,15 @@ export default function AttendanceCalendar() {
                       </th>
                     );
                   })}
-                  {activeTab === "daily" ? (
-                    <>
-                      <th className="text-center p-2 min-w-[80px] border-r bg-orange-50">
-                        Đi trễ
-                      </th>
-                      <th className="text-center p-2 min-w-[80px] border-r bg-blue-50">
-                        Vắng CP
-                      </th>
-                      <th className="text-center p-2 min-w-[80px] bg-red-50">
-                        Vắng KP
-                      </th>
-                    </>
-                  ) : (
-                    <>
-                      <th className="text-center p-2 min-w-[70px] border-r bg-green-50">
-                        Có mặt
-                      </th>
-                      <th className="text-center p-2 min-w-[70px] border-r bg-orange-50">
-                        Đi trễ
-                      </th>
-                      <th className="text-center p-2 min-w-[70px] border-r bg-blue-50">
-                        Vắng CP
-                      </th>
-                      <th className="text-center p-2 min-w-[70px] border-r bg-red-50">
-                        Vắng KP
-                      </th>
-                      <th className="text-center p-2 min-w-[90px] bg-primary/10">
-                        Tỷ lệ CC
-                      </th>
-                    </>
-                  )}
+                  <th className="text-center p-2 min-w-[60px] border-r bg-orange-50">
+                    Trễ
+                  </th>
+                  <th className="text-center p-2 min-w-[60px] border-r bg-blue-50">
+                    VCP
+                  </th>
+                  <th className="text-center p-2 min-w-[60px] bg-red-50">
+                    VKP
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -442,55 +425,114 @@ export default function AttendanceCalendar() {
                           </td>
                         );
                       })}
-                      {activeTab === "daily" ? (
-                        <>
-                          <td className="text-center p-2 border-r bg-orange-50/50">
-                            {stats.lateCount > 0 ? (
-                              <span className="text-orange-600 font-medium">{stats.lateCount}</span>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </td>
-                          <td className="text-center p-2 border-r bg-blue-50/50">
-                            {stats.excusedCount > 0 ? (
-                              <span className="text-blue-600 font-medium">{stats.excusedCount}</span>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </td>
-                          <td className="text-center p-2 bg-red-50/50">
-                            {stats.unexcusedCount > 0 ? (
-                              <span className="text-red-600 font-medium">{stats.unexcusedCount}</span>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="text-center p-2 border-r bg-green-50/50">
-                            <span className="text-green-600 font-medium">{stats.presentCount}</span>
-                          </td>
-                          <td className="text-center p-2 border-r bg-orange-50/50">
-                            <span className="text-orange-600 font-medium">{stats.lateCount}</span>
-                          </td>
-                          <td className="text-center p-2 border-r bg-blue-50/50">
-                            <span className="text-blue-600 font-medium">{stats.excusedCount}</span>
-                          </td>
-                          <td className="text-center p-2 border-r bg-red-50/50">
-                            <span className="text-red-600 font-medium">{stats.unexcusedCount}</span>
-                          </td>
-                          <td className="text-center p-2 bg-primary/10">
-                            <span className={cn(
-                              "font-bold",
-                              stats.attendanceRate >= 80 ? "text-green-600" : 
-                              stats.attendanceRate >= 60 ? "text-orange-600" : "text-red-600"
-                            )}>
-                              {stats.attendanceRate}%
-                            </span>
-                          </td>
-                        </>
-                      )}
+                      <td className="text-center p-2 border-r bg-orange-50/50">
+                        {stats.lateCount > 0 ? (
+                          <span className="text-orange-600 font-medium">{stats.lateCount}</span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </td>
+                      <td className="text-center p-2 border-r bg-blue-50/50">
+                        {stats.excusedCount > 0 ? (
+                          <span className="text-blue-600 font-medium">{stats.excusedCount}</span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </td>
+                      <td className="text-center p-2 bg-red-50/50">
+                        {stats.unexcusedCount > 0 ? (
+                          <span className="text-red-600 font-medium">{stats.unexcusedCount}</span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        // Summary statistics view - no calendar, just stats table
+        <div className="border rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/30">
+                <tr className="border-b">
+                  <th className="text-left p-3 min-w-[80px] border-r">STT</th>
+                  <th className="text-left p-3 min-w-[100px] border-r">Mã HV</th>
+                  <th className="text-left p-3 min-w-[180px] border-r">Họ tên</th>
+                  <th className="text-center p-3 min-w-[100px] border-r bg-green-50">
+                    <div className="flex flex-col items-center">
+                      <Check className="h-4 w-4 text-green-600 mb-1" />
+                      <span>Có mặt</span>
+                    </div>
+                  </th>
+                  <th className="text-center p-3 min-w-[100px] border-r bg-orange-50">
+                    <div className="flex flex-col items-center">
+                      <Clock className="h-4 w-4 text-orange-600 mb-1" />
+                      <span>Đi trễ</span>
+                    </div>
+                  </th>
+                  <th className="text-center p-3 min-w-[100px] border-r bg-blue-50">
+                    <div className="flex flex-col items-center">
+                      <span className="text-blue-600 font-bold mb-1">P</span>
+                      <span>Vắng CP</span>
+                    </div>
+                  </th>
+                  <th className="text-center p-3 min-w-[100px] border-r bg-red-50">
+                    <div className="flex flex-col items-center">
+                      <X className="h-4 w-4 text-red-600 mb-1" />
+                      <span>Vắng KP</span>
+                    </div>
+                  </th>
+                  <th className="text-center p-3 min-w-[120px] bg-primary/10">
+                    <div className="flex flex-col items-center">
+                      <span className="text-primary font-bold mb-1">%</span>
+                      <span>Tỷ lệ CC</span>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {students.map((student, index) => {
+                  const stats = getTraineeStats(student.id);
+                  
+                  return (
+                    <tr key={student.id} className="border-b hover:bg-muted/20">
+                      <td className="p-3 border-r text-center font-medium">
+                        {index + 1}
+                      </td>
+                      <td className="p-3 border-r text-primary font-medium">
+                        {student.trainee_code}
+                      </td>
+                      <td className="p-3 border-r">
+                        <span className="font-medium text-primary">
+                          {student.full_name}
+                        </span>
+                      </td>
+                      <td className="text-center p-3 border-r bg-green-50/50">
+                        <span className="text-green-600 font-bold text-lg">{stats.presentCount}</span>
+                      </td>
+                      <td className="text-center p-3 border-r bg-orange-50/50">
+                        <span className="text-orange-600 font-bold text-lg">{stats.lateCount}</span>
+                      </td>
+                      <td className="text-center p-3 border-r bg-blue-50/50">
+                        <span className="text-blue-600 font-bold text-lg">{stats.excusedCount}</span>
+                      </td>
+                      <td className="text-center p-3 border-r bg-red-50/50">
+                        <span className="text-red-600 font-bold text-lg">{stats.unexcusedCount}</span>
+                      </td>
+                      <td className="text-center p-3 bg-primary/10">
+                        <span className={cn(
+                          "font-bold text-xl",
+                          stats.attendanceRate >= 80 ? "text-green-600" : 
+                          stats.attendanceRate >= 60 ? "text-orange-600" : "text-red-600"
+                        )}>
+                          {stats.attendanceRate}%
+                        </span>
+                      </td>
                     </tr>
                   );
                 })}
