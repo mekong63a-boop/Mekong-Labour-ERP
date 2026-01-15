@@ -52,6 +52,18 @@ export function FamilyMembersForm({ items, onChange }: FamilyMembersFormProps) {
     onChange(updated);
   };
 
+  const validateBirthYear = (year: string): boolean => {
+    if (!year) return true;
+    const y = parseInt(year);
+    const currentYear = new Date().getFullYear();
+    return y >= 1900 && y <= currentYear;
+  };
+
+  const getInputClass = (value: string, isValid: boolean = true) => {
+    if (!isValid) return "border-destructive bg-destructive/10";
+    return value ? "" : "input-empty";
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between py-3">
@@ -96,7 +108,7 @@ export function FamilyMembersForm({ items, onChange }: FamilyMembersFormProps) {
                   value={item.relationship}
                   onValueChange={(v) => updateItem(index, "relationship", v)}
                 >
-                  <SelectTrigger className="input-empty">
+                  <SelectTrigger className={item.relationship ? "" : "input-empty"}>
                     <SelectValue placeholder="Chọn" />
                   </SelectTrigger>
                   <SelectContent>
@@ -111,7 +123,7 @@ export function FamilyMembersForm({ items, onChange }: FamilyMembersFormProps) {
                   value={item.gender}
                   onValueChange={(v) => updateItem(index, "gender", v)}
                 >
-                  <SelectTrigger className="input-empty">
+                  <SelectTrigger className={item.gender ? "" : "input-empty"}>
                     <SelectValue placeholder="Chọn" />
                   </SelectTrigger>
                   <SelectContent>
@@ -126,15 +138,15 @@ export function FamilyMembersForm({ items, onChange }: FamilyMembersFormProps) {
                   placeholder="Họ và tên"
                   value={item.full_name}
                   onChange={(e) => updateItem(index, "full_name", e.target.value)}
-                  className="input-empty"
+                  className={getInputClass(item.full_name)}
                 />
               </div>
               <div className="col-span-1">
                 <Input
                   placeholder="1970"
                   value={item.birth_year}
-                  onChange={(e) => updateItem(index, "birth_year", e.target.value)}
-                  className="input-empty"
+                  onChange={(e) => updateItem(index, "birth_year", e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  className={getInputClass(item.birth_year, validateBirthYear(item.birth_year))}
                 />
               </div>
               <div className="col-span-2">
@@ -142,7 +154,7 @@ export function FamilyMembersForm({ items, onChange }: FamilyMembersFormProps) {
                   value={item.living_status}
                   onValueChange={(v) => updateItem(index, "living_status", v)}
                 >
-                  <SelectTrigger className="input-empty">
+                  <SelectTrigger className={item.living_status ? "" : "input-empty"}>
                     <SelectValue placeholder="Chọn" />
                   </SelectTrigger>
                   <SelectContent>
@@ -157,7 +169,7 @@ export function FamilyMembersForm({ items, onChange }: FamilyMembersFormProps) {
                   placeholder="Nghề nghiệp"
                   value={item.occupation}
                   onChange={(e) => updateItem(index, "occupation", e.target.value)}
-                  className="input-empty"
+                  className={getInputClass(item.occupation)}
                 />
               </div>
               <div className="col-span-1">
@@ -165,7 +177,7 @@ export function FamilyMembersForm({ items, onChange }: FamilyMembersFormProps) {
                   placeholder="10tr"
                   value={item.income}
                   onChange={(e) => updateItem(index, "income", e.target.value)}
-                  className="input-empty"
+                  className={getInputClass(item.income)}
                 />
               </div>
               <div className="col-span-1 flex justify-center">

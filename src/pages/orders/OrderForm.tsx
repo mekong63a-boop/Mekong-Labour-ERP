@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +25,9 @@ import {
   OrderFormData,
   Order,
 } from "@/hooks/useOrders";
-import { Upload } from "lucide-react";
+import { Upload, X, ZoomIn } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface OrderFormProps {
   open: boolean;
@@ -56,7 +58,9 @@ export function OrderForm({ open, onOpenChange, order }: OrderFormProps) {
   const { data: companies } = useCompanies();
   const { data: unions } = useUnions();
   const { data: jobCategories } = useJobCategories();
-
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [formData, setFormData] = useState<OrderFormData>({
     code: "",
     company_id: null,
@@ -71,6 +75,10 @@ export function OrderForm({ open, onOpenChange, order }: OrderFormProps) {
     image_url: null,
     notes: "",
   });
+  
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showFullImage, setShowFullImage] = useState(false);
 
   useEffect(() => {
     if (order) {
@@ -88,13 +96,65 @@ export function OrderForm({ open, onOpenChange, order }: OrderFormProps) {
         image_url: order.image_url,
         notes: order.notes || "",
       });
+      setPreviewImage(order.image_url || null);
     } else {
       // Generate order code
       const now = new Date();
       const code = `DH${now.getFullYear().toString().slice(-2)}${String(now.getMonth() + 1).padStart(2, "0")}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
       setFormData((prev) => ({ ...prev, code }));
+      setPreviewImage(null);
     }
   }, [order, open]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Vui lòng chọn file hình ảnh", variant: "destructive" });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Kích thước file không được vượt quá 5MB", variant: "destructive" });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `order_${formData.code}_${Date.now()}.${fileExt}`;
+      const filePath = `orders/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('trainee-photos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('trainee-photos')
+        .getPublicUrl(filePath);
+
+      setPreviewImage(publicUrl);
+      setFormData((prev) => ({ ...prev, image_url: publicUrl }));
+      toast({ title: "Tải ảnh thành công" });
+    } catch (error: any) {
+      toast({ title: "Lỗi khi tải ảnh", description: error.message, variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const removeImage = () => {
+    setPreviewImage(null);
+    setFormData((prev) => ({ ...prev, image_url: null }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -320,15 +380,86 @@ export function OrderForm({ open, onOpenChange, order }: OrderFormProps) {
           {/* Row 6: Image Upload */}
           <div className="space-y-2">
             <Label className="text-primary font-medium">Hình ảnh đơn hàng</Label>
-            <Button
-              type="button"
-              variant="outline"
-              className="border-primary/30"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Tải ảnh lên
-            </Button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+              accept="image/*"
+              className="hidden"
+            />
+            
+            {previewImage ? (
+              <div className="space-y-2">
+                <div className="relative inline-block">
+                  <img
+                    src={previewImage}
+                    alt="Order preview"
+                    className="h-32 w-auto object-contain rounded border cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setShowFullImage(true)}
+                  />
+                  <div className="absolute top-1 right-1 flex gap-1">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => setShowFullImage(true)}
+                    >
+                      <ZoomIn className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={removeImage}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Đổi ảnh
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                className="border-primary/30"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {isUploading ? "Đang tải..." : "Tải ảnh lên"}
+              </Button>
+            )}
           </div>
+          
+          {/* Full Image Modal */}
+          {showFullImage && previewImage && (
+            <Dialog open={showFullImage} onOpenChange={setShowFullImage}>
+              <DialogContent className="max-w-4xl max-h-[90vh]">
+                <DialogHeader>
+                  <DialogTitle>Chi tiết đơn tuyển</DialogTitle>
+                </DialogHeader>
+                <div className="flex justify-center">
+                  <img
+                    src={previewImage}
+                    alt="Order full view"
+                    className="max-h-[70vh] w-auto object-contain"
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
 
           {/* Row 7: Notes */}
           <div className="space-y-2">

@@ -35,6 +35,10 @@ export function WorkHistoryForm({ items, onChange }: WorkHistoryFormProps) {
     onChange(updated);
   };
 
+  const getInputClass = (value: string) => {
+    return value ? "" : "input-empty";
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between py-3">
@@ -77,7 +81,7 @@ export function WorkHistoryForm({ items, onChange }: WorkHistoryFormProps) {
                   placeholder="Tên công ty"
                   value={item.company_name}
                   onChange={(e) => updateItem(index, "company_name", e.target.value)}
-                  className="input-empty"
+                  className={getInputClass(item.company_name)}
                 />
               </div>
               <div className="col-span-2">
@@ -85,7 +89,7 @@ export function WorkHistoryForm({ items, onChange }: WorkHistoryFormProps) {
                   placeholder="Công việc"
                   value={item.position}
                   onChange={(e) => updateItem(index, "position", e.target.value)}
-                  className="input-empty"
+                  className={getInputClass(item.position)}
                 />
               </div>
               <div className="col-span-3">
@@ -93,7 +97,7 @@ export function WorkHistoryForm({ items, onChange }: WorkHistoryFormProps) {
                   placeholder="Tên công ty tiếng Nhật"
                   value={item.company_name_japanese}
                   onChange={(e) => updateItem(index, "company_name_japanese", e.target.value)}
-                  className="input-empty"
+                  className={getInputClass(item.company_name_japanese)}
                 />
               </div>
               <div className="col-span-2">
@@ -101,7 +105,7 @@ export function WorkHistoryForm({ items, onChange }: WorkHistoryFormProps) {
                   type="date"
                   value={item.start_date}
                   onChange={(e) => updateItem(index, "start_date", e.target.value)}
-                  className="input-empty"
+                  className={getInputClass(item.start_date)}
                 />
               </div>
               <div className="col-span-1">
@@ -109,7 +113,7 @@ export function WorkHistoryForm({ items, onChange }: WorkHistoryFormProps) {
                   type="date"
                   value={item.end_date}
                   onChange={(e) => updateItem(index, "end_date", e.target.value)}
-                  className="input-empty"
+                  className={getInputClass(item.end_date)}
                 />
               </div>
               <div className="col-span-1 flex justify-center">

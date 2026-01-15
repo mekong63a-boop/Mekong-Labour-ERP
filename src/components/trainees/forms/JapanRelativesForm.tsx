@@ -60,6 +60,17 @@ export function JapanRelativesForm({ items, onChange }: JapanRelativesFormProps)
     onChange(updated);
   };
 
+  const validateAge = (age: string): boolean => {
+    if (!age) return true;
+    const a = parseInt(age);
+    return a >= 0 && a <= 120;
+  };
+
+  const getInputClass = (value: string, isValid: boolean = true) => {
+    if (!isValid) return "border-destructive bg-destructive/10";
+    return value ? "" : "input-empty";
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between py-3">
@@ -104,7 +115,7 @@ export function JapanRelativesForm({ items, onChange }: JapanRelativesFormProps)
                   placeholder="Họ và tên"
                   value={item.full_name}
                   onChange={(e) => updateItem(index, "full_name", e.target.value)}
-                  className="input-empty"
+                  className={getInputClass(item.full_name)}
                 />
               </div>
               <div className="col-span-2">
@@ -112,7 +123,7 @@ export function JapanRelativesForm({ items, onChange }: JapanRelativesFormProps)
                   value={item.relationship}
                   onValueChange={(v) => updateItem(index, "relationship", v)}
                 >
-                  <SelectTrigger className="input-empty">
+                  <SelectTrigger className={item.relationship ? "" : "input-empty"}>
                     <SelectValue placeholder="Chọn" />
                   </SelectTrigger>
                   <SelectContent>
@@ -126,8 +137,8 @@ export function JapanRelativesForm({ items, onChange }: JapanRelativesFormProps)
                 <Input
                   placeholder="30"
                   value={item.age}
-                  onChange={(e) => updateItem(index, "age", e.target.value)}
-                  className="input-empty"
+                  onChange={(e) => updateItem(index, "age", e.target.value.replace(/\D/g, '').slice(0, 3))}
+                  className={getInputClass(item.age, validateAge(item.age))}
                 />
               </div>
               <div className="col-span-1">
@@ -135,7 +146,7 @@ export function JapanRelativesForm({ items, onChange }: JapanRelativesFormProps)
                   value={item.gender}
                   onValueChange={(v) => updateItem(index, "gender", v)}
                 >
-                  <SelectTrigger className="input-empty">
+                  <SelectTrigger className={item.gender ? "" : "input-empty"}>
                     <SelectValue placeholder="Chọn" />
                   </SelectTrigger>
                   <SelectContent>
@@ -150,7 +161,7 @@ export function JapanRelativesForm({ items, onChange }: JapanRelativesFormProps)
                   placeholder="Địa chỉ tại Nhật"
                   value={item.address_japan}
                   onChange={(e) => updateItem(index, "address_japan", e.target.value)}
-                  className="input-empty"
+                  className={getInputClass(item.address_japan)}
                 />
               </div>
               <div className="col-span-1">
@@ -158,7 +169,7 @@ export function JapanRelativesForm({ items, onChange }: JapanRelativesFormProps)
                   value={item.residence_status}
                   onValueChange={(v) => updateItem(index, "residence_status", v)}
                 >
-                  <SelectTrigger className="input-empty">
+                  <SelectTrigger className={item.residence_status ? "" : "input-empty"}>
                     <SelectValue placeholder="Chọn" />
                   </SelectTrigger>
                   <SelectContent>

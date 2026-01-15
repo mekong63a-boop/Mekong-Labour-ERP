@@ -46,6 +46,18 @@ export function EducationHistoryForm({ items, onChange }: EducationHistoryFormPr
     onChange(updated);
   };
 
+  const validateYear = (year: string): boolean => {
+    if (!year) return true;
+    const y = parseInt(year);
+    const currentYear = new Date().getFullYear();
+    return y >= 1950 && y <= currentYear + 10;
+  };
+
+  const getInputClass = (value: string, isValid: boolean = true) => {
+    if (!isValid) return "border-destructive bg-destructive/10";
+    return value ? "" : "input-empty";
+  };
+
   const months = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
 
   return (
@@ -90,7 +102,7 @@ export function EducationHistoryForm({ items, onChange }: EducationHistoryFormPr
                   value={item.level}
                   onValueChange={(v) => updateItem(index, "level", v)}
                 >
-                  <SelectTrigger className="input-empty">
+                  <SelectTrigger className={item.level ? "" : "input-empty"}>
                     <SelectValue placeholder="Chọn" />
                   </SelectTrigger>
                   <SelectContent>
@@ -105,7 +117,7 @@ export function EducationHistoryForm({ items, onChange }: EducationHistoryFormPr
                   placeholder="Tên trường"
                   value={item.school_name}
                   onChange={(e) => updateItem(index, "school_name", e.target.value)}
-                  className="input-empty"
+                  className={getInputClass(item.school_name)}
                 />
               </div>
               <div className="col-span-2">
@@ -113,7 +125,7 @@ export function EducationHistoryForm({ items, onChange }: EducationHistoryFormPr
                   placeholder="Chuyên môn"
                   value={item.major}
                   onChange={(e) => updateItem(index, "major", e.target.value)}
-                  className="input-empty"
+                  className={getInputClass(item.major)}
                 />
               </div>
               <div className="col-span-2 flex gap-1">
@@ -121,7 +133,7 @@ export function EducationHistoryForm({ items, onChange }: EducationHistoryFormPr
                   value={item.start_month}
                   onValueChange={(v) => updateItem(index, "start_month", v)}
                 >
-                  <SelectTrigger className="input-empty w-16">
+                  <SelectTrigger className={`w-16 ${item.start_month ? "" : "input-empty"}`}>
                     <SelectValue placeholder="Th" />
                   </SelectTrigger>
                   <SelectContent>
@@ -133,8 +145,8 @@ export function EducationHistoryForm({ items, onChange }: EducationHistoryFormPr
                 <Input
                   placeholder="Năm"
                   value={item.start_year}
-                  onChange={(e) => updateItem(index, "start_year", e.target.value)}
-                  className="input-empty flex-1"
+                  onChange={(e) => updateItem(index, "start_year", e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  className={`flex-1 ${getInputClass(item.start_year, validateYear(item.start_year))}`}
                 />
               </div>
               <div className="col-span-2 flex gap-1">
@@ -142,7 +154,7 @@ export function EducationHistoryForm({ items, onChange }: EducationHistoryFormPr
                   value={item.end_month}
                   onValueChange={(v) => updateItem(index, "end_month", v)}
                 >
-                  <SelectTrigger className="input-empty w-16">
+                  <SelectTrigger className={`w-16 ${item.end_month ? "" : "input-empty"}`}>
                     <SelectValue placeholder="Th" />
                   </SelectTrigger>
                   <SelectContent>
@@ -154,8 +166,8 @@ export function EducationHistoryForm({ items, onChange }: EducationHistoryFormPr
                 <Input
                   placeholder="Năm"
                   value={item.end_year}
-                  onChange={(e) => updateItem(index, "end_year", e.target.value)}
-                  className="input-empty flex-1"
+                  onChange={(e) => updateItem(index, "end_year", e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  className={`flex-1 ${getInputClass(item.end_year, validateYear(item.end_year))}`}
                 />
               </div>
               <div className="col-span-1 flex justify-center">
