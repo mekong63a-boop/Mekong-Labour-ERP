@@ -623,6 +623,117 @@ export type Database = {
         }
         Relationships: []
       }
+      test_scores: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          max_score: number
+          notes: string | null
+          score: number | null
+          test_date: string
+          test_name: string
+          trainee_id: string
+          updated_at: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          max_score?: number
+          notes?: string | null
+          score?: number | null
+          test_date?: string
+          test_name: string
+          trainee_id: string
+          updated_at?: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          max_score?: number
+          notes?: string | null
+          score?: number | null
+          test_date?: string
+          test_name?: string
+          trainee_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "test_scores_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_scores_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trainee_reviews: {
+        Row: {
+          blacklist_reason: string | null
+          class_id: string | null
+          content: string
+          created_at: string
+          id: string
+          is_blacklisted: boolean
+          rating: number | null
+          review_type: string
+          reviewed_by: string | null
+          trainee_id: string
+          updated_at: string
+        }
+        Insert: {
+          blacklist_reason?: string | null
+          class_id?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          is_blacklisted?: boolean
+          rating?: number | null
+          review_type?: string
+          reviewed_by?: string | null
+          trainee_id: string
+          updated_at?: string
+        }
+        Update: {
+          blacklist_reason?: string | null
+          class_id?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_blacklisted?: boolean
+          rating?: number | null
+          review_type?: string
+          reviewed_by?: string | null
+          trainee_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainee_reviews_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainee_reviews_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trainees: {
         Row: {
           absconded_date: string | null

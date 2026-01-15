@@ -62,8 +62,13 @@ import {
   useClassTeachers,
   useAssignTeacherToClass,
   useRemoveTeacherFromClass,
+  useAttendance,
+  useTestScores,
   Class,
 } from "@/hooks/useEducation";
+import { TestScoresDialog } from "@/components/education/TestScoresDialog";
+import { ReviewsDialog } from "@/components/education/ReviewsDialog";
+import { exportClassData } from "@/components/education/ExportClassData";
 import { 
   Plus, 
   Search, 
@@ -105,6 +110,8 @@ export default function ClassList() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAssignTraineeDialogOpen, setIsAssignTraineeDialogOpen] = useState(false);
   const [isAssignTeacherDialogOpen, setIsAssignTeacherDialogOpen] = useState(false);
+  const [isTestScoresDialogOpen, setIsTestScoresDialogOpen] = useState(false);
+  const [isReviewsDialogOpen, setIsReviewsDialogOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [selectedTraineeIds, setSelectedTraineeIds] = useState<string[]>([]);
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
@@ -123,6 +130,8 @@ export default function ClassList() {
   const { data: availableTrainees } = useAvailableTrainees();
   const { data: classStudents } = useClassStudents(selectedClass?.id || "");
   const { data: classTeachers } = useClassTeachers(selectedClass?.id || "");
+  const { data: attendance } = useAttendance(selectedClass?.id || "", format(new Date(), "yyyy-MM"));
+  const { data: testScores } = useTestScores(selectedClass?.id || "");
 
   const filteredClasses = classes?.filter((c) =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -299,15 +308,24 @@ export default function ClassList() {
   };
 
   const handleAction = (action: string, classData: Class) => {
+    setSelectedClass(classData);
     switch (action) {
       case "test_scores":
-        toast({ title: `Điểm kiểm tra - ${classData.name}`, description: "Chức năng đang phát triển" });
+        setIsTestScoresDialogOpen(true);
         break;
       case "review":
-        toast({ title: `Nhận xét/Blacklist - ${classData.name}`, description: "Chức năng đang phát triển" });
+        setIsReviewsDialogOpen(true);
         break;
       case "export":
-        toast({ title: `Xuất dữ liệu - ${classData.name}`, description: "Chức năng đang phát triển" });
+        exportClassData(
+          classData.id, 
+          classData.name, 
+          classStudents || [], 
+          classTeachers || [], 
+          attendance || [], 
+          testScores || []
+        );
+        toast({ title: "Xuất dữ liệu thành công" });
         break;
       default:
         break;
@@ -776,6 +794,26 @@ export default function ClassList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Test Scores Dialog */}
+      {selectedClass && (
+        <TestScoresDialog
+          open={isTestScoresDialogOpen}
+          onOpenChange={setIsTestScoresDialogOpen}
+          classId={selectedClass.id}
+          className={selectedClass.name}
+        />
+      )}
+
+      {/* Reviews Dialog */}
+      {selectedClass && (
+        <ReviewsDialog
+          open={isReviewsDialogOpen}
+          onOpenChange={setIsReviewsDialogOpen}
+          classId={selectedClass.id}
+          className={selectedClass.name}
+        />
+      )}
     </div>
   );
 }
