@@ -18,11 +18,12 @@ import { format, addYears } from "date-fns";
 import { usePagination } from "@/hooks/usePagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTraineesPaginated, TraineeListItem } from "@/hooks/useTraineesPaginated";
+import { useTraineeStageCounts, StageCounts } from "@/hooks/useTraineeStageCounts";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { useToast } from "@/hooks/use-toast";
 
-const PROGRESSION_TABS = [
-  { value: "all", label: "Tất cả", key: null },
+const PROGRESSION_TABS: { value: string; label: string; key: keyof StageCounts | null }[] = [
+  { value: "all", label: "Tất cả", key: "all" },
   { value: "chua_dau", label: "Chưa đậu", key: "Chưa đậu" },
   { value: "dau_pv", label: "Đậu phỏng vấn", key: "Đậu phỏng vấn" },
   { value: "nop_hs", label: "Nộp hồ sơ", key: "Nộp hồ sơ" },
@@ -49,9 +50,12 @@ export default function TraineeList() {
   // Pagination state
   const pagination = usePagination({ pageSize: 50 });
   
+  // Fetch stage counts for tabs
+  const { data: stageCounts, isLoading: isCountsLoading } = useTraineeStageCounts();
+  
   // Get current progression stage for filtering
   const activeTabConfig = PROGRESSION_TABS.find((t) => t.value === activeTab);
-  const progressionStage = activeTabConfig?.key || 'all';
+  const progressionStage = activeTabConfig?.key === 'all' ? 'all' : activeTabConfig?.key || 'all';
   
   // Fetch trainees with pagination
   const { 
@@ -518,15 +522,30 @@ export default function TraineeList() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
-          {PROGRESSION_TABS.map((tab) => (
-            <TabsTrigger
-              key={tab.value}
-              value={tab.value}
-              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-3 py-1.5"
-            >
-              {tab.label}
-            </TabsTrigger>
-          ))}
+          {PROGRESSION_TABS.map((tab) => {
+            const count = tab.key && stageCounts ? stageCounts[tab.key] : null;
+            return (
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-3 py-1.5 gap-1.5"
+              >
+                {tab.label}
+                {count !== null && count !== undefined && (
+                  <span className={`
+                    inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 
+                    text-[10px] font-semibold rounded-full
+                    ${activeTab === tab.value 
+                      ? 'bg-primary-foreground/20 text-primary-foreground' 
+                      : 'bg-muted-foreground/20 text-muted-foreground'
+                    }
+                  `}>
+                    {isCountsLoading ? '...' : count.toLocaleString('vi-VN')}
+                  </span>
+                )}
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
       </Tabs>
 
