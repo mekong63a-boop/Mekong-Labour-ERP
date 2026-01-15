@@ -1,7 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,8 +13,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Search, Eye } from "lucide-react";
+import { Plus, Search, Eye, RefreshCw } from "lucide-react";
 import { format, addYears } from "date-fns";
+import { usePagination } from "@/hooks/usePagination";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useTraineesPaginated, TraineeListItem } from "@/hooks/useTraineesPaginated";
+import { PaginationControls } from "@/components/ui/pagination-controls";
+import { useToast } from "@/hooks/use-toast";
 
 const PROGRESSION_TABS = [
   { value: "all", label: "Tất cả", key: null },
@@ -34,131 +37,57 @@ const PROGRESSION_TABS = [
   { value: "hoan_thanh", label: "Hoàn thành HĐ", key: "Hoàn thành hợp đồng" },
 ];
 
-interface TraineeWithRelations {
-  id: string;
-  trainee_code: string;
-  full_name: string;
-  birth_date: string | null;
-  birthplace: string | null;
-  progression_stage: string | null;
-  simple_status: string | null;
-  enrollment_status: string | null;
-  entry_date: string | null;
-  interview_pass_date: string | null;
-  document_submission_date: string | null;
-  otit_entry_date: string | null;
-  nyukan_entry_date: string | null;
-  coe_date: string | null;
-  departure_date: string | null;
-  absconded_date: string | null;
-  early_return_date: string | null;
-  early_return_reason: string | null;
-  return_date: string | null;
-  contract_term: number | null;
-  receiving_company: { name: string; name_japanese: string | null } | null;
-  union: { name: string; name_japanese: string | null } | null;
-  job_category: { name: string; name_japanese: string | null } | null;
-}
-
 export default function TraineeList() {
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
-
-  // Fetch trainees with relations
-  const { data: trainees, isLoading, error } = useQuery({
-    queryKey: ["trainees-with-relations"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("trainees")
-        .select(`
-          id,
-          trainee_code,
-          full_name,
-          birth_date,
-          birthplace,
-          progression_stage,
-          simple_status,
-          enrollment_status,
-          entry_date,
-          interview_pass_date,
-          document_submission_date,
-          otit_entry_date,
-          nyukan_entry_date,
-          coe_date,
-          departure_date,
-          absconded_date,
-          early_return_date,
-          early_return_reason,
-          return_date,
-          contract_term,
-          receiving_company_id,
-          union_id,
-          job_category_id
-        `)
-        .order("updated_at", { ascending: false });
-
-      if (error) throw error;
-
-      // Fetch related data
-      const companyIds = [...new Set(data?.map(t => t.receiving_company_id).filter(Boolean))];
-      const unionIds = [...new Set(data?.map(t => t.union_id).filter(Boolean))];
-      const jobCategoryIds = [...new Set(data?.map(t => t.job_category_id).filter(Boolean))];
-
-      const [companiesRes, unionsRes, jobCategoriesRes] = await Promise.all([
-        companyIds.length > 0 
-          ? supabase.from("companies").select("id, name, name_japanese").in("id", companyIds)
-          : { data: [] },
-        unionIds.length > 0
-          ? supabase.from("unions").select("id, name, name_japanese").in("id", unionIds)
-          : { data: [] },
-        jobCategoryIds.length > 0
-          ? supabase.from("job_categories").select("id, name, name_japanese").in("id", jobCategoryIds)
-          : { data: [] },
-      ]);
-
-      const companiesMap = new Map((companiesRes.data || []).map(c => [c.id, c]));
-      const unionsMap = new Map((unionsRes.data || []).map(u => [u.id, u]));
-      const jobCategoriesMap = new Map((jobCategoriesRes.data || []).map(j => [j.id, j]));
-
-      return data?.map(trainee => ({
-        ...trainee,
-        receiving_company: trainee.receiving_company_id ? companiesMap.get(trainee.receiving_company_id) || null : null,
-        union: trainee.union_id ? unionsMap.get(trainee.union_id) || null : null,
-        job_category: trainee.job_category_id ? jobCategoriesMap.get(trainee.job_category_id) || null : null,
-      })) as TraineeWithRelations[];
-    },
+  const { toast } = useToast();
+  
+  // Debounce search query (300ms delay)
+  const debouncedSearch = useDebounce(searchQuery, 300);
+  
+  // Pagination state
+  const pagination = usePagination({ pageSize: 50 });
+  
+  // Get current progression stage for filtering
+  const activeTabConfig = PROGRESSION_TABS.find((t) => t.value === activeTab);
+  const progressionStage = activeTabConfig?.key || 'all';
+  
+  // Fetch trainees with pagination
+  const { 
+    trainees, 
+    totalCount, 
+    isLoading, 
+    isError, 
+    error, 
+    refetch 
+  } = useTraineesPaginated({
+    from: pagination.from,
+    to: pagination.to,
+    progressionStage,
+    searchQuery: debouncedSearch,
   });
-
-  const filteredTrainees = useMemo(() => {
-    if (!trainees) return [];
-
-    let result = trainees;
-
-    // Filter by tab
-    const activeTabConfig = PROGRESSION_TABS.find((t) => t.value === activeTab);
-    if (activeTabConfig?.key) {
-      result = result.filter((t) => t.progression_stage === activeTabConfig.key);
+  
+  // Update total items when count changes
+  useEffect(() => {
+    pagination.setTotalItems(totalCount);
+  }, [totalCount]);
+  
+  // Reset to page 1 when tab or search changes
+  useEffect(() => {
+    pagination.goToPage(1);
+  }, [activeTab, debouncedSearch]);
+  
+  // Show error toast
+  useEffect(() => {
+    if (isError && error) {
+      toast({
+        title: "Lỗi tải dữ liệu",
+        description: error.message,
+        variant: "destructive",
+      });
     }
-
-    // Filter by search
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (t) =>
-          t.full_name?.toLowerCase().includes(query) ||
-          t.trainee_code?.toLowerCase().includes(query)
-      );
-    }
-
-    return result;
-  }, [trainees, activeTab, searchQuery]);
-
-  const getTabCount = (key: string | null) => {
-    if (!trainees) return 0;
-    if (key === null) return trainees.length;
-    return trainees.filter((t) => t.progression_stage === key).length;
-  };
+  }, [isError, error, toast]);
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "—";
@@ -231,9 +160,6 @@ export default function TraineeList() {
     if (!jobCategory) return "—";
     return jobCategory.name_japanese ? `${jobCategory.name} (${jobCategory.name_japanese})` : jobCategory.name;
   };
-
-  // Get active tab config
-  const activeTabConfig = PROGRESSION_TABS.find((t) => t.value === activeTab);
 
   // Render table columns based on active tab
   const renderTableHeader = () => {
@@ -390,7 +316,7 @@ export default function TraineeList() {
     }
   };
 
-  const renderTableRow = (trainee: TraineeWithRelations) => {
+  const renderTableRow = (trainee: TraineeListItem) => {
     const progressionKey = activeTabConfig?.key;
 
     const baseColumns = (
@@ -562,14 +488,6 @@ export default function TraineeList() {
     }
   };
 
-  if (error) {
-    return (
-      <div className="py-8 text-center text-destructive">
-        Lỗi khi tải dữ liệu: {(error as Error).message}
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -580,10 +498,21 @@ export default function TraineeList() {
             Theo dõi và quản lý danh sách học viên
           </p>
         </div>
-        <Button className="gap-2" onClick={() => navigate("/trainees/new")}>
-          <Plus className="h-4 w-4" />
-          Thêm mới
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={() => refetch()}
+            disabled={isLoading}
+            title="Làm mới dữ liệu"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button className="gap-2" onClick={() => navigate("/trainees/new")}>
+            <Plus className="h-4 w-4" />
+            Thêm mới
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -595,7 +524,7 @@ export default function TraineeList() {
               value={tab.value}
               className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs px-3 py-1.5"
             >
-              {tab.label} ({getTabCount(tab.key)})
+              {tab.label}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -606,44 +535,85 @@ export default function TraineeList() {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Tìm theo tên hoặc mã học viên..."
+            placeholder="Tìm theo tên, mã học viên hoặc quê quán..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
         </div>
+        {debouncedSearch !== searchQuery && (
+          <span className="text-xs text-muted-foreground">Đang tìm kiếm...</span>
+        )}
       </div>
 
+      {/* Error state */}
+      {isError && (
+        <div className="text-center py-8 border rounded-lg bg-destructive/5">
+          <p className="text-destructive mb-4">Lỗi khi tải dữ liệu: {error?.message}</p>
+          <Button variant="outline" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Thử lại
+          </Button>
+        </div>
+      )}
+
       {/* Table */}
-      {isLoading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-        </div>
-      ) : filteredTrainees.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground border rounded-lg">
-          Không có học viên nào
-        </div>
-      ) : (
-        <div className="border rounded-lg overflow-x-auto">
-          <Table>
-            <TableHeader>
-              {renderTableHeader()}
-            </TableHeader>
-            <TableBody>
-              {filteredTrainees.map((trainee) => (
-                <TableRow
-                  key={trainee.id}
-                  className="cursor-pointer hover:bg-muted/30"
-                  onClick={() => navigate(`/trainees/${trainee.id}`)}
-                >
-                  {renderTableRow(trainee)}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+      {!isError && (
+        <>
+          {isLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : trainees.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground border rounded-lg">
+              {debouncedSearch ? (
+                <>
+                  Không tìm thấy học viên phù hợp với từ khóa "<span className="font-medium">{debouncedSearch}</span>"
+                </>
+              ) : (
+                "Không có học viên nào trong danh mục này"
+              )}
+            </div>
+          ) : (
+            <div className="border rounded-lg overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  {renderTableHeader()}
+                </TableHeader>
+                <TableBody>
+                  {trainees.map((trainee) => (
+                    <TableRow
+                      key={trainee.id}
+                      className="cursor-pointer hover:bg-muted/30"
+                      onClick={() => navigate(`/trainees/${trainee.id}`)}
+                    >
+                      {renderTableRow(trainee)}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {!isLoading && trainees.length > 0 && (
+            <PaginationControls
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              totalItems={pagination.totalItems}
+              from={pagination.from}
+              to={pagination.to}
+              pageSize={pagination.pageSize}
+              onPageChange={pagination.goToPage}
+              onPageSizeChange={pagination.setPageSize}
+              isLoading={isLoading}
+            />
+          )}
+        </>
       )}
     </div>
   );
