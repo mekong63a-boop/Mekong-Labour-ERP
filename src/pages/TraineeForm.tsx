@@ -29,6 +29,7 @@ import { WorkHistoryForm, WorkItem } from "@/components/trainees/forms/WorkHisto
 import { FamilyMembersForm, FamilyItem } from "@/components/trainees/forms/FamilyMembersForm";
 import { JapanRelativesForm, JapanRelativeItem } from "@/components/trainees/forms/JapanRelativesForm";
 import { ProjectInterviewForm } from "@/components/trainees/forms/ProjectInterviewForm";
+import { useEducationHistory, useWorkHistory, useFamilyMembers, useJapanRelatives } from "@/hooks/useTraineeHistory";
 
 // Options
 const TRAINEE_TYPES = ["Thực tập sinh", "Kỹ năng đặc định", "Kỹ sư", "Du học sinh", "Thực tập sinh số 3"];
@@ -173,6 +174,12 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   // Fetch existing trainee data if editing
   const { data: trainee, isLoading: isLoadingTrainee } = useTrainee(traineeId || "");
   const updateTraineeMutation = useUpdateTrainee();
+  
+  // Fetch history data for edit mode
+  const { data: educationHistoryData } = useEducationHistory(traineeId || "");
+  const { data: workHistoryData } = useWorkHistory(traineeId || "");
+  const { data: familyMembersData } = useFamilyMembers(traineeId || "");
+  const { data: japanRelativesData } = useJapanRelatives(traineeId || "");
 
   const [formData, setFormData] = useState<FormData>({
     trainee_code: "",
@@ -298,6 +305,67 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       });
     }
   }, [isEditMode, trainee]);
+
+  // Load education history
+  useEffect(() => {
+    if (isEditMode && educationHistoryData) {
+      setEducationItems(educationHistoryData.map(item => ({
+        id: item.id,
+        level: item.level || "",
+        school_name: item.school_name || "",
+        major: item.major || "",
+        start_month: "",
+        start_year: item.start_year?.toString() || "",
+        end_month: "",
+        end_year: item.end_year?.toString() || "",
+      })));
+    }
+  }, [isEditMode, educationHistoryData]);
+
+  // Load work history
+  useEffect(() => {
+    if (isEditMode && workHistoryData) {
+      setWorkItems(workHistoryData.map(item => ({
+        id: item.id,
+        company_name: item.company_name || "",
+        position: item.position || "",
+        company_name_japanese: "",
+        start_date: item.start_date || "",
+        end_date: item.end_date || "",
+      })));
+    }
+  }, [isEditMode, workHistoryData]);
+
+  // Load family members
+  useEffect(() => {
+    if (isEditMode && familyMembersData) {
+      setFamilyItems(familyMembersData.map(item => ({
+        id: item.id,
+        relationship: item.relationship || "",
+        gender: item.gender || "",
+        full_name: item.full_name || "",
+        birth_year: item.birth_year?.toString() || "",
+        living_status: item.location || "",
+        occupation: item.occupation || "",
+        income: item.income || "",
+      })));
+    }
+  }, [isEditMode, familyMembersData]);
+
+  // Load japan relatives
+  useEffect(() => {
+    if (isEditMode && japanRelativesData) {
+      setJapanRelativeItems(japanRelativesData.map(item => ({
+        id: item.id,
+        full_name: item.full_name || "",
+        relationship: item.relationship || "",
+        age: item.age?.toString() || "",
+        gender: item.gender || "",
+        address_japan: item.address_japan || "",
+        residence_status: item.residence_status || "",
+      })));
+    }
+  }, [isEditMode, japanRelativesData]);
 
   const updateField = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
