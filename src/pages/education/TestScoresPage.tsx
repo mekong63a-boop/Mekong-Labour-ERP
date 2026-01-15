@@ -20,6 +20,16 @@ import { format } from "date-fns";
 // Generate lesson columns (Bài 1 to Bài 18)
 const LESSONS = Array.from({ length: 18 }, (_, i) => `Bài ${i + 1}`);
 
+// Get grade based on score (0-100 scale)
+function getScoreGrade(score: number | null): { label: string; color: string } {
+  if (score === null) return { label: "", color: "" };
+  if (score >= 90) return { label: "A", color: "text-green-600 font-bold" };
+  if (score >= 70) return { label: "B", color: "text-blue-600 font-bold" };
+  if (score >= 60) return { label: "C", color: "text-yellow-600 font-bold" };
+  if (score >= 40) return { label: "D", color: "text-orange-600 font-bold" };
+  return { label: "E", color: "text-red-600 font-bold" };
+}
+
 export default function TestScoresPage() {
   const { classId } = useParams<{ classId: string }>();
   const { toast } = useToast();
@@ -118,7 +128,7 @@ export default function TestScoresPage() {
             trainee_id: traineeId,
             test_name: `${selectedSubject} - ${lesson}`,
             test_date: today,
-            max_score: 10,
+            max_score: 100,
             score: score,
           });
         }
@@ -250,12 +260,12 @@ export default function TestScoresPage() {
                     const hasLocalChange = localScores[student.id]?.[lesson] !== undefined;
                     
                     return (
-                      <div key={lesson} className="w-14 p-1 border-r flex-shrink-0">
+                      <div key={lesson} className="w-14 p-1 border-r flex-shrink-0 relative group">
                         <Input
                           type="number"
                           min={0}
-                          max={10}
-                          step={0.5}
+                          max={100}
+                          step={1}
                           value={score ?? ""}
                           onChange={(e) => handleScoreChange(student.id, lesson, e.target.value)}
                           className={`h-7 text-center text-sm p-1 ${
@@ -264,6 +274,11 @@ export default function TestScoresPage() {
                               : "border-yellow-200 bg-yellow-50/50"
                           }`}
                         />
+                        {score !== null && (
+                          <span className={`absolute -top-1 -right-1 text-[10px] ${getScoreGrade(score).color}`}>
+                            {getScoreGrade(score).label}
+                          </span>
+                        )}
                       </div>
                     );
                   })}
