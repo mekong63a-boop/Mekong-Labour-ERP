@@ -28,11 +28,12 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useTeachers, useCreateTeacher, Teacher } from "@/hooks/useEducation";
-import { Plus, Search, ArrowLeft, Mail, Phone, Pencil } from "lucide-react";
+import { Plus, Search, ArrowLeft, Mail, Phone, Pencil, Download } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import * as XLSX from "xlsx";
 
 export default function TeacherList() {
   const { data: teachers, isLoading } = useTeachers();
@@ -136,6 +137,45 @@ export default function TeacherList() {
     }
   };
 
+  const handleExportExcel = () => {
+    if (!teachers || teachers.length === 0) {
+      toast({ title: "Không có dữ liệu để xuất", variant: "destructive" });
+      return;
+    }
+
+    const exportData = teachers.map((t, index) => ({
+      "STT": index + 1,
+      "Mã GV": t.code,
+      "Họ và tên": t.full_name,
+      "Chuyên môn": t.specialty || "",
+      "Số điện thoại": t.phone || "",
+      "Email": t.email || "",
+      "Ngày nhận lớp": (t as any).class_start_date || "",
+      "Ngày kết thúc": (t as any).class_end_date || "",
+      "Trạng thái": t.status || "Đang làm việc",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Danh sách giáo viên");
+    
+    // Set column widths
+    ws["!cols"] = [
+      { wch: 5 },  // STT
+      { wch: 10 }, // Mã GV
+      { wch: 25 }, // Họ và tên
+      { wch: 15 }, // Chuyên môn
+      { wch: 15 }, // SĐT
+      { wch: 25 }, // Email
+      { wch: 12 }, // Ngày nhận lớp
+      { wch: 12 }, // Ngày kết thúc
+      { wch: 15 }, // Trạng thái
+    ];
+
+    XLSX.writeFile(wb, `Danh_sach_giao_vien_${new Date().toISOString().split("T")[0]}.xlsx`);
+    toast({ title: "Xuất file Excel thành công" });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -153,13 +193,18 @@ export default function TeacherList() {
             </p>
           </div>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Thêm giáo viên
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportExcel}>
+            <Download className="mr-2 h-4 w-4" />
+            Xuất Excel
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Thêm giáo viên
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Thêm giáo viên mới</DialogTitle>
@@ -219,8 +264,9 @@ export default function TeacherList() {
                 </Button>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Search */}
