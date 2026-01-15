@@ -18,7 +18,6 @@ import { Input } from "@/components/ui/input";
 import { useClass, useClassStudents, useAttendance, useUpsertAttendance, useClasses } from "@/hooks/useEducation";
 import { ArrowLeft, ChevronLeft, ChevronRight, Check, X, Clock, ChevronDown, Save, RefreshCw } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from "date-fns";
-import { vi } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +28,6 @@ const ATTENDANCE_STATUS = [
   { value: "late", label: "Đi trễ", display: "⏱", color: "text-orange-500" },
 ];
 
-const DAY_NAMES = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
 const DAY_NAMES_SHORT = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
 
 const MONTHS = [
@@ -37,11 +35,6 @@ const MONTHS = [
   "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"
 ];
 
-interface AttendanceNote {
-  traineeId: string;
-  date: string;
-  note: string;
-}
 
 export default function AttendanceCalendar() {
   const { id: classId } = useParams<{ id: string }>();

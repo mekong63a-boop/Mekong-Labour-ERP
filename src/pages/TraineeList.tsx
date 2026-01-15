@@ -27,7 +27,7 @@ import { format, addYears } from "date-fns";
 import { usePagination } from "@/hooks/usePagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTraineesPaginated, TraineeListItem } from "@/hooks/useTraineesPaginated";
-import { useTraineeStageCounts, StageCounts } from "@/hooks/useTraineeStageCounts";
+import { useTraineeStageCounts } from "@/hooks/useTraineeStageCounts";
 import { useDeleteTrainee } from "@/hooks/useTrainees";
 import { useUserRole } from "@/hooks/useUserRole";
 import { PaginationControls } from "@/components/ui/pagination-controls";
