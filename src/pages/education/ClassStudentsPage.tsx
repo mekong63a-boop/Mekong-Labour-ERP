@@ -47,26 +47,99 @@ function useClassStudentsDetailed(classId: string) {
   });
 }
 
-// Hook to get enrollment history for a trainee
+// Hook to get enrollment history for a trainee with teacher info
 function useEnrollmentHistory(traineeId: string) {
   return useQuery({
     queryKey: ["enrollment-history", traineeId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get enrollment history
+      const { data: historyData, error: historyError } = await supabase
         .from("enrollment_history")
         .select(`
           id,
           action_type,
           action_date,
           notes,
-          class:classes!enrollment_history_class_id_fkey(name),
-          from_class:classes!enrollment_history_from_class_id_fkey(name),
-          to_class:classes!enrollment_history_to_class_id_fkey(name)
+          class_id,
+          from_class_id,
+          to_class_id,
+          class:classes!enrollment_history_class_id_fkey(id, name, code),
+          from_class:classes!enrollment_history_from_class_id_fkey(id, name, code),
+          to_class:classes!enrollment_history_to_class_id_fkey(id, name, code)
         `)
         .eq("trainee_id", traineeId)
-        .order("action_date", { ascending: false });
+        .order("action_date", { ascending: true });
+      if (historyError) throw historyError;
+
+      // Get all unique class IDs to fetch teachers
+      const classIds = new Set<string>();
+      historyData?.forEach(h => {
+        if (h.class_id) classIds.add(h.class_id);
+        if (h.from_class_id) classIds.add(h.from_class_id);
+        if (h.to_class_id) classIds.add(h.to_class_id);
+      });
+
+      // Fetch teachers for all classes
+      const teacherMap: Record<string, string[]> = {};
+      if (classIds.size > 0) {
+        const { data: teacherData } = await supabase
+          .from("class_teachers")
+          .select(`
+            class_id,
+            teacher:teachers(full_name)
+          `)
+          .in("class_id", Array.from(classIds));
+        
+        teacherData?.forEach(t => {
+          if (!teacherMap[t.class_id]) {
+            teacherMap[t.class_id] = [];
+          }
+          if ((t.teacher as any)?.full_name) {
+            teacherMap[t.class_id].push((t.teacher as any).full_name);
+          }
+        });
+      }
+
+      // Merge teacher info into history
+      return historyData?.map(h => ({
+        ...h,
+        class_teachers: h.class_id ? teacherMap[h.class_id] || [] : [],
+        from_class_teachers: h.from_class_id ? teacherMap[h.from_class_id] || [] : [],
+        to_class_teachers: h.to_class_id ? teacherMap[h.to_class_id] || [] : [],
+      }));
+    },
+    enabled: !!traineeId,
+  });
+}
+
+// Hook to get total learning days from attendance
+function useTotalLearningDays(traineeId: string) {
+  return useQuery({
+    queryKey: ["total-learning-days", traineeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("attendance")
+        .select("date, status")
+        .eq("trainee_id", traineeId)
+        .order("date", { ascending: true });
       if (error) throw error;
-      return data;
+      
+      if (!data || data.length === 0) {
+        return { totalDays: 0, presentDays: 0, firstDate: null, lastDate: null };
+      }
+
+      const presentDays = data.filter(a => 
+        a.status === "present" || a.status === "late"
+      ).length;
+
+      const dates = data.map(a => a.date).sort();
+      
+      return {
+        totalDays: data.length,
+        presentDays,
+        firstDate: dates[0],
+        lastDate: dates[dates.length - 1],
+      };
     },
     enabled: !!traineeId,
   });
@@ -138,6 +211,9 @@ export default function ClassStudentsPage() {
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   
   const { data: enrollmentHistory, isLoading: historyLoading } = useEnrollmentHistory(
+    selectedTrainee?.id || ""
+  );
+  const { data: learningDays, isLoading: learningDaysLoading } = useTotalLearningDays(
     selectedTrainee?.id || ""
   );
 
@@ -312,8 +388,33 @@ export default function ClassStudentsPage() {
               {selectedTrainee?.trainee_code} - {selectedTrainee?.full_name}
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="h-[400px]">
-            {historyLoading ? (
+          
+          {/* Summary Stats */}
+          {!learningDaysLoading && learningDays && learningDays.firstDate && (
+            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Ngày bắt đầu học:</span>
+                  <span className="ml-2 font-medium">{formatDate(learningDays.firstDate)}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Ngày gần nhất:</span>
+                  <span className="ml-2 font-medium">{formatDate(learningDays.lastDate)}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Tổng buổi điểm danh:</span>
+                  <span className="ml-2 font-medium text-primary">{learningDays.totalDays} buổi</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Số buổi có mặt:</span>
+                  <span className="ml-2 font-medium text-green-600">{learningDays.presentDays} buổi</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <ScrollArea className="h-[350px]">
+            {historyLoading || learningDaysLoading ? (
               <div className="space-y-2 p-4">
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
@@ -331,7 +432,7 @@ export default function ClassStudentsPage() {
                   <div key={history.id} className="relative pb-6">
                     {/* Timeline dot */}
                     <div className={`absolute -left-4 w-3 h-3 rounded-full border-2 border-background ${
-                      index === 0 ? "bg-primary" : "bg-muted-foreground"
+                      index === enrollmentHistory.length - 1 ? "bg-primary" : "bg-muted-foreground"
                     }`} />
                     
                     <div className="ml-4 bg-muted/30 rounded-lg p-3">
@@ -344,20 +445,37 @@ export default function ClassStudentsPage() {
                         </span>
                       </div>
                       
+                      {/* Transfer between classes */}
                       {history.from_class && history.to_class && (
-                        <p className="text-sm text-muted-foreground">
-                          {(history.from_class as any)?.name} → {(history.to_class as any)?.name}
-                        </p>
+                        <div className="text-sm space-y-1">
+                          <p className="text-muted-foreground">
+                            <span className="font-medium">{(history.from_class as any)?.name}</span>
+                            {history.from_class_teachers && history.from_class_teachers.length > 0 && (
+                              <span className="text-xs"> (GV: {history.from_class_teachers.join(", ")})</span>
+                            )}
+                          </p>
+                          <p className="text-primary">→</p>
+                          <p className="text-muted-foreground">
+                            <span className="font-medium">{(history.to_class as any)?.name}</span>
+                            {history.to_class_teachers && history.to_class_teachers.length > 0 && (
+                              <span className="text-xs"> (GV: {history.to_class_teachers.join(", ")})</span>
+                            )}
+                          </p>
+                        </div>
                       )}
                       
-                      {history.class && (
+                      {/* Single class entry */}
+                      {history.class && !history.from_class && (
                         <p className="text-sm text-muted-foreground">
-                          Lớp: {(history.class as any)?.name}
+                          Lớp: <span className="font-medium">{(history.class as any)?.name}</span>
+                          {history.class_teachers && history.class_teachers.length > 0 && (
+                            <span className="text-xs ml-1">(GV: {history.class_teachers.join(", ")})</span>
+                          )}
                         </p>
                       )}
                       
                       {history.notes && (
-                        <p className="text-sm mt-1">{history.notes}</p>
+                        <p className="text-sm mt-2 italic text-muted-foreground">{history.notes}</p>
                       )}
                     </div>
                   </div>
