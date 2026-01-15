@@ -7,15 +7,76 @@ import { GraduationCap, Users, BookOpen, Calendar, MoreHorizontal } from "lucide
 import { Link, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Cell } from "recharts";
+
+// Hook to get trainee gender stats for education
+function useTraineeGenderStats() {
+  return useQuery({
+    queryKey: ["trainee-gender-stats"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trainees")
+        .select("id, gender, class_id, progression_stage");
+      
+      if (error) throw error;
+      
+      // Currently studying (has class_id)
+      const studying = data?.filter(t => t.class_id) || [];
+      const studyingMale = studying.filter(t => t.gender === "Nam").length;
+      const studyingFemale = studying.filter(t => t.gender === "Nữ").length;
+      
+      // Passed interview
+      const passed = data?.filter(t => 
+        t.progression_stage && t.progression_stage !== "Chưa đậu"
+      ) || [];
+      const passedMale = passed.filter(t => t.gender === "Nam").length;
+      const passedFemale = passed.filter(t => t.gender === "Nữ").length;
+      
+      // Not passed interview
+      const notPassed = data?.filter(t => 
+        !t.progression_stage || t.progression_stage === "Chưa đậu"
+      ) || [];
+      const notPassedMale = notPassed.filter(t => t.gender === "Nam").length;
+      const notPassedFemale = notPassed.filter(t => t.gender === "Nữ").length;
+      
+      return {
+        studying: { male: studyingMale, female: studyingFemale, total: studying.length },
+        passed: { male: passedMale, female: passedFemale, total: passed.length },
+        notPassed: { male: notPassedMale, female: notPassedFemale, total: notPassed.length },
+      };
+    },
+  });
+}
 
 export default function EducationDashboard() {
   const navigate = useNavigate();
   const { data: stats, isLoading: statsLoading } = useEducationStats();
   const { data: teachers, isLoading: teachersLoading } = useTeachers();
   const { data: classes, isLoading: classesLoading } = useClasses();
+  const { data: genderStats, isLoading: genderStatsLoading } = useTraineeGenderStats();
 
   const activeClasses = classes?.filter(c => c.status === "Đang hoạt động") || [];
   const activeTeachers = teachers?.filter(t => t.status === "Đang làm việc") || [];
+
+  const chartData = [
+    {
+      name: "Đang học",
+      Nam: genderStats?.studying.male || 0,
+      Nữ: genderStats?.studying.female || 0,
+    },
+    {
+      name: "Đậu PV",
+      Nam: genderStats?.passed.male || 0,
+      Nữ: genderStats?.passed.female || 0,
+    },
+    {
+      name: "Chưa đậu PV",
+      Nam: genderStats?.notPassed.male || 0,
+      Nữ: genderStats?.notPassed.female || 0,
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -114,6 +175,61 @@ export default function EducationDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Gender Statistics Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Thống kê học viên theo giới tính</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {genderStatsLoading ? (
+            <Skeleton className="h-64 w-full" />
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip 
+                  formatter={(value, name) => [value, name === "Nam" ? "Nam" : "Nữ"]}
+                  contentStyle={{ borderRadius: 8, border: "1px solid #e2e8f0" }}
+                />
+                <Legend />
+                <Bar dataKey="Nam" fill="hsl(210, 70%, 50%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Nữ" fill="hsl(340, 70%, 60%)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+          <div className="grid grid-cols-3 gap-4 mt-4 text-center">
+            <div className="p-3 bg-muted/50 rounded-lg">
+              <p className="text-sm text-muted-foreground">Đang học</p>
+              <p className="text-xl font-bold">{genderStats?.studying.total || 0}</p>
+              <p className="text-xs text-muted-foreground">
+                <span className="text-blue-600">♂ {genderStats?.studying.male || 0}</span>
+                {" / "}
+                <span className="text-pink-600">♀ {genderStats?.studying.female || 0}</span>
+              </p>
+            </div>
+            <div className="p-3 bg-green-50 rounded-lg">
+              <p className="text-sm text-muted-foreground">Đậu PV</p>
+              <p className="text-xl font-bold text-green-600">{genderStats?.passed.total || 0}</p>
+              <p className="text-xs text-muted-foreground">
+                <span className="text-blue-600">♂ {genderStats?.passed.male || 0}</span>
+                {" / "}
+                <span className="text-pink-600">♀ {genderStats?.passed.female || 0}</span>
+              </p>
+            </div>
+            <div className="p-3 bg-orange-50 rounded-lg">
+              <p className="text-sm text-muted-foreground">Chưa đậu PV</p>
+              <p className="text-xl font-bold text-orange-600">{genderStats?.notPassed.total || 0}</p>
+              <p className="text-xs text-muted-foreground">
+                <span className="text-blue-600">♂ {genderStats?.notPassed.male || 0}</span>
+                {" / "}
+                <span className="text-pink-600">♀ {genderStats?.notPassed.female || 0}</span>
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Active Classes */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
