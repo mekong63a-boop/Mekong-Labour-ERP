@@ -16,6 +16,10 @@ import ClassList from "./pages/education/ClassList";
 import AttendanceCalendar from "./pages/education/AttendanceCalendar";
 import GlossaryPage from "./pages/glossary/GlossaryPage";
 import OrderList from "./pages/orders/OrderList";
+import PartnerList from "./pages/partners/PartnerList";
+import CompanyForm from "./pages/partners/CompanyForm";
+import UnionForm from "./pages/partners/UnionForm";
+import JobCategoryForm from "./pages/partners/JobCategoryForm";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -150,7 +154,64 @@ const App = () => (
                 }
               />
 
-              {/* Glossary - Admin, Manager, Staff */}
+              {/* Partners - Admin, Manager */}
+              <Route
+                path="/partners"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <PartnerList />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/partners/companies/new"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <CompanyForm />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/partners/companies/:id/edit"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <CompanyForm />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/partners/unions/new"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <UnionForm />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/partners/unions/:id/edit"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <UnionForm />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/partners/job-categories/new"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <JobCategoryForm />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/partners/job-categories/:id/edit"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <JobCategoryForm />
+                  </ProtectedRoute>
+                }
+              />
+
               <Route
                 path="/glossary"
                 element={
