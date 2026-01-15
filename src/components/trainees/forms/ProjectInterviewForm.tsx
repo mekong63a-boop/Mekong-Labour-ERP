@@ -126,7 +126,7 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
               type="date"
               value={data.interview_date}
               onChange={(e) => updateField("interview_date", e.target.value)}
-              className="input-empty"
+              className={data.interview_date ? "bg-white" : "bg-amber-50 border-amber-200"}
             />
           </div>
           <div>
@@ -135,7 +135,7 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
               type="month"
               value={data.expected_entry_month}
               onChange={(e) => updateField("expected_entry_month", e.target.value)}
-              className="input-empty"
+              className={data.expected_entry_month ? "bg-white" : "bg-amber-50 border-amber-200"}
             />
           </div>
 

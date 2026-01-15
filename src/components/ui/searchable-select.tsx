@@ -47,6 +47,10 @@ export function SearchableSelect({
   // Find the label for the current value
   const selectedLabel = normalizedOptions.find((opt) => opt.value === value)?.label;
 
+  // Determine if empty styling should be applied
+  const isEmpty = !value;
+  const emptyClass = isEmpty ? "bg-amber-50 border-amber-200" : "bg-white";
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -57,6 +61,7 @@ export function SearchableSelect({
           className={cn(
             "w-full justify-between font-normal",
             !value && "text-muted-foreground",
+            emptyClass,
             className
           )}
         >
