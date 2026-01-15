@@ -11,7 +11,7 @@ import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+
 
 // Hook to get trainee gender stats for education
 function useTraineeGenderStats() {
@@ -232,36 +232,39 @@ export default function EducationDashboard() {
                 {absentLate.map((record: any) => (
                   <div
                     key={record.id}
-                    className="flex items-center justify-between p-2 rounded-lg border bg-muted/30"
+                    className="p-2 rounded-lg border bg-muted/30"
                   >
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                         {record.status === "late" ? (
-                          <Clock className="h-4 w-4 text-yellow-600" />
+                          <Clock className="h-3.5 w-3.5 text-yellow-600" />
                         ) : (
-                          <AlertCircle className="h-4 w-4 text-red-500" />
+                          <AlertCircle className="h-3.5 w-3.5 text-red-500" />
                         )}
                       </div>
-                      <div>
-                        <p className="font-medium text-sm">{record.trainees?.full_name || "—"}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {record.trainees?.trainee_code} • {record.classes?.name || "—"}
-                        </p>
-                      </div>
+                      <span className="font-medium text-sm">{record.trainees?.full_name || "—"}</span>
+                      <Badge
+                        variant="outline"
+                        className={
+                          record.status === "late"
+                            ? "bg-yellow-50 text-yellow-700 border-yellow-200 text-xs"
+                            : record.status === "excused"
+                            ? "bg-blue-50 text-blue-700 border-blue-200 text-xs"
+                            : "bg-red-50 text-red-700 border-red-200 text-xs"
+                        }
+                      >
+                        {record.status === "late" ? "Trễ" : 
+                         record.status === "excused" ? "Có phép" : "Không phép"}
+                      </Badge>
+                      {record.notes && (
+                        <span className="text-sm text-muted-foreground italic">
+                          - {record.notes}
+                        </span>
+                      )}
                     </div>
-                    <Badge
-                      variant="outline"
-                      className={
-                        record.status === "late"
-                          ? "bg-yellow-50 text-yellow-700 border-yellow-200 text-xs"
-                          : record.status === "excused"
-                          ? "bg-blue-50 text-blue-700 border-blue-200 text-xs"
-                          : "bg-red-50 text-red-700 border-red-200 text-xs"
-                      }
-                    >
-                      {record.status === "late" ? "Trễ" : 
-                       record.status === "excused" ? "Có phép" : "Không phép"}
-                    </Badge>
+                    <p className="text-xs text-muted-foreground ml-9 mt-0.5">
+                      {record.trainees?.trainee_code} • {record.classes?.name || "—"}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -278,50 +281,53 @@ export default function EducationDashboard() {
             {genderStatsLoading ? (
               <Skeleton className="h-40 w-full" />
             ) : (
-              <div className="space-y-4">
-                {/* Chart */}
-                <ResponsiveContainer width="100%" height={160}>
-                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} width={30} />
-                    <Tooltip 
-                      formatter={(value, name) => [value, name === "Nam" ? "Nam" : "Nữ"]}
-                      contentStyle={{ borderRadius: 6, border: "1px solid #e2e8f0", fontSize: 12 }}
-                    />
-                    <Bar dataKey="Nam" fill="hsl(210, 70%, 50%)" radius={[3, 3, 0, 0]} name="Nam" />
-                    <Bar dataKey="Nữ" fill="hsl(340, 70%, 60%)" radius={[3, 3, 0, 0]} name="Nữ" />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="grid grid-cols-3 gap-4">
+                {/* Đang học */}
+                <div className="p-4 bg-muted/50 rounded-lg text-center">
+                  <p className="text-base font-semibold mb-2">Đang học</p>
+                  <div className="flex justify-center gap-3">
+                    <div className="bg-blue-100 text-blue-700 rounded-lg px-3 py-2">
+                      <p className="text-xs">Nam</p>
+                      <p className="text-xl font-bold">{genderStats?.studying.male || 0}</p>
+                    </div>
+                    <div className="bg-pink-100 text-pink-700 rounded-lg px-3 py-2">
+                      <p className="text-xs">Nữ</p>
+                      <p className="text-xl font-bold">{genderStats?.studying.female || 0}</p>
+                    </div>
+                  </div>
+                  <p className="text-lg font-bold mt-2">{genderStats?.studying.total || 0}</p>
+                </div>
 
-                {/* Stats Grid */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="p-3 bg-muted/50 rounded-lg text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Đang học</p>
-                    <p className="text-2xl font-bold">{genderStats?.studying.total || 0}</p>
-                    <p className="text-xs mt-1">
-                      <span className="text-blue-600 font-medium">♂ {genderStats?.studying.male || 0}</span>
-                      <span className="mx-1 text-muted-foreground">/</span>
-                      <span className="text-pink-600 font-medium">♀ {genderStats?.studying.female || 0}</span>
-                    </p>
+                {/* Đậu PV */}
+                <div className="p-4 bg-green-50 rounded-lg text-center">
+                  <p className="text-base font-semibold text-green-700 mb-2">Đậu PV</p>
+                  <div className="flex justify-center gap-3">
+                    <div className="bg-blue-100 text-blue-700 rounded-lg px-3 py-2">
+                      <p className="text-xs">Nam</p>
+                      <p className="text-xl font-bold">{genderStats?.passed.male || 0}</p>
+                    </div>
+                    <div className="bg-pink-100 text-pink-700 rounded-lg px-3 py-2">
+                      <p className="text-xs">Nữ</p>
+                      <p className="text-xl font-bold">{genderStats?.passed.female || 0}</p>
+                    </div>
                   </div>
-                  <div className="p-3 bg-green-50 rounded-lg text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Đậu PV</p>
-                    <p className="text-2xl font-bold text-green-600">{genderStats?.passed.total || 0}</p>
-                    <p className="text-xs mt-1">
-                      <span className="text-blue-600 font-medium">♂ {genderStats?.passed.male || 0}</span>
-                      <span className="mx-1 text-muted-foreground">/</span>
-                      <span className="text-pink-600 font-medium">♀ {genderStats?.passed.female || 0}</span>
-                    </p>
+                  <p className="text-lg font-bold text-green-700 mt-2">{genderStats?.passed.total || 0}</p>
+                </div>
+
+                {/* Chưa đậu */}
+                <div className="p-4 bg-orange-50 rounded-lg text-center">
+                  <p className="text-base font-semibold text-orange-700 mb-2">Chưa đậu</p>
+                  <div className="flex justify-center gap-3">
+                    <div className="bg-blue-100 text-blue-700 rounded-lg px-3 py-2">
+                      <p className="text-xs">Nam</p>
+                      <p className="text-xl font-bold">{genderStats?.notPassed.male || 0}</p>
+                    </div>
+                    <div className="bg-pink-100 text-pink-700 rounded-lg px-3 py-2">
+                      <p className="text-xs">Nữ</p>
+                      <p className="text-xl font-bold">{genderStats?.notPassed.female || 0}</p>
+                    </div>
                   </div>
-                  <div className="p-3 bg-orange-50 rounded-lg text-center">
-                    <p className="text-xs text-muted-foreground mb-1">Chưa đậu</p>
-                    <p className="text-2xl font-bold text-orange-600">{genderStats?.notPassed.total || 0}</p>
-                    <p className="text-xs mt-1">
-                      <span className="text-blue-600 font-medium">♂ {genderStats?.notPassed.male || 0}</span>
-                      <span className="mx-1 text-muted-foreground">/</span>
-                      <span className="text-pink-600 font-medium">♀ {genderStats?.notPassed.female || 0}</span>
-                    </p>
-                  </div>
+                  <p className="text-lg font-bold text-orange-700 mt-2">{genderStats?.notPassed.total || 0}</p>
                 </div>
               </div>
             )}
