@@ -9,16 +9,18 @@ export function MainLayout() {
 
   return (
     <div className="flex min-h-screen w-full">
-      {/* Sidebar */}
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
+      {/* Fixed Sidebar */}
+      <div className={`fixed top-0 left-0 h-screen z-40 transition-all duration-300 ${sidebarCollapsed ? "w-16" : "w-60"}`}>
+        <Sidebar
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      {/* Main Content - offset by sidebar width */}
+      <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarCollapsed ? "ml-16" : "ml-60"}`}>
         {/* Header */}
-        <header className="h-14 flex items-center gap-4 border-b bg-background px-6">
+        <header className="h-14 flex items-center gap-4 border-b bg-background px-6 sticky top-0 z-30">
           <Button
             variant="ghost"
             size="icon"
