@@ -94,14 +94,19 @@ function usePostDepartureTrainees() {
   });
 }
 
-// Generate year options
-function getYearOptions() {
-  const currentYear = new Date().getFullYear();
-  const years = [];
-  for (let y = currentYear; y >= currentYear - 10; y--) {
-    years.push(y.toString());
-  }
-  return years;
+// Generate year options from actual departure data
+function getYearOptionsFromData(trainees: any[] | undefined) {
+  if (!trainees) return [];
+  
+  const years = new Set<string>();
+  trainees.forEach(t => {
+    if (t.departure_date) {
+      const year = t.departure_date.substring(0, 4);
+      years.add(year);
+    }
+  });
+  
+  return Array.from(years).sort((a, b) => b.localeCompare(a)); // Sort descending
 }
 
 export default function PostDeparturePage() {
@@ -117,6 +122,9 @@ export default function PostDeparturePage() {
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [showChart, setShowChart] = useState(true);
+
+  // Get year options from actual data
+  const yearOptions = useMemo(() => getYearOptionsFromData(trainees), [trainees]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -450,7 +458,7 @@ export default function PostDeparturePage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả</SelectItem>
-              {getYearOptions().map((year) => (
+              {yearOptions.map((year) => (
                 <SelectItem key={year} value={year}>
                   {year}
                 </SelectItem>

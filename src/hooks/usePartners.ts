@@ -215,3 +215,57 @@ export function useUpdateJobCategory() {
     onError: (error: Error) => toast.error("Lỗi: " + error.message),
   });
 }
+
+export function useDeleteJobCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("job_categories")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["job_categories"] });
+      toast.success("Xóa ngành nghề thành công!");
+    },
+    onError: (error: Error) => toast.error("Lỗi: " + error.message),
+  });
+}
+
+export function useDeleteCompany() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("companies")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+      toast.success("Xóa công ty thành công!");
+    },
+    onError: (error: Error) => toast.error("Lỗi: " + error.message),
+  });
+}
+
+export function useDeleteUnion() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("unions")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["unions"] });
+      toast.success("Xóa nghiệp đoàn thành công!");
+    },
+    onError: (error: Error) => toast.error("Lỗi: " + error.message),
+  });
+}
