@@ -101,6 +101,7 @@ interface FormData {
   weight: string;
   smoking: string;
   tattoo: string;
+  tattoo_description: string;
   drinking: string;
   blood_group: string;
   health_status: string;
@@ -250,6 +251,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     weight: "",
     smoking: "",
     tattoo: "",
+    tattoo_description: "",
     drinking: "",
     blood_group: "",
     health_status: "",
@@ -316,6 +318,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         weight: trainee.weight?.toString() || "",
         smoking: trainee.smoking || "",
         tattoo: trainee.tattoo ? "Có" : "Không",
+        tattoo_description: (trainee as any).tattoo_description || "",
         drinking: trainee.drinking || "",
         blood_group: trainee.blood_group || "",
         health_status: trainee.health_status || "",
@@ -494,6 +497,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     weight: formData.weight ? parseFloat(formData.weight) : null,
     smoking: formData.smoking || null,
     tattoo: formData.tattoo === "Có",
+    tattoo_description: formData.tattoo === "Có" ? (formData.tattoo_description || null) : null,
     drinking: formData.drinking || null,
     blood_group: formData.blood_group || null,
     health_status: formData.health_status || null,
@@ -1155,7 +1159,12 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                       <Label className="text-xs text-muted-foreground">Hình xăm</Label>
                       <Select
                         value={formData.tattoo}
-                        onValueChange={(v) => updateField("tattoo", v)}
+                        onValueChange={(v) => {
+                          updateField("tattoo", v);
+                          if (v === "Không") {
+                            updateField("tattoo_description", "");
+                          }
+                        }}
                       >
                         <SelectTrigger className={getSelectClass(formData.tattoo)}>
                           <SelectValue placeholder="Chọn" />
@@ -1167,6 +1176,17 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                         </SelectContent>
                       </Select>
                     </div>
+                    {formData.tattoo === "Có" && (
+                      <div className="col-span-2">
+                        <Label className="text-xs text-muted-foreground">Mô tả hình xăm (vị trí, kích thước)</Label>
+                        <Input
+                          placeholder="VD: Lưng, 10x15cm, hình rồng"
+                          value={formData.tattoo_description}
+                          onChange={(e) => updateField("tattoo_description", e.target.value)}
+                          className={getInputClass(formData.tattoo_description)}
+                        />
+                      </div>
+                    )}
                     <div>
                       <Label className="text-xs text-muted-foreground">Uống rượu</Label>
                       <Select

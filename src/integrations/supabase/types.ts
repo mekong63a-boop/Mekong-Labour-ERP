@@ -1096,6 +1096,7 @@ export type Database = {
           smoking: string | null
           source: string | null
           tattoo: boolean | null
+          tattoo_description: string | null
           temp_address: string | null
           trainee_code: string
           trainee_type: Database["public"]["Enums"]["trainee_type"] | null
@@ -1170,6 +1171,7 @@ export type Database = {
           smoking?: string | null
           source?: string | null
           tattoo?: boolean | null
+          tattoo_description?: string | null
           temp_address?: string | null
           trainee_code: string
           trainee_type?: Database["public"]["Enums"]["trainee_type"] | null
@@ -1244,6 +1246,7 @@ export type Database = {
           smoking?: string | null
           source?: string | null
           tattoo?: boolean | null
+          tattoo_description?: string | null
           temp_address?: string | null
           trainee_code?: string
           trainee_type?: Database["public"]["Enums"]["trainee_type"] | null
