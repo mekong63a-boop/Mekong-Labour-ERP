@@ -61,9 +61,10 @@ export function useMenuPermissions() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Lấy danh sách tất cả menus
+  // Lấy danh sách tất cả menus (FULL fields cho sidebar)
+  // IMPORTANT: dùng queryKey riêng để tránh bị modal phân quyền (chỉ select vài field) ghi đè cache.
   const { data: menus = [], isLoading: menusLoading } = useQuery({
-    queryKey: ['menus'],
+    queryKey: ['menus-full'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('menus')
