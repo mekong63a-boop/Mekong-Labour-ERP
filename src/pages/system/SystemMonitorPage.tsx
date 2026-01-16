@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow, format, subDays, startOfDay, endOfDay } from "date-fns";
 import { vi } from "date-fns/locale";
 import { 
   Users, 
@@ -36,8 +36,20 @@ import {
   Eye,
   CheckCircle,
   XCircle,
+  Download,
+  Calendar,
+  LogIn,
+  LogOut,
 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import * as XLSX from "xlsx";
+import { toast } from "sonner";
 
 interface UserSession {
   id: string;
@@ -86,8 +98,8 @@ const ACTION_LABELS: Record<string, { label: string; icon: any; color: string }>
   UPDATE: { label: "Cập nhật", icon: FileEdit, color: "bg-blue-100 text-blue-800" },
   DELETE: { label: "Xóa", icon: Trash2, color: "bg-red-100 text-red-800" },
   SELECT: { label: "Xem", icon: Eye, color: "bg-gray-100 text-gray-800" },
-  LOGIN: { label: "Đăng nhập", icon: User, color: "bg-purple-100 text-purple-800" },
-  LOGOUT: { label: "Đăng xuất", icon: User, color: "bg-orange-100 text-orange-800" },
+  LOGIN: { label: "Đăng nhập", icon: LogIn, color: "bg-purple-100 text-purple-800" },
+  LOGOUT: { label: "Đăng xuất", icon: LogOut, color: "bg-orange-100 text-orange-800" },
 };
 
 const TABLE_LABELS: Record<string, string> = {
@@ -102,13 +114,24 @@ const TABLE_LABELS: Record<string, string> = {
   test_scores: "Điểm thi",
   user_roles: "Phân quyền",
   profiles: "Hồ sơ người dùng",
+  family_members: "Gia đình",
+  education_history: "Học vấn",
+  work_history: "Kinh nghiệm làm việc",
+  japan_relatives: "Người thân tại Nhật",
+  trainee_reviews: "Đánh giá học viên",
+  interview_history: "Lịch sử phỏng vấn",
+  auth: "Xác thực",
 };
 
 export default function SystemMonitorPage() {
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isManager } = useUserRole();
   const [searchTerm, setSearchTerm] = useState("");
   const [actionFilter, setActionFilter] = useState<string>("all");
   const [tableFilter, setTableFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(subDays(new Date(), 7));
+  const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
+  
+  const canAccess = isAdmin || isManager;
   
   // Fetch online users
   const { data: onlineUsers = [], refetch: refetchUsers } = useQuery({
@@ -142,18 +165,18 @@ export default function SystemMonitorPage() {
       })) as UserSession[];
     },
     refetchInterval: 30000, // Refresh every 30 seconds
-    enabled: isAdmin,
+    enabled: canAccess,
   });
 
   // Fetch audit logs
   const { data: auditLogs = [], refetch: refetchLogs, isLoading: logsLoading } = useQuery({
-    queryKey: ["audit-logs", actionFilter, tableFilter, searchTerm],
+    queryKey: ["audit-logs", actionFilter, tableFilter, searchTerm, dateFrom, dateTo],
     queryFn: async () => {
       let query = supabase
         .from("audit_logs")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(500);
 
       if (actionFilter !== "all") {
         query = query.eq("action", actionFilter);
@@ -163,6 +186,12 @@ export default function SystemMonitorPage() {
       }
       if (searchTerm) {
         query = query.ilike("description", `%${searchTerm}%`);
+      }
+      if (dateFrom) {
+        query = query.gte("created_at", startOfDay(dateFrom).toISOString());
+      }
+      if (dateTo) {
+        query = query.lte("created_at", endOfDay(dateTo).toISOString());
       }
 
       const { data: logs, error } = await query;
@@ -183,7 +212,7 @@ export default function SystemMonitorPage() {
         full_name: profileMap.get(log.user_id)?.full_name || "",
       })) as AuditLog[];
     },
-    enabled: isAdmin,
+    enabled: canAccess,
   });
 
   // Fetch edit permission requests
@@ -213,7 +242,7 @@ export default function SystemMonitorPage() {
         full_name: profileMap.get(req.user_id)?.full_name || "",
       })) as EditPermission[];
     },
-    enabled: isAdmin,
+    enabled: canAccess,
   });
 
   // Update current user's session
@@ -261,13 +290,42 @@ export default function SystemMonitorPage() {
     return ACTION_LABELS[action] || { label: action, icon: Activity, color: "bg-gray-100 text-gray-800" };
   };
 
-  if (!isAdmin) {
+  // Export to Excel
+  const handleExportExcel = () => {
+    if (auditLogs.length === 0) {
+      toast.error("Không có dữ liệu để xuất");
+      return;
+    }
+
+    const exportData = auditLogs.map(log => ({
+      "Thời gian": format(new Date(log.created_at), "dd/MM/yyyy HH:mm:ss", { locale: vi }),
+      "Người dùng": log.full_name || log.email,
+      "Email": log.email,
+      "Hành động": ACTION_LABELS[log.action]?.label || log.action,
+      "Bảng dữ liệu": TABLE_LABELS[log.table_name] || log.table_name,
+      "Mô tả": log.description,
+      "ID bản ghi": log.record_id || "",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Lịch sử thao tác");
+    
+    const fromStr = dateFrom ? format(dateFrom, "ddMMyyyy") : "";
+    const toStr = dateTo ? format(dateTo, "ddMMyyyy") : "";
+    const fileName = `lich-su-thao-tac_${fromStr}-${toStr}.xlsx`;
+    
+    XLSX.writeFile(wb, fileName);
+    toast.success(`Đã xuất ${auditLogs.length} bản ghi`);
+  };
+
+  if (!canAccess) {
     return (
       <div className="flex items-center justify-center h-full">
         <Card className="p-8 text-center">
           <CardTitle className="text-destructive">Không có quyền truy cập</CardTitle>
           <p className="mt-2 text-muted-foreground">
-            Chỉ Admin mới có thể xem trang giám sát hệ thống.
+            Chỉ Admin và Manager mới có thể xem trang giám sát hệ thống.
           </p>
         </Card>
       </div>
@@ -277,7 +335,12 @@ export default function SystemMonitorPage() {
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-foreground">Giám sát hệ thống</h1>
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Giám sát hệ thống</h1>
+          {isManager && !isAdmin && (
+            <p className="text-sm text-muted-foreground">Đang xem với quyền Manager</p>
+          )}
+        </div>
         <Button 
           variant="outline" 
           size="sm"
@@ -312,7 +375,7 @@ export default function SystemMonitorPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{auditLogs.length}</div>
-            <p className="text-xs text-muted-foreground">Bản ghi gần đây</p>
+            <p className="text-xs text-muted-foreground">Bản ghi trong khoảng thời gian đã chọn</p>
           </CardContent>
         </Card>
 
@@ -330,7 +393,7 @@ export default function SystemMonitorPage() {
         </Card>
       </div>
 
-      <Tabs defaultValue="online" className="space-y-4">
+      <Tabs defaultValue="history" className="space-y-4">
         <TabsList>
           <TabsTrigger value="online" className="gap-2">
             <Users className="h-4 w-4" />
@@ -401,9 +464,52 @@ export default function SystemMonitorPage() {
         <TabsContent value="history">
           <Card>
             <CardHeader>
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <CardTitle className="text-base">Lịch sử thay đổi</CardTitle>
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Lịch sử thay đổi</CardTitle>
+                  <Button variant="outline" size="sm" onClick={handleExportExcel}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Xuất Excel
+                  </Button>
+                </div>
                 <div className="flex flex-wrap items-center gap-2">
+                  {/* Date Range */}
+                  <div className="flex items-center gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-[130px]">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          {dateFrom ? format(dateFrom, "dd/MM/yyyy") : "Từ ngày"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={dateFrom}
+                          onSelect={setDateFrom}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <span className="text-muted-foreground">—</span>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-[130px]">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          {dateTo ? format(dateTo, "dd/MM/yyyy") : "Đến ngày"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={dateTo}
+                          onSelect={setDateTo}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  
                   <div className="relative">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -422,10 +528,12 @@ export default function SystemMonitorPage() {
                       <SelectItem value="INSERT">Thêm mới</SelectItem>
                       <SelectItem value="UPDATE">Cập nhật</SelectItem>
                       <SelectItem value="DELETE">Xóa</SelectItem>
+                      <SelectItem value="LOGIN">Đăng nhập</SelectItem>
+                      <SelectItem value="LOGOUT">Đăng xuất</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select value={tableFilter} onValueChange={setTableFilter}>
-                    <SelectTrigger className="w-[160px]">
+                    <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Bảng dữ liệu" />
                     </SelectTrigger>
                     <SelectContent>
@@ -443,10 +551,10 @@ export default function SystemMonitorPage() {
                 <p className="text-center py-8 text-muted-foreground">Đang tải...</p>
               ) : auditLogs.length === 0 ? (
                 <p className="text-center py-8 text-muted-foreground">
-                  Chưa có lịch sử thay đổi nào
+                  Chưa có lịch sử thay đổi nào trong khoảng thời gian đã chọn
                 </p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 max-h-[600px] overflow-y-auto">
                   {auditLogs.map((log) => {
                     const actionInfo = getActionInfo(log.action);
                     const ActionIcon = actionInfo.icon;
