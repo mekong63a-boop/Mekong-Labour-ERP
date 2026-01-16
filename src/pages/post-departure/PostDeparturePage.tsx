@@ -59,6 +59,8 @@ function usePostDepartureTrainees() {
           departure_date,
           contract_term,
           contract_end_date,
+          return_date,
+          early_return_date,
           notes,
           receiving_company_id,
           companies:receiving_company_id(name, name_japanese)
@@ -110,7 +112,7 @@ export default function PostDeparturePage() {
     }
 
     return {
-      working: filtered.filter(t => t.progression_stage === "Đang làm việc").length,
+      working: filtered.filter(t => t.progression_stage === "Đang làm việc" || t.progression_stage === "Xuất cảnh").length,
       earlyReturn: filtered.filter(t => t.progression_stage === "Về trước hạn").length,
       absconded: filtered.filter(t => t.progression_stage === "Bỏ trốn").length,
       completed: filtered.filter(t => t.progression_stage === "Hoàn thành hợp đồng").length,
@@ -134,7 +136,12 @@ export default function PostDeparturePage() {
 
     // Filter by status
     if (selectedStatus) {
-      result = result.filter(t => t.progression_stage === selectedStatus);
+      if (selectedStatus === "Đang làm việc") {
+        // Include both "Đang làm việc" and "Xuất cảnh" for "Đang ở Nhật"
+        result = result.filter(t => t.progression_stage === "Đang làm việc" || t.progression_stage === "Xuất cảnh");
+      } else {
+        result = result.filter(t => t.progression_stage === selectedStatus);
+      }
     }
 
     // Filter by search
@@ -199,6 +206,7 @@ export default function PostDeparturePage() {
       "Ngày hết hạn HĐ": t.contract_end_date 
         ? formatDate(t.contract_end_date)
         : calculateContractEndDate(t.departure_date, t.contract_term),
+      "Ngày về nước": getReturnDate(t),
       "Ghi chú": t.notes || "",
     }));
 
@@ -215,6 +223,7 @@ export default function PostDeparturePage() {
       { wch: 18 }, // Tình trạng
       { wch: 15 }, // Ngày xuất cảnh
       { wch: 15 }, // Ngày hết hạn HĐ
+      { wch: 15 }, // Ngày về nước
       { wch: 30 }, // Ghi chú
     ];
     ws["!cols"] = colWidths;
@@ -241,6 +250,16 @@ export default function PostDeparturePage() {
     } catch {
       return "-";
     }
+  };
+
+  // Get return date based on progression stage
+  const getReturnDate = (trainee: any) => {
+    if (trainee.progression_stage === "Hoàn thành hợp đồng") {
+      return formatDate(trainee.return_date);
+    } else if (trainee.progression_stage === "Về trước hạn") {
+      return formatDate(trainee.early_return_date);
+    }
+    return "-";
   };
 
   const getStatusBadge = (stage: string | null) => {
@@ -462,6 +481,7 @@ export default function PostDeparturePage() {
                 <TableHead className="w-28 text-center">Tình trạng</TableHead>
                 <TableHead className="w-32 text-center">Ngày xuất cảnh</TableHead>
                 <TableHead className="w-32 text-center">Ngày hết hạn HĐ</TableHead>
+                <TableHead className="w-28 text-center">Ngày về nước</TableHead>
                 <TableHead>Ghi chú</TableHead>
               </TableRow>
             </TableHeader>
@@ -477,9 +497,7 @@ export default function PostDeparturePage() {
                   </TableCell>
                   <TableCell className="text-center">
                     <Badge className={getStatusBadge(trainee.progression_stage)}>
-                      {trainee.progression_stage === "Đang làm việc" 
-                        ? "Xuất cảnh" 
-                        : trainee.progression_stage || "-"}
+                      {trainee.progression_stage || "-"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-center text-sm">
@@ -489,6 +507,9 @@ export default function PostDeparturePage() {
                     {trainee.contract_end_date 
                       ? formatDate(trainee.contract_end_date)
                       : calculateContractEndDate(trainee.departure_date, trainee.contract_term)}
+                  </TableCell>
+                  <TableCell className="text-center text-sm">
+                    {getReturnDate(trainee)}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {trainee.notes || "-"}
