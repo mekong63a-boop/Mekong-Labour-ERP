@@ -1,0 +1,369 @@
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Users, Search, RefreshCw } from "lucide-react";
+import { format, parseISO, addYears } from "date-fns";
+import { cn } from "@/lib/utils";
+
+// Status categories based on progression_stage
+const STATUS_FILTERS = [
+  { value: "Đang làm việc", label: "Đang ở Nhật", color: "text-green-600" },
+  { value: "Về trước hạn", label: "Về giữa chừng", color: "text-orange-600" },
+  { value: "Bỏ trốn", label: "Bỏ trốn", color: "text-red-600" },
+  { value: "Hoàn thành hợp đồng", label: "Hoàn thành HĐ", color: "text-blue-600" },
+];
+
+// Hook to fetch post-departure trainees
+function usePostDepartureTrainees() {
+  return useQuery({
+    queryKey: ["post-departure-trainees"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trainees")
+        .select(`
+          id,
+          trainee_code,
+          full_name,
+          progression_stage,
+          departure_date,
+          contract_term,
+          contract_end_date,
+          notes,
+          receiving_company_id,
+          companies:receiving_company_id(name, name_japanese)
+        `)
+        .in("progression_stage", [
+          "Xuất cảnh",
+          "Đang làm việc",
+          "Hoàn thành hợp đồng",
+          "Bỏ trốn",
+          "Về trước hạn",
+        ])
+        .order("departure_date", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+// Generate year options
+function getYearOptions() {
+  const currentYear = new Date().getFullYear();
+  const years = [];
+  for (let y = currentYear; y >= currentYear - 10; y--) {
+    years.push(y.toString());
+  }
+  return years;
+}
+
+export default function PostDeparturePage() {
+  const { data: trainees, isLoading, refetch, isRefetching } = usePostDepartureTrainees();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    if (!trainees) return { working: 0, earlyReturn: 0, absconded: 0, completed: 0, total: 0 };
+    
+    let filtered = trainees;
+    
+    // Filter by year if selected
+    if (selectedYear && selectedYear !== "all") {
+      filtered = trainees.filter(t => {
+        if (!t.departure_date) return false;
+        return t.departure_date.startsWith(selectedYear);
+      });
+    }
+
+    return {
+      working: filtered.filter(t => t.progression_stage === "Đang làm việc").length,
+      earlyReturn: filtered.filter(t => t.progression_stage === "Về trước hạn").length,
+      absconded: filtered.filter(t => t.progression_stage === "Bỏ trốn").length,
+      completed: filtered.filter(t => t.progression_stage === "Hoàn thành hợp đồng").length,
+      total: filtered.length,
+    };
+  }, [trainees, selectedYear]);
+
+  // Filter trainees
+  const filteredTrainees = useMemo(() => {
+    if (!trainees) return [];
+
+    let result = trainees;
+
+    // Filter by year
+    if (selectedYear && selectedYear !== "all") {
+      result = result.filter(t => {
+        if (!t.departure_date) return false;
+        return t.departure_date.startsWith(selectedYear);
+      });
+    }
+
+    // Filter by status
+    if (selectedStatus) {
+      result = result.filter(t => t.progression_stage === selectedStatus);
+    }
+
+    // Filter by search
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(t =>
+        t.full_name?.toLowerCase().includes(query) ||
+        t.trainee_code?.toLowerCase().includes(query)
+      );
+    }
+
+    return result;
+  }, [trainees, selectedYear, selectedStatus, searchQuery]);
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return "-";
+    try {
+      return format(parseISO(dateStr), "dd/MM/yyyy");
+    } catch {
+      return "-";
+    }
+  };
+
+  const calculateContractEndDate = (departureDate: string | null, contractTerm: number | null) => {
+    if (!departureDate) return "-";
+    const term = contractTerm || 3; // Default 3 years
+    try {
+      const endDate = addYears(parseISO(departureDate), term);
+      return format(endDate, "dd/MM/yyyy");
+    } catch {
+      return "-";
+    }
+  };
+
+  const getStatusBadge = (stage: string | null) => {
+    const colorMap: Record<string, string> = {
+      "Xuất cảnh": "bg-indigo-100 text-indigo-700",
+      "Đang làm việc": "bg-green-100 text-green-700",
+      "Hoàn thành hợp đồng": "bg-blue-100 text-blue-700",
+      "Bỏ trốn": "bg-red-100 text-red-700",
+      "Về trước hạn": "bg-orange-100 text-orange-700",
+    };
+    return colorMap[stage || ""] || "bg-muted text-muted-foreground";
+  };
+
+  const handleStatusClick = (status: string | null) => {
+    if (selectedStatus === status) {
+      setSelectedStatus(null); // Toggle off if already selected
+    } else {
+      setSelectedStatus(status);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Users className="h-6 w-6 text-primary" />
+          <h1 className="text-xl font-bold text-primary">TTS đang ở Nhật</h1>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => refetch()}
+          disabled={isRefetching}
+        >
+          <RefreshCw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
+        </Button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+        {/* Đang ở Nhật */}
+        <button
+          onClick={() => handleStatusClick("Đang làm việc")}
+          className={cn(
+            "p-4 rounded-lg border-2 text-left transition-all hover:shadow-md",
+            selectedStatus === "Đang làm việc"
+              ? "border-green-500 bg-green-50"
+              : "border-border hover:border-green-300"
+          )}
+        >
+          <p className="text-sm font-medium text-green-600">Đang ở Nhật</p>
+          <p className="text-3xl font-bold text-foreground mt-1">{stats.working}</p>
+        </button>
+
+        {/* Về giữa chừng */}
+        <button
+          onClick={() => handleStatusClick("Về trước hạn")}
+          className={cn(
+            "p-4 rounded-lg border text-left transition-all hover:shadow-md",
+            selectedStatus === "Về trước hạn"
+              ? "border-orange-500 bg-orange-50"
+              : "border-border hover:border-orange-300"
+          )}
+        >
+          <p className="text-sm font-medium text-orange-600">Về giữa chừng</p>
+          <p className="text-3xl font-bold text-foreground mt-1">{stats.earlyReturn}</p>
+        </button>
+
+        {/* Bỏ trốn */}
+        <button
+          onClick={() => handleStatusClick("Bỏ trốn")}
+          className={cn(
+            "p-4 rounded-lg border text-left transition-all hover:shadow-md",
+            selectedStatus === "Bỏ trốn"
+              ? "border-red-500 bg-red-50"
+              : "border-border hover:border-red-300"
+          )}
+        >
+          <p className="text-sm font-medium text-red-600">Bỏ trốn</p>
+          <p className="text-3xl font-bold text-foreground mt-1">{stats.absconded}</p>
+        </button>
+
+        {/* Hoàn thành HĐ */}
+        <button
+          onClick={() => handleStatusClick("Hoàn thành hợp đồng")}
+          className={cn(
+            "p-4 rounded-lg border text-left transition-all hover:shadow-md",
+            selectedStatus === "Hoàn thành hợp đồng"
+              ? "border-blue-500 bg-blue-50"
+              : "border-border hover:border-blue-300"
+          )}
+        >
+          <p className="text-sm font-medium text-blue-600">Hoàn thành HĐ</p>
+          <p className="text-3xl font-bold text-foreground mt-1">{stats.completed}</p>
+        </button>
+
+        {/* Tổng xuất cảnh */}
+        <div
+          className="p-4 rounded-lg border text-left bg-muted/30"
+        >
+          <p className="text-sm font-medium text-primary">Tổng xuất cảnh</p>
+          <p className="text-3xl font-bold text-primary mt-1">{stats.total}</p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Năm:</span>
+          <Select value={selectedYear} onValueChange={setSelectedYear}>
+            <SelectTrigger className="w-28">
+              <SelectValue placeholder="Tất cả" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả</SelectItem>
+              {getYearOptions().map((year) => (
+                <SelectItem key={year} value={year}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Tìm theo tên hoặc mã..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {selectedStatus && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSelectedStatus(null)}
+          >
+            Bỏ lọc
+          </Button>
+        )}
+      </div>
+
+      {/* Table */}
+      {isLoading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      ) : filteredTrainees.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground border rounded-lg">
+          Không có dữ liệu
+        </div>
+      ) : (
+        <div className="border rounded-lg overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead className="w-24">Mã HV</TableHead>
+                <TableHead>Họ và tên</TableHead>
+                <TableHead>Công ty</TableHead>
+                <TableHead className="w-28 text-center">Tình trạng</TableHead>
+                <TableHead className="w-32 text-center">Ngày xuất cảnh</TableHead>
+                <TableHead className="w-32 text-center">Ngày hết hạn HĐ</TableHead>
+                <TableHead>Ghi chú</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredTrainees.map((trainee) => (
+                <TableRow key={trainee.id} className="hover:bg-muted/30">
+                  <TableCell className="font-mono text-sm">{trainee.trainee_code}</TableCell>
+                  <TableCell className="font-medium uppercase">{trainee.full_name}</TableCell>
+                  <TableCell className="text-sm">
+                    {(trainee.companies as any)?.name_japanese 
+                      ? `${(trainee.companies as any).name_japanese} (${(trainee.companies as any).name})`
+                      : (trainee.companies as any)?.name || "-"}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge className={getStatusBadge(trainee.progression_stage)}>
+                      {trainee.progression_stage === "Đang làm việc" 
+                        ? "Xuất cảnh" 
+                        : trainee.progression_stage || "-"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center text-sm">
+                    {formatDate(trainee.departure_date)}
+                  </TableCell>
+                  <TableCell className="text-center text-sm">
+                    {trainee.contract_end_date 
+                      ? formatDate(trainee.contract_end_date)
+                      : calculateContractEndDate(trainee.departure_date, trainee.contract_term)}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {trainee.notes || "-"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {/* Summary */}
+      <div className="text-sm text-muted-foreground">
+        Hiển thị {filteredTrainees.length} / {trainees?.length || 0} học viên
+      </div>
+    </div>
+  );
+}

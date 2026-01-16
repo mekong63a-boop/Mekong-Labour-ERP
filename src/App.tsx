@@ -19,6 +19,7 @@ import TestScoresPage from "./pages/education/TestScoresPage";
 import GlossaryPage from "./pages/glossary/GlossaryPage";
 import OrderList from "./pages/orders/OrderList";
 import InternalUnionPage from "./pages/internal-union/InternalUnionPage";
+import PostDeparturePage from "./pages/post-departure/PostDeparturePage";
 import PartnerList from "./pages/partners/PartnerList";
 import CompanyForm from "./pages/partners/CompanyForm";
 import UnionForm from "./pages/partners/UnionForm";
@@ -254,6 +255,16 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRoles={["admin", "manager"]}>
                     <InternalUnionPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Post Departure - Admin, Manager */}
+              <Route
+                path="/post-departure"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <PostDeparturePage />
                   </ProtectedRoute>
                 }
               />
