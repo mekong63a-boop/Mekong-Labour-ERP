@@ -4,6 +4,9 @@ import {
   useCompanies,
   useUnions,
   useJobCategories,
+  useDeleteCompany,
+  useDeleteUnion,
+  useDeleteJobCategory,
   Company,
   Union,
   JobCategory,
@@ -19,6 +22,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Building2,
   FileText,
@@ -38,10 +51,19 @@ export default function PartnerList() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>("companies");
   const [search, setSearch] = useState("");
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id: string | null; name: string }>({
+    open: false,
+    id: null,
+    name: "",
+  });
 
   const { data: companies, isLoading: loadingCompanies, refetch: refetchCompanies } = useCompanies();
   const { data: unions, isLoading: loadingUnions, refetch: refetchUnions } = useUnions();
   const { data: jobCategories, isLoading: loadingJobs, refetch: refetchJobs } = useJobCategories();
+
+  const deleteCompany = useDeleteCompany();
+  const deleteUnion = useDeleteUnion();
+  const deleteJobCategory = useDeleteJobCategory();
 
   const tabs = [
     {
@@ -93,6 +115,24 @@ export default function PartnerList() {
       return "bg-green-100 text-green-700 border-green-200";
     }
     return "bg-orange-100 text-orange-700 border-orange-200";
+  };
+
+  const handleDelete = (id: string, name: string) => {
+    setDeleteDialog({ open: true, id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteDialog.id) return;
+    
+    if (activeTab === "companies") {
+      await deleteCompany.mutateAsync(deleteDialog.id);
+    } else if (activeTab === "unions") {
+      await deleteUnion.mutateAsync(deleteDialog.id);
+    } else {
+      await deleteJobCategory.mutateAsync(deleteDialog.id);
+    }
+    
+    setDeleteDialog({ open: false, id: null, name: "" });
   };
 
   const isLoading = loadingCompanies || loadingUnions || loadingJobs;
@@ -246,6 +286,7 @@ export default function PartnerList() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => handleDelete(company.id, company.name)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -304,6 +345,7 @@ export default function PartnerList() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => handleDelete(union.id, union.name)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -371,6 +413,7 @@ export default function PartnerList() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => handleDelete(job.id, job.name)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -384,6 +427,27 @@ export default function PartnerList() {
           </>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa "{deleteDialog.name}"? Hành động này không thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Xóa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
