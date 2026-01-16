@@ -1,14 +1,19 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Building2, Users, Crown, Briefcase, UserCheck, GraduationCap, Star, Loader2, Menu, Settings } from "lucide-react";
+import { Building2, Users, Crown, Briefcase, UserCheck, GraduationCap, Star, Loader2, Settings, UserPlus, ShieldCheck, Check, X } from "lucide-react";
 import { DepartmentStaffModal } from "@/components/admin/DepartmentStaffModal";
 import { DepartmentMenuPermissionsModal } from "@/components/admin/DepartmentMenuPermissionsModal";
 import { useMenuPermissions } from "@/hooks/useMenuPermissions";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { Database } from "@/integrations/supabase/types";
+
+type AppRole = Database["public"]["Enums"]["app_role"];
 
 interface DepartmentCount {
   department: string;
@@ -24,6 +29,20 @@ interface AdminUser {
   full_name: string | null;
   is_primary_admin: boolean;
 }
+
+interface PendingUser {
+  user_id: string;
+  email: string | null;
+  full_name: string | null;
+  created_at: string;
+}
+
+const roleOptions: { value: AppRole; label: string; icon: React.ElementType; description: string }[] = [
+  { value: "admin", label: "Admin", icon: ShieldCheck, description: "Quản trị viên hệ thống" },
+  { value: "manager", label: "Trưởng phòng", icon: Crown, description: "Quản lý phòng ban" },
+  { value: "staff", label: "Nhân viên", icon: Users, description: "Nhân viên thông thường" },
+  { value: "teacher", label: "Giáo viên", icon: GraduationCap, description: "Giáo viên đào tạo" },
+];
 
 const departmentConfig = [
   { 
@@ -80,17 +99,74 @@ const departmentConfig = [
     icon: Users, 
     color: "bg-teal-500",
     description: "Cộng tác viên bên ngoài",
-    hasManager: false, // Không có trưởng phòng
+    hasManager: false,
   },
 ];
 
 type ModalType = "staff" | "menu" | null;
 
 export default function DepartmentsContent() {
+  const queryClient = useQueryClient();
   const [selectedDepartment, setSelectedDepartment] = useState<typeof departmentConfig[0] | null>(null);
   const [modalType, setModalType] = useState<ModalType>(null);
+  const [pendingRoles, setPendingRoles] = useState<Record<string, AppRole>>({});
   const { isPrimaryAdmin, isAdmin } = useMenuPermissions();
   const canManage = isPrimaryAdmin || isAdmin;
+
+  // Fetch pending users (users without any role)
+  const { data: pendingUsers = [], isLoading: loadingPending } = useQuery({
+    queryKey: ["pending-users"],
+    queryFn: async () => {
+      // Get all profiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("user_id, email, full_name, created_at")
+        .order("created_at", { ascending: false });
+      if (profilesError) throw profilesError;
+
+      // Get all user roles
+      const { data: roles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id");
+      if (rolesError) throw rolesError;
+
+      const usersWithRole = new Set(roles.map((r) => r.user_id));
+      
+      // Filter users without any role
+      return profiles
+        .filter((p) => !usersWithRole.has(p.user_id))
+        .map((p) => ({
+          user_id: p.user_id,
+          email: p.email,
+          full_name: p.full_name,
+          created_at: p.created_at,
+        })) as PendingUser[];
+    },
+    enabled: canManage,
+  });
+
+  // Mutation to assign role to pending user
+  const assignRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
+      const { error } = await supabase
+        .from("user_roles")
+        .insert({ user_id: userId, role });
+      if (error) throw error;
+    },
+    onSuccess: (_, { userId }) => {
+      toast.success("Đã cấp quyền thành công!");
+      setPendingRoles((prev) => {
+        const newRoles = { ...prev };
+        delete newRoles[userId];
+        return newRoles;
+      });
+      queryClient.invalidateQueries({ queryKey: ["pending-users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+    onError: (error: Error) => {
+      toast.error("Lỗi: " + error.message);
+    },
+  });
 
   // Fetch department counts using RPC
   const { data: departmentCounts = [], isLoading: loadingCounts } = useQuery({
@@ -116,7 +192,6 @@ export default function DepartmentsContent() {
         .select("user_id, email, full_name");
       if (profilesError) throw profilesError;
 
-      // Join members with profiles
       return members.map((m) => {
         const profile = profiles.find((p) => p.user_id === m.user_id);
         return {
@@ -203,7 +278,7 @@ export default function DepartmentsContent() {
     setModalType(null);
   };
 
-  const isLoading = loadingCounts || loadingMembers || loadingAdmins;
+  const isLoading = loadingCounts || loadingMembers || loadingAdmins || loadingPending;
 
   if (isLoading) {
     return (
@@ -215,6 +290,79 @@ export default function DepartmentsContent() {
 
   return (
     <div className="space-y-6">
+      {/* Pending Users Section - NEW */}
+      {canManage && pendingUsers.length > 0 && (
+        <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-blue-500" />
+              Tài khoản chờ cấp quyền
+              <Badge variant="secondary" className="ml-2">{pendingUsers.length}</Badge>
+            </CardTitle>
+            <CardDescription>Các tài khoản đã đăng ký nhưng chưa được gán quyền hệ thống</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {pendingUsers.map((user) => (
+                <div key={user.user_id} className="flex items-center gap-4 p-3 bg-white rounded-lg border shadow-sm">
+                  <Avatar>
+                    <AvatarFallback className="bg-blue-100 text-blue-700">
+                      {user.full_name?.charAt(0) || user.email?.charAt(0) || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{user.full_name || "Chưa đặt tên"}</p>
+                    <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={pendingRoles[user.user_id] || ""}
+                      onValueChange={(val) => setPendingRoles((prev) => ({ ...prev, [user.user_id]: val as AppRole }))}
+                    >
+                      <SelectTrigger className="w-40">
+                        <SelectValue placeholder="Chọn quyền" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roleOptions.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            <div className="flex items-center gap-2">
+                              <opt.icon className="h-4 w-4" />
+                              {opt.label}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm"
+                      disabled={!pendingRoles[user.user_id] || assignRoleMutation.isPending}
+                      onClick={() => {
+                        if (pendingRoles[user.user_id]) {
+                          assignRoleMutation.mutate({ userId: user.user_id, role: pendingRoles[user.user_id] });
+                        }
+                      }}
+                    >
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setPendingRoles((prev) => {
+                        const newRoles = { ...prev };
+                        delete newRoles[user.user_id];
+                        return newRoles;
+                      })}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Admin Section */}
       <Card className="border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50">
         <CardHeader>
