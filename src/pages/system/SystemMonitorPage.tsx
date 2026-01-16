@@ -61,6 +61,8 @@ interface UserSession {
   created_at: string;
   email?: string;
   full_name?: string;
+  role?: string | null;
+  department?: string | null;
 }
 
 interface AuditLog {
@@ -149,19 +151,28 @@ export default function SystemMonitorPage() {
 
       if (error) throw error;
 
-      // Get user emails
+      // Get user emails and profiles
       const userIds = [...new Set(sessions?.map(s => s.user_id) || [])];
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, email, full_name")
         .in("user_id", userIds);
 
+      // Get user roles
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id, role, department")
+        .in("user_id", userIds);
+
       const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      const roleMap = new Map(roles?.map(r => [r.user_id, r]) || []);
 
       return (sessions || []).map(session => ({
         ...session,
         email: profileMap.get(session.user_id)?.email || "Unknown",
         full_name: profileMap.get(session.user_id)?.full_name || "",
+        role: roleMap.get(session.user_id)?.role || null,
+        department: roleMap.get(session.user_id)?.department || null,
       })) as UserSession[];
     },
     refetchInterval: 30000, // Refresh every 30 seconds
@@ -426,33 +437,52 @@ export default function SystemMonitorPage() {
                     <TableRow>
                       <TableHead>Người dùng</TableHead>
                       <TableHead>Email</TableHead>
+                      <TableHead>Vai trò</TableHead>
                       <TableHead>Hoạt động lần cuối</TableHead>
                       <TableHead>Trạng thái</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {onlineUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                            {user.full_name || user.email?.split("@")[0]}
-                          </div>
-                        </TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          {formatDistanceToNow(new Date(user.last_seen_at), {
-                            addSuffix: true,
-                            locale: vi,
-                          })}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                            Đang hoạt động
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {onlineUsers.map((user) => {
+                      const getRoleLabel = (role: string | null | undefined) => {
+                        switch (role) {
+                          case "admin": return { label: "Quản trị viên", color: "bg-red-50 text-red-700 border-red-200" };
+                          case "manager": return { label: "Quản lý", color: "bg-blue-50 text-blue-700 border-blue-200" };
+                          case "staff": return { label: "Nhân viên", color: "bg-gray-50 text-gray-700 border-gray-200" };
+                          case "teacher": return { label: "Giáo viên", color: "bg-purple-50 text-purple-700 border-purple-200" };
+                          default: return { label: "Chưa phân quyền", color: "bg-yellow-50 text-yellow-700 border-yellow-200" };
+                        }
+                      };
+                      const roleInfo = getRoleLabel(user.role);
+                      
+                      return (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                              {user.full_name || user.email?.split("@")[0]}
+                            </div>
+                          </TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={roleInfo.color}>
+                              {roleInfo.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {formatDistanceToNow(new Date(user.last_seen_at), {
+                              addSuffix: true,
+                              locale: vi,
+                            })}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              Đang hoạt động
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}
