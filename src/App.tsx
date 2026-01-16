@@ -35,6 +35,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import ChangePassword from "./pages/ChangePassword";
 import UserManagement from "./pages/admin/UserManagement";
+import DepartmentsPage from "./pages/admin/DepartmentsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -339,6 +340,14 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRoles={["admin"]}>
                     <UserManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/departments"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <DepartmentsPage />
                   </ProtectedRoute>
                 }
               />

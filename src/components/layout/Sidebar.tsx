@@ -61,6 +61,7 @@ const menuItems: MenuItem[] = [
   { path: "/internal-union", icon: HandCoins, label: "Công đoàn nội bộ", permission: "orders" },
   { path: "/system-monitor", icon: Monitor, label: "Giám sát hệ thống", permission: "settings" },
   { path: "/admin/users", icon: Shield, label: "Quản lý phân quyền", permission: "settings" },
+  { path: "/admin/departments", icon: Building2, label: "Quản lý phòng ban", permission: "settings" },
 ];
 
 const bottomMenuItems: MenuItem[] = [
