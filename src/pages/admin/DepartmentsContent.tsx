@@ -5,10 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Building2, Users, Crown, Briefcase, UserCheck, GraduationCap, Star, Loader2, Settings, UserPlus, ShieldCheck, Check, X, Pencil, Trash2, UserCog, KeyRound } from "lucide-react";
+import { Building2, Users, Crown, Briefcase, UserCheck, GraduationCap, Star, Loader2, Settings, UserPlus, ShieldCheck, Check, X, Pencil, Trash2, UserCog } from "lucide-react";
 import { DepartmentStaffModal } from "@/components/admin/DepartmentStaffModal";
 import { DepartmentMenuPermissionsModal } from "@/components/admin/DepartmentMenuPermissionsModal";
-import { UserMenuPermissionsModal } from "@/components/admin/UserMenuPermissionsModal";
 import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -131,7 +130,6 @@ export default function DepartmentsContent() {
   const [editingRole, setEditingRole] = useState<AppRole | null>(null);
   const [userSearch, setUserSearch] = useState("");
   const [userTab, setUserTab] = useState<"pending" | "all">("all");
-  const [selectedUserForPerms, setSelectedUserForPerms] = useState<UserWithRole | null>(null);
   const { isPrimaryAdmin, isAdmin } = useMenuPermissions();
   const canManage = isPrimaryAdmin || isAdmin;
 
@@ -544,18 +542,6 @@ export default function DepartmentsContent() {
                               </div>
                             ) : user.role ? (
                               <div className="flex justify-end gap-1">
-                                {/* Quyền cá nhân button - only for non-admin roles */}
-                                {user.role !== 'admin' && (
-                                  <Button 
-                                    size="sm" 
-                                    variant="ghost"
-                                    className="text-blue-600 hover:text-blue-700"
-                                    onClick={() => setSelectedUserForPerms(user)}
-                                    title="Quyền menu cá nhân"
-                                  >
-                                    <KeyRound className="h-4 w-4" />
-                                  </Button>
-                                )}
                                 <Button 
                                   size="sm" 
                                   variant="ghost"
@@ -833,14 +819,6 @@ export default function DepartmentsContent() {
         />
       )}
 
-      {/* User Menu Permissions Modal */}
-      {selectedUserForPerms && (
-        <UserMenuPermissionsModal
-          open={true}
-          onOpenChange={(open) => !open && setSelectedUserForPerms(null)}
-          targetUser={selectedUserForPerms}
-        />
-      )}
     </div>
   );
 }

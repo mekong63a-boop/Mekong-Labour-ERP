@@ -52,18 +52,20 @@ export function DepartmentMenuPermissionsModal({
   const [hasChanges, setHasChanges] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
-  // Fetch all menus
+  // Fetch all menus (always refetch when opening to avoid stale cache)
   const { data: menus = [], isLoading: loadingMenus } = useQuery({
-    queryKey: ["all-menus"],
+    queryKey: ["menus"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("menus")
         .select("key, label, parent_key, order_index")
-        .order("order_index");
+        .order("order_index", { ascending: true });
       if (error) throw error;
       return data as MenuInfo[];
     },
     enabled: open,
+    refetchOnMount: "always",
+    staleTime: 0,
   });
 
   // Fetch current department menu permissions
@@ -234,19 +236,46 @@ export function DepartmentMenuPermissionsModal({
     );
   };
 
-  // Group menus by parent - sort properly
-  const groupedMenus = useMemo(() => {
+  // Flat render list to GUARANTEE all menus are displayed (even if parent_key is inconsistent)
+  const flatMenus = useMemo(() => {
+    const byKey = new Map(menus.map((m) => [m.key, m] as const));
+
     const parents = menus
       .filter((m) => !m.parent_key)
-      .sort((a, b) => a.order_index - b.order_index);
-    const children = menus.filter((m) => m.parent_key);
-    
-    return parents.map((parent) => ({
-      ...parent,
-      children: children
-        .filter((c) => c.parent_key === parent.key)
-        .sort((a, b) => a.order_index - b.order_index),
-    }));
+      .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+
+    const children = menus
+      .filter((m) => !!m.parent_key)
+      .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+
+    const childrenByParent = new Map<string, MenuInfo[]>();
+    children.forEach((c) => {
+      const p = c.parent_key || "";
+      const arr = childrenByParent.get(p) || [];
+      arr.push(c);
+      childrenByParent.set(p, arr);
+    });
+
+    const result: { menu: MenuInfo; level: 0 | 1 }[] = [];
+
+    parents.forEach((p) => {
+      result.push({ menu: p, level: 0 });
+      (childrenByParent.get(p.key) || []).forEach((c) => result.push({ menu: c, level: 1 }));
+    });
+
+    // Orphan children (parent_key points to a missing parent) - still render them at the end
+    const parentKeys = new Set(parents.map((p) => p.key));
+    children
+      .filter((c) => c.parent_key && !parentKeys.has(c.parent_key))
+      .forEach((c) => result.push({ menu: c, level: 1 }));
+
+    // Any menus not included yet
+    const includedKeys = new Set(result.map((r) => r.menu.key));
+    menus
+      .filter((m) => !includedKeys.has(m.key))
+      .forEach((m) => result.push({ menu: m, level: m.parent_key ? 1 : 0 }));
+
+    return result;
   }, [menus]);
 
   const isLoading = loadingMenus || loadingPerms || !initialized;
@@ -325,83 +354,49 @@ export function DepartmentMenuPermissionsModal({
             {/* Menu list */}
             <ScrollArea className="flex-1 min-h-0 max-h-[400px]">
               <div className="space-y-1 pr-4">
-                {groupedMenus.map((parent) => {
-                  const parentPerm = getPermission(parent.key);
-                  return (
-                    <div key={parent.key}>
-                      {/* Parent menu */}
-                      <div className="flex items-center gap-4 p-2 hover:bg-muted/50 rounded">
-                        <div className="flex-1 font-medium">{parent.label}</div>
-                        <div className="w-20 flex justify-center">
-                          <Checkbox
-                            checked={parentPerm.can_view}
-                            onCheckedChange={() => togglePermission(parent.key, "can_view")}
-                          />
-                        </div>
-                        <div className="w-20 flex justify-center">
-                          <Checkbox
-                            checked={parentPerm.can_create}
-                            onCheckedChange={() => togglePermission(parent.key, "can_create")}
-                            disabled={!parentPerm.can_view}
-                          />
-                        </div>
-                        <div className="w-20 flex justify-center">
-                          <Checkbox
-                            checked={parentPerm.can_update}
-                            onCheckedChange={() => togglePermission(parent.key, "can_update")}
-                            disabled={!parentPerm.can_view}
-                          />
-                        </div>
-                        <div className="w-20 flex justify-center">
-                          <Checkbox
-                            checked={parentPerm.can_delete}
-                            onCheckedChange={() => togglePermission(parent.key, "can_delete")}
-                            disabled={!parentPerm.can_view}
-                          />
-                        </div>
-                      </div>
+                {flatMenus.map(({ menu, level }) => {
+                  const perm = getPermission(menu.key);
+                  const isChild = level === 1;
 
-                      {/* Child menus */}
-                      {parent.children.map((child) => {
-                        const childPerm = getPermission(child.key);
-                        return (
-                          <div
-                            key={child.key}
-                            className="flex items-center gap-4 p-2 pl-8 hover:bg-muted/50 rounded text-sm"
-                          >
-                            <div className="flex-1 text-muted-foreground">
-                              └ {child.label}
-                            </div>
-                            <div className="w-20 flex justify-center">
-                              <Checkbox
-                                checked={childPerm.can_view}
-                                onCheckedChange={() => togglePermission(child.key, "can_view")}
-                              />
-                            </div>
-                            <div className="w-20 flex justify-center">
-                              <Checkbox
-                                checked={childPerm.can_create}
-                                onCheckedChange={() => togglePermission(child.key, "can_create")}
-                                disabled={!childPerm.can_view}
-                              />
-                            </div>
-                            <div className="w-20 flex justify-center">
-                              <Checkbox
-                                checked={childPerm.can_update}
-                                onCheckedChange={() => togglePermission(child.key, "can_update")}
-                                disabled={!childPerm.can_view}
-                              />
-                            </div>
-                            <div className="w-20 flex justify-center">
-                              <Checkbox
-                                checked={childPerm.can_delete}
-                                onCheckedChange={() => togglePermission(child.key, "can_delete")}
-                                disabled={!childPerm.can_view}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
+                  return (
+                    <div
+                      key={menu.key}
+                      className={
+                        "flex items-center gap-4 p-2 hover:bg-muted/50 rounded " +
+                        (isChild ? "pl-8 text-sm" : "")
+                      }
+                    >
+                      <div className={"flex-1 " + (isChild ? "text-muted-foreground" : "font-medium")}
+                      >
+                        {isChild ? `└ ${menu.label}` : menu.label}
+                      </div>
+                      <div className="w-20 flex justify-center">
+                        <Checkbox
+                          checked={perm.can_view}
+                          onCheckedChange={() => togglePermission(menu.key, "can_view")}
+                        />
+                      </div>
+                      <div className="w-20 flex justify-center">
+                        <Checkbox
+                          checked={perm.can_create}
+                          onCheckedChange={() => togglePermission(menu.key, "can_create")}
+                          disabled={!perm.can_view}
+                        />
+                      </div>
+                      <div className="w-20 flex justify-center">
+                        <Checkbox
+                          checked={perm.can_update}
+                          onCheckedChange={() => togglePermission(menu.key, "can_update")}
+                          disabled={!perm.can_view}
+                        />
+                      </div>
+                      <div className="w-20 flex justify-center">
+                        <Checkbox
+                          checked={perm.can_delete}
+                          onCheckedChange={() => togglePermission(menu.key, "can_delete")}
+                          disabled={!perm.can_view}
+                        />
+                      </div>
                     </div>
                   );
                 })}
