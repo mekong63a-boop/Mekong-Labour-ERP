@@ -9,10 +9,28 @@ const corsHeaders = {
 interface BackupLog {
   timestamp: string;
   success: boolean;
-  csvFileLink?: string;
+  csvFileLinks?: Record<string, string>;
   error?: string;
-  rowCount?: number;
+  tables?: Record<string, number>;
 }
+
+// Tables to backup with their display names
+const BACKUP_TABLES = [
+  { name: 'trainees', display: 'Học viên' },
+  { name: 'orders', display: 'Đơn hàng' },
+  { name: 'companies', display: 'Công ty' },
+  { name: 'unions', display: 'Nghiệp đoàn' },
+  { name: 'classes', display: 'Lớp học' },
+  { name: 'teachers', display: 'Giáo viên' },
+  { name: 'attendance', display: 'Điểm danh' },
+  { name: 'test_scores', display: 'Điểm thi' },
+  { name: 'user_roles', display: 'Phân quyền' },
+  { name: 'profiles', display: 'Hồ sơ' },
+  { name: 'family_members', display: 'Gia đình' },
+  { name: 'education_history', display: 'Học vấn' },
+  { name: 'work_history', display: 'Kinh nghiệm' },
+  { name: 'audit_logs', display: 'Nhật ký' },
+];
 
 async function getAccessToken(serviceAccount: any): Promise<string> {
   const header = { alg: "RS256", typ: "JWT" };
@@ -134,7 +152,6 @@ function convertToCSV(data: any[]): string {
       const value = row[header];
       if (value === null || value === undefined) return '';
       const stringValue = String(value);
-      // Escape quotes and wrap in quotes if contains comma or newline
       if (stringValue.includes(',') || stringValue.includes('\n') || stringValue.includes('"')) {
         return `"${stringValue.replace(/"/g, '""')}"`;
       }
@@ -202,10 +219,12 @@ serve(async (req) => {
   const backupLog: BackupLog = {
     timestamp: new Date().toISOString(),
     success: false,
+    tables: {},
+    csvFileLinks: {},
   };
 
   try {
-    console.log('Starting weekly backup...');
+    console.log('Starting comprehensive weekly backup...');
 
     // Get credentials
     const serviceAccountJson = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON');
@@ -222,54 +241,87 @@ serve(async (req) => {
     // Initialize Supabase client with service role
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch all trainees
-    console.log('Fetching trainees data...');
-    const { data: trainees, error: fetchError } = await supabase
-      .from('trainees')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (fetchError) {
-      throw new Error(`Failed to fetch trainees: ${fetchError.message}`);
-    }
-
-    backupLog.rowCount = trainees?.length || 0;
-    console.log(`Fetched ${backupLog.rowCount} trainees`);
-
-    // Convert to CSV
-    const csvContent = convertToCSV(trainees || []);
-    
-    // Generate file name with date and week number
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const weekNum = getWeekNumber(now);
-    const fileName = `${year}-${month}-Week${String(weekNum).padStart(2, '0')}_trainees.csv`;
-
     // Get Google Drive access
     console.log('Getting Google Drive access...');
     const serviceAccount = JSON.parse(serviceAccountJson);
     const accessToken = await getAccessToken(serviceAccount);
 
-    // Create folder path: Mekong-Labour-Hub/backups/weekly/
-    console.log('Creating folder structure...');
-    const folderId = await createFolderPath(accessToken, 'Mekong-Labour-Hub/backups/weekly');
+    // Generate date-based folder path
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const weekNum = getWeekNumber(now);
+    
+    // Create folder structure: Mekong-Labour-Hub/backups/weekly/2026/Week-03/
+    const weekFolder = `Mekong-Labour-Hub/backups/weekly/${year}/Week-${String(weekNum).padStart(2, '0')}`;
+    console.log(`Creating folder structure: ${weekFolder}`);
+    const folderId = await createFolderPath(accessToken, weekFolder);
 
-    // Upload CSV
-    console.log(`Uploading ${fileName}...`);
-    const uploadResult = await uploadToGoogleDrive(
+    // Backup each table
+    for (const table of BACKUP_TABLES) {
+      try {
+        console.log(`Backing up ${table.name}...`);
+        
+        const { data, error } = await supabase
+          .from(table.name)
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error(`Error fetching ${table.name}:`, error);
+          backupLog.tables![table.name] = -1;
+          continue;
+        }
+
+        const rowCount = data?.length || 0;
+        backupLog.tables![table.name] = rowCount;
+
+        if (rowCount === 0) {
+          console.log(`${table.name}: No data to backup`);
+          continue;
+        }
+
+        // Convert to CSV
+        const csvContent = convertToCSV(data);
+        const fileName = `${year}-${month}-${day}_${table.name}.csv`;
+
+        // Upload
+        const uploadResult = await uploadToGoogleDrive(
+          accessToken,
+          folderId,
+          fileName,
+          csvContent,
+          'text/csv'
+        );
+
+        backupLog.csvFileLinks![table.name] = uploadResult.webViewLink;
+        console.log(`✓ ${table.name}: ${rowCount} rows backed up`);
+      } catch (tableError) {
+        console.error(`Error backing up ${table.name}:`, tableError);
+        backupLog.tables![table.name] = -1;
+      }
+    }
+
+    // Create summary file
+    const summaryContent = JSON.stringify({
+      backup_date: now.toISOString(),
+      week_number: weekNum,
+      tables: backupLog.tables,
+      total_rows: Object.values(backupLog.tables!).reduce((a, b) => a + (b > 0 ? b : 0), 0),
+    }, null, 2);
+
+    await uploadToGoogleDrive(
       accessToken,
       folderId,
-      fileName,
-      csvContent,
-      'text/csv'
+      `${year}-${month}-${day}_backup_summary.json`,
+      summaryContent,
+      'application/json'
     );
 
     backupLog.success = true;
-    backupLog.csvFileLink = uploadResult.webViewLink;
-
     console.log('Backup completed successfully!');
-    console.log('Backup Log:', JSON.stringify(backupLog, null, 2));
+    console.log('Backup Summary:', JSON.stringify(backupLog.tables, null, 2));
 
     return new Response(
       JSON.stringify(backupLog),
@@ -279,8 +331,6 @@ serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Backup error:', error);
     backupLog.error = errorMessage;
-    
-    console.log('Backup Log (FAILED):', JSON.stringify(backupLog, null, 2));
 
     return new Response(
       JSON.stringify(backupLog),
