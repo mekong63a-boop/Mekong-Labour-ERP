@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, AppRole } from "@/hooks/useAuth";
+import { useUserRole, Department } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Shield, Users, Search, UserCog, Crown, Briefcase, GraduationCap } from "lucide-react";
+import { Loader2, Shield, Users, Search, UserCog, Crown, Briefcase, GraduationCap, Star, Building2 } from "lucide-react";
 
 interface UserWithRole {
   id: string;
@@ -18,24 +19,37 @@ interface UserWithRole {
   email: string | null;
   full_name: string | null;
   role: AppRole | null;
+  is_primary_admin: boolean;
+  department: Department | null;
   created_at: string;
 }
 
 const roleOptions: { value: AppRole; label: string; icon: any; color: string }[] = [
   { value: "admin", label: "Quản trị viên", icon: Crown, color: "bg-red-500" },
-  { value: "manager", label: "Quản lý", icon: Briefcase, color: "bg-blue-500" },
+  { value: "manager", label: "Trưởng phòng", icon: Briefcase, color: "bg-blue-500" },
   { value: "staff", label: "Nhân viên", icon: Users, color: "bg-green-500" },
   { value: "teacher", label: "Giáo viên", icon: GraduationCap, color: "bg-purple-500" },
 ];
 
+const departmentOptions: { value: Department; label: string }[] = [
+  { value: "recruitment", label: "Phòng Tuyển dụng" },
+  { value: "training", label: "Phòng Đào tạo" },
+  { value: "legal", label: "Phòng Pháp lý" },
+  { value: "dormitory", label: "Phòng KTX" },
+  { value: "post_departure", label: "Phòng Sau xuất cảnh" },
+  { value: "admin", label: "Phòng Hành chính" },
+];
+
 export default function UserManagement() {
   const { isAdmin, user } = useAuth();
+  const { isPrimaryAdmin, canAssignAdmins } = useUserRole();
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<AppRole | null>(null);
+  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
 
   // Redirect non-admins
   if (!isAdmin) {
@@ -71,6 +85,8 @@ export default function UserManagement() {
           email: profile.email,
           full_name: profile.full_name,
           role: userRole?.role as AppRole | null,
+          is_primary_admin: userRole?.is_primary_admin || false,
+          department: userRole?.department as Department | null,
           created_at: profile.created_at,
         };
       });
@@ -79,9 +95,23 @@ export default function UserManagement() {
     },
   });
 
+  // Count sub-admins
+  const subAdminCount = users?.filter(u => u.role === "admin" && !u.is_primary_admin).length || 0;
+  const canAddMoreAdmins = canAssignAdmins && subAdminCount < 2;
+
   // Mutation to update user role
   const updateRoleMutation = useMutation({
-    mutationFn: async ({ userId, newRole }: { userId: string; newRole: AppRole }) => {
+    mutationFn: async ({ userId, newRole, department }: { userId: string; newRole: AppRole; department?: Department | null }) => {
+      // Check if trying to assign admin role
+      if (newRole === "admin") {
+        if (!canAssignAdmins) {
+          throw new Error("Chỉ Giám đốc (Admin chính) mới có thể gán quyền Admin");
+        }
+        if (subAdminCount >= 2) {
+          throw new Error("Đã đạt giới hạn số lượng Admin phụ (tối đa 2)");
+        }
+      }
+
       // Check if role exists
       const { data: existingRole } = await supabase
         .from("user_roles")
@@ -93,14 +123,23 @@ export default function UserManagement() {
         // Update existing role
         const { error } = await supabase
           .from("user_roles")
-          .update({ role: newRole })
+          .update({ 
+            role: newRole,
+            department: newRole === "manager" ? department : null,
+            is_primary_admin: false, // Cannot change primary admin status here
+          })
           .eq("user_id", userId);
         if (error) throw error;
       } else {
         // Insert new role
         const { error } = await supabase
           .from("user_roles")
-          .insert({ user_id: userId, role: newRole });
+          .insert({ 
+            user_id: userId, 
+            role: newRole,
+            department: newRole === "manager" ? department : null,
+            is_primary_admin: false,
+          });
         if (error) throw error;
       }
     },
@@ -112,6 +151,7 @@ export default function UserManagement() {
       });
       setEditingUserId(null);
       setSelectedRole(null);
+      setSelectedDepartment(null);
     },
     onError: (error: any) => {
       toast({
@@ -125,6 +165,12 @@ export default function UserManagement() {
   // Mutation to remove role
   const removeRoleMutation = useMutation({
     mutationFn: async (userId: string) => {
+      // Cannot remove primary admin
+      const userToRemove = users?.find(u => u.user_id === userId);
+      if (userToRemove?.is_primary_admin) {
+        throw new Error("Không thể xóa quyền của Giám đốc (Admin chính)");
+      }
+      
       const { error } = await supabase
         .from("user_roles")
         .delete()
@@ -149,7 +195,11 @@ export default function UserManagement() {
 
   const handleSaveRole = (userId: string) => {
     if (selectedRole) {
-      updateRoleMutation.mutate({ userId, newRole: selectedRole });
+      updateRoleMutation.mutate({ 
+        userId, 
+        newRole: selectedRole,
+        department: selectedDepartment,
+      });
     }
   };
 
@@ -161,18 +211,39 @@ export default function UserManagement() {
     );
   });
 
-  const getRoleBadge = (role: AppRole | null) => {
-    if (!role) {
+  const getRoleBadge = (u: UserWithRole) => {
+    if (!u.role) {
       return <Badge variant="outline" className="text-muted-foreground">Chưa phân quyền</Badge>;
     }
-    const roleInfo = roleOptions.find((r) => r.value === role);
+    
+    const roleInfo = roleOptions.find((r) => r.value === u.role);
     if (!roleInfo) return null;
+
+    // Primary admin gets special treatment
+    if (u.is_primary_admin) {
+      return (
+        <div className="flex items-center gap-2">
+          <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+            <Star className="h-3 w-3 mr-1" />
+            Giám đốc
+          </Badge>
+        </div>
+      );
+    }
     
     return (
-      <Badge className={`${roleInfo.color} text-white`}>
-        <roleInfo.icon className="h-3 w-3 mr-1" />
-        {roleInfo.label}
-      </Badge>
+      <div className="flex flex-col gap-1">
+        <Badge className={`${roleInfo.color} text-white`}>
+          <roleInfo.icon className="h-3 w-3 mr-1" />
+          {roleInfo.label}
+        </Badge>
+        {u.department && (
+          <Badge variant="outline" className="text-xs">
+            <Building2 className="h-3 w-3 mr-1" />
+            {departmentOptions.find(d => d.value === u.department)?.label}
+          </Badge>
+        )}
+      </div>
     );
   };
 
@@ -185,14 +256,68 @@ export default function UserManagement() {
         </div>
         <div>
           <h1 className="text-2xl font-bold">Quản lý phân quyền</h1>
-          <p className="text-muted-foreground">Gán và thay đổi quyền cho người dùng</p>
+          <p className="text-muted-foreground">
+            {isPrimaryAdmin ? "Bạn là Giám đốc - có thể gán quyền Admin" : "Gán và thay đổi quyền cho người dùng"}
+          </p>
         </div>
       </div>
 
+      {/* Role Hierarchy Info */}
+      <Card className="bg-muted/50">
+        <CardContent className="p-4">
+          <h3 className="font-semibold mb-2">Cấu trúc phân quyền:</h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+            <div className="flex items-start gap-2">
+              <Star className="h-4 w-4 text-amber-500 mt-0.5" />
+              <div>
+                <p className="font-medium">Giám đốc (1)</p>
+                <p className="text-muted-foreground">Toàn quyền, gán Admin</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Crown className="h-4 w-4 text-red-500 mt-0.5" />
+              <div>
+                <p className="font-medium">Admin phụ ({subAdminCount}/2)</p>
+                <p className="text-muted-foreground">Gần như toàn quyền</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Briefcase className="h-4 w-4 text-blue-500 mt-0.5" />
+              <div>
+                <p className="font-medium">Trưởng phòng</p>
+                <p className="text-muted-foreground">CRUD phòng ban</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Users className="h-4 w-4 text-green-500 mt-0.5" />
+              <div>
+                <p className="font-medium">Nhân viên</p>
+                <p className="text-muted-foreground">Xem + Thêm + Sửa</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        {/* Primary Admin */}
+        <Card className="border-l-4 border-l-amber-500">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500">
+              <Star className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">
+                {users?.filter(u => u.is_primary_admin).length || 0}
+              </p>
+              <p className="text-sm text-muted-foreground">Giám đốc</p>
+            </div>
+          </CardContent>
+        </Card>
+        
         {roleOptions.map((roleOpt) => {
-          const count = users?.filter((u) => u.role === roleOpt.value).length || 0;
+          const count = users?.filter((u) => u.role === roleOpt.value && !u.is_primary_admin).length || 0;
           return (
             <Card key={roleOpt.value} className="border-l-4" style={{ borderLeftColor: roleOpt.color.replace("bg-", "") }}>
               <CardContent className="p-4 flex items-center gap-3">
@@ -254,37 +379,80 @@ export default function UserManagement() {
                   <TableRow key={u.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="font-medium text-primary">
+                        <div className={`h-9 w-9 rounded-full flex items-center justify-center ${
+                          u.is_primary_admin 
+                            ? "bg-gradient-to-r from-amber-500 to-orange-500" 
+                            : "bg-primary/10"
+                        }`}>
+                          <span className={`font-medium ${u.is_primary_admin ? "text-white" : "text-primary"}`}>
                             {u.full_name?.charAt(0) || u.email?.charAt(0) || "U"}
                           </span>
                         </div>
-                        <span className="font-medium">{u.full_name || "Chưa đặt tên"}</span>
+                        <div>
+                          <span className="font-medium">{u.full_name || "Chưa đặt tên"}</span>
+                          {u.is_primary_admin && (
+                            <Badge className="ml-2 bg-amber-100 text-amber-700 text-xs">Chính</Badge>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{u.email}</TableCell>
                     <TableCell>
                       {editingUserId === u.user_id ? (
-                        <Select
-                          value={selectedRole || u.role || ""}
-                          onValueChange={(val) => setSelectedRole(val as AppRole)}
-                        >
-                          <SelectTrigger className="w-40">
-                            <SelectValue placeholder="Chọn quyền" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {roleOptions.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                <div className="flex items-center gap-2">
-                                  <opt.icon className="h-4 w-4" />
-                                  {opt.label}
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="space-y-2">
+                          <Select
+                            value={selectedRole || u.role || ""}
+                            onValueChange={(val) => {
+                              setSelectedRole(val as AppRole);
+                              if (val !== "manager") {
+                                setSelectedDepartment(null);
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="w-40">
+                              <SelectValue placeholder="Chọn quyền" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {roleOptions.map((opt) => {
+                                // Disable admin option if can't add more admins
+                                const disabled = opt.value === "admin" && !canAddMoreAdmins;
+                                return (
+                                  <SelectItem 
+                                    key={opt.value} 
+                                    value={opt.value}
+                                    disabled={disabled}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <opt.icon className="h-4 w-4" />
+                                      {opt.label}
+                                      {disabled && " (đã đủ)"}
+                                    </div>
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                          
+                          {(selectedRole === "manager" || (!selectedRole && u.role === "manager")) && (
+                            <Select
+                              value={selectedDepartment || u.department || ""}
+                              onValueChange={(val) => setSelectedDepartment(val as Department)}
+                            >
+                              <SelectTrigger className="w-40">
+                                <SelectValue placeholder="Chọn phòng ban" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {departmentOptions.map((opt) => (
+                                  <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
                       ) : (
-                        getRoleBadge(u.role)
+                        getRoleBadge(u)
                       )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
@@ -293,6 +461,8 @@ export default function UserManagement() {
                     <TableCell className="text-right">
                       {u.user_id === user?.id ? (
                         <Badge variant="secondary">Bạn</Badge>
+                      ) : u.is_primary_admin ? (
+                        <Badge variant="outline" className="text-muted-foreground">Không thể thay đổi</Badge>
                       ) : editingUserId === u.user_id ? (
                         <div className="flex items-center gap-2 justify-end">
                           <Button
@@ -309,6 +479,7 @@ export default function UserManagement() {
                             onClick={() => {
                               setEditingUserId(null);
                               setSelectedRole(null);
+                              setSelectedDepartment(null);
                             }}
                           >
                             Hủy
@@ -322,6 +493,7 @@ export default function UserManagement() {
                             onClick={() => {
                               setEditingUserId(u.user_id);
                               setSelectedRole(u.role);
+                              setSelectedDepartment(u.department);
                             }}
                           >
                             <Shield className="h-4 w-4 mr-1" />
