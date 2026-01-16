@@ -16,6 +16,9 @@ import {
   ChevronDown,
   GraduationCap,
   FileText,
+  Activity,
+  UserCog,
+  BuildingIcon,
   Shield,
 } from "lucide-react";
 import {
@@ -58,7 +61,15 @@ const mainNavItems = [
   { title: "Báo cáo", icon: BarChart3, href: "/reports" },
   { title: "Công đoàn", icon: Building, href: "/internal-union" },
   { title: "Từ điển chuyên ngành", icon: Languages, href: "/glossary" },
-  { title: "Quản trị hệ thống", icon: Shield, href: "/admin" },
+  {
+    title: "Quản trị hệ thống",
+    icon: Shield,
+    children: [
+      { title: "Giám sát hệ thống", href: "/admin?tab=monitor", icon: Activity },
+      { title: "Quản lý phân quyền", href: "/admin?tab=users", icon: UserCog },
+      { title: "Quản lý phòng ban", href: "/admin?tab=departments", icon: BuildingIcon },
+    ],
+  },
 ];
 
 const bottomNavItems = [
