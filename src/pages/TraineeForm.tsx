@@ -79,6 +79,8 @@ interface FormData {
   passport_number: string;
   passport_date: string;
   ethnicity: string;
+  religion: string;
+  policy_category: string;
   phone: string;
   source: string;
   education_level: string;
@@ -175,6 +177,32 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     },
   });
 
+  // Fetch policy categories from database
+  const { data: policyCategories = [] } = useQuery({
+    queryKey: ["policy_categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("policy_categories")
+        .select("*")
+        .order("name");
+      if (error) throw error;
+      return data?.map((s) => s.name) || [];
+    },
+  });
+
+  // Fetch religions from database
+  const { data: religions = [] } = useQuery({
+    queryKey: ["religions"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("religions")
+        .select("*")
+        .order("name");
+      if (error) throw error;
+      return data?.map((s) => s.name) || [];
+    },
+  });
+
   // Fetch existing trainee data if editing
   const { data: trainee, isLoading: isLoadingTrainee } = useTrainee(traineeId || "");
   const updateTraineeMutation = useUpdateTrainee();
@@ -200,6 +228,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     passport_number: "",
     passport_date: "",
     ethnicity: "",
+    religion: "",
+    policy_category: "",
     phone: "",
     source: "",
     education_level: "",
@@ -264,6 +294,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         passport_number: trainee.passport_number || "",
         passport_date: trainee.passport_date || "",
         ethnicity: trainee.ethnicity || "",
+        religion: (trainee as any).religion || "",
+        policy_category: (trainee as any).policy_category || "",
         phone: trainee.phone || "",
         source: trainee.source || "",
         education_level: trainee.education_level || "",
@@ -440,6 +472,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     passport_number: formData.passport_number || null,
     passport_date: formData.passport_date || null,
     ethnicity: formData.ethnicity || null,
+    religion: formData.religion || null,
+    policy_category: formData.policy_category || null,
     phone: formData.phone || null,
     source: formData.source || null,
     education_level: formData.education_level || null,
@@ -887,7 +921,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   </div>
 
                   {/* Fourth Row */}
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-6 gap-3">
                     <div>
                       <Label className="text-xs text-muted-foreground">Dân tộc</Label>
                       <SearchableSelect
@@ -896,6 +930,28 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                         onValueChange={(v) => updateField("ethnicity", v)}
                         placeholder="Chọn dân tộc"
                         searchPlaceholder="Tìm dân tộc..."
+                        emptyText="Không tìm thấy."
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Tôn giáo</Label>
+                      <SearchableSelect
+                        options={religions.length > 0 ? religions : ["Không"]}
+                        value={formData.religion}
+                        onValueChange={(v) => updateField("religion", v)}
+                        placeholder="Chọn tôn giáo"
+                        searchPlaceholder="Tìm tôn giáo..."
+                        emptyText="Không tìm thấy."
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Diện chính sách</Label>
+                      <SearchableSelect
+                        options={policyCategories.length > 0 ? policyCategories : ["Không có"]}
+                        value={formData.policy_category}
+                        onValueChange={(v) => updateField("policy_category", v)}
+                        placeholder="Chọn diện"
+                        searchPlaceholder="Tìm diện..."
                         emptyText="Không tìm thấy."
                       />
                     </div>
