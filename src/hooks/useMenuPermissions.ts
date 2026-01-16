@@ -79,14 +79,17 @@ export function useMenuPermissions() {
     staleTime: 10 * 60 * 1000, // Cache 10 minutes - menus rarely change
   });
 
-  // Lấy EFFECTIVE permissions của user (giao của user + department)
+  // Lấy quyền menu TRỰC TIẾP từ user_menu_permissions (theo tài khoản, không theo phòng ban)
   const { data: permissions = [], isLoading: permissionsLoading } = useQuery({
-    queryKey: ['effective-menu-permissions', user?.id],
+    queryKey: ['user-menu-permissions-direct', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data, error } = await supabase.rpc('get_effective_menu_permissions', { _user_id: user.id });
+      const { data, error } = await supabase
+        .from('user_menu_permissions')
+        .select('menu_key, can_view, can_create, can_update, can_delete')
+        .eq('user_id', user.id);
       if (error) {
-        console.error('Error fetching effective menu permissions:', error);
+        console.error('Error fetching user menu permissions:', error);
         return [];
       }
       return (data ?? []) as MenuPermission[];

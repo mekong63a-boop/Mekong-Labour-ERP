@@ -5,9 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Building2, Users, Crown, Briefcase, UserCheck, GraduationCap, Star, Loader2, Settings, UserPlus, ShieldCheck, Check, X, Pencil, Trash2, UserCog } from "lucide-react";
+import { Building2, Users, Crown, Briefcase, UserCheck, GraduationCap, Star, Loader2, Settings, UserPlus, ShieldCheck, Check, X, Pencil, Trash2, UserCog, Menu } from "lucide-react";
 import { DepartmentStaffModal } from "@/components/admin/DepartmentStaffModal";
 import { DepartmentMenuPermissionsModal } from "@/components/admin/DepartmentMenuPermissionsModal";
+import { UserMenuPermissionsModal } from "@/components/admin/UserMenuPermissionsModal";
 import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -130,6 +131,12 @@ export default function DepartmentsContent() {
   const [editingRole, setEditingRole] = useState<AppRole | null>(null);
   const [userSearch, setUserSearch] = useState("");
   const [userTab, setUserTab] = useState<"pending" | "all">("all");
+  // State for user menu permissions modal
+  const [selectedUserForMenu, setSelectedUserForMenu] = useState<{
+    user_id: string;
+    full_name: string | null;
+    email: string | null;
+  } | null>(null);
   const { isPrimaryAdmin, isAdmin } = useMenuPermissions();
   const canManage = isPrimaryAdmin || isAdmin;
 
@@ -407,11 +414,11 @@ export default function DepartmentsContent() {
                 Cách thức phân quyền
               </h4>
               <div className="text-sm text-blue-800 space-y-1">
-                <p><strong>• Quyền hệ thống (bảng này):</strong> Chỉ dùng để cấp vai trò (Admin/Staff/Teacher/Manager)</p>
-                <p><strong>• Quyền menu (Quản lý phòng ban → Quyền menu):</strong> Quyết định user được xem/tạo/sửa/xóa menu nào</p>
+                <p><strong>• Quyền hệ thống:</strong> Cấp vai trò (Admin/Staff/Teacher/Manager) - Admin thấy tất cả</p>
+                <p><strong>• Quyền menu (nút <Menu className="inline h-3 w-3" />):</strong> Click vào icon menu để gán quyền xem/tạo/sửa/xóa từng menu</p>
                 <p><strong>• Phòng ban:</strong> Chỉ để hiển thị thông tin, user thuộc phòng nào</p>
                 <p className="text-green-700 font-medium mt-2">
-                  → Sau khi cấp quyền hệ thống, vào "Quản lý phòng ban" → "Quyền menu" để gán menu cho phòng ban.
+                  → Sau khi cấp quyền hệ thống, nhấn icon <Menu className="inline h-3 w-3" /> để gán quyền menu cho tài khoản.
                 </p>
               </div>
             </div>
@@ -542,6 +549,22 @@ export default function DepartmentsContent() {
                               </div>
                             ) : user.role ? (
                               <div className="flex justify-end gap-1">
+                                {/* Button to open menu permissions modal */}
+                                {!isPrimary && (
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost"
+                                    onClick={() => setSelectedUserForMenu({
+                                      user_id: user.user_id,
+                                      full_name: user.full_name,
+                                      email: user.email,
+                                    })}
+                                    title="Quyền menu"
+                                    className="text-primary"
+                                  >
+                                    <Menu className="h-4 w-4" />
+                                  </Button>
+                                )}
                                 <Button 
                                   size="sm" 
                                   variant="ghost"
@@ -816,6 +839,15 @@ export default function DepartmentsContent() {
           open={true}
           onOpenChange={(open) => !open && closeModal()}
           department={selectedDepartment}
+        />
+      )}
+
+      {/* User Menu Permissions Modal */}
+      {selectedUserForMenu && (
+        <UserMenuPermissionsModal
+          open={true}
+          onOpenChange={(open) => !open && setSelectedUserForMenu(null)}
+          targetUser={selectedUserForMenu}
         />
       )}
 
