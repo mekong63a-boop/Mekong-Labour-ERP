@@ -195,33 +195,8 @@ export function useCanAction(menuKey: string, action: 'view' | 'create' | 'updat
 }
 
 /**
- * Hook để lấy permissions cho một user khác (Admin dùng)
- */
-export function useUserMenuPermissions(targetUserId: string | undefined) {
-  const { isAdmin, isPrimaryAdmin } = useMenuPermissions();
-
-  const { data: permissions = [], isLoading, refetch } = useQuery({
-    queryKey: ['target-user-permissions', targetUserId],
-    queryFn: async () => {
-      if (!targetUserId) return [];
-      const { data, error } = await supabase
-        .from('user_menu_permissions')
-        .select('*')
-        .eq('user_id', targetUserId);
-      if (error) {
-        console.error('Error fetching target user permissions:', error);
-        return [];
-      }
-      return data;
-    },
-    enabled: !!targetUserId && (isAdmin || isPrimaryAdmin),
-  });
-
-  return { permissions, isLoading, refetch };
-}
-
-/**
  * Hook lấy danh sách phòng ban user thuộc về
+ * NGUỒN SỰ THẬT: department_members table (quản lý qua DepartmentsContent)
  */
 export function useUserDepartments(userId?: string) {
   const { user } = useAuth();
