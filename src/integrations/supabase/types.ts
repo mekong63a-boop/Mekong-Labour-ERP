@@ -283,6 +283,53 @@ export type Database = {
         }
         Relationships: []
       }
+      department_menu_permissions: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          can_create: boolean | null
+          can_delete: boolean | null
+          can_update: boolean | null
+          can_view: boolean | null
+          created_at: string | null
+          department: string
+          id: string
+          menu_key: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          can_create?: boolean | null
+          can_delete?: boolean | null
+          can_update?: boolean | null
+          can_view?: boolean | null
+          created_at?: string | null
+          department: string
+          id?: string
+          menu_key: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          can_create?: boolean | null
+          can_delete?: boolean | null
+          can_update?: boolean | null
+          can_view?: boolean | null
+          created_at?: string | null
+          department?: string
+          id?: string
+          menu_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_menu_permissions_menu_key_fkey"
+            columns: ["menu_key"]
+            isOneToOne: false
+            referencedRelation: "menus"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       edit_permissions: {
         Row: {
           approved_at: string | null
@@ -1934,6 +1981,16 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_effective_menu_permissions: {
+        Args: { _user_id: string }
+        Returns: {
+          can_create: boolean
+          can_delete: boolean
+          can_update: boolean
+          can_view: boolean
+          menu_key: string
+        }[]
+      }
       get_user_department: { Args: { _user_id: string }; Returns: string }
       get_user_menu_permissions: {
         Args: { _user_id: string }
@@ -1998,6 +2055,7 @@ export type Database = {
         | "dormitory"
         | "post_departure"
         | "admin"
+        | "collaborator"
       employment_status: "probation" | "active" | "suspended" | "left"
       gender: "Male" | "Female" | "Other"
       processing_stage: "OTIT" | "Nyukan" | "COE" | "Visa"
@@ -2177,6 +2235,7 @@ export const Constants = {
         "dormitory",
         "post_departure",
         "admin",
+        "collaborator",
       ],
       employment_status: ["probation", "active", "suspended", "left"],
       gender: ["Male", "Female", "Other"],
