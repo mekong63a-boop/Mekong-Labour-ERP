@@ -33,28 +33,32 @@ function useTraineeGenderStats() {
       const { data, error } = await supabase
         .from("trainees")
         .select("id, gender, class_id, progression_stage");
-      
+
       if (error) throw error;
-      
-      // Currently studying - ONLY trainees with valid class_id (class must exist)
-      const studying = data?.filter(t => t.class_id && validClassIds.has(t.class_id)) || [];
-      const studyingMale = studying.filter(t => t.gender === "Nam").length;
-      const studyingFemale = studying.filter(t => t.gender === "Nữ").length;
-      
-      // Passed interview
-      const passed = data?.filter(t => 
-        t.progression_stage && t.progression_stage !== "Chưa đậu"
-      ) || [];
-      const passedMale = passed.filter(t => t.gender === "Nam").length;
-      const passedFemale = passed.filter(t => t.gender === "Nữ").length;
-      
-      // Not passed interview
-      const notPassed = data?.filter(t => 
-        !t.progression_stage || t.progression_stage === "Chưa đậu"
-      ) || [];
-      const notPassedMale = notPassed.filter(t => t.gender === "Nam").length;
-      const notPassedFemale = notPassed.filter(t => t.gender === "Nữ").length;
-      
+
+      // Scope for Education dashboard: ONLY trainees assigned to an existing class
+      const traineesInValidClasses =
+        data?.filter((t) => t.class_id && validClassIds.has(t.class_id)) || [];
+
+      // Currently studying (in a valid class)
+      const studying = traineesInValidClasses;
+      const studyingMale = studying.filter((t) => t.gender === "Nam").length;
+      const studyingFemale = studying.filter((t) => t.gender === "Nữ").length;
+
+      // Passed interview (within trainees already in valid classes)
+      const passed = traineesInValidClasses.filter(
+        (t) => t.progression_stage && t.progression_stage !== "Chưa đậu"
+      );
+      const passedMale = passed.filter((t) => t.gender === "Nam").length;
+      const passedFemale = passed.filter((t) => t.gender === "Nữ").length;
+
+      // Not passed interview (within trainees already in valid classes)
+      const notPassed = traineesInValidClasses.filter(
+        (t) => !t.progression_stage || t.progression_stage === "Chưa đậu"
+      );
+      const notPassedMale = notPassed.filter((t) => t.gender === "Nam").length;
+      const notPassedFemale = notPassed.filter((t) => t.gender === "Nữ").length;
+
       return {
         studying: { male: studyingMale, female: studyingFemale, total: studying.length },
         passed: { male: passedMale, female: passedFemale, total: passed.length },
