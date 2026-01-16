@@ -135,10 +135,16 @@ export function DepartmentStaffModal({
       );
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Invalidate + refetch immediately to minimize UI delay
       queryClient.invalidateQueries({ queryKey: ["department-members"] });
       queryClient.invalidateQueries({ queryKey: ["department-members-all"] });
       queryClient.invalidateQueries({ queryKey: ["department-counts"] });
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ["department-members", department.value] }),
+        queryClient.refetchQueries({ queryKey: ["department-members-all"] }),
+        queryClient.refetchQueries({ queryKey: ["department-counts"] }),
+      ]);
       toast.success("Đã gán trưởng phòng thành công");
     },
     onError: (error) => {
@@ -157,10 +163,15 @@ export function DepartmentStaffModal({
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["department-members"] });
       queryClient.invalidateQueries({ queryKey: ["department-members-all"] });
       queryClient.invalidateQueries({ queryKey: ["department-counts"] });
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ["department-members", department.value] }),
+        queryClient.refetchQueries({ queryKey: ["department-members-all"] }),
+        queryClient.refetchQueries({ queryKey: ["department-counts"] }),
+      ]);
       toast.success("Đã thêm nhân viên thành công");
     },
     onError: (error) => {
@@ -177,10 +188,15 @@ export function DepartmentStaffModal({
         .eq("id", memberId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["department-members"] });
       queryClient.invalidateQueries({ queryKey: ["department-members-all"] });
       queryClient.invalidateQueries({ queryKey: ["department-counts"] });
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ["department-members", department.value] }),
+        queryClient.refetchQueries({ queryKey: ["department-members-all"] }),
+        queryClient.refetchQueries({ queryKey: ["department-counts"] }),
+      ]);
       toast.success("Đã gỡ thành viên khỏi phòng ban");
     },
     onError: (error) => {
