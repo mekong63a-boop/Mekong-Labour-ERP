@@ -103,10 +103,36 @@ export function useAuthState(): AuthContextType {
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    // Check rate limit first
+    const { data: rateLimitCheck, error: rateLimitError } = await supabase.rpc(
+      "check_login_rate_limit",
+      { _identifier: email.toLowerCase() }
+    );
+
+    if (rateLimitError) {
+      console.error("Rate limit check error:", rateLimitError);
+    }
+
+    // Parse rate limit response
+    const rateLimitData = rateLimitCheck as { allowed?: boolean; message?: string } | null;
+    
+    if (rateLimitData && rateLimitData.allowed === false) {
+      return { 
+        error: new Error(rateLimitData.message || "Tài khoản bị tạm khóa. Vui lòng thử lại sau.") 
+      };
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+
+    // Record the login attempt
+    await supabase.rpc("record_login_attempt", {
+      _identifier: email.toLowerCase(),
+      _success: !error,
+    });
+
     return { error: error as Error | null };
   };
 

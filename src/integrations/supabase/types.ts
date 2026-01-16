@@ -609,6 +609,30 @@ export type Database = {
         }
         Relationships: []
       }
+      login_attempts: {
+        Row: {
+          attempt_time: string
+          id: string
+          identifier: string
+          ip_address: string | null
+          success: boolean | null
+        }
+        Insert: {
+          attempt_time?: string
+          id?: string
+          identifier: string
+          ip_address?: string | null
+          success?: boolean | null
+        }
+        Update: {
+          attempt_time?: string
+          id?: string
+          identifier?: string
+          ip_address?: string | null
+          success?: boolean | null
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           code: string
@@ -1399,6 +1423,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_login_rate_limit: {
+        Args: { _identifier: string; _ip_address?: string }
+        Returns: Json
+      }
       count_sub_admins: { Args: never; Returns: number }
       get_user_department: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
@@ -1425,6 +1453,10 @@ export type Database = {
           _table_name: string
         }
         Returns: string
+      }
+      record_login_attempt: {
+        Args: { _identifier: string; _ip_address?: string; _success: boolean }
+        Returns: undefined
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
