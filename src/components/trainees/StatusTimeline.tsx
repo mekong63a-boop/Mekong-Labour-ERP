@@ -60,11 +60,6 @@ export function StatusTimeline({ trainee }: StatusTimelineProps) {
       completed: !!trainee.coe_date
     },
     { 
-      label: "Visa", 
-      date: trainee.visa_date,
-      completed: !!trainee.visa_date
-    },
-    { 
       label: "Xuất cảnh", 
       date: trainee.departure_date,
       completed: !!trainee.departure_date

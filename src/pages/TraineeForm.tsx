@@ -23,6 +23,7 @@ import { PhotoUpload, uploadPhoto } from "@/components/trainees/PhotoUpload";
 import { useTrainee, useUpdateTrainee } from "@/hooks/useTrainees";
 import { useKatakanaConverter } from "@/hooks/useKatakanaConverter";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useDataMasking } from "@/hooks/useSecureData";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { EducationHistoryForm, EducationItem } from "@/components/trainees/forms/EducationHistoryForm";
 import { WorkHistoryForm, WorkItem } from "@/components/trainees/forms/WorkHistoryForm";
@@ -57,7 +58,7 @@ const PROVINCES = [
 ];
 const PROGRESSION_STAGES = [
   "Chưa đậu", "Đậu phỏng vấn", "Nộp hồ sơ", "OTIT", "Nyukan", "COE",
-  "Xuất cảnh", "Hoàn thành hợp đồng", "Bỏ trốn", "Về trước hạn"
+  "Xuất cảnh", "Đang làm việc", "Hoàn thành hợp đồng", "Bỏ trốn", "Về trước hạn"
 ];
 // Display labels for progression stages
 const PROGRESSION_STAGE_LABELS: Record<string, string> = {
@@ -118,7 +119,6 @@ interface FormData {
   otit_entry_date: string;
   nyukan_entry_date: string;
   coe_date: string;
-  visa_date: string;
   departure_date: string;
   absconded_date: string;
   early_return_date: string;
@@ -144,7 +144,11 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("personal");
   const { convertToKatakana } = useKatakanaConverter();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isManager } = useUserRole();
+  const { canViewUnmasked } = useDataMasking();
+  
+  // Staff can only edit non-sensitive fields
+  const canEditSensitiveFields = isAdmin || isManager;
   
   // Pending photo file for upload on save
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
@@ -268,7 +272,6 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     otit_entry_date: "",
     nyukan_entry_date: "",
     coe_date: "",
-    visa_date: "",
     departure_date: "",
     absconded_date: "",
     early_return_date: "",
@@ -335,7 +338,6 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         otit_entry_date: trainee.otit_entry_date || "",
         nyukan_entry_date: trainee.nyukan_entry_date || "",
         coe_date: trainee.coe_date || "",
-        visa_date: trainee.visa_date || "",
         departure_date: trainee.departure_date || "",
         absconded_date: trainee.absconded_date || "",
         early_return_date: trainee.early_return_date || "",
@@ -509,7 +511,6 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     otit_entry_date: formData.otit_entry_date || null,
     nyukan_entry_date: formData.nyukan_entry_date || null,
     coe_date: formData.coe_date || null,
-    visa_date: formData.visa_date || null,
     departure_date: formData.departure_date || null,
     entry_date: formData.entry_date || null,
     absconded_date: formData.absconded_date || null,
@@ -884,15 +885,21 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                     </div>
                   </div>
 
-                  {/* Third Row - Documents */}
+                  {/* Third Row - Documents (sensitive fields) */}
                   <div className="grid grid-cols-4 gap-3">
                     <div>
-                      <Label className="text-xs text-muted-foreground">Số CCCD/CMND</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Số CCCD/CMND
+                        {!canEditSensitiveFields && isEditMode && <span className="text-xs text-orange-500 ml-1">(bảo mật)</span>}
+                      </Label>
                       <Input
                         placeholder="001234567890"
-                        value={formData.cccd_number}
+                        value={!canEditSensitiveFields && isEditMode && formData.cccd_number 
+                          ? formData.cccd_number.replace(/(.{3})(.*)(.{3})/, "$1****$3")
+                          : formData.cccd_number}
                         onChange={(e) => updateField("cccd_number", e.target.value)}
                         className={getInputClass(formData.cccd_number)}
+                        disabled={!canEditSensitiveFields && isEditMode}
                       />
                     </div>
                     <div>
@@ -905,12 +912,18 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                       />
                     </div>
                     <div>
-                      <Label className="text-xs text-muted-foreground">Số hộ chiếu</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Số hộ chiếu
+                        {!canEditSensitiveFields && isEditMode && <span className="text-xs text-orange-500 ml-1">(bảo mật)</span>}
+                      </Label>
                       <Input
                         placeholder="B1234567"
-                        value={formData.passport_number}
+                        value={!canEditSensitiveFields && isEditMode && formData.passport_number
+                          ? formData.passport_number.replace(/(.{2})(.*)(.{2})/, "$1***$3")
+                          : formData.passport_number}
                         onChange={(e) => updateField("passport_number", e.target.value)}
                         className={getInputClass(formData.passport_number)}
+                        disabled={!canEditSensitiveFields && isEditMode}
                       />
                     </div>
                     <div>
@@ -960,12 +973,18 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                       />
                     </div>
                     <div>
-                      <Label className="text-xs text-muted-foreground">Số điện thoại</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Số điện thoại
+                        {!canEditSensitiveFields && isEditMode && <span className="text-xs text-orange-500 ml-1">(bảo mật)</span>}
+                      </Label>
                       <Input
                         placeholder="0901234567"
-                        value={formData.phone}
+                        value={!canEditSensitiveFields && isEditMode && formData.phone
+                          ? formData.phone.replace(/(.{4})(.*)(.{3})/, "$1***$3")
+                          : formData.phone}
                         onChange={(e) => updateField("phone", e.target.value)}
                         className={getInputClass(formData.phone)}
+                        disabled={!canEditSensitiveFields && isEditMode}
                       />
                     </div>
                     <div>
