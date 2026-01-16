@@ -1434,6 +1434,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"]
       }
       has_any_admin: { Args: never; Returns: boolean }
+      has_any_role: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1442,7 +1443,11 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_authenticated: { Args: never; Returns: boolean }
+      is_manager_or_higher: { Args: { _user_id: string }; Returns: boolean }
       is_primary_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_staff_or_higher: { Args: { _user_id: string }; Returns: boolean }
+      is_teacher_or_higher: { Args: { _user_id: string }; Returns: boolean }
       log_audit: {
         Args: {
           _action: string
