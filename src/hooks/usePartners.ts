@@ -220,6 +220,26 @@ export function useDeleteJobCategory() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      // Check if job category is being used by trainees
+      const { count: traineeCount } = await supabase
+        .from("trainees")
+        .select("id", { count: "exact", head: true })
+        .eq("job_category_id", id);
+
+      if (traineeCount && traineeCount > 0) {
+        throw new Error(`Không thể xóa vì có ${traineeCount} học viên đang sử dụng ngành nghề này`);
+      }
+
+      // Check if job category is being used by orders
+      const { count: orderCount } = await supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("job_category_id", id);
+
+      if (orderCount && orderCount > 0) {
+        throw new Error(`Không thể xóa vì có ${orderCount} đơn hàng đang sử dụng ngành nghề này`);
+      }
+
       const { error } = await supabase
         .from("job_categories")
         .delete()
@@ -230,7 +250,7 @@ export function useDeleteJobCategory() {
       queryClient.invalidateQueries({ queryKey: ["job_categories"] });
       toast.success("Xóa ngành nghề thành công!");
     },
-    onError: (error: Error) => toast.error("Lỗi: " + error.message),
+    onError: (error: Error) => toast.error(error.message),
   });
 }
 
@@ -238,6 +258,26 @@ export function useDeleteCompany() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      // Check if company is being used by trainees
+      const { count: traineeCount } = await supabase
+        .from("trainees")
+        .select("id", { count: "exact", head: true })
+        .eq("receiving_company_id", id);
+
+      if (traineeCount && traineeCount > 0) {
+        throw new Error(`Không thể xóa vì có ${traineeCount} học viên đang liên kết với công ty này`);
+      }
+
+      // Check if company is being used by orders
+      const { count: orderCount } = await supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("company_id", id);
+
+      if (orderCount && orderCount > 0) {
+        throw new Error(`Không thể xóa vì có ${orderCount} đơn hàng đang liên kết với công ty này`);
+      }
+
       const { error } = await supabase
         .from("companies")
         .delete()
@@ -248,7 +288,7 @@ export function useDeleteCompany() {
       queryClient.invalidateQueries({ queryKey: ["companies"] });
       toast.success("Xóa công ty thành công!");
     },
-    onError: (error: Error) => toast.error("Lỗi: " + error.message),
+    onError: (error: Error) => toast.error(error.message),
   });
 }
 
@@ -256,6 +296,26 @@ export function useDeleteUnion() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      // Check if union is being used by trainees
+      const { count: traineeCount } = await supabase
+        .from("trainees")
+        .select("id", { count: "exact", head: true })
+        .eq("union_id", id);
+
+      if (traineeCount && traineeCount > 0) {
+        throw new Error(`Không thể xóa vì có ${traineeCount} học viên đang liên kết với nghiệp đoàn này`);
+      }
+
+      // Check if union is being used by orders
+      const { count: orderCount } = await supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("union_id", id);
+
+      if (orderCount && orderCount > 0) {
+        throw new Error(`Không thể xóa vì có ${orderCount} đơn hàng đang liên kết với nghiệp đoàn này`);
+      }
+
       const { error } = await supabase
         .from("unions")
         .delete()
@@ -266,6 +326,6 @@ export function useDeleteUnion() {
       queryClient.invalidateQueries({ queryKey: ["unions"] });
       toast.success("Xóa nghiệp đoàn thành công!");
     },
-    onError: (error: Error) => toast.error("Lỗi: " + error.message),
+    onError: (error: Error) => toast.error(error.message),
   });
 }
