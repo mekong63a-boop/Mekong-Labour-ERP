@@ -179,7 +179,7 @@ function getLatestScore(
   testScores: any[] | undefined,
   traineeId: string,
   category: string = "all"
-): { score: number; maxScore: number; testName: string } | null {
+): { score: number; testName: string } | null {
   if (!testScores || testScores.length === 0) return null;
   
   let studentScores = testScores.filter(s => s.trainee_id === traineeId && s.score !== null);
@@ -220,21 +220,22 @@ function getLatestScore(
   const latest = studentScores[0];
   return {
     score: latest.score,
-    maxScore: latest.max_score || 100,
     testName: latest.test_name,
   };
 }
 
-// Get grade based on percentage (0-100%: A=90-100, B=70-89, C=60-69, D=40-59, E=0-39)
-function getGrade(scoreData: { score: number; maxScore: number; testName: string } | null): { label: string; color: string; testName?: string } {
+// Get grade based on score (0-100 scale: A=90-100, B=70-89, C=60-69, D=40-59, E=0-39)
+// Score is always on a 0-100 scale
+function getGrade(scoreData: { score: number; testName: string } | null): { label: string; color: string; testName?: string } {
   if (scoreData === null) return { label: "—", color: "bg-muted text-muted-foreground" };
   
-  const percentage = (scoreData.score / scoreData.maxScore) * 100;
+  // Score is directly on 0-100 scale, no need to calculate percentage
+  const score = scoreData.score;
   
-  if (percentage >= 90) return { label: "A", color: "bg-green-100 text-green-700", testName: scoreData.testName };
-  if (percentage >= 70) return { label: "B", color: "bg-blue-100 text-blue-700", testName: scoreData.testName };
-  if (percentage >= 60) return { label: "C", color: "bg-yellow-100 text-yellow-700", testName: scoreData.testName };
-  if (percentage >= 40) return { label: "D", color: "bg-orange-100 text-orange-700", testName: scoreData.testName };
+  if (score >= 90) return { label: "A", color: "bg-green-100 text-green-700", testName: scoreData.testName };
+  if (score >= 70) return { label: "B", color: "bg-blue-100 text-blue-700", testName: scoreData.testName };
+  if (score >= 60) return { label: "C", color: "bg-yellow-100 text-yellow-700", testName: scoreData.testName };
+  if (score >= 40) return { label: "D", color: "bg-orange-100 text-orange-700", testName: scoreData.testName };
   return { label: "E", color: "bg-red-100 text-red-700", testName: scoreData.testName };
 }
 
