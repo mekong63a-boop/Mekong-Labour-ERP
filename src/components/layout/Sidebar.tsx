@@ -82,10 +82,9 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
     }
     if (path === "#") return false;
     
-    // Handle query string paths
-    if (path.includes("?")) {
-      const [basePath, query] = path.split("?");
-      return location.pathname === basePath && location.search.includes(query);
+    // For /admin path, check exact match (tabs are handled inside the page)
+    if (path === "/admin") {
+      return location.pathname === "/admin";
     }
     
     return location.pathname.startsWith(path);
