@@ -689,6 +689,44 @@ export type Database = {
         }
         Relationships: []
       }
+      menus: {
+        Row: {
+          created_at: string | null
+          icon: string | null
+          key: string
+          label: string
+          order_index: number | null
+          parent_key: string | null
+          path: string
+        }
+        Insert: {
+          created_at?: string | null
+          icon?: string | null
+          key: string
+          label: string
+          order_index?: number | null
+          parent_key?: string | null
+          path: string
+        }
+        Update: {
+          created_at?: string | null
+          icon?: string | null
+          key?: string
+          label?: string
+          order_index?: number | null
+          parent_key?: string | null
+          path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menus_parent_key_fkey"
+            columns: ["parent_key"]
+            isOneToOne: false
+            referencedRelation: "menus"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       orders: {
         Row: {
           code: string
@@ -1391,6 +1429,50 @@ export type Database = {
         }
         Relationships: []
       }
+      user_menu_permissions: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          can_create: boolean | null
+          can_delete: boolean | null
+          can_update: boolean | null
+          can_view: boolean | null
+          id: string
+          menu_key: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          can_create?: boolean | null
+          can_delete?: boolean | null
+          can_update?: boolean | null
+          can_view?: boolean | null
+          id?: string
+          menu_key: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          can_create?: boolean | null
+          can_delete?: boolean | null
+          can_update?: boolean | null
+          can_view?: boolean | null
+          id?: string
+          menu_key?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_menu_permissions_menu_key_fkey"
+            columns: ["menu_key"]
+            isOneToOne: false
+            referencedRelation: "menus"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           assigned_at: string | null
@@ -1803,12 +1885,26 @@ export type Database = {
       }
       count_sub_admins: { Args: never; Returns: number }
       get_user_department: { Args: { _user_id: string }; Returns: string }
+      get_user_menu_permissions: {
+        Args: { _user_id: string }
+        Returns: {
+          can_create: boolean
+          can_delete: boolean
+          can_update: boolean
+          can_view: boolean
+          menu_key: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
       has_any_admin: { Args: never; Returns: boolean }
       has_any_role: { Args: { _user_id: string }; Returns: boolean }
+      has_menu_permission: {
+        Args: { _action?: string; _menu_key: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1817,9 +1913,11 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_admin_check: { Args: { _user_id: string }; Returns: boolean }
       is_authenticated: { Args: never; Returns: boolean }
       is_manager_or_higher: { Args: { _user_id: string }; Returns: boolean }
       is_primary_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_primary_admin_check: { Args: { _user_id: string }; Returns: boolean }
       is_staff_or_higher: { Args: { _user_id: string }; Returns: boolean }
       is_teacher_or_higher: { Args: { _user_id: string }; Returns: boolean }
       log_audit: {

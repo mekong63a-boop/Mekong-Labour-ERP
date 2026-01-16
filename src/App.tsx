@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { MenuProtectedRoute } from "@/components/auth/MenuProtectedRoute";
 import { AuthProviderWrapper } from "@/components/auth/AuthProvider";
 import Dashboard from "./pages/Dashboard";
 import TraineeList from "./pages/TraineeList";
@@ -51,7 +52,7 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             
-            {/* Protected Routes */}
+            {/* Protected Routes - Menu-based permissions */}
             <Route
               element={
                 <ProtectedRoute>
@@ -59,218 +60,227 @@ const App = () => (
                 </ProtectedRoute>
               }
             >
-              <Route path="/" element={<Dashboard />} />
+              {/* Dashboard - accessible to all authenticated users with dashboard permission */}
+              <Route
+                path="/"
+                element={
+                  <MenuProtectedRoute menuKey="dashboard">
+                    <Dashboard />
+                  </MenuProtectedRoute>
+                }
+              />
               
-              {/* Trainee Routes - Admin, Manager, Staff */}
+              {/* Trainee Routes */}
               <Route
                 path="/trainees"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager", "staff"]}>
+                  <MenuProtectedRoute menuKey="trainees">
                     <TraineeList />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               <Route
                 path="/hoc-vien"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager", "staff"]}>
+                  <MenuProtectedRoute menuKey="trainees">
                     <TraineeList />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               <Route
                 path="/trainees/new"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager", "staff"]}>
+                  <MenuProtectedRoute menuKey="trainees" requiredAction="create">
                     <TraineeForm />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               <Route
                 path="/trainees/:id/edit"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager", "staff"]}>
+                  <MenuProtectedRoute menuKey="trainees" requiredAction="update">
                     <TraineeForm />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               <Route
                 path="/trainees/:id"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager", "staff"]}>
+                  <MenuProtectedRoute menuKey="trainees">
                     <TraineeDetail />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               
-              {/* Education Routes - Admin, Manager, Teacher */}
+              {/* Education Routes */}
               <Route
                 path="/education"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager", "teacher"]}>
+                  <MenuProtectedRoute menuKey="education">
                     <EducationDashboard />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               <Route
                 path="/training"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager", "teacher"]}>
+                  <MenuProtectedRoute menuKey="education">
                     <EducationDashboard />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               <Route
                 path="/education/teachers"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <MenuProtectedRoute menuKey="education">
                     <TeacherList />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               <Route
                 path="/education/classes"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager", "teacher"]}>
+                  <MenuProtectedRoute menuKey="education">
                     <ClassList />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               <Route
                 path="/education/classes/:id/attendance"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager", "teacher"]}>
+                  <MenuProtectedRoute menuKey="education">
                     <AttendanceCalendar />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               <Route
                 path="/education/attendance"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager", "teacher"]}>
+                  <MenuProtectedRoute menuKey="education">
                     <AttendanceCalendar />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               <Route
                 path="/education/attendance/:id"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager", "teacher"]}>
+                  <MenuProtectedRoute menuKey="education">
                     <AttendanceCalendar />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               <Route
                 path="/education/classes/:classId/students"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager", "teacher"]}>
+                  <MenuProtectedRoute menuKey="education">
                     <ClassStudentsPage />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               <Route
                 path="/education/classes/:classId/test-scores"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager", "teacher"]}>
+                  <MenuProtectedRoute menuKey="education">
                     <TestScoresPage />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               
-              {/* Orders - Admin, Manager */}
+              {/* Orders */}
               <Route
                 path="/orders"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <MenuProtectedRoute menuKey="orders">
                     <OrderList />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
 
-              {/* Partners - Admin, Manager */}
+              {/* Partners */}
               <Route
                 path="/partners"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <MenuProtectedRoute menuKey="partners">
                     <PartnerList />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               <Route
                 path="/partners/companies/new"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <MenuProtectedRoute menuKey="partners" requiredAction="create">
                     <CompanyForm />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               <Route
                 path="/partners/companies/:id/edit"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <MenuProtectedRoute menuKey="partners" requiredAction="update">
                     <CompanyForm />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               <Route
                 path="/partners/unions/new"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <MenuProtectedRoute menuKey="partners" requiredAction="create">
                     <UnionForm />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               <Route
                 path="/partners/unions/:id/edit"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <MenuProtectedRoute menuKey="partners" requiredAction="update">
                     <UnionForm />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               <Route
                 path="/partners/job-categories/new"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <MenuProtectedRoute menuKey="partners" requiredAction="create">
                     <JobCategoryForm />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               <Route
                 path="/partners/job-categories/:id/edit"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <MenuProtectedRoute menuKey="partners" requiredAction="update">
                     <JobCategoryForm />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
 
+              {/* Glossary */}
               <Route
                 path="/glossary"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager", "staff"]}>
+                  <MenuProtectedRoute menuKey="glossary">
                     <GlossaryPage />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
 
-              {/* Internal Union - Admin, Manager */}
+              {/* Internal Union */}
               <Route
                 path="/internal-union"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <MenuProtectedRoute menuKey="internal_union">
                     <InternalUnionPage />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
 
-              {/* Post Departure - Admin, Manager */}
+              {/* Post Departure */}
               <Route
                 path="/post-departure"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <MenuProtectedRoute menuKey="post_departure">
                     <PostDeparturePage />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
 
@@ -278,17 +288,17 @@ const App = () => (
               <Route
                 path="/dormitory"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager", "staff"]}>
+                  <MenuProtectedRoute menuKey="dormitory">
                     <DormitoryPage />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
               <Route
                 path="/legal"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager", "staff"]}>
+                  <MenuProtectedRoute menuKey="legal">
                     <LegalPage />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
 
@@ -296,19 +306,19 @@ const App = () => (
               <Route
                 path="/handbook"
                 element={
-                  <ProtectedRoute>
+                  <MenuProtectedRoute menuKey="handbook">
                     <HandbookPage />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
 
-              {/* Blacklist */}
+              {/* Blacklist/Violations */}
               <Route
                 path="/violations"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager", "staff"]}>
+                  <MenuProtectedRoute menuKey="violations">
                     <ViolationsPage />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
 
@@ -316,23 +326,23 @@ const App = () => (
               <Route
                 path="/reports"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <MenuProtectedRoute menuKey="reports">
                     <ReportsPage />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
 
-              {/* Admin Page - Combined System Monitor, User Management, Departments */}
+              {/* Admin Page */}
               <Route
                 path="/admin"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <MenuProtectedRoute menuKey="admin">
                     <AdminPage />
-                  </ProtectedRoute>
+                  </MenuProtectedRoute>
                 }
               />
 
-              {/* Legacy redirects for old routes */}
+              {/* Legacy redirects */}
               <Route
                 path="/system-monitor"
                 element={<Navigate to="/admin" replace />}
@@ -346,6 +356,7 @@ const App = () => (
                 element={<Navigate to="/admin" replace />}
               />
               
+              {/* Change Password - accessible to all authenticated users */}
               <Route
                 path="/change-password"
                 element={
