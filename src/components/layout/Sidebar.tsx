@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -19,62 +19,32 @@ import {
   ChevronDown,
   ChevronUp,
   HandCoins,
+  LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import mekongLogo from "@/assets/mekong-logo.png";
 import { useAuth } from "@/hooks/useAuth";
+import { useMenuPermissions, Menu } from "@/hooks/useMenuPermissions";
+import { Skeleton } from "@/components/ui/skeleton";
 
-type MenuItem = {
-  path: string;
-  icon: any;
-  label: string;
-  permission?: "trainees" | "orders" | "education" | "glossary" | "settings" | "all";
-  children?: {
-    path: string;
-    icon: any;
-    label: string;
-    permission?: "trainees" | "orders" | "education" | "glossary" | "settings" | "all";
-  }[];
+// Icon mapping từ string trong database
+const iconMap: Record<string, LucideIcon> = {
+  LayoutDashboard,
+  Users,
+  ClipboardList,
+  Building2,
+  GraduationCap,
+  Home,
+  FileSpreadsheet,
+  Plane,
+  BookOpen,
+  AlertTriangle,
+  Languages,
+  Monitor,
+  Shield,
+  Settings,
+  HandCoins,
 };
-
-const menuItems: MenuItem[] = [
-  { path: "/", icon: LayoutDashboard, label: "Tổng quan", permission: "all" },
-  { path: "/trainees", icon: Users, label: "Học viên", permission: "trainees" },
-  { path: "/orders", icon: ClipboardList, label: "Đơn hàng", permission: "orders" },
-  { path: "/partners", icon: Building2, label: "Đối tác", permission: "orders" },
-  {
-    path: "/internal-ops",
-    icon: Building2,
-    label: "Nghiệp vụ nội bộ",
-    permission: "trainees",
-    children: [
-      { path: "/education", icon: GraduationCap, label: "Đào tạo", permission: "education" },
-      { path: "/dormitory", icon: Home, label: "Quản lý KTX", permission: "trainees" },
-      { path: "/legal", icon: FileSpreadsheet, label: "Tình trạng hồ sơ", permission: "trainees" },
-    ],
-  },
-  { path: "/post-departure", icon: Plane, label: "Nghiệp vụ sau xuất cảnh", permission: "orders" },
-  { path: "/handbook", icon: BookOpen, label: "Cẩm nang tư vấn", permission: "all" },
-  { path: "/violations", icon: AlertTriangle, label: "Blacklist", permission: "trainees" },
-  { path: "/reports", icon: FileSpreadsheet, label: "Báo cáo", permission: "orders" },
-  { path: "/glossary", icon: Languages, label: "Từ điển chuyên ngành", permission: "glossary" },
-  { path: "/internal-union", icon: HandCoins, label: "Công đoàn nội bộ", permission: "orders" },
-  {
-    path: "/admin",
-    icon: Shield,
-    label: "Quản trị hệ thống",
-    permission: "settings",
-    children: [
-      { path: "/admin?tab=monitor", icon: Monitor, label: "Giám sát hệ thống", permission: "settings" },
-      { path: "/admin?tab=users", icon: Shield, label: "Quản lý phân quyền", permission: "settings" },
-      { path: "/admin?tab=departments", icon: Building2, label: "Quản lý phòng ban", permission: "settings" },
-    ],
-  },
-];
-
-const bottomMenuItems: MenuItem[] = [
-  { path: "/change-password", icon: Settings, label: "Đổi mật khẩu", permission: "all" },
-];
 
 interface SidebarProps {
   collapsed?: boolean;
@@ -86,48 +56,44 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut, role } = useAuth();
-  
-  const isAdmin = role === "admin";
-  const isManager = role === "manager";
-  const isTeacher = role === "teacher";
-  const isStaff = role === "staff";
+  const { menus, visibleMenus, isPrimaryAdmin, isAdmin, isLoading } = useMenuPermissions();
 
-  const canAccessTrainees = isAdmin || isManager || isStaff;
-  const canAccessOrders = isAdmin || isManager;
-  const canAccessEducation = isAdmin || isManager || isTeacher;
-  const canAccessGlossary = isAdmin || isManager || isStaff;
-  const canAccessSettings = isAdmin;
+  // Build menu tree structure
+  const menuTree = useMemo(() => {
+    if (!visibleMenus?.length) return [];
 
-  const checkPermission = (permission?: string): boolean => {
-    if (!permission || permission === "all") return true;
-    if (isAdmin) return true;
-    
-    switch (permission) {
-      case "trainees":
-        return canAccessTrainees;
-      case "orders":
-        return canAccessOrders;
-      case "education":
-        return canAccessEducation;
-      case "glossary":
-        return canAccessGlossary;
-      case "settings":
-        return canAccessSettings;
-      default:
-        return false;
-    }
-  };
+    // Lấy tất cả parent menus (không có parent_key)
+    const parentMenus = visibleMenus
+      .filter(m => !m.parent_key)
+      .sort((a, b) => a.order_index - b.order_index);
+
+    // Thêm children cho mỗi parent
+    return parentMenus.map(parent => ({
+      ...parent,
+      children: visibleMenus
+        .filter(m => m.parent_key === parent.key)
+        .sort((a, b) => a.order_index - b.order_index),
+    }));
+  }, [visibleMenus]);
 
   const isActive = (path: string) => {
     if (path === "/") {
       return location.pathname === "/";
     }
+    if (path === "#") return false;
+    
+    // Handle query string paths
+    if (path.includes("?")) {
+      const [basePath, query] = path.split("?");
+      return location.pathname === basePath && location.search.includes(query);
+    }
+    
     return location.pathname.startsWith(path);
   };
 
-  const toggleSubmenu = (path: string) => {
+  const toggleSubmenu = (key: string) => {
     setExpandedMenus((prev) =>
-      prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path]
+      prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key]
     );
   };
 
@@ -136,12 +102,15 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
     navigate("/login");
   };
 
-  const getRoleLabel = (role: string | null) => {
+  const getRoleLabel = () => {
+    if (isPrimaryAdmin) return "Admin chính";
+    if (isAdmin) return "Quản trị viên";
+    
     switch (role) {
       case "admin":
         return "Quản trị viên";
       case "manager":
-        return "Quản lý";
+        return "Trưởng phòng";
       case "staff":
         return "Nhân viên";
       case "teacher":
@@ -151,31 +120,29 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
     }
   };
 
-  const renderMenuItem = (item: MenuItem) => {
-    // Check permission
-    if (!checkPermission(item.permission)) {
-      return null;
-    }
+  const getIcon = (iconName: string | null): LucideIcon => {
+    if (!iconName) return LayoutDashboard;
+    return iconMap[iconName] || LayoutDashboard;
+  };
 
+  const renderMenuItem = (item: Menu & { children?: Menu[] }) => {
     const hasChildren = item.children && item.children.length > 0;
-    const isExpanded = expandedMenus.includes(item.path);
+    const isExpanded = expandedMenus.includes(item.key);
     const active = isActive(item.path);
+    const Icon = getIcon(item.icon);
 
-    // Filter children by permission
-    const visibleChildren = item.children?.filter(child => checkPermission(child.permission));
-
-    if (hasChildren && visibleChildren && visibleChildren.length > 0) {
+    if (hasChildren) {
       return (
-        <div key={item.path}>
+        <div key={item.key}>
           <button
-            onClick={() => toggleSubmenu(item.path)}
+            onClick={() => toggleSubmenu(item.key)}
             className={cn(
               "sidebar-link w-full justify-between",
               active && "bg-sidebar-accent font-medium"
             )}
           >
             <div className="flex items-center gap-2.5">
-              <item.icon className="h-4 w-4 flex-shrink-0" />
+              <Icon className="h-4 w-4 flex-shrink-0" />
               {!collapsed && <span>{item.label}</span>}
             </div>
             {!collapsed &&
@@ -187,19 +154,22 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
           </button>
           {!collapsed && isExpanded && (
             <div className="mt-1 rounded-lg bg-sidebar-accent/30 p-1 space-y-0.5">
-              {visibleChildren.map((child) => (
-                <Link
-                  key={child.path}
-                  to={child.path}
-                  className={cn(
-                    "sidebar-link py-2",
-                    isActive(child.path) && "bg-sidebar-accent font-medium"
-                  )}
-                >
-                  <child.icon className="h-3.5 w-3.5 flex-shrink-0" />
-                  <span>{child.label}</span>
-                </Link>
-              ))}
+              {item.children!.map((child) => {
+                const ChildIcon = getIcon(child.icon);
+                return (
+                  <Link
+                    key={child.key}
+                    to={child.path}
+                    className={cn(
+                      "sidebar-link py-2",
+                      isActive(child.path) && "bg-sidebar-accent font-medium"
+                    )}
+                  >
+                    <ChildIcon className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span>{child.label}</span>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>
@@ -208,15 +178,44 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
 
     return (
       <Link
-        key={item.path}
+        key={item.key}
         to={item.path}
         className={cn("sidebar-link", active && "bg-sidebar-accent font-medium")}
       >
-        <item.icon className="h-4 w-4 flex-shrink-0" />
+        <Icon className="h-4 w-4 flex-shrink-0" />
         {!collapsed && <span>{item.label}</span>}
       </Link>
     );
   };
+
+  // Loading skeleton
+  if (isLoading) {
+    return (
+      <aside
+        className={cn(
+          "flex flex-col bg-sidebar text-sidebar-foreground h-screen transition-all duration-300",
+          collapsed ? "w-16" : "w-60"
+        )}
+      >
+        <div className="p-2">
+          <div className="flex items-center gap-2.5 bg-white rounded-lg p-2">
+            <Skeleton className="h-9 w-9" />
+            {!collapsed && (
+              <div className="flex flex-col gap-1">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+            )}
+          </div>
+        </div>
+        <nav className="flex-1 px-2 py-1.5 space-y-1">
+          {[...Array(8)].map((_, i) => (
+            <Skeleton key={i} className="h-9 w-full" />
+          ))}
+        </nav>
+      </aside>
+    );
+  }
 
   return (
     <aside
@@ -245,29 +244,23 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
         </Link>
       </div>
 
-      {/* Main Navigation */}
+      {/* Main Navigation - Dynamic from database */}
       <nav className="flex-1 overflow-y-auto px-2 py-1.5 space-y-0.5 scrollbar-thin scrollbar-thumb-sidebar-accent scrollbar-track-transparent">
-        {menuItems.map(renderMenuItem)}
+        {menuTree.map(renderMenuItem)}
       </nav>
 
       {/* Bottom Navigation */}
       <div className="border-t border-sidebar-border px-2 py-1.5 space-y-0.5">
-        {bottomMenuItems.map((item) => {
-          if (!checkPermission(item.permission)) return null;
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={cn(
-                "sidebar-link",
-                isActive(item.path) && "bg-sidebar-accent font-medium"
-              )}
-            >
-              <item.icon className="h-4 w-4 flex-shrink-0" />
-              {!collapsed && <span>{item.label}</span>}
-            </Link>
-          );
-        })}
+        <Link
+          to="/change-password"
+          className={cn(
+            "sidebar-link",
+            isActive("/change-password") && "bg-sidebar-accent font-medium"
+          )}
+        >
+          <Settings className="h-4 w-4 flex-shrink-0" />
+          {!collapsed && <span>Đổi mật khẩu</span>}
+        </Link>
         <button
           onClick={handleLogout}
           className="sidebar-link w-full text-left"
@@ -291,7 +284,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
                 {user?.email?.split("@")[0] || "User"}
               </span>
               <span className="text-[11px] text-sidebar-foreground/70 leading-tight">
-                {getRoleLabel(role)}
+                {getRoleLabel()}
               </span>
             </div>
           )}
