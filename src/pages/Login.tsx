@@ -9,6 +9,23 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, LogIn, UserPlus, Shield, Sparkles } from "lucide-react";
 import mekongLogo from "@/assets/mekong-logo.png";
+import { supabase } from "@/integrations/supabase/client";
+
+// Helper function to log auth events
+const logAuthEvent = async (action: "LOGIN" | "LOGOUT", userId: string, email: string, success: boolean) => {
+  try {
+    await supabase.from("audit_logs").insert({
+      user_id: userId,
+      action,
+      table_name: "auth",
+      description: success 
+        ? `${action === "LOGIN" ? "Đăng nhập" : "Đăng xuất"} thành công: ${email}`
+        : `${action === "LOGIN" ? "Đăng nhập" : "Đăng xuất"} thất bại: ${email}`,
+    });
+  } catch (error) {
+    console.error("Error logging auth event:", error);
+  }
+};
 
 export default function Login() {
   const navigate = useNavigate();
@@ -41,6 +58,11 @@ export default function Login() {
         variant: "destructive",
       });
     } else {
+      // Log successful login
+      const { data: { user: loggedInUser } } = await supabase.auth.getUser();
+      if (loggedInUser) {
+        await logAuthEvent("LOGIN", loggedInUser.id, loginEmail, true);
+      }
       toast({
         title: "Đăng nhập thành công",
         description: "Chào mừng bạn trở lại!",
