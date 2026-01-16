@@ -5,13 +5,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Building2, Users, Crown, Briefcase, UserCheck, GraduationCap, Star, Loader2, Settings, UserPlus, ShieldCheck, Check, X } from "lucide-react";
+import { Building2, Users, Crown, Briefcase, UserCheck, GraduationCap, Star, Loader2, Settings, UserPlus, ShieldCheck, Check, X, Pencil, Trash2, UserCog } from "lucide-react";
 import { DepartmentStaffModal } from "@/components/admin/DepartmentStaffModal";
 import { DepartmentMenuPermissionsModal } from "@/components/admin/DepartmentMenuPermissionsModal";
 import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Database } from "@/integrations/supabase/types";
+import { useAuditLog, generateAuditDescription } from "@/hooks/useAuditLog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
@@ -34,6 +39,16 @@ interface PendingUser {
   user_id: string;
   email: string | null;
   full_name: string | null;
+  created_at: string;
+}
+
+interface UserWithRole {
+  user_id: string;
+  email: string | null;
+  full_name: string | null;
+  role: AppRole | null;
+  role_id: string | null;
+  is_primary_admin: boolean;
   created_at: string;
 }
 
@@ -107,51 +122,73 @@ type ModalType = "staff" | "menu" | null;
 
 export default function DepartmentsContent() {
   const queryClient = useQueryClient();
+  const { logAudit } = useAuditLog();
   const [selectedDepartment, setSelectedDepartment] = useState<typeof departmentConfig[0] | null>(null);
   const [modalType, setModalType] = useState<ModalType>(null);
   const [pendingRoles, setPendingRoles] = useState<Record<string, AppRole>>({});
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editingRole, setEditingRole] = useState<AppRole | null>(null);
+  const [userSearch, setUserSearch] = useState("");
+  const [userTab, setUserTab] = useState<"pending" | "all">("all");
   const { isPrimaryAdmin, isAdmin } = useMenuPermissions();
   const canManage = isPrimaryAdmin || isAdmin;
 
-  // Fetch pending users (users without any role)
-  const { data: pendingUsers = [], isLoading: loadingPending } = useQuery({
-    queryKey: ["pending-users"],
+  // Fetch ALL users with their roles
+  const { data: allUsersWithRoles = [], isLoading: loadingAllUsers, refetch: refetchAllUsers } = useQuery({
+    queryKey: ["all-users-with-roles"],
     queryFn: async () => {
-      // Get all profiles
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("user_id, email, full_name, created_at")
         .order("created_at", { ascending: false });
       if (profilesError) throw profilesError;
 
-      // Get all user roles
       const { data: roles, error: rolesError } = await supabase
         .from("user_roles")
-        .select("user_id");
+        .select("id, user_id, role, is_primary_admin");
       if (rolesError) throw rolesError;
 
-      const usersWithRole = new Set(roles.map((r) => r.user_id));
-      
-      // Filter users without any role
-      return profiles
-        .filter((p) => !usersWithRole.has(p.user_id))
-        .map((p) => ({
+      return profiles.map((p) => {
+        const userRole = roles.find((r) => r.user_id === p.user_id);
+        return {
           user_id: p.user_id,
           email: p.email,
           full_name: p.full_name,
+          role: userRole?.role || null,
+          role_id: userRole?.id || null,
+          is_primary_admin: userRole?.is_primary_admin || false,
           created_at: p.created_at,
-        })) as PendingUser[];
+        } as UserWithRole;
+      });
     },
     enabled: canManage,
   });
 
-  // Mutation to assign role to pending user
+  // Filter users
+  const pendingUsers = allUsersWithRoles.filter(u => !u.role);
+  const usersWithRole = allUsersWithRoles.filter(u => u.role);
+  const filteredUsers = allUsersWithRoles.filter(u => 
+    u.email?.toLowerCase().includes(userSearch.toLowerCase()) ||
+    u.full_name?.toLowerCase().includes(userSearch.toLowerCase())
+  );
+
+  // Mutation to assign role to pending user with audit log
   const assignRoleMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
+    mutationFn: async ({ userId, role, userName }: { userId: string; role: AppRole; userName?: string }) => {
       const { error } = await supabase
         .from("user_roles")
         .insert({ user_id: userId, role });
       if (error) throw error;
+      
+      // Log audit
+      await logAudit(
+        "INSERT",
+        "user_roles",
+        userId,
+        null,
+        { user_id: userId, role },
+        `Cấp quyền "${roleOptions.find(r => r.value === role)?.label}" cho ${userName || userId}`
+      );
     },
     onSuccess: (_, { userId }) => {
       toast.success("Đã cấp quyền thành công!");
@@ -160,7 +197,65 @@ export default function DepartmentsContent() {
         delete newRoles[userId];
         return newRoles;
       });
-      queryClient.invalidateQueries({ queryKey: ["pending-users"] });
+      queryClient.invalidateQueries({ queryKey: ["all-users-with-roles"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+    onError: (error: Error) => {
+      toast.error("Lỗi: " + error.message);
+    },
+  });
+
+  // Mutation to UPDATE role with audit log
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({ roleId, oldRole, newRole, userName }: { roleId: string; oldRole: AppRole; newRole: AppRole; userName?: string }) => {
+      const { error } = await supabase
+        .from("user_roles")
+        .update({ role: newRole })
+        .eq("id", roleId);
+      if (error) throw error;
+      
+      await logAudit(
+        "UPDATE",
+        "user_roles",
+        roleId,
+        { role: oldRole },
+        { role: newRole },
+        `Thay đổi quyền từ "${roleOptions.find(r => r.value === oldRole)?.label}" thành "${roleOptions.find(r => r.value === newRole)?.label}" cho ${userName}`
+      );
+    },
+    onSuccess: () => {
+      toast.success("Đã cập nhật quyền thành công!");
+      setEditingUserId(null);
+      setEditingRole(null);
+      queryClient.invalidateQueries({ queryKey: ["all-users-with-roles"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+    onError: (error: Error) => {
+      toast.error("Lỗi: " + error.message);
+    },
+  });
+
+  // Mutation to DELETE role with audit log
+  const deleteRoleMutation = useMutation({
+    mutationFn: async ({ roleId, role, userName }: { roleId: string; role: AppRole; userName?: string }) => {
+      const { error } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("id", roleId);
+      if (error) throw error;
+      
+      await logAudit(
+        "DELETE",
+        "user_roles",
+        roleId,
+        { role },
+        null,
+        `Xóa quyền "${roleOptions.find(r => r.value === role)?.label}" của ${userName}`
+      );
+    },
+    onSuccess: () => {
+      toast.success("Đã xóa quyền thành công!");
+      queryClient.invalidateQueries({ queryKey: ["all-users-with-roles"] });
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
     },
     onError: (error: Error) => {
@@ -278,7 +373,7 @@ export default function DepartmentsContent() {
     setModalType(null);
   };
 
-  const isLoading = loadingCounts || loadingMembers || loadingAdmins || loadingPending;
+  const isLoading = loadingCounts || loadingMembers || loadingAdmins || loadingAllUsers;
 
   if (isLoading) {
     return (
@@ -290,74 +385,221 @@ export default function DepartmentsContent() {
 
   return (
     <div className="space-y-6">
-      {/* Pending Users Section - NEW */}
-      {canManage && pendingUsers.length > 0 && (
-        <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+      {/* User Management Section */}
+      {canManage && (
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5 text-blue-500" />
-              Tài khoản chờ cấp quyền
-              <Badge variant="secondary" className="ml-2">{pendingUsers.length}</Badge>
+              <UserCog className="h-5 w-5 text-primary" />
+              Quản lý tài khoản & phân quyền
+              <Badge variant="secondary" className="ml-2">{allUsersWithRoles.length} người dùng</Badge>
+              {pendingUsers.length > 0 && (
+                <Badge variant="destructive" className="ml-1">{pendingUsers.length} chờ cấp quyền</Badge>
+              )}
             </CardTitle>
-            <CardDescription>Các tài khoản đã đăng ký nhưng chưa được gán quyền hệ thống</CardDescription>
+            <CardDescription>Cấp quyền, chỉnh sửa và quản lý tất cả tài khoản trong hệ thống</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {pendingUsers.map((user) => (
-                <div key={user.user_id} className="flex items-center gap-4 p-3 bg-white rounded-lg border shadow-sm">
-                  <Avatar>
-                    <AvatarFallback className="bg-blue-100 text-blue-700">
-                      {user.full_name?.charAt(0) || user.email?.charAt(0) || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{user.full_name || "Chưa đặt tên"}</p>
-                    <p className="text-sm text-muted-foreground truncate">{user.email}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Select
-                      value={pendingRoles[user.user_id] || ""}
-                      onValueChange={(val) => setPendingRoles((prev) => ({ ...prev, [user.user_id]: val as AppRole }))}
-                    >
-                      <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Chọn quyền" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roleOptions.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            <div className="flex items-center gap-2">
-                              <opt.icon className="h-4 w-4" />
-                              {opt.label}
+            <div className="space-y-4">
+              {/* Search & Tabs */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Input 
+                  placeholder="Tìm theo tên hoặc email..." 
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  className="sm:max-w-xs"
+                />
+                <Tabs value={userTab} onValueChange={(v) => setUserTab(v as "pending" | "all")} className="flex-1">
+                  <TabsList>
+                    <TabsTrigger value="all">
+                      Tất cả ({usersWithRole.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="pending">
+                      Chờ cấp quyền ({pendingUsers.length})
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+
+              {/* Users Table */}
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Người dùng</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Quyền hệ thống</TableHead>
+                      <TableHead className="text-right">Hành động</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(userTab === "pending" ? pendingUsers : filteredUsers).map((user) => {
+                      const isEditing = editingUserId === user.user_id;
+                      const isPrimary = user.is_primary_admin;
+                      
+                      return (
+                        <TableRow key={user.user_id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback className={isPrimary ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white" : "bg-muted"}>
+                                  {user.full_name?.charAt(0) || user.email?.charAt(0) || "U"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{user.full_name || "Chưa đặt tên"}</span>
+                                {isPrimary && (
+                                  <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs">Admin chính</Badge>
+                                )}
+                              </div>
                             </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      size="sm"
-                      disabled={!pendingRoles[user.user_id] || assignRoleMutation.isPending}
-                      onClick={() => {
-                        if (pendingRoles[user.user_id]) {
-                          assignRoleMutation.mutate({ userId: user.user_id, role: pendingRoles[user.user_id] });
-                        }
-                      }}
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setPendingRoles((prev) => {
-                        const newRoles = { ...prev };
-                        delete newRoles[user.user_id];
-                        return newRoles;
-                      })}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                          <TableCell>
+                            {isEditing ? (
+                              <Select
+                                value={editingRole || ""}
+                                onValueChange={(val) => setEditingRole(val as AppRole)}
+                              >
+                                <SelectTrigger className="w-36">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {roleOptions.map((opt) => (
+                                    <SelectItem key={opt.value} value={opt.value}>
+                                      <div className="flex items-center gap-2">
+                                        <opt.icon className="h-4 w-4" />
+                                        {opt.label}
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : user.role ? (
+                              <Badge variant={user.role === "admin" ? "destructive" : user.role === "manager" ? "default" : "secondary"}>
+                                {roleOptions.find(r => r.value === user.role)?.label || user.role}
+                              </Badge>
+                            ) : (
+                              <Select
+                                value={pendingRoles[user.user_id] || ""}
+                                onValueChange={(val) => setPendingRoles((prev) => ({ ...prev, [user.user_id]: val as AppRole }))}
+                              >
+                                <SelectTrigger className="w-36">
+                                  <SelectValue placeholder="Chọn quyền" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {roleOptions.map((opt) => (
+                                    <SelectItem key={opt.value} value={opt.value}>
+                                      <div className="flex items-center gap-2">
+                                        <opt.icon className="h-4 w-4" />
+                                        {opt.label}
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {isPrimary ? (
+                              <span className="text-xs text-muted-foreground">Không thể chỉnh sửa</span>
+                            ) : isEditing ? (
+                              <div className="flex justify-end gap-1">
+                                <Button
+                                  size="sm"
+                                  disabled={!editingRole || editingRole === user.role || updateRoleMutation.isPending}
+                                  onClick={() => {
+                                    if (editingRole && user.role_id) {
+                                      updateRoleMutation.mutate({
+                                        roleId: user.role_id,
+                                        oldRole: user.role!,
+                                        newRole: editingRole,
+                                        userName: user.full_name || user.email || undefined,
+                                      });
+                                    }
+                                  }}
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={() => { setEditingUserId(null); setEditingRole(null); }}>
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : user.role ? (
+                              <div className="flex justify-end gap-1">
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost"
+                                  onClick={() => { setEditingUserId(user.user_id); setEditingRole(user.role); }}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Xóa quyền người dùng?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Bạn có chắc muốn xóa quyền "{roleOptions.find(r => r.value === user.role)?.label}" của {user.full_name || user.email}? 
+                                        Người dùng sẽ không còn quyền truy cập hệ thống.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        onClick={() => {
+                                          if (user.role_id && user.role) {
+                                            deleteRoleMutation.mutate({
+                                              roleId: user.role_id,
+                                              role: user.role,
+                                              userName: user.full_name || user.email || undefined,
+                                            });
+                                          }
+                                        }}
+                                      >
+                                        Xóa quyền
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            ) : (
+                              <Button
+                                size="sm"
+                                disabled={!pendingRoles[user.user_id] || assignRoleMutation.isPending}
+                                onClick={() => {
+                                  if (pendingRoles[user.user_id]) {
+                                    assignRoleMutation.mutate({
+                                      userId: user.user_id,
+                                      role: pendingRoles[user.user_id],
+                                      userName: user.full_name || user.email || undefined,
+                                    });
+                                  }
+                                }}
+                              >
+                                <Check className="h-4 w-4 mr-1" />
+                                Cấp quyền
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {(userTab === "pending" ? pendingUsers : filteredUsers).length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                          {userTab === "pending" ? "Không có tài khoản chờ cấp quyền" : "Không tìm thấy người dùng"}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </CardContent>
         </Card>
