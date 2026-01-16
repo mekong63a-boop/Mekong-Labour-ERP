@@ -137,6 +137,7 @@ export function DepartmentStaffModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["department-members"] });
+      queryClient.invalidateQueries({ queryKey: ["department-members-all"] });
       queryClient.invalidateQueries({ queryKey: ["department-counts"] });
       toast.success("Đã gán trưởng phòng thành công");
     },
@@ -158,6 +159,7 @@ export function DepartmentStaffModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["department-members"] });
+      queryClient.invalidateQueries({ queryKey: ["department-members-all"] });
       queryClient.invalidateQueries({ queryKey: ["department-counts"] });
       toast.success("Đã thêm nhân viên thành công");
     },
@@ -177,6 +179,7 @@ export function DepartmentStaffModal({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["department-members"] });
+      queryClient.invalidateQueries({ queryKey: ["department-members-all"] });
       queryClient.invalidateQueries({ queryKey: ["department-counts"] });
       toast.success("Đã gỡ thành viên khỏi phòng ban");
     },

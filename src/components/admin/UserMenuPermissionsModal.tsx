@@ -12,17 +12,18 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Loader2, Menu, Eye, Plus, Edit, Trash2, Save } from "lucide-react";
+import { Loader2, Menu, Eye, Plus, Edit, Trash2, Save, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
-interface DepartmentMenuPermissionsModalProps {
+interface UserMenuPermissionsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  department: {
-    value: string;
-    label: string;
-    color: string;
+  targetUser: {
+    user_id: string;
+    email: string | null;
+    full_name: string | null;
   };
 }
 
@@ -41,11 +42,11 @@ interface MenuInfo {
   order_index: number;
 }
 
-export function DepartmentMenuPermissionsModal({
+export function UserMenuPermissionsModal({
   open,
   onOpenChange,
-  department,
-}: DepartmentMenuPermissionsModalProps) {
+  targetUser,
+}: UserMenuPermissionsModalProps) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [localPermissions, setLocalPermissions] = useState<Record<string, MenuPermission>>({});
@@ -66,16 +67,30 @@ export function DepartmentMenuPermissionsModal({
     enabled: open,
   });
 
-  // Fetch current department menu permissions
+  // Fetch current user menu permissions
   const { data: currentPermissions = [], isLoading: loadingPerms } = useQuery({
-    queryKey: ["department-menu-permissions", department.value],
+    queryKey: ["user-menu-permissions", targetUser.user_id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("department_menu_permissions")
+        .from("user_menu_permissions")
         .select("*")
-        .eq("department", department.value);
+        .eq("user_id", targetUser.user_id);
       if (error) throw error;
-      return data as (MenuPermission & { id: string; department: string })[];
+      return data as (MenuPermission & { id: string; user_id: string })[];
+    },
+    enabled: open,
+  });
+
+  // Fetch user's departments
+  const { data: userDepartments = [] } = useQuery({
+    queryKey: ["user-departments", targetUser.user_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("department_members")
+        .select("department, role_in_department")
+        .eq("user_id", targetUser.user_id);
+      if (error) throw error;
+      return data || [];
     },
     enabled: open,
   });
@@ -126,18 +141,18 @@ export function DepartmentMenuPermissionsModal({
   // Save mutations
   const saveMutation = useMutation({
     mutationFn: async () => {
-      // Delete existing permissions for this department
+      // Delete existing permissions for this user
       const { error: deleteError } = await supabase
-        .from("department_menu_permissions")
+        .from("user_menu_permissions")
         .delete()
-        .eq("department", department.value);
+        .eq("user_id", targetUser.user_id);
       if (deleteError) throw deleteError;
 
       // Insert new permissions (only those with at least can_view = true)
       const toInsert = Object.values(localPermissions)
         .filter((p) => p.can_view)
         .map((p) => ({
-          department: department.value,
+          user_id: targetUser.user_id,
           menu_key: p.menu_key,
           can_view: p.can_view,
           can_create: p.can_create,
@@ -148,16 +163,15 @@ export function DepartmentMenuPermissionsModal({
 
       if (toInsert.length > 0) {
         const { error: insertError } = await supabase
-          .from("department_menu_permissions")
+          .from("user_menu_permissions")
           .insert(toInsert);
         if (insertError) throw insertError;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["department-menu-permissions"] });
-      queryClient.invalidateQueries({ queryKey: ["department-menu-perm-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["user-menu-permissions"] });
       setHasChanges(false);
-      toast.success("Đã lưu quyền menu cho phòng ban");
+      toast.success("Đã lưu quyền menu cá nhân");
     },
     onError: (error) => {
       toast.error("Lỗi khi lưu: " + (error as Error).message);
@@ -180,7 +194,6 @@ export function DepartmentMenuPermissionsModal({
       let updated = { ...current };
       
       if (field === "can_view") {
-        // Nếu tắt view -> tắt tất cả các quyền khác
         if (current.can_view) {
           updated = {
             ...current,
@@ -193,7 +206,6 @@ export function DepartmentMenuPermissionsModal({
           updated.can_view = true;
         }
       } else {
-        // Nếu bật quyền khác -> tự động bật view
         updated[field] = !current[field];
         if (updated[field]) {
           updated.can_view = true;
@@ -260,21 +272,53 @@ export function DepartmentMenuPermissionsModal({
     return Object.values(localPermissions).filter(p => p.can_view).length;
   }, [localPermissions]);
 
+  const departmentLabels: Record<string, string> = {
+    recruitment: "Tuyển dụng",
+    training: "Đào tạo",
+    legal: "Hồ sơ",
+    dormitory: "KTX",
+    post_departure: "Sau xuất cảnh",
+    admin: "Hành chính",
+    collaborator: "Cộng tác viên",
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className={`w-3 h-3 rounded-full ${department.color}`} />
-            <DialogTitle>Quyền menu - {department.label}</DialogTitle>
-            <Badge variant="secondary">{selectedCount}/{menus.length} menu</Badge>
+            <Avatar className="h-10 w-10">
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                {targetUser.full_name?.charAt(0) || targetUser.email?.charAt(0) || "U"}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <DialogTitle className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Quyền cá nhân - {targetUser.full_name || "Chưa đặt tên"}
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">{targetUser.email}</p>
+            </div>
+            <Badge variant="secondary" className="ml-auto">{selectedCount}/{menus.length} menu</Badge>
           </div>
-          <DialogDescription>
-            Tick chọn menu mà nhân viên trong phòng ban này được phép truy cập.
-            <br />
-            <span className="text-destructive font-medium">
-              ⚠️ Nếu không tick menu nào, nhân viên phòng ban sẽ KHÔNG THẤY menu nào.
-            </span>
+          <DialogDescription className="space-y-2">
+            <p>Tick chọn menu mà người dùng này được phép truy cập.</p>
+            {userDepartments.length > 0 && (
+              <div className="p-2 bg-amber-50 border border-amber-200 rounded text-amber-800 text-sm">
+                <strong>⚠️ Lưu ý:</strong> User thuộc phòng ban: {userDepartments.map(d => (
+                  <Badge key={d.department} variant="outline" className="mx-1">
+                    {departmentLabels[d.department] || d.department} ({d.role_in_department === 'manager' ? 'Trưởng phòng' : 'Nhân viên'})
+                  </Badge>
+                ))}
+                <br />
+                Quyền thực tế = Quyền cá nhân ∩ Quyền phòng ban (giao 2 tập quyền).
+              </div>
+            )}
+            {userDepartments.length === 0 && (
+              <div className="p-2 bg-blue-50 border border-blue-200 rounded text-blue-800 text-sm">
+                <strong>ℹ️</strong> User chưa thuộc phòng ban nào. Quyền cá nhân sẽ chỉ có hiệu lực nếu user được gán vào phòng ban.
+              </div>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -323,7 +367,7 @@ export function DepartmentMenuPermissionsModal({
             </div>
 
             {/* Menu list */}
-            <ScrollArea className="flex-1 min-h-0 max-h-[400px]">
+            <ScrollArea className="flex-1 min-h-0 max-h-[350px]">
               <div className="space-y-1 pr-4">
                 {groupedMenus.map((parent) => {
                   const parentPerm = getPermission(parent.key);
