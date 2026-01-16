@@ -15,18 +15,29 @@ import { useQuery } from "@tanstack/react-query";
 
 
 // Hook to get trainee gender stats for education
+// IMPORTANT: Only count trainees with VALID class_id (class must exist in classes table)
 function useTraineeGenderStats() {
   return useQuery({
     queryKey: ["trainee-gender-stats"],
     queryFn: async () => {
+      // First, get all valid class IDs
+      const { data: classesData, error: classesError } = await supabase
+        .from("classes")
+        .select("id");
+      
+      if (classesError) throw classesError;
+      
+      const validClassIds = new Set(classesData?.map(c => c.id) || []);
+      
+      // Then get all trainees
       const { data, error } = await supabase
         .from("trainees")
         .select("id, gender, class_id, progression_stage");
       
       if (error) throw error;
       
-      // Currently studying (has class_id)
-      const studying = data?.filter(t => t.class_id) || [];
+      // Currently studying - ONLY trainees with valid class_id (class must exist)
+      const studying = data?.filter(t => t.class_id && validClassIds.has(t.class_id)) || [];
       const studyingMale = studying.filter(t => t.gender === "Nam").length;
       const studyingFemale = studying.filter(t => t.gender === "Nữ").length;
       

@@ -404,14 +404,14 @@ export default function DepartmentsContent() {
             <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4" />
-                Logic phân quyền hệ thống
+                Cách thức phân quyền
               </h4>
               <div className="text-sm text-blue-800 space-y-1">
-                <p><strong>• Primary Admin & Admin:</strong> Full quyền - Bỏ qua tất cả các hạn chế menu và phòng ban</p>
-                <p><strong>• Manager/Staff/Teacher:</strong> Quyền = Quyền cá nhân ∩ Quyền phòng ban (giao 2 tập quyền)</p>
-                <p className="text-blue-600 mt-2">
-                  → Ví dụ: Nếu user có quyền hệ thống "Staff" và thuộc "Phòng Tuyển dụng", 
-                  họ chỉ thấy menu mà <strong>cả 2</strong> đều cho phép (user permission + department permission).
+                <p><strong>• Quyền hệ thống (bảng này):</strong> Chỉ dùng để cấp vai trò (Admin/Staff/Teacher/Manager)</p>
+                <p><strong>• Quyền menu (Quản lý phòng ban → Quyền menu):</strong> Quyết định user được xem/tạo/sửa/xóa menu nào</p>
+                <p><strong>• Phòng ban:</strong> Chỉ để hiển thị thông tin, user thuộc phòng nào</p>
+                <p className="text-green-700 font-medium mt-2">
+                  → Sau khi cấp quyền hệ thống, vào "Quản lý phòng ban" → "Quyền menu" để gán menu cho phòng ban.
                 </p>
               </div>
             </div>
