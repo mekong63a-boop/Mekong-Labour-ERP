@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, Menu, Eye, Plus, Edit, Trash2, Save } from "lucide-react";
@@ -341,7 +340,7 @@ export function DepartmentMenuPermissionsModal({
             </div>
 
             {/* Toggle all */}
-            <div className="flex items-center gap-4 p-2 border rounded-lg bg-blue-50">
+            <div className="flex items-center gap-4 p-2 border rounded-lg bg-muted/30">
               <div className="flex-1 font-medium text-sm">Chọn tất cả</div>
               <div className="w-20 flex justify-center">
                 <Checkbox
@@ -354,9 +353,9 @@ export function DepartmentMenuPermissionsModal({
               <div className="w-20" />
             </div>
 
-            {/* Menu list */}
-            <ScrollArea className="flex-1 min-h-0 max-h-[400px]">
-              <div className="space-y-1 pr-4">
+            {/* Menu list (native scroll - stable inside Dialog) */}
+            <div className="flex-1 min-h-0 overflow-auto rounded-lg border">
+              <div className="space-y-1 p-2">
                 {flatMenus.map(({ menu, level }) => {
                   const perm = getPermission(menu.key);
                   const isChild = level === 1;
@@ -369,8 +368,7 @@ export function DepartmentMenuPermissionsModal({
                         (isChild ? "pl-8 text-sm" : "")
                       }
                     >
-                      <div className={"flex-1 " + (isChild ? "text-muted-foreground" : "font-medium")}
-                      >
+                      <div className={"flex-1 " + (isChild ? "text-muted-foreground" : "font-medium")}>
                         {isChild ? `└ ${menu.label}` : menu.label}
                       </div>
                       <div className="w-20 flex justify-center">
@@ -404,7 +402,7 @@ export function DepartmentMenuPermissionsModal({
                   );
                 })}
               </div>
-            </ScrollArea>
+            </div>
 
             {/* Save button */}
             <div className="flex justify-end gap-2 pt-4 border-t">
