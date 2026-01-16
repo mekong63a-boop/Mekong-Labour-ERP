@@ -22,9 +22,7 @@ export interface Menu {
 
 /**
  * Hook chính để lấy toàn bộ menu permissions của user hiện tại
- * Sử dụng get_effective_menu_permissions để tính giao của:
- * - Quyền cá nhân (user_menu_permissions)
- * - Quyền phòng ban (department_menu_permissions)
+ * Sử dụng user_menu_permissions - quyền theo tài khoản cá nhân
  */
 export function useMenuPermissions() {
   const { user } = useAuth();
