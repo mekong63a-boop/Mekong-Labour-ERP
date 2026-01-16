@@ -56,9 +56,13 @@ const PROVINCES = [
   "TP. Hồ Chí Minh", "Trà Vinh", "Tuyên Quang", "Vĩnh Long", "Vĩnh Phúc", "Yên Bái"
 ];
 const PROGRESSION_STAGES = [
-  "Chưa đậu", "Đậu phỏng vấn", "Nộp hồ sơ", "OTIT", "Nyukan", "COE", "Visa", 
-  "Xuất cảnh", "Đang làm việc", "Hoàn thành hợp đồng", "Bỏ trốn", "Về trước hạn"
+  "Chưa đậu", "Đậu phỏng vấn", "Nộp hồ sơ", "OTIT", "Nyukan", "COE",
+  "Xuất cảnh", "Hoàn thành hợp đồng", "Bỏ trốn", "Về trước hạn"
 ];
+// Display labels for progression stages
+const PROGRESSION_STAGE_LABELS: Record<string, string> = {
+  "Hoàn thành hợp đồng": "Hoàn thành HĐ/ về nước"
+};
 
 interface FormData {
   trainee_code: string;
@@ -1245,7 +1249,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                       </SelectTrigger>
                       <SelectContent>
                         {PROGRESSION_STAGES.map((s) => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                          <SelectItem key={s} value={s}>{PROGRESSION_STAGE_LABELS[s] || s}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -1293,16 +1297,6 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                       />
                     </div>
                   )}
-                  {formData.progression_stage === "Visa" && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Ngày có Visa</Label>
-                      <Input
-                        type="date"
-                        value={formData.visa_date}
-                        onChange={(e) => updateField("visa_date", e.target.value)}
-                      />
-                    </div>
-                  )}
                   {formData.progression_stage === "Xuất cảnh" && (
                     <div>
                       <Label className="text-xs text-muted-foreground">Ngày xuất cảnh</Label>
@@ -1310,16 +1304,6 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                         type="date"
                         value={formData.departure_date}
                         onChange={(e) => updateField("departure_date", e.target.value)}
-                      />
-                    </div>
-                  )}
-                  {formData.progression_stage === "Đang làm việc" && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Ngày bắt đầu làm việc</Label>
-                      <Input
-                        type="date"
-                        value={formData.entry_date}
-                        onChange={(e) => updateField("entry_date", e.target.value)}
                       />
                     </div>
                   )}
