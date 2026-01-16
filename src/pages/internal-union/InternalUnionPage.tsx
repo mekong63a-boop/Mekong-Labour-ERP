@@ -26,22 +26,60 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Search, Users, TrendingUp, TrendingDown, Wallet, Pencil, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { Plus, Search, Users, TrendingUp, TrendingDown, Wallet, Pencil, Trash2, Cake } from 'lucide-react';
+import { format, differenceInDays, setYear, isAfter, isBefore } from 'date-fns';
 import {
   useUnionMembers,
   useUnionTransactions,
   useUnionStats,
   useCreateUnionMember,
+  useUpdateUnionMember,
   useCreateUnionTransaction,
   useDeleteUnionMember,
   useDeleteUnionTransaction,
   UnionMember,
 } from '@/hooks/useInternalUnion';
 import { Badge } from '@/components/ui/badge';
+import { SearchableSelect } from '@/components/ui/searchable-select';
+
+const PROVINCES = [
+  "An Giang", "Bà Rịa - Vũng Tàu", "Bạc Liêu", "Bắc Giang", "Bắc Kạn", "Bắc Ninh",
+  "Bến Tre", "Bình Dương", "Bình Định", "Bình Phước", "Bình Thuận", "Cà Mau",
+  "Cao Bằng", "Cần Thơ", "Đà Nẵng", "Đắk Lắk", "Đắk Nông", "Điện Biên", "Đồng Nai",
+  "Đồng Tháp", "Gia Lai", "Hà Giang", "Hà Nam", "Hà Nội", "Hà Tĩnh", "Hải Dương",
+  "Hải Phòng", "Hậu Giang", "Hòa Bình", "Hưng Yên", "Khánh Hòa", "Kiên Giang",
+  "Kon Tum", "Lai Châu", "Lạng Sơn", "Lào Cai", "Lâm Đồng", "Long An", "Nam Định",
+  "Nghệ An", "Ninh Bình", "Ninh Thuận", "Phú Thọ", "Phú Yên", "Quảng Bình",
+  "Quảng Nam", "Quảng Ngãi", "Quảng Ninh", "Quảng Trị", "Sóc Trăng", "Sơn La",
+  "Tây Ninh", "Thái Bình", "Thái Nguyên", "Thanh Hóa", "Thừa Thiên Huế", "Tiền Giang",
+  "TP. Hồ Chí Minh", "Trà Vinh", "Tuyên Quang", "Vĩnh Long", "Vĩnh Phúc", "Yên Bái"
+];
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
+};
+
+// Helper function to calculate days until birthday
+const getDaysUntilBirthday = (birthDate: string | null): number => {
+  if (!birthDate) return 999; // No birthday = sort to end
+  
+  const today = new Date();
+  const birth = new Date(birthDate);
+  let nextBirthday = setYear(birth, today.getFullYear());
+  
+  // If birthday has passed this year, get next year's birthday
+  if (isBefore(nextBirthday, today)) {
+    nextBirthday = setYear(birth, today.getFullYear() + 1);
+  }
+  
+  return differenceInDays(nextBirthday, today);
+};
+
+// Check if birthday is upcoming (within 30 days)
+const isUpcomingBirthday = (birthDate: string | null): boolean => {
+  if (!birthDate) return false;
+  const days = getDaysUntilBirthday(birthDate);
+  return days >= 0 && days <= 30;
 };
 
 const InternalUnionPage = () => {
@@ -49,12 +87,14 @@ const InternalUnionPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [memberDialogOpen, setMemberDialogOpen] = useState(false);
   const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState<UnionMember | null>(null);
 
   const { data: members = [], isLoading: membersLoading } = useUnionMembers();
   const { data: transactions = [], isLoading: transactionsLoading } = useUnionTransactions();
   const stats = useUnionStats();
 
   const createMember = useCreateUnionMember();
+  const updateMember = useUpdateUnionMember();
   const createTransaction = useCreateUnionTransaction();
   const deleteMember = useDeleteUnionMember();
   const deleteTransaction = useDeleteUnionTransaction();
@@ -80,11 +120,14 @@ const InternalUnionPage = () => {
     description: '',
   });
 
-  const filteredMembers = members.filter(
-    (member) =>
-      member.member_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.full_name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter and sort members - upcoming birthdays first
+  const filteredMembers = members
+    .filter(
+      (member) =>
+        member.member_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        member.full_name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => getDaysUntilBirthday(a.birth_date) - getDaysUntilBirthday(b.birth_date));
 
   const filteredTransactions = transactions.filter(
     (t) =>
@@ -92,23 +135,26 @@ const InternalUnionPage = () => {
       t.member?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAddMember = async () => {
-    if (!memberForm.member_code || !memberForm.full_name) {
-      return;
-    }
-
-    await createMember.mutateAsync({
-      member_code: memberForm.member_code,
-      full_name: memberForm.full_name,
-      birth_date: memberForm.birth_date || null,
-      hometown: memberForm.hometown || null,
-      join_date: memberForm.join_date,
-      end_date: memberForm.end_date || null,
-      status: memberForm.status,
-      notes: memberForm.notes || null,
+  // Open dialog for editing
+  const handleEditMember = (member: UnionMember) => {
+    setEditingMember(member);
+    setMemberForm({
+      member_code: member.member_code,
+      full_name: member.full_name,
+      birth_date: member.birth_date || '',
+      hometown: member.hometown || '',
+      join_date: member.join_date,
+      end_date: member.end_date || '',
+      status: member.status || 'Đang tham gia',
+      notes: member.notes || '',
     });
+    setMemberDialogOpen(true);
+  };
 
+  // Reset form and close dialog
+  const handleCloseDialog = () => {
     setMemberDialogOpen(false);
+    setEditingMember(null);
     setMemberForm({
       member_code: '',
       full_name: '',
@@ -119,6 +165,34 @@ const InternalUnionPage = () => {
       status: 'Đang tham gia',
       notes: '',
     });
+  };
+
+  const handleSaveMember = async () => {
+    if (!memberForm.member_code || !memberForm.full_name) {
+      return;
+    }
+
+    const memberData = {
+      member_code: memberForm.member_code,
+      full_name: memberForm.full_name,
+      birth_date: memberForm.birth_date || null,
+      hometown: memberForm.hometown || null,
+      join_date: memberForm.join_date,
+      end_date: memberForm.end_date || null,
+      status: memberForm.status,
+      notes: memberForm.notes || null,
+    };
+
+    if (editingMember) {
+      await updateMember.mutateAsync({
+        id: editingMember.id,
+        ...memberData,
+      });
+    } else {
+      await createMember.mutateAsync(memberData);
+    }
+
+    handleCloseDialog();
   };
 
   const handleAddTransaction = async () => {
@@ -299,9 +373,19 @@ const InternalUnionPage = () => {
                     </TableRow>
                   ) : (
                     filteredMembers.map((member) => (
-                      <TableRow key={member.id}>
+                      <TableRow key={member.id} className={isUpcomingBirthday(member.birth_date) ? 'bg-yellow-50' : ''}>
                         <TableCell className="font-medium">{member.member_code}</TableCell>
-                        <TableCell>{member.full_name}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {member.full_name}
+                            {isUpcomingBirthday(member.birth_date) && (
+                              <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 flex items-center gap-1">
+                                <Cake className="h-3 w-3" />
+                                {getDaysUntilBirthday(member.birth_date)} ngày
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           {member.birth_date ? format(new Date(member.birth_date), 'dd/MM/yyyy') : '-'}
                         </TableCell>
@@ -313,7 +397,12 @@ const InternalUnionPage = () => {
                         <TableCell>{getStatusBadge(member.status)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => handleEditMember(member)}
+                            >
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <Button
@@ -408,11 +497,11 @@ const InternalUnionPage = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Add Member Dialog */}
-      <Dialog open={memberDialogOpen} onOpenChange={setMemberDialogOpen}>
+      {/* Add/Edit Member Dialog */}
+      <Dialog open={memberDialogOpen} onOpenChange={handleCloseDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Thêm thành viên mới</DialogTitle>
+            <DialogTitle>{editingMember ? 'Chỉnh sửa thành viên' : 'Thêm thành viên mới'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -423,6 +512,7 @@ const InternalUnionPage = () => {
                   value={memberForm.member_code}
                   onChange={(e) => setMemberForm({ ...memberForm, member_code: e.target.value })}
                   className="bg-[#F5F5DC]/50"
+                  disabled={!!editingMember}
                 />
               </div>
               <div className="space-y-2">
@@ -447,11 +537,13 @@ const InternalUnionPage = () => {
               </div>
               <div className="space-y-2">
                 <Label>Quê quán</Label>
-                <Input
-                  placeholder="Hà Nội"
+                <SearchableSelect
+                  options={PROVINCES}
                   value={memberForm.hometown}
-                  onChange={(e) => setMemberForm({ ...memberForm, hometown: e.target.value })}
-                  className="bg-[#F5F5DC]/50"
+                  onValueChange={(v) => setMemberForm({ ...memberForm, hometown: v })}
+                  placeholder="Chọn tỉnh/thành"
+                  searchPlaceholder="Tìm tỉnh/thành..."
+                  emptyText="Không tìm thấy."
                 />
               </div>
             </div>
@@ -501,15 +593,15 @@ const InternalUnionPage = () => {
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setMemberDialogOpen(false)}>
+              <Button variant="outline" onClick={handleCloseDialog}>
                 Hủy
               </Button>
               <Button
-                onClick={handleAddMember}
-                disabled={createMember.isPending}
+                onClick={handleSaveMember}
+                disabled={createMember.isPending || updateMember.isPending}
                 className="bg-[#1B4D3E] hover:bg-[#1B4D3E]/90"
               >
-                Thêm mới
+                {editingMember ? 'Lưu thay đổi' : 'Thêm mới'}
               </Button>
             </div>
           </div>
