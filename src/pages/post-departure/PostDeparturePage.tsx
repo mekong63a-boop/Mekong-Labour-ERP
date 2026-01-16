@@ -49,22 +49,12 @@ function usePostDepartureTrainees() {
   return useQuery({
     queryKey: ["post-departure-trainees"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // 1) Fetch trainees first (no embedded relations because trainees table has no FK relationships in PostgREST)
+      const { data: trainees, error: traineeError } = await supabase
         .from("trainees")
-        .select(`
-          id,
-          trainee_code,
-          full_name,
-          progression_stage,
-          departure_date,
-          contract_term,
-          contract_end_date,
-          return_date,
-          early_return_date,
-          notes,
-          receiving_company_id,
-          companies:receiving_company_id(name, name_japanese)
-        `)
+        .select(
+          "id,trainee_code,full_name,progression_stage,departure_date,contract_term,contract_end_date,return_date,early_return_date,notes,receiving_company_id"
+        )
         .in("progression_stage", [
           "Xuất cảnh",
           "Đang làm việc",
@@ -74,8 +64,32 @@ function usePostDepartureTrainees() {
         ])
         .order("departure_date", { ascending: false });
 
-      if (error) throw error;
-      return data;
+      if (traineeError) throw traineeError;
+
+      const companyIds = Array.from(
+        new Set((trainees || []).map((t) => t.receiving_company_id).filter(Boolean))
+      ) as string[];
+
+      // 2) Fetch company names (optional)
+      let companyMap: Record<string, { name: string; name_japanese: string | null }> = {};
+      if (companyIds.length > 0) {
+        const { data: companies, error: companyError } = await supabase
+          .from("companies")
+          .select("id,name,name_japanese")
+          .in("id", companyIds);
+
+        if (companyError) throw companyError;
+
+        companyMap = (companies || []).reduce((acc, c) => {
+          acc[c.id] = { name: c.name, name_japanese: c.name_japanese };
+          return acc;
+        }, {} as Record<string, { name: string; name_japanese: string | null }>);
+      }
+
+      return (trainees || []).map((t) => ({
+        ...t,
+        receiving_company: t.receiving_company_id ? companyMap[t.receiving_company_id] || null : null,
+      }));
     },
   });
 }
@@ -91,7 +105,14 @@ function getYearOptions() {
 }
 
 export default function PostDeparturePage() {
-  const { data: trainees, isLoading, refetch, isRefetching } = usePostDepartureTrainees();
+  const {
+    data: trainees,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isRefetching,
+  } = usePostDepartureTrainees();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
@@ -198,9 +219,9 @@ export default function PostDeparturePage() {
       "STT": index + 1,
       "Mã HV": t.trainee_code,
       "Họ và tên": t.full_name,
-      "Công ty": (t.companies as any)?.name_japanese 
-        ? `${(t.companies as any).name_japanese} (${(t.companies as any).name})`
-        : (t.companies as any)?.name || "",
+      "Công ty": (t.receiving_company as any)?.name_japanese 
+        ? `${(t.receiving_company as any).name_japanese} (${(t.receiving_company as any).name})`
+        : (t.receiving_company as any)?.name || "",
       "Tình trạng": t.progression_stage,
       "Ngày xuất cảnh": formatDate(t.departure_date),
       "Ngày hết hạn HĐ": t.contract_end_date 
@@ -466,6 +487,10 @@ export default function PostDeparturePage() {
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-12 w-full" />
         </div>
+      ) : isError ? (
+        <div className="text-center py-12 text-destructive border rounded-lg">
+          Không tải được dữ liệu: {(error as any)?.message || "Unknown error"}
+        </div>
       ) : filteredTrainees.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground border rounded-lg">
           Không có dữ liệu
@@ -491,9 +516,9 @@ export default function PostDeparturePage() {
                   <TableCell className="font-mono text-sm">{trainee.trainee_code}</TableCell>
                   <TableCell className="font-medium uppercase">{trainee.full_name}</TableCell>
                   <TableCell className="text-sm">
-                    {(trainee.companies as any)?.name_japanese 
-                      ? `${(trainee.companies as any).name_japanese} (${(trainee.companies as any).name})`
-                      : (trainee.companies as any)?.name || "-"}
+                    {(trainee.receiving_company as any)?.name_japanese 
+                      ? `${(trainee.receiving_company as any).name_japanese} (${(trainee.receiving_company as any).name})`
+                      : (trainee.receiving_company as any)?.name || "-"}
                   </TableCell>
                   <TableCell className="text-center">
                     <Badge className={getStatusBadge(trainee.progression_stage)}>

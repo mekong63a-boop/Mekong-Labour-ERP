@@ -17,10 +17,9 @@ export const STAGE_TABS: StageTabConfig[] = [
   { value: "nyukan", label: "Nyukan", key: "Nyukan" },
   { value: "coe", label: "COE", key: "COE" },
   { value: "xuat_canh", label: "Xuất cảnh", key: "Xuất cảnh" },
-  { value: "dang_lam", label: "Đang làm việc", key: "Đang làm việc" },
   { value: "bo_tron", label: "Bỏ trốn", key: "Bỏ trốn" },
   { value: "ve_truoc", label: "Về trước hạn", key: "Về trước hạn" },
-  { value: "hoan_thanh", label: "Hoàn thành HĐ", key: "Hoàn thành hợp đồng" },
+  { value: "hoan_thanh", label: "Hoàn thành HĐ/ về nước", key: "Hoàn thành hợp đồng" },
 ];
 
 interface StageTabsGridProps {

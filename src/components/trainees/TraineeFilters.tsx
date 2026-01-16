@@ -21,7 +21,9 @@ export function TraineeFilters({
   onProgressionStageChange,
 }: TraineeFiltersProps) {
   const simpleStatuses = Constants.public.Enums.simple_status;
-  const progressionStages = Constants.public.Enums.progression_stage;
+  const progressionStages = Constants.public.Enums.progression_stage
+    .filter((s) => s !== "Visa" && s !== "Đang làm việc")
+    .map((s) => (s === "Hoàn thành hợp đồng" ? "Hoàn thành HĐ/ về nước" : s));
 
   return (
     <div className="flex gap-4 mb-4">
@@ -47,7 +49,10 @@ export function TraineeFilters({
       <div className="w-48">
         <Select
           value={progressionStage || "all"}
-          onValueChange={(v) => onProgressionStageChange(v === "all" ? null : v)}
+          onValueChange={(v) => {
+            const dbValue = v === "Hoàn thành HĐ/ về nước" ? "Hoàn thành hợp đồng" : v;
+            onProgressionStageChange(dbValue === "all" ? null : dbValue);
+          }}
         >
           <SelectTrigger>
             <SelectValue placeholder="Giai đoạn" />
