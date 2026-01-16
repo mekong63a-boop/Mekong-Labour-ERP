@@ -62,6 +62,45 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          description: string
+          id: string
+          ip_address: string | null
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          table_name: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          description: string
+          id?: string
+          ip_address?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          description?: string
+          id?: string
+          ip_address?: string | null
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       class_teachers: {
         Row: {
           class_id: string
@@ -197,6 +236,48 @@ export type Database = {
           status?: string | null
           updated_at?: string
           work_address?: string | null
+        }
+        Relationships: []
+      }
+      edit_permissions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          reason: string | null
+          record_id: string
+          requested_at: string
+          status: string
+          table_name: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          reason?: string | null
+          record_id: string
+          requested_at?: string
+          status?: string
+          table_name: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          reason?: string | null
+          record_id?: string
+          requested_at?: string
+          status?: string
+          table_name?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1191,6 +1272,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: string | null
+          is_active: boolean | null
+          last_seen_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          last_seen_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          is_active?: boolean | null
+          last_seen_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       vocabulary: {
         Row: {
           category: string | null
@@ -1279,6 +1390,15 @@ export type Database = {
         Args: { _department: string; _user_id: string }
         Returns: boolean
       }
+      can_staff_edit: {
+        Args: {
+          _record_created_at: string
+          _record_id: string
+          _table_name: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       count_sub_admins: { Args: never; Returns: number }
       get_user_department: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
@@ -1295,6 +1415,17 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_primary_admin: { Args: { _user_id: string }; Returns: boolean }
+      log_audit: {
+        Args: {
+          _action: string
+          _description: string
+          _new_data: Json
+          _old_data: Json
+          _record_id: string
+          _table_name: string
+        }
+        Returns: string
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
