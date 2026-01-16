@@ -1160,20 +1160,32 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          assigned_at: string | null
+          assigned_by: string | null
           created_at: string
+          department: string | null
           id: string
+          is_primary_admin: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
           created_at?: string
+          department?: string | null
           id?: string
+          is_primary_admin?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
           created_at?: string
+          department?: string | null
           id?: string
+          is_primary_admin?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
@@ -1250,6 +1262,25 @@ export type Database = {
     }
     Functions: {
       assign_first_admin: { Args: { _user_id: string }; Returns: boolean }
+      assign_manager: {
+        Args: {
+          _caller_id: string
+          _department: string
+          _target_user_id: string
+        }
+        Returns: boolean
+      }
+      assign_sub_admin: {
+        Args: { _caller_id: string; _target_user_id: string }
+        Returns: boolean
+      }
+      can_delete: { Args: { _user_id: string }; Returns: boolean }
+      can_manage_department: {
+        Args: { _department: string; _user_id: string }
+        Returns: boolean
+      }
+      count_sub_admins: { Args: never; Returns: number }
+      get_user_department: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1263,6 +1294,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_primary_admin: { Args: { _user_id: string }; Returns: boolean }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
