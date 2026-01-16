@@ -5,9 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Building2, Users, Crown, Briefcase, UserCheck, GraduationCap, Star, Loader2, Settings, UserPlus, ShieldCheck, Check, X, Pencil, Trash2, UserCog, Menu } from "lucide-react";
+import { Building2, Users, Crown, Briefcase, UserCheck, GraduationCap, Star, Loader2, UserPlus, ShieldCheck, Check, X, Pencil, Trash2, UserCog, Menu } from "lucide-react";
 import { DepartmentStaffModal } from "@/components/admin/DepartmentStaffModal";
-import { DepartmentMenuPermissionsModal } from "@/components/admin/DepartmentMenuPermissionsModal";
 import { UserMenuPermissionsModal } from "@/components/admin/UserMenuPermissionsModal";
 import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -119,7 +118,7 @@ const departmentConfig = [
   },
 ];
 
-type ModalType = "staff" | "menu" | null;
+type ModalType = "staff" | null;
 
 export default function DepartmentsContent() {
   const queryClient = useQueryClient();
@@ -305,22 +304,6 @@ export default function DepartmentsContent() {
     },
   });
 
-  // Fetch department menu permissions counts
-  const { data: menuPermCounts = {} } = useQuery({
-    queryKey: ["department-menu-perm-counts"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("department_menu_permissions")
-        .select("department");
-      if (error) throw error;
-      
-      const counts: Record<string, number> = {};
-      data.forEach((d) => {
-        counts[d.department] = (counts[d.department] || 0) + 1;
-      });
-      return counts;
-    },
-  });
 
   // Fetch admins
   const { data: admins = [], isLoading: loadingAdmins } = useQuery({
@@ -694,7 +677,6 @@ export default function DepartmentsContent() {
           const counts = getDepartmentCount(dept.value);
           const manager = getDepartmentManager(dept.value);
           const staff = getDepartmentStaff(dept.value);
-          const menuCount = menuPermCounts[dept.value] || 0;
           const Icon = dept.icon;
           
           return (
@@ -800,24 +782,6 @@ export default function DepartmentsContent() {
                     </p>
                   )}
                 </div>
-
-                {/* Menu Permissions Section - NEW */}
-                {canManage && (
-                  <div className="pt-2 border-t">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full gap-2"
-                      onClick={() => openModal(dept, "menu")}
-                    >
-                      <Settings className="h-4 w-4" />
-                      Quyền menu
-                      <Badge variant={menuCount > 0 ? "default" : "destructive"} className="ml-auto">
-                        {menuCount > 0 ? `${menuCount} menu` : "Chưa cấp"}
-                      </Badge>
-                    </Button>
-                  </div>
-                )}
               </CardContent>
             </Card>
           );
@@ -833,12 +797,12 @@ export default function DepartmentsContent() {
         />
       )}
 
-      {/* Department Menu Permissions Modal */}
-      {selectedDepartment && modalType === "menu" && (
-        <DepartmentMenuPermissionsModal
+      {/* User Menu Permissions Modal */}
+      {selectedUserForMenu && (
+        <UserMenuPermissionsModal
           open={true}
-          onOpenChange={(open) => !open && closeModal()}
-          department={selectedDepartment}
+          onOpenChange={(open) => !open && setSelectedUserForMenu(null)}
+          targetUser={selectedUserForMenu}
         />
       )}
 
