@@ -42,15 +42,15 @@ const menuItems: MenuItem[] = [
   { path: "/trainees", icon: Users, label: "Học viên", permission: "trainees" },
   { path: "/orders", icon: ClipboardList, label: "Đơn hàng", permission: "orders" },
   { path: "/partners", icon: Building2, label: "Đối tác", permission: "orders" },
-{ path: "/education", icon: GraduationCap, label: "Đào tạo", permission: "education" },
   {
     path: "/internal-ops",
     icon: Building2,
     label: "Nghiệp vụ nội bộ",
     permission: "trainees",
     children: [
+      { path: "/education", icon: GraduationCap, label: "Đào tạo", permission: "education" },
       { path: "/dormitory", icon: Home, label: "Quản lý KTX", permission: "trainees" },
-      { path: "/legal", icon: FileSpreadsheet, label: "Hồ sơ / Pháp lý", permission: "trainees" },
+      { path: "/legal", icon: FileSpreadsheet, label: "Tình trạng hồ sơ", permission: "trainees" },
     ],
   },
   { path: "/post-departure", icon: Plane, label: "Nghiệp vụ sau xuất cảnh", permission: "orders" },
@@ -59,9 +59,17 @@ const menuItems: MenuItem[] = [
   { path: "/reports", icon: FileSpreadsheet, label: "Báo cáo", permission: "orders" },
   { path: "/glossary", icon: Languages, label: "Từ điển chuyên ngành", permission: "glossary" },
   { path: "/internal-union", icon: HandCoins, label: "Công đoàn nội bộ", permission: "orders" },
-  { path: "/system-monitor", icon: Monitor, label: "Giám sát hệ thống", permission: "settings" },
-  { path: "/admin/users", icon: Shield, label: "Quản lý phân quyền", permission: "settings" },
-  { path: "/admin/departments", icon: Building2, label: "Quản lý phòng ban", permission: "settings" },
+  {
+    path: "/admin",
+    icon: Shield,
+    label: "Quản trị hệ thống",
+    permission: "settings",
+    children: [
+      { path: "/admin?tab=monitor", icon: Monitor, label: "Giám sát hệ thống", permission: "settings" },
+      { path: "/admin?tab=users", icon: Shield, label: "Quản lý phân quyền", permission: "settings" },
+      { path: "/admin?tab=departments", icon: Building2, label: "Quản lý phòng ban", permission: "settings" },
+    ],
+  },
 ];
 
 const bottomMenuItems: MenuItem[] = [

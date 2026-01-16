@@ -18,8 +18,8 @@ import {
   FileText,
   Activity,
   UserCog,
-  BuildingIcon,
   Shield,
+  Home,
 } from "lucide-react";
 import {
   Sidebar,
@@ -67,7 +67,7 @@ const mainNavItems = [
     children: [
       { title: "Giám sát hệ thống", href: "/admin?tab=monitor", icon: Activity },
       { title: "Quản lý phân quyền", href: "/admin?tab=users", icon: UserCog },
-      { title: "Quản lý phòng ban", href: "/admin?tab=departments", icon: BuildingIcon },
+      { title: "Quản lý phòng ban", href: "/admin?tab=departments", icon: Home },
     ],
   },
 ];
