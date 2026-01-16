@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Trainee } from "@/types/trainee";
+import { useDataMasking } from "@/hooks/useSecureData";
 import { format } from "date-fns";
 import { User, Phone, Mail, MapPin, Heart, Ruler, Scale, Droplets } from "lucide-react";
 
@@ -9,6 +10,8 @@ interface PersonalInfoTabProps {
 }
 
 export function PersonalInfoTab({ trainee }: PersonalInfoTabProps) {
+  const { maskPhone, maskCCCD, maskPassport, maskEmail, maskAddress, canViewUnmasked } = useDataMasking();
+
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "—";
     try {
@@ -64,7 +67,7 @@ export function PersonalInfoTab({ trainee }: PersonalInfoTabProps) {
         </CardContent>
       </Card>
 
-      {/* Identity Documents */}
+      {/* Identity Documents - With masking */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Giấy tờ tùy thân</CardTitle>
@@ -72,7 +75,7 @@ export function PersonalInfoTab({ trainee }: PersonalInfoTabProps) {
         <CardContent className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <div>
             <Label className="text-muted-foreground text-xs">Số CCCD</Label>
-            <p className="font-mono">{trainee.cccd_number || "—"}</p>
+            <p className="font-mono">{maskCCCD(trainee.cccd_number)}</p>
           </div>
           <div>
             <Label className="text-muted-foreground text-xs">Ngày cấp CCCD</Label>
@@ -84,7 +87,7 @@ export function PersonalInfoTab({ trainee }: PersonalInfoTabProps) {
           </div>
           <div>
             <Label className="text-muted-foreground text-xs">Số Passport</Label>
-            <p className="font-mono">{trainee.passport_number || "—"}</p>
+            <p className="font-mono">{maskPassport(trainee.passport_number)}</p>
           </div>
           <div>
             <Label className="text-muted-foreground text-xs">Ngày cấp Passport</Label>
@@ -93,7 +96,7 @@ export function PersonalInfoTab({ trainee }: PersonalInfoTabProps) {
         </CardContent>
       </Card>
 
-      {/* Contact Info */}
+      {/* Contact Info - With masking */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -104,15 +107,15 @@ export function PersonalInfoTab({ trainee }: PersonalInfoTabProps) {
         <CardContent className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <div>
             <Label className="text-muted-foreground text-xs">Số điện thoại</Label>
-            <p>{trainee.phone || "—"}</p>
+            <p>{maskPhone(trainee.phone)}</p>
           </div>
           <div>
             <Label className="text-muted-foreground text-xs">Email</Label>
-            <p>{trainee.email || "—"}</p>
+            <p>{maskEmail(trainee.email)}</p>
           </div>
           <div>
             <Label className="text-muted-foreground text-xs">Zalo</Label>
-            <p>{trainee.zalo || "—"}</p>
+            <p>{maskPhone(trainee.zalo)}</p>
           </div>
           <div>
             <Label className="text-muted-foreground text-xs">Facebook</Label>
@@ -120,16 +123,16 @@ export function PersonalInfoTab({ trainee }: PersonalInfoTabProps) {
           </div>
           <div>
             <Label className="text-muted-foreground text-xs">SĐT Phụ huynh 1</Label>
-            <p>{trainee.parent_phone_1 || "—"}</p>
+            <p>{maskPhone(trainee.parent_phone_1)}</p>
           </div>
           <div>
             <Label className="text-muted-foreground text-xs">SĐT Phụ huynh 2</Label>
-            <p>{trainee.parent_phone_2 || "—"}</p>
+            <p>{maskPhone(trainee.parent_phone_2)}</p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Address */}
+      {/* Address - With masking */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -140,19 +143,19 @@ export function PersonalInfoTab({ trainee }: PersonalInfoTabProps) {
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label className="text-muted-foreground text-xs">Địa chỉ hiện tại</Label>
-            <p>{trainee.current_address || "—"}</p>
+            <p>{maskAddress(trainee.current_address)}</p>
           </div>
           <div>
             <Label className="text-muted-foreground text-xs">Địa chỉ thường trú</Label>
-            <p>{trainee.permanent_address || "—"}</p>
+            <p>{maskAddress(trainee.permanent_address)}</p>
           </div>
           <div>
             <Label className="text-muted-foreground text-xs">Địa chỉ hộ khẩu</Label>
-            <p>{trainee.household_address || "—"}</p>
+            <p>{maskAddress(trainee.household_address)}</p>
           </div>
           <div>
             <Label className="text-muted-foreground text-xs">Địa chỉ tạm trú</Label>
-            <p>{trainee.temp_address || "—"}</p>
+            <p>{maskAddress(trainee.temp_address)}</p>
           </div>
         </CardContent>
       </Card>

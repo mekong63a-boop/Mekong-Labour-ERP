@@ -57,12 +57,13 @@ export function useSecureData(requiredRoles?: ("admin" | "manager" | "staff" | "
 }
 
 /**
- * Mask CCCD/ID card numbers - only show last 4 digits
+ * Mask CCCD/ID card numbers - hide last 3 digits for staff/teachers
+ * Format: 123456789*** (show all except last 3)
  */
 export function maskCCCD(value: string | null | undefined): string {
   if (!value) return "—";
-  if (value.length <= 4) return value;
-  return "********" + value.slice(-4);
+  if (value.length <= 3) return "***";
+  return value.slice(0, -3) + "***";
 }
 
 /**
@@ -75,12 +76,13 @@ export function maskPassport(value: string | null | undefined): string {
 }
 
 /**
- * Mask phone numbers - show first 3 and last 2 digits
+ * Mask phone numbers - hide last 3 digits
+ * Format: 0901234*** (show all except last 3)
  */
 export function maskPhone(value: string | null | undefined): string {
   if (!value) return "—";
-  if (value.length <= 5) return value;
-  return value.slice(0, 3) + "****" + value.slice(-2);
+  if (value.length <= 3) return "***";
+  return value.slice(0, -3) + "***";
 }
 
 /**
@@ -156,6 +158,8 @@ export function maskSensitiveData(value: string | null | undefined, canView: boo
 
 /**
  * Hook to check data masking permissions and get masking functions
+ * - Admin/Manager: See full data
+ * - Staff/Teacher: See data with last 3 digits masked for phone/CCCD
  */
 export function useDataMasking() {
   const { role, isLoading } = useAuth();
@@ -163,8 +167,8 @@ export function useDataMasking() {
   // Manager+ can view all sensitive data without masking
   const canViewUnmasked = !isLoading && role && ["admin", "manager"].includes(role);
   
-  // Staff can view some contact info
-  const isStaff = !isLoading && role === "staff";
+  // Staff and teacher see masked data (last 3 digits hidden)
+  const isStaffOrTeacher = !isLoading && role && ["staff", "teacher"].includes(role);
   
   const maskedValue = useMemo(() => {
     return (value: string | null | undefined, type: "cccd" | "passport" | "phone" | "email" | "address") => {
@@ -176,23 +180,22 @@ export function useDataMasking() {
         case "passport":
           return maskPassport(value);
         case "phone":
-          // Staff can see partial phone
-          return isStaff ? maskPhone(value) : "**********";
+          return maskPhone(value);
         case "email":
-          return isStaff ? maskEmail(value) : "****@****.***";
+          return isStaffOrTeacher ? maskEmail(value) : "****@****.***";
         case "address":
           return maskAddress(value);
         default:
           return maskSensitiveData(value, canViewUnmasked);
       }
     };
-  }, [canViewUnmasked, isStaff]);
+  }, [canViewUnmasked, isStaffOrTeacher]);
   
   return {
     isLoading,
     canViewUnmasked,
     maskedValue,
-    // Individual functions for specific use cases
+    // Individual functions that respect permissions
     maskCCCD: canViewUnmasked ? (v: string | null | undefined) => v || "—" : maskCCCD,
     maskPassport: canViewUnmasked ? (v: string | null | undefined) => v || "—" : maskPassport,
     maskPhone: canViewUnmasked ? (v: string | null | undefined) => v || "—" : maskPhone,

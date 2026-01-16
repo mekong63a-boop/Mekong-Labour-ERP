@@ -11,10 +11,12 @@ import {
   BarChart3,
   Building,
   Languages,
-  Monitor,
   Settings,
   LogOut,
   ChevronDown,
+  GraduationCap,
+  FileText,
+  Shield,
 } from "lucide-react";
 import {
   Sidebar,
@@ -46,17 +48,17 @@ const mainNavItems = [
     title: "Nghiệp vụ nội bộ",
     icon: Building2,
     children: [
-      { title: "Quản lý nhân sự", href: "/internal/hr" },
-      { title: "Tài liệu nội bộ", href: "/internal/docs" },
+      { title: "Đào tạo", href: "/education", icon: GraduationCap },
+      { title: "Tình trạng hồ sơ", href: "/legal", icon: FileText },
     ],
   },
   { title: "Nghiệp vụ sau xuất cảnh", icon: Plane, href: "/post-departure" },
   { title: "Cẩm nang tư vấn", icon: BookOpen, href: "/handbook" },
-  { title: "Blacklist", icon: AlertTriangle, href: "/blacklist" },
+  { title: "Blacklist", icon: AlertTriangle, href: "/violations" },
   { title: "Báo cáo", icon: BarChart3, href: "/reports" },
-  { title: "Công đoàn", icon: Building, href: "/union" },
-  { title: "Từ điển chuyên ngành", icon: Languages, href: "/dictionary" },
-  { title: "Giám sát hệ thống", icon: Monitor, href: "/system-monitor" },
+  { title: "Công đoàn", icon: Building, href: "/internal-union" },
+  { title: "Từ điển chuyên ngành", icon: Languages, href: "/glossary" },
+  { title: "Quản trị hệ thống", icon: Shield, href: "/admin" },
 ];
 
 const bottomNavItems = [
@@ -67,7 +69,7 @@ const bottomNavItems = [
 export function AppSidebar() {
   const location = useLocation();
 
-  const isActive = (href: string) => location.pathname === href;
+  const isActive = (href: string) => location.pathname === href || location.pathname.startsWith(href + "/");
 
   return (
     <Sidebar className="border-r-0">
@@ -112,8 +114,9 @@ export function AppSidebar() {
                               >
                                 <Link
                                   to={child.href}
-                                  className="text-sidebar-foreground/80 hover:text-sidebar-foreground"
+                                  className="text-sidebar-foreground/80 hover:text-sidebar-foreground flex items-center gap-2"
                                 >
+                                  {child.icon && <child.icon className="h-4 w-4" />}
                                   {child.title}
                                 </Link>
                               </SidebarMenuSubButton>
