@@ -400,6 +400,21 @@ export default function DepartmentsContent() {
             <CardDescription>Cấp quyền, chỉnh sửa và quản lý tất cả tài khoản trong hệ thống</CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Role Logic Explanation */}
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4" />
+                Logic phân quyền hệ thống
+              </h4>
+              <div className="text-sm text-blue-800 space-y-1">
+                <p><strong>• Primary Admin & Admin:</strong> Full quyền - Bỏ qua tất cả các hạn chế menu và phòng ban</p>
+                <p><strong>• Manager/Staff/Teacher:</strong> Quyền = Quyền cá nhân ∩ Quyền phòng ban (giao 2 tập quyền)</p>
+                <p className="text-blue-600 mt-2">
+                  → Ví dụ: Nếu user có quyền hệ thống "Staff" và thuộc "Phòng Tuyển dụng", 
+                  họ chỉ thấy menu mà <strong>cả 2</strong> đều cho phép (user permission + department permission).
+                </p>
+              </div>
+            </div>
             <div className="space-y-4">
               {/* Search & Tabs */}
               <div className="flex flex-col sm:flex-row gap-4">

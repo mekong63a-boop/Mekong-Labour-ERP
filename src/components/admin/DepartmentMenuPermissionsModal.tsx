@@ -49,6 +49,16 @@ export function DepartmentMenuPermissionsModal({
   const { user } = useAuth();
   const [localPermissions, setLocalPermissions] = useState<Record<string, MenuPermission>>({});
   const [hasChanges, setHasChanges] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+
+  // Reset state when modal opens/closes
+  useMemo(() => {
+    if (!open) {
+      setLocalPermissions({});
+      setHasChanges(false);
+      setInitialized(false);
+    }
+  }, [open]);
 
   // Fetch all menus
   const { data: menus = [], isLoading: loadingMenus } = useQuery({
@@ -78,22 +88,37 @@ export function DepartmentMenuPermissionsModal({
     enabled: open,
   });
 
-  // Initialize local state from fetched data
+  // Initialize local state from fetched data - only once when both menus and perms are loaded
   useMemo(() => {
-    if (currentPermissions.length > 0 && Object.keys(localPermissions).length === 0) {
+    if (!initialized && menus.length > 0 && !loadingPerms && !loadingMenus) {
       const permsMap: Record<string, MenuPermission> = {};
+      
+      // Initialize all menus with false permissions
+      menus.forEach((m) => {
+        permsMap[m.key] = {
+          menu_key: m.key,
+          can_view: false,
+          can_create: false,
+          can_update: false,
+          can_delete: false,
+        };
+      });
+      
+      // Override with existing permissions from DB
       currentPermissions.forEach((p) => {
         permsMap[p.menu_key] = {
           menu_key: p.menu_key,
-          can_view: p.can_view,
-          can_create: p.can_create,
-          can_update: p.can_update,
-          can_delete: p.can_delete,
+          can_view: p.can_view ?? false,
+          can_create: p.can_create ?? false,
+          can_update: p.can_update ?? false,
+          can_delete: p.can_delete ?? false,
         };
       });
+      
       setLocalPermissions(permsMap);
+      setInitialized(true);
     }
-  }, [currentPermissions]);
+  }, [menus, currentPermissions, loadingMenus, loadingPerms, initialized]);
 
   // Save mutations
   const saveMutation = useMutation({
