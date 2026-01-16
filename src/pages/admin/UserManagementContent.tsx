@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, AppRole } from "@/hooks/useAuth";
-import { useUserRole, Department } from "@/hooks/useUserRole";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Shield, Users, Search, Crown, Briefcase, GraduationCap, Star, Building2 } from "lucide-react";
+import { Loader2, Shield, Users, Search, Crown, GraduationCap, Star } from "lucide-react";
 
 interface UserWithRole {
   id: string;
@@ -19,24 +19,14 @@ interface UserWithRole {
   full_name: string | null;
   role: AppRole | null;
   is_primary_admin: boolean;
-  department: Department | null;
   created_at: string;
 }
 
+// Role options - CHỈ gán role hệ thống, KHÔNG gán phòng ban
 const roleOptions: { value: AppRole; label: string; icon: any; color: string; description: string }[] = [
   { value: "admin", label: "Admin", icon: Crown, color: "bg-red-500", description: "Gần như toàn quyền" },
-  { value: "manager", label: "Trưởng phòng", icon: Briefcase, color: "bg-blue-500", description: "CRUD trong phòng ban" },
   { value: "staff", label: "Nhân viên", icon: Users, color: "bg-green-500", description: "Xem + Thêm + Sửa" },
   { value: "teacher", label: "Giáo viên", icon: GraduationCap, color: "bg-purple-500", description: "Module Đào tạo" },
-];
-
-const departmentOptions: { value: Department; label: string }[] = [
-  { value: "recruitment", label: "Phòng Tuyển dụng" },
-  { value: "training", label: "Phòng Đào tạo" },
-  { value: "legal", label: "Bộ phận hồ sơ" },
-  { value: "dormitory", label: "Phòng KTX" },
-  { value: "post_departure", label: "Phòng Sau xuất cảnh" },
-  { value: "admin", label: "Phòng Hành chính" },
 ];
 
 export default function UserManagementContent() {
@@ -47,7 +37,6 @@ export default function UserManagementContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<AppRole | null>(null);
-  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
 
   // Fetch all users with their roles
   const { data: users, isLoading } = useQuery({
@@ -75,7 +64,6 @@ export default function UserManagementContent() {
           full_name: profile.full_name,
           role: userRole?.role as AppRole | null,
           is_primary_admin: userRole?.is_primary_admin || false,
-          department: userRole?.department as Department | null,
           created_at: profile.created_at,
         };
       });
@@ -87,9 +75,9 @@ export default function UserManagementContent() {
   const subAdminCount = users?.filter(u => u.role === "admin" && !u.is_primary_admin).length || 0;
   const canAddMoreAdmins = canAssignAdmins && subAdminCount < 2;
 
-  // Mutation to update user role
+  // Mutation to update user role - CHỈ role hệ thống, KHÔNG gán phòng ban
   const updateRoleMutation = useMutation({
-    mutationFn: async ({ userId, newRole, department }: { userId: string; newRole: AppRole; department?: Department | null }) => {
+    mutationFn: async ({ userId, newRole }: { userId: string; newRole: AppRole }) => {
       if (newRole === "admin") {
         if (!canAssignAdmins) {
           throw new Error("Chỉ Admin chính mới có thể gán quyền Admin");
@@ -105,14 +93,11 @@ export default function UserManagementContent() {
         .eq("user_id", userId)
         .maybeSingle();
 
-      const shouldHaveDepartment = newRole === "manager" || newRole === "staff";
-
       if (existingRole) {
         const { error } = await supabase
           .from("user_roles")
           .update({ 
             role: newRole,
-            department: shouldHaveDepartment ? department : null,
             is_primary_admin: false,
           })
           .eq("user_id", userId);
@@ -123,7 +108,6 @@ export default function UserManagementContent() {
           .insert({ 
             user_id: userId, 
             role: newRole,
-            department: shouldHaveDepartment ? department : null,
             is_primary_admin: false,
           });
         if (error) throw error;
@@ -137,7 +121,6 @@ export default function UserManagementContent() {
       });
       setEditingUserId(null);
       setSelectedRole(null);
-      setSelectedDepartment(null);
     },
     onError: (error: any) => {
       toast({
@@ -183,7 +166,6 @@ export default function UserManagementContent() {
       updateRoleMutation.mutate({ 
         userId, 
         newRole: selectedRole,
-        department: selectedDepartment,
       });
     }
   };
@@ -216,18 +198,10 @@ export default function UserManagementContent() {
     }
     
     return (
-      <div className="flex flex-col gap-1">
-        <Badge className={`${roleInfo.color} text-white`}>
-          <roleInfo.icon className="h-3 w-3 mr-1" />
-          {roleInfo.label}
-        </Badge>
-        {u.department && (
-          <Badge variant="outline" className="text-xs">
-            <Building2 className="h-3 w-3 mr-1" />
-            {departmentOptions.find(d => d.value === u.department)?.label}
-          </Badge>
-        )}
-      </div>
+      <Badge className={`${roleInfo.color} text-white`}>
+        <roleInfo.icon className="h-3 w-3 mr-1" />
+        {roleInfo.label}
+      </Badge>
     );
   };
 
@@ -247,7 +221,10 @@ export default function UserManagementContent() {
       {/* Role Hierarchy Info */}
       <Card className="bg-muted/50">
         <CardContent className="p-4">
-          <h3 className="font-semibold mb-2">Cấu trúc phân quyền:</h3>
+          <h3 className="font-semibold mb-2">Cấu trúc phân quyền hệ thống:</h3>
+          <p className="text-sm text-muted-foreground mb-3">
+            Màn hình này CHỈ dùng để gán role hệ thống. Trưởng phòng/Nhân viên phòng ban được quản lý tại tab "Quản lý phòng ban".
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
             <div className="flex items-start gap-2">
               <Star className="h-4 w-4 text-amber-500 mt-0.5" />
@@ -264,17 +241,17 @@ export default function UserManagementContent() {
               </div>
             </div>
             <div className="flex items-start gap-2">
-              <Briefcase className="h-4 w-4 text-blue-500 mt-0.5" />
-              <div>
-                <p className="font-medium">Trưởng phòng</p>
-                <p className="text-muted-foreground">CRUD phòng ban</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
               <Users className="h-4 w-4 text-green-500 mt-0.5" />
               <div>
                 <p className="font-medium">Nhân viên</p>
                 <p className="text-muted-foreground">Xem + Thêm + Sửa</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <GraduationCap className="h-4 w-4 text-purple-500 mt-0.5" />
+              <div>
+                <p className="font-medium">Giáo viên</p>
+                <p className="text-muted-foreground">Module Đào tạo</p>
               </div>
             </div>
           </div>
@@ -379,58 +356,32 @@ export default function UserManagementContent() {
                     <TableCell className="text-muted-foreground">{u.email}</TableCell>
                     <TableCell>
                       {editingUserId === u.user_id ? (
-                        <div className="space-y-2">
-                          <Select
-                            value={selectedRole || u.role || ""}
-                            onValueChange={(val) => {
-                              setSelectedRole(val as AppRole);
-                              if (val !== "manager" && val !== "staff") {
-                                setSelectedDepartment(null);
-                              }
-                            }}
-                          >
-                            <SelectTrigger className="w-40">
-                              <SelectValue placeholder="Chọn quyền" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {roleOptions.map((opt) => {
-                                const disabled = opt.value === "admin" && !canAddMoreAdmins;
-                                return (
-                                  <SelectItem 
-                                    key={opt.value} 
-                                    value={opt.value}
-                                    disabled={disabled}
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <opt.icon className="h-4 w-4" />
-                                      {opt.label}
-                                      {disabled && " (đã đủ)"}
-                                    </div>
-                                  </SelectItem>
-                                );
-                              })}
-                            </SelectContent>
-                          </Select>
-                          
-                          {(selectedRole === "manager" || selectedRole === "staff" || 
-                            (!selectedRole && (u.role === "manager" || u.role === "staff"))) && (
-                            <Select
-                              value={selectedDepartment || u.department || ""}
-                              onValueChange={(val) => setSelectedDepartment(val as Department)}
-                            >
-                              <SelectTrigger className="w-40">
-                                <SelectValue placeholder="Chọn phòng ban" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {departmentOptions.map((dept) => (
-                                  <SelectItem key={dept.value} value={dept.value}>
-                                    {dept.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          )}
-                        </div>
+                        <Select
+                          value={selectedRole || u.role || ""}
+                          onValueChange={(val) => setSelectedRole(val as AppRole)}
+                        >
+                          <SelectTrigger className="w-40">
+                            <SelectValue placeholder="Chọn quyền" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {roleOptions.map((opt) => {
+                              const disabled = opt.value === "admin" && !canAddMoreAdmins;
+                              return (
+                                <SelectItem 
+                                  key={opt.value} 
+                                  value={opt.value}
+                                  disabled={disabled}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <opt.icon className="h-4 w-4" />
+                                    {opt.label}
+                                    {disabled && " (đã đủ)"}
+                                  </div>
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
                       ) : (
                         getRoleBadge(u)
                       )}
@@ -452,7 +403,6 @@ export default function UserManagementContent() {
                               onClick={() => {
                                 setEditingUserId(null);
                                 setSelectedRole(null);
-                                setSelectedDepartment(null);
                               }}
                             >
                               Hủy
@@ -466,7 +416,6 @@ export default function UserManagementContent() {
                               onClick={() => {
                                 setEditingUserId(u.user_id);
                                 setSelectedRole(u.role);
-                                setSelectedDepartment(u.department);
                               }}
                             >
                               Sửa
