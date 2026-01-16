@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -57,7 +57,61 @@ export function useSecureData(requiredRoles?: ("admin" | "manager" | "staff" | "
 }
 
 /**
- * Mask sensitive data based on user permissions
+ * Mask CCCD/ID card numbers - only show last 4 digits
+ */
+export function maskCCCD(value: string | null | undefined): string {
+  if (!value) return "—";
+  if (value.length <= 4) return value;
+  return "********" + value.slice(-4);
+}
+
+/**
+ * Mask passport numbers - only show last 3 characters
+ */
+export function maskPassport(value: string | null | undefined): string {
+  if (!value) return "—";
+  if (value.length <= 3) return value;
+  return "*****" + value.slice(-3);
+}
+
+/**
+ * Mask phone numbers - show first 3 and last 2 digits
+ */
+export function maskPhone(value: string | null | undefined): string {
+  if (!value) return "—";
+  if (value.length <= 5) return value;
+  return value.slice(0, 3) + "****" + value.slice(-2);
+}
+
+/**
+ * Mask email addresses - show first 2 chars and domain
+ */
+export function maskEmail(value: string | null | undefined): string {
+  if (!value) return "—";
+  if (!value.includes("@")) return "****";
+  const [local, domain] = value.split("@");
+  if (local.length <= 2) return local + "****@" + domain;
+  return local.slice(0, 2) + "****@" + domain;
+}
+
+/**
+ * Mask address - only show province/city
+ */
+export function maskAddress(value: string | null | undefined): string {
+  if (!value) return "—";
+  // Try to extract last part (usually province/city)
+  const parts = value.split(",").map(p => p.trim());
+  if (parts.length > 1) {
+    return "******, " + parts[parts.length - 1];
+  }
+  if (value.length > 15) {
+    return "******" + value.slice(-10);
+  }
+  return value;
+}
+
+/**
+ * Mask sensitive data based on user permissions (legacy function for backward compatibility)
  * @param value - The value to potentially mask
  * @param canView - Whether the user can view the unmasked value
  * @returns Masked or unmasked value
@@ -66,20 +120,30 @@ export function maskSensitiveData(value: string | null | undefined, canView: boo
   if (!value) return "—";
   if (canView) return value;
   
-  // Mask phone numbers: show first 3 and last 2 digits
+  // Auto-detect type and mask
+  // CCCD format: 12 digits
+  if (/^\d{12}$/.test(value)) {
+    return maskCCCD(value);
+  }
+  
+  // Old ID format: 9 digits
+  if (/^\d{9}$/.test(value)) {
+    return maskCCCD(value);
+  }
+  
+  // Phone numbers: 10-11 digits
   if (/^\d{10,11}$/.test(value)) {
-    return value.slice(0, 3) + "****" + value.slice(-2);
+    return maskPhone(value);
   }
   
-  // Mask email: show first 2 chars and domain
+  // Email
   if (value.includes("@")) {
-    const [local, domain] = value.split("@");
-    return local.slice(0, 2) + "****@" + domain;
+    return maskEmail(value);
   }
   
-  // Mask CCCD/ID numbers: show first 3 and last 3
-  if (/^\d{9,12}$/.test(value)) {
-    return value.slice(0, 3) + "******" + value.slice(-3);
+  // Passport: alphanumeric, 8-9 chars
+  if (/^[A-Z]\d{7,8}$/i.test(value)) {
+    return maskPassport(value);
   }
   
   // Default: mask middle portion
@@ -91,13 +155,60 @@ export function maskSensitiveData(value: string | null | undefined, canView: boo
 }
 
 /**
+ * Hook to check data masking permissions and get masking functions
+ */
+export function useDataMasking() {
+  const { role, isLoading } = useAuth();
+  
+  // Manager+ can view all sensitive data without masking
+  const canViewUnmasked = !isLoading && role && ["admin", "manager"].includes(role);
+  
+  // Staff can view some contact info
+  const isStaff = !isLoading && role === "staff";
+  
+  const maskedValue = useMemo(() => {
+    return (value: string | null | undefined, type: "cccd" | "passport" | "phone" | "email" | "address") => {
+      if (canViewUnmasked) return value || "—";
+      
+      switch (type) {
+        case "cccd":
+          return maskCCCD(value);
+        case "passport":
+          return maskPassport(value);
+        case "phone":
+          // Staff can see partial phone
+          return isStaff ? maskPhone(value) : "**********";
+        case "email":
+          return isStaff ? maskEmail(value) : "****@****.***";
+        case "address":
+          return maskAddress(value);
+        default:
+          return maskSensitiveData(value, canViewUnmasked);
+      }
+    };
+  }, [canViewUnmasked, isStaff]);
+  
+  return {
+    isLoading,
+    canViewUnmasked,
+    maskedValue,
+    // Individual functions for specific use cases
+    maskCCCD: canViewUnmasked ? (v: string | null | undefined) => v || "—" : maskCCCD,
+    maskPassport: canViewUnmasked ? (v: string | null | undefined) => v || "—" : maskPassport,
+    maskPhone: canViewUnmasked ? (v: string | null | undefined) => v || "—" : maskPhone,
+    maskEmail: canViewUnmasked ? (v: string | null | undefined) => v || "—" : maskEmail,
+    maskAddress: canViewUnmasked ? (v: string | null | undefined) => v || "—" : maskAddress,
+  };
+}
+
+/**
  * Check if user can view sensitive contact information
  */
 export function useCanViewSensitiveData() {
   const { role, isLoading } = useAuth();
   
-  // Only admin, manager, and staff can view full contact info
-  const canViewContactInfo = !isLoading && role && ["admin", "manager", "staff"].includes(role);
+  // Only admin and manager can view full contact info without masking
+  const canViewContactInfo = !isLoading && role && ["admin", "manager"].includes(role);
   
   // Only admin and manager can view all personal details
   const canViewAllDetails = !isLoading && role && ["admin", "manager"].includes(role);
@@ -105,10 +216,14 @@ export function useCanViewSensitiveData() {
   // Only admin can view system-level sensitive data
   const canViewSystemData = !isLoading && role === "admin";
   
+  // Staff can view basic contact info (masked)
+  const canViewBasicContact = !isLoading && role && ["admin", "manager", "staff"].includes(role);
+  
   return {
     isLoading,
     canViewContactInfo,
     canViewAllDetails,
     canViewSystemData,
+    canViewBasicContact,
   };
 }
