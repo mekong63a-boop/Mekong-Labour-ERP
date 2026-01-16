@@ -20,6 +20,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   useClass, 
   useTestScores, 
@@ -29,6 +36,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Search, History, BookOpen, Calendar } from "lucide-react";
 import { format, parseISO } from "date-fns";
+
+// Test categories for filtering
+const TEST_CATEGORIES = [
+  { value: "all", label: "Tất cả" },
+  { value: "Nhập môn", label: "Nhập môn" },
+  { value: "Sơ cấp 1", label: "Sơ cấp 1" },
+  { value: "Sơ cấp 2", label: "Sơ cấp 2" },
+  { value: "N5", label: "N5" },
+  { value: "N4", label: "N4" },
+  { value: "N3", label: "N3" },
+];
 
 // Hook to get detailed students with birthplace
 function useClassStudentsDetailed(classId: string) {
@@ -162,34 +180,52 @@ function calculateAttendanceRate(
   return Math.round((present / studentAttendance.length) * 100);
 }
 
-// Get the most recent test score for a student
+// Get the most recent test score for a student, filtered by category
 function getLatestScore(
   testScores: any[] | undefined,
-  traineeId: string
-): number | null {
+  traineeId: string,
+  category: string = "all"
+): { score: number; maxScore: number; testName: string } | null {
   if (!testScores || testScores.length === 0) return null;
   
-  const studentScores = testScores
-    .filter(s => s.trainee_id === traineeId && s.score !== null)
-    .sort((a, b) => {
-      // Sort by test_date descending, then by created_at descending
-      const dateA = new Date(a.test_date || a.created_at);
-      const dateB = new Date(b.test_date || b.created_at);
-      return dateB.getTime() - dateA.getTime();
-    });
+  let studentScores = testScores.filter(s => s.trainee_id === traineeId && s.score !== null);
+  
+  // Filter by category if specified
+  if (category && category !== "all") {
+    studentScores = studentScores.filter(s => 
+      s.test_name && s.test_name.startsWith(category)
+    );
+  }
   
   if (studentScores.length === 0) return null;
-  return studentScores[0].score;
+  
+  // Sort by created_at descending to get the most recent entry
+  // (since test_date might be the same for multiple tests)
+  studentScores.sort((a, b) => {
+    const createdA = new Date(a.created_at);
+    const createdB = new Date(b.created_at);
+    return createdB.getTime() - createdA.getTime();
+  });
+  
+  const latest = studentScores[0];
+  return {
+    score: latest.score,
+    maxScore: latest.max_score || 100,
+    testName: latest.test_name,
+  };
 }
 
-// Get grade based on average score (0-100 scale: A=90-100, B=70-89, C=60-69, D=40-59, E=0-39)
-function getGrade(avgScore: number | null): { label: string; color: string } {
-  if (avgScore === null) return { label: "—", color: "bg-muted text-muted-foreground" };
-  if (avgScore >= 90) return { label: "A", color: "bg-green-100 text-green-700" };
-  if (avgScore >= 70) return { label: "B", color: "bg-blue-100 text-blue-700" };
-  if (avgScore >= 60) return { label: "C", color: "bg-yellow-100 text-yellow-700" };
-  if (avgScore >= 40) return { label: "D", color: "bg-orange-100 text-orange-700" };
-  return { label: "E", color: "bg-red-100 text-red-700" };
+// Get grade based on percentage (0-100%: A=90-100, B=70-89, C=60-69, D=40-59, E=0-39)
+function getGrade(scoreData: { score: number; maxScore: number; testName: string } | null): { label: string; color: string; testName?: string } {
+  if (scoreData === null) return { label: "—", color: "bg-muted text-muted-foreground" };
+  
+  const percentage = (scoreData.score / scoreData.maxScore) * 100;
+  
+  if (percentage >= 90) return { label: "A", color: "bg-green-100 text-green-700", testName: scoreData.testName };
+  if (percentage >= 70) return { label: "B", color: "bg-blue-100 text-blue-700", testName: scoreData.testName };
+  if (percentage >= 60) return { label: "C", color: "bg-yellow-100 text-yellow-700", testName: scoreData.testName };
+  if (percentage >= 40) return { label: "D", color: "bg-orange-100 text-orange-700", testName: scoreData.testName };
+  return { label: "E", color: "bg-red-100 text-red-700", testName: scoreData.testName };
 }
 
 // Get attendance badge
@@ -213,6 +249,7 @@ export default function ClassStudentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTrainee, setSelectedTrainee] = useState<any>(null);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+  const [gradeCategory, setGradeCategory] = useState("all");
   
   const { data: enrollmentHistory, isLoading: historyLoading } = useEnrollmentHistory(
     selectedTrainee?.id || ""
@@ -329,14 +366,27 @@ export default function ClassStudentsPage() {
                 <TableHead className="w-28">Ngày sinh</TableHead>
                 <TableHead>Quê quán</TableHead>
                 <TableHead className="w-28">Tình trạng</TableHead>
-                <TableHead className="w-24 text-center">Sức học</TableHead>
+                <TableHead className="w-32 text-center">
+                  <Select value={gradeCategory} onValueChange={setGradeCategory}>
+                    <SelectTrigger className="h-7 text-xs border-none bg-transparent px-1 gap-1 justify-center">
+                      <SelectValue placeholder="Sức học" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TEST_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableHead>
                 <TableHead className="w-24 text-center">Chuyên cần</TableHead>
                 <TableHead className="w-20 text-center">Lịch sử</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredStudents.map((student) => {
-                const latestScore = getLatestScore(testScores, student.id);
+                const latestScore = getLatestScore(testScores, student.id, gradeCategory);
                 const attendanceRate = calculateAttendanceRate(attendance, student.id);
                 const grade = getGrade(latestScore);
                 const attendanceBadge = getAttendanceBadge(attendanceRate);
@@ -356,7 +406,10 @@ export default function ClassStudentsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge className={grade.color}>
+                      <Badge 
+                        className={grade.color} 
+                        title={grade.testName || "Chưa có điểm"}
+                      >
                         {grade.label}
                       </Badge>
                     </TableCell>
