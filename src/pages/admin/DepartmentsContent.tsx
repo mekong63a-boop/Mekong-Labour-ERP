@@ -3,9 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Building2, Users, Crown, Briefcase, UserCheck, GraduationCap, Star, Loader2 } from "lucide-react";
+import { Building2, Users, Crown, Briefcase, UserCheck, GraduationCap, Star, Loader2, Menu, Settings } from "lucide-react";
 import { DepartmentStaffModal } from "@/components/admin/DepartmentStaffModal";
+import { DepartmentMenuPermissionsModal } from "@/components/admin/DepartmentMenuPermissionsModal";
 import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 
 interface DepartmentCount {
@@ -29,47 +31,64 @@ const departmentConfig = [
     label: "Phòng Tuyển dụng", 
     icon: UserCheck, 
     color: "bg-blue-500",
-    description: "Quản lý học viên, hồ sơ, phỏng vấn"
+    description: "Quản lý học viên, hồ sơ, phỏng vấn",
+    hasManager: true,
   },
   { 
     value: "training", 
     label: "Phòng Đào tạo", 
     icon: GraduationCap, 
     color: "bg-purple-500",
-    description: "Quản lý lớp học, giáo viên, điểm danh"
+    description: "Quản lý lớp học, giáo viên, điểm danh",
+    hasManager: true,
   },
   { 
     value: "legal", 
     label: "Bộ phận hồ sơ", 
     icon: Building2, 
     color: "bg-amber-500",
-    description: "Quản lý hồ sơ pháp lý, visa, COE"
+    description: "Quản lý hồ sơ pháp lý, visa, COE",
+    hasManager: true,
   },
   { 
     value: "dormitory", 
     label: "Phòng KTX", 
     icon: Building2, 
     color: "bg-green-500",
-    description: "Quản lý ký túc xá, phòng ở"
+    description: "Quản lý ký túc xá, phòng ở",
+    hasManager: true,
   },
   { 
     value: "post_departure", 
     label: "Phòng Sau xuất cảnh", 
     icon: Users, 
     color: "bg-orange-500",
-    description: "Theo dõi TTS tại Nhật"
+    description: "Theo dõi TTS tại Nhật",
+    hasManager: true,
   },
   { 
     value: "admin", 
     label: "Phòng Hành chính", 
     icon: Briefcase, 
     color: "bg-gray-500",
-    description: "Quản lý hành chính, nhân sự"
+    description: "Quản lý hành chính, nhân sự",
+    hasManager: true,
+  },
+  { 
+    value: "collaborator", 
+    label: "Phòng Cộng tác viên", 
+    icon: Users, 
+    color: "bg-teal-500",
+    description: "Cộng tác viên bên ngoài",
+    hasManager: false, // Không có trưởng phòng
   },
 ];
 
+type ModalType = "staff" | "menu" | null;
+
 export default function DepartmentsContent() {
   const [selectedDepartment, setSelectedDepartment] = useState<typeof departmentConfig[0] | null>(null);
+  const [modalType, setModalType] = useState<ModalType>(null);
   const { isPrimaryAdmin, isAdmin } = useMenuPermissions();
   const canManage = isPrimaryAdmin || isAdmin;
 
@@ -106,6 +125,23 @@ export default function DepartmentsContent() {
           full_name: profile?.full_name,
         };
       });
+    },
+  });
+
+  // Fetch department menu permissions counts
+  const { data: menuPermCounts = {} } = useQuery({
+    queryKey: ["department-menu-perm-counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("department_menu_permissions")
+        .select("department");
+      if (error) throw error;
+      
+      const counts: Record<string, number> = {};
+      data.forEach((d) => {
+        counts[d.department] = (counts[d.department] || 0) + 1;
+      });
+      return counts;
     },
   });
 
@@ -155,6 +191,16 @@ export default function DepartmentsContent() {
     return allMembers.filter(
       (m) => m.department === dept && m.role_in_department === "staff"
     );
+  };
+
+  const openModal = (dept: typeof departmentConfig[0], type: ModalType) => {
+    setSelectedDepartment(dept);
+    setModalType(type);
+  };
+
+  const closeModal = () => {
+    setSelectedDepartment(null);
+    setModalType(null);
   };
 
   const isLoading = loadingCounts || loadingMembers || loadingAdmins;
@@ -219,6 +265,7 @@ export default function DepartmentsContent() {
           const counts = getDepartmentCount(dept.value);
           const manager = getDepartmentManager(dept.value);
           const staff = getDepartmentStaff(dept.value);
+          const menuCount = menuPermCounts[dept.value] || 0;
           const Icon = dept.icon;
           
           return (
@@ -234,56 +281,58 @@ export default function DepartmentsContent() {
                       </CardDescription>
                     </div>
                   </div>
-                  {/* Clickable Badge */}
+                  {/* Clickable Badge for staff count */}
                   <Badge 
                     variant="secondary" 
                     className={`bg-white/20 text-white ${canManage ? 'cursor-pointer hover:bg-white/30 transition-colors' : ''}`}
-                    onClick={canManage ? () => setSelectedDepartment(dept) : undefined}
+                    onClick={canManage ? () => openModal(dept, "staff") : undefined}
                   >
                     {counts?.total_count || 0} người
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="pt-4">
-                {/* Manager Section - Clickable */}
-                <div 
-                  className={`mb-4 p-3 rounded-lg border ${
-                    manager 
-                      ? 'bg-blue-50 border-blue-100' 
-                      : 'bg-gray-50 border-dashed'
-                  } ${canManage ? 'cursor-pointer hover:shadow-sm transition-shadow' : ''}`}
-                  onClick={canManage ? () => setSelectedDepartment(dept) : undefined}
-                >
-                  <p className="text-xs text-blue-600 font-medium mb-2 flex items-center gap-1">
-                    <Crown className="h-3 w-3" />
-                    Trưởng phòng
-                    {canManage && (
-                      <span className="text-muted-foreground ml-1">(click để quản lý)</span>
-                    )}
-                  </p>
-                  {manager ? (
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-blue-500 text-white">
-                          {manager.full_name?.charAt(0) || "T"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{manager.full_name || "Chưa đặt tên"}</p>
-                        <p className="text-sm text-muted-foreground">{manager.email}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground text-center">
-                      Chưa có trưởng phòng
+              <CardContent className="pt-4 space-y-4">
+                {/* Manager Section - Only show if department has manager */}
+                {dept.hasManager && (
+                  <div 
+                    className={`p-3 rounded-lg border ${
+                      manager 
+                        ? 'bg-blue-50 border-blue-100' 
+                        : 'bg-gray-50 border-dashed'
+                    } ${canManage ? 'cursor-pointer hover:shadow-sm transition-shadow' : ''}`}
+                    onClick={canManage ? () => openModal(dept, "staff") : undefined}
+                  >
+                    <p className="text-xs text-blue-600 font-medium mb-2 flex items-center gap-1">
+                      <Crown className="h-3 w-3" />
+                      Trưởng phòng
+                      {canManage && (
+                        <span className="text-muted-foreground ml-1">(click để quản lý)</span>
+                      )}
                     </p>
-                  )}
-                </div>
+                    {manager ? (
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarFallback className="bg-blue-500 text-white">
+                            {manager.full_name?.charAt(0) || "T"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{manager.full_name || "Chưa đặt tên"}</p>
+                          <p className="text-sm text-muted-foreground">{manager.email}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center">
+                        Chưa có trưởng phòng
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* Staff Section - Clickable */}
                 <div 
                   className={`space-y-2 ${canManage ? 'cursor-pointer' : ''}`}
-                  onClick={canManage ? () => setSelectedDepartment(dept) : undefined}
+                  onClick={canManage ? () => openModal(dept, "staff") : undefined}
                 >
                   <p className="text-xs text-muted-foreground font-medium flex items-center gap-1">
                     Nhân viên: 
@@ -322,6 +371,24 @@ export default function DepartmentsContent() {
                     </p>
                   )}
                 </div>
+
+                {/* Menu Permissions Section - NEW */}
+                {canManage && (
+                  <div className="pt-2 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2"
+                      onClick={() => openModal(dept, "menu")}
+                    >
+                      <Settings className="h-4 w-4" />
+                      Quyền menu
+                      <Badge variant={menuCount > 0 ? "default" : "destructive"} className="ml-auto">
+                        {menuCount > 0 ? `${menuCount} menu` : "Chưa cấp"}
+                      </Badge>
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
@@ -329,10 +396,19 @@ export default function DepartmentsContent() {
       </div>
 
       {/* Department Staff Modal */}
-      {selectedDepartment && (
+      {selectedDepartment && modalType === "staff" && (
         <DepartmentStaffModal
-          open={!!selectedDepartment}
-          onOpenChange={(open) => !open && setSelectedDepartment(null)}
+          open={true}
+          onOpenChange={(open) => !open && closeModal()}
+          department={selectedDepartment}
+        />
+      )}
+
+      {/* Department Menu Permissions Modal */}
+      {selectedDepartment && modalType === "menu" && (
+        <DepartmentMenuPermissionsModal
+          open={true}
+          onOpenChange={(open) => !open && closeModal()}
           department={selectedDepartment}
         />
       )}

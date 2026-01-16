@@ -22,6 +22,9 @@ export interface Menu {
 
 /**
  * Hook chính để lấy toàn bộ menu permissions của user hiện tại
+ * Sử dụng get_effective_menu_permissions để tính giao của:
+ * - Quyền cá nhân (user_menu_permissions)
+ * - Quyền phòng ban (department_menu_permissions)
  */
 export function useMenuPermissions() {
   const { user } = useAuth();
@@ -75,14 +78,14 @@ export function useMenuPermissions() {
     staleTime: 10 * 60 * 1000, // Cache 10 minutes - menus rarely change
   });
 
-  // Lấy permissions của user
+  // Lấy EFFECTIVE permissions của user (giao của user + department)
   const { data: permissions = [], isLoading: permissionsLoading } = useQuery({
-    queryKey: ['user-menu-permissions', user?.id],
+    queryKey: ['effective-menu-permissions', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data, error } = await supabase.rpc('get_user_menu_permissions', { _user_id: user.id });
+      const { data, error } = await supabase.rpc('get_effective_menu_permissions', { _user_id: user.id });
       if (error) {
-        console.error('Error fetching menu permissions:', error);
+        console.error('Error fetching effective menu permissions:', error);
         return [];
       }
       return (data ?? []) as MenuPermission[];
@@ -98,24 +101,30 @@ export function useMenuPermissions() {
     // Primary Admin thấy tất cả
     if (isPrimaryAdmin) return menus;
 
+    // Admin thấy tất cả (nhưng vẫn có thể giới hạn nếu cần)
+    if (isAdmin) return menus;
+
     // Lọc menus dựa trên can_view
     const allowedKeys = new Set(
       permissions.filter(p => p.can_view).map(p => p.menu_key)
     );
 
     // Phải check cả parent menu
-    return menus.filter(menu => {
+    const visibleSet = new Set<string>();
+    
+    menus.forEach(menu => {
       // Menu phải có quyền view
-      if (!allowedKeys.has(menu.key)) return false;
-      
-      // Nếu có parent, parent cũng phải visible
-      if (menu.parent_key && !allowedKeys.has(menu.parent_key)) {
-        return false;
+      if (allowedKeys.has(menu.key)) {
+        visibleSet.add(menu.key);
+        // Nếu có parent, thêm parent vào
+        if (menu.parent_key) {
+          visibleSet.add(menu.parent_key);
+        }
       }
-      
-      return true;
     });
-  }, [menus, permissions, isPrimaryAdmin]);
+
+    return menus.filter(menu => visibleSet.has(menu.key));
+  }, [menus, permissions, isPrimaryAdmin, isAdmin]);
 
   const isLoading = isPrimaryAdminLoading || isAdminLoading || menusLoading || permissionsLoading;
 
@@ -134,11 +143,11 @@ export function useMenuPermissions() {
  * Hook kiểm tra quyền truy cập một menu cụ thể
  */
 export function useCanAccessMenu(menuKey: string) {
-  const { permissions, isPrimaryAdmin, isLoading } = useMenuPermissions();
+  const { permissions, isPrimaryAdmin, isAdmin, isLoading } = useMenuPermissions();
 
   const permission = useMemo(() => {
-    // Primary Admin có tất cả quyền
-    if (isPrimaryAdmin) {
+    // Primary Admin và Admin có tất cả quyền
+    if (isPrimaryAdmin || isAdmin) {
       return {
         canView: true,
         canCreate: true,
@@ -154,7 +163,7 @@ export function useCanAccessMenu(menuKey: string) {
       canUpdate: found?.can_update ?? false,
       canDelete: found?.can_delete ?? false,
     };
-  }, [permissions, menuKey, isPrimaryAdmin]);
+  }, [permissions, menuKey, isPrimaryAdmin, isAdmin]);
 
   return {
     ...permission,
@@ -208,4 +217,32 @@ export function useUserMenuPermissions(targetUserId: string | undefined) {
   });
 
   return { permissions, isLoading, refetch };
+}
+
+/**
+ * Hook lấy danh sách phòng ban user thuộc về
+ */
+export function useUserDepartments(userId?: string) {
+  const { user } = useAuth();
+  const targetUserId = userId || user?.id;
+
+  const { data: departments = [], isLoading } = useQuery({
+    queryKey: ['user-departments', targetUserId],
+    queryFn: async () => {
+      if (!targetUserId) return [];
+      const { data, error } = await supabase
+        .from('department_members')
+        .select('department, role_in_department')
+        .eq('user_id', targetUserId);
+      if (error) {
+        console.error('Error fetching user departments:', error);
+        return [];
+      }
+      return data;
+    },
+    enabled: !!targetUserId,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  return { departments, isLoading };
 }

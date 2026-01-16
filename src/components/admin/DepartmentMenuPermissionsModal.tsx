@@ -1,0 +1,398 @@
+import { useState, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
+import { Loader2, Menu, Eye, Plus, Edit, Trash2, Save } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+
+interface DepartmentMenuPermissionsModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  department: {
+    value: string;
+    label: string;
+    color: string;
+  };
+}
+
+interface MenuPermission {
+  menu_key: string;
+  can_view: boolean;
+  can_create: boolean;
+  can_update: boolean;
+  can_delete: boolean;
+}
+
+interface MenuInfo {
+  key: string;
+  label: string;
+  parent_key: string | null;
+  order_index: number;
+}
+
+export function DepartmentMenuPermissionsModal({
+  open,
+  onOpenChange,
+  department,
+}: DepartmentMenuPermissionsModalProps) {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const [localPermissions, setLocalPermissions] = useState<Record<string, MenuPermission>>({});
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Fetch all menus
+  const { data: menus = [], isLoading: loadingMenus } = useQuery({
+    queryKey: ["all-menus"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("menus")
+        .select("key, label, parent_key, order_index")
+        .order("order_index");
+      if (error) throw error;
+      return data as MenuInfo[];
+    },
+    enabled: open,
+  });
+
+  // Fetch current department menu permissions
+  const { data: currentPermissions = [], isLoading: loadingPerms, refetch } = useQuery({
+    queryKey: ["department-menu-permissions", department.value],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("department_menu_permissions")
+        .select("*")
+        .eq("department", department.value);
+      if (error) throw error;
+      return data as (MenuPermission & { id: string; department: string })[];
+    },
+    enabled: open,
+  });
+
+  // Initialize local state from fetched data
+  useMemo(() => {
+    if (currentPermissions.length > 0 && Object.keys(localPermissions).length === 0) {
+      const permsMap: Record<string, MenuPermission> = {};
+      currentPermissions.forEach((p) => {
+        permsMap[p.menu_key] = {
+          menu_key: p.menu_key,
+          can_view: p.can_view,
+          can_create: p.can_create,
+          can_update: p.can_update,
+          can_delete: p.can_delete,
+        };
+      });
+      setLocalPermissions(permsMap);
+    }
+  }, [currentPermissions]);
+
+  // Save mutations
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      // Delete existing permissions for this department
+      const { error: deleteError } = await supabase
+        .from("department_menu_permissions")
+        .delete()
+        .eq("department", department.value);
+      if (deleteError) throw deleteError;
+
+      // Insert new permissions (only those with at least can_view = true)
+      const toInsert = Object.values(localPermissions)
+        .filter((p) => p.can_view)
+        .map((p) => ({
+          department: department.value,
+          menu_key: p.menu_key,
+          can_view: p.can_view,
+          can_create: p.can_create,
+          can_update: p.can_update,
+          can_delete: p.can_delete,
+          assigned_by: user?.id,
+        }));
+
+      if (toInsert.length > 0) {
+        const { error: insertError } = await supabase
+          .from("department_menu_permissions")
+          .insert(toInsert);
+        if (insertError) throw insertError;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["department-menu-permissions"] });
+      setHasChanges(false);
+      toast.success("Đã lưu quyền menu cho phòng ban");
+    },
+    onError: (error) => {
+      toast.error("Lỗi khi lưu: " + (error as Error).message);
+    },
+  });
+
+  const togglePermission = (
+    menuKey: string,
+    field: "can_view" | "can_create" | "can_update" | "can_delete"
+  ) => {
+    setLocalPermissions((prev) => {
+      const current = prev[menuKey] || {
+        menu_key: menuKey,
+        can_view: false,
+        can_create: false,
+        can_update: false,
+        can_delete: false,
+      };
+
+      let updated = { ...current };
+      
+      if (field === "can_view") {
+        // Nếu tắt view -> tắt tất cả các quyền khác
+        if (current.can_view) {
+          updated = {
+            ...current,
+            can_view: false,
+            can_create: false,
+            can_update: false,
+            can_delete: false,
+          };
+        } else {
+          updated.can_view = true;
+        }
+      } else {
+        // Nếu bật quyền khác -> tự động bật view
+        updated[field] = !current[field];
+        if (updated[field]) {
+          updated.can_view = true;
+        }
+      }
+
+      setHasChanges(true);
+      return { ...prev, [menuKey]: updated };
+    });
+  };
+
+  const toggleAllView = (checked: boolean) => {
+    setLocalPermissions(() => {
+      const newPerms: Record<string, MenuPermission> = {};
+      menus.forEach((menu) => {
+        newPerms[menu.key] = {
+          menu_key: menu.key,
+          can_view: checked,
+          can_create: false,
+          can_update: false,
+          can_delete: false,
+        };
+      });
+      setHasChanges(true);
+      return newPerms;
+    });
+  };
+
+  const getPermission = (menuKey: string) => {
+    return (
+      localPermissions[menuKey] || {
+        menu_key: menuKey,
+        can_view: false,
+        can_create: false,
+        can_update: false,
+        can_delete: false,
+      }
+    );
+  };
+
+  // Group menus by parent
+  const groupedMenus = useMemo(() => {
+    const parents = menus.filter((m) => !m.parent_key);
+    const children = menus.filter((m) => m.parent_key);
+    
+    return parents.map((parent) => ({
+      ...parent,
+      children: children.filter((c) => c.parent_key === parent.key),
+    }));
+  }, [menus]);
+
+  const isLoading = loadingMenus || loadingPerms;
+
+  const allViewChecked = useMemo(() => {
+    return menus.every((m) => getPermission(m.key).can_view);
+  }, [menus, localPermissions]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <div className="flex items-center gap-3">
+            <div className={`w-3 h-3 rounded-full ${department.color}`} />
+            <DialogTitle>Quyền menu - {department.label}</DialogTitle>
+          </div>
+          <DialogDescription>
+            Tick chọn menu mà nhân viên trong phòng ban này được phép truy cập.
+            <br />
+            <span className="text-destructive font-medium">
+              ⚠️ Nếu không tick menu nào, nhân viên phòng ban sẽ KHÔNG THẤY menu nào.
+            </span>
+          </DialogDescription>
+        </DialogHeader>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="flex-1 overflow-hidden flex flex-col gap-4">
+            {/* Header row */}
+            <div className="flex items-center gap-4 p-3 bg-muted rounded-lg text-sm font-medium">
+              <div className="flex-1 flex items-center gap-2">
+                <Menu className="h-4 w-4" />
+                Menu
+              </div>
+              <div className="w-20 text-center flex items-center justify-center gap-1">
+                <Eye className="h-3 w-3" />
+                <span>Xem</span>
+              </div>
+              <div className="w-20 text-center flex items-center justify-center gap-1">
+                <Plus className="h-3 w-3" />
+                <span>Thêm</span>
+              </div>
+              <div className="w-20 text-center flex items-center justify-center gap-1">
+                <Edit className="h-3 w-3" />
+                <span>Sửa</span>
+              </div>
+              <div className="w-20 text-center flex items-center justify-center gap-1">
+                <Trash2 className="h-3 w-3" />
+                <span>Xóa</span>
+              </div>
+            </div>
+
+            {/* Toggle all */}
+            <div className="flex items-center gap-4 p-2 border rounded-lg bg-blue-50">
+              <div className="flex-1 font-medium text-sm">Chọn tất cả</div>
+              <div className="w-20 flex justify-center">
+                <Checkbox
+                  checked={allViewChecked}
+                  onCheckedChange={(checked) => toggleAllView(!!checked)}
+                />
+              </div>
+              <div className="w-20" />
+              <div className="w-20" />
+              <div className="w-20" />
+            </div>
+
+            {/* Menu list */}
+            <ScrollArea className="flex-1 min-h-0 max-h-[400px]">
+              <div className="space-y-1 pr-4">
+                {groupedMenus.map((parent) => {
+                  const parentPerm = getPermission(parent.key);
+                  return (
+                    <div key={parent.key}>
+                      {/* Parent menu */}
+                      <div className="flex items-center gap-4 p-2 hover:bg-muted/50 rounded">
+                        <div className="flex-1 font-medium">{parent.label}</div>
+                        <div className="w-20 flex justify-center">
+                          <Checkbox
+                            checked={parentPerm.can_view}
+                            onCheckedChange={() => togglePermission(parent.key, "can_view")}
+                          />
+                        </div>
+                        <div className="w-20 flex justify-center">
+                          <Checkbox
+                            checked={parentPerm.can_create}
+                            onCheckedChange={() => togglePermission(parent.key, "can_create")}
+                            disabled={!parentPerm.can_view}
+                          />
+                        </div>
+                        <div className="w-20 flex justify-center">
+                          <Checkbox
+                            checked={parentPerm.can_update}
+                            onCheckedChange={() => togglePermission(parent.key, "can_update")}
+                            disabled={!parentPerm.can_view}
+                          />
+                        </div>
+                        <div className="w-20 flex justify-center">
+                          <Checkbox
+                            checked={parentPerm.can_delete}
+                            onCheckedChange={() => togglePermission(parent.key, "can_delete")}
+                            disabled={!parentPerm.can_view}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Child menus */}
+                      {parent.children.map((child) => {
+                        const childPerm = getPermission(child.key);
+                        return (
+                          <div
+                            key={child.key}
+                            className="flex items-center gap-4 p-2 pl-8 hover:bg-muted/50 rounded text-sm"
+                          >
+                            <div className="flex-1 text-muted-foreground">
+                              └ {child.label}
+                            </div>
+                            <div className="w-20 flex justify-center">
+                              <Checkbox
+                                checked={childPerm.can_view}
+                                onCheckedChange={() => togglePermission(child.key, "can_view")}
+                              />
+                            </div>
+                            <div className="w-20 flex justify-center">
+                              <Checkbox
+                                checked={childPerm.can_create}
+                                onCheckedChange={() => togglePermission(child.key, "can_create")}
+                                disabled={!childPerm.can_view}
+                              />
+                            </div>
+                            <div className="w-20 flex justify-center">
+                              <Checkbox
+                                checked={childPerm.can_update}
+                                onCheckedChange={() => togglePermission(child.key, "can_update")}
+                                disabled={!childPerm.can_view}
+                              />
+                            </div>
+                            <div className="w-20 flex justify-center">
+                              <Checkbox
+                                checked={childPerm.can_delete}
+                                onCheckedChange={() => togglePermission(child.key, "can_delete")}
+                                disabled={!childPerm.can_view}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+
+            {/* Save button */}
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Đóng
+              </Button>
+              <Button
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending || !hasChanges}
+                className="gap-2"
+              >
+                {saveMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Lưu thay đổi
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
