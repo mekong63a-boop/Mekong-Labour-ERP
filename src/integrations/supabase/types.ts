@@ -772,6 +772,27 @@ export type Database = {
           },
         ]
       }
+      policy_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -803,6 +824,27 @@ export type Database = {
         Relationships: []
       }
       referral_sources: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      religions: {
         Row: {
           created_at: string
           id: string
@@ -1042,11 +1084,13 @@ export type Database = {
           permanent_address: string | null
           phone: string | null
           photo_url: string | null
+          policy_category: string | null
           progression_stage:
             | Database["public"]["Enums"]["progression_stage"]
             | null
           receiving_company_id: string | null
           registration_date: string | null
+          religion: string | null
           return_date: string | null
           simple_status: Database["public"]["Enums"]["simple_status"] | null
           smoking: string | null
@@ -1114,11 +1158,13 @@ export type Database = {
           permanent_address?: string | null
           phone?: string | null
           photo_url?: string | null
+          policy_category?: string | null
           progression_stage?:
             | Database["public"]["Enums"]["progression_stage"]
             | null
           receiving_company_id?: string | null
           registration_date?: string | null
+          religion?: string | null
           return_date?: string | null
           simple_status?: Database["public"]["Enums"]["simple_status"] | null
           smoking?: string | null
@@ -1186,11 +1232,13 @@ export type Database = {
           permanent_address?: string | null
           phone?: string | null
           photo_url?: string | null
+          policy_category?: string | null
           progression_stage?:
             | Database["public"]["Enums"]["progression_stage"]
             | null
           receiving_company_id?: string | null
           registration_date?: string | null
+          religion?: string | null
           return_date?: string | null
           simple_status?: Database["public"]["Enums"]["simple_status"] | null
           smoking?: string | null
