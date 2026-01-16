@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -20,9 +21,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Search, RefreshCw } from "lucide-react";
+import { Users, Search, RefreshCw, Download, BarChart3 } from "lucide-react";
 import { format, parseISO, addYears } from "date-fns";
 import { cn } from "@/lib/utils";
+import * as XLSX from "xlsx";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 // Status categories based on progression_stage
 const STATUS_FILTERS = [
@@ -81,6 +93,7 @@ export default function PostDeparturePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [showChart, setShowChart] = useState(true);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -136,6 +149,80 @@ export default function PostDeparturePage() {
     return result;
   }, [trainees, selectedYear, selectedStatus, searchQuery]);
 
+  // Calculate chart data by year
+  const chartData = useMemo(() => {
+    if (!trainees) return [];
+
+    const yearStats: Record<string, { year: string; working: number; earlyReturn: number; absconded: number; completed: number }> = {};
+
+    trainees.forEach(t => {
+      if (!t.departure_date) return;
+      const year = t.departure_date.substring(0, 4);
+      
+      if (!yearStats[year]) {
+        yearStats[year] = { year, working: 0, earlyReturn: 0, absconded: 0, completed: 0 };
+      }
+
+      switch (t.progression_stage) {
+        case "Đang làm việc":
+        case "Xuất cảnh":
+          yearStats[year].working++;
+          break;
+        case "Về trước hạn":
+          yearStats[year].earlyReturn++;
+          break;
+        case "Bỏ trốn":
+          yearStats[year].absconded++;
+          break;
+        case "Hoàn thành hợp đồng":
+          yearStats[year].completed++;
+          break;
+      }
+    });
+
+    return Object.values(yearStats).sort((a, b) => a.year.localeCompare(b.year));
+  }, [trainees]);
+
+  // Export to Excel
+  const handleExportExcel = () => {
+    if (!filteredTrainees || filteredTrainees.length === 0) return;
+
+    const exportData = filteredTrainees.map((t, index) => ({
+      "STT": index + 1,
+      "Mã HV": t.trainee_code,
+      "Họ và tên": t.full_name,
+      "Công ty": (t.companies as any)?.name_japanese 
+        ? `${(t.companies as any).name_japanese} (${(t.companies as any).name})`
+        : (t.companies as any)?.name || "",
+      "Tình trạng": t.progression_stage,
+      "Ngày xuất cảnh": formatDate(t.departure_date),
+      "Ngày hết hạn HĐ": t.contract_end_date 
+        ? formatDate(t.contract_end_date)
+        : calculateContractEndDate(t.departure_date, t.contract_term),
+      "Ghi chú": t.notes || "",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "TTS Sau Xuất Cảnh");
+
+    // Auto-size columns
+    const colWidths = [
+      { wch: 5 },  // STT
+      { wch: 12 }, // Mã HV
+      { wch: 25 }, // Họ và tên
+      { wch: 40 }, // Công ty
+      { wch: 18 }, // Tình trạng
+      { wch: 15 }, // Ngày xuất cảnh
+      { wch: 15 }, // Ngày hết hạn HĐ
+      { wch: 30 }, // Ghi chú
+    ];
+    ws["!cols"] = colWidths;
+
+    const fileName = `TTS_Sau_Xuat_Canh_${format(new Date(), "yyyyMMdd_HHmmss")}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  };
+
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "-";
     try {
@@ -183,15 +270,68 @@ export default function PostDeparturePage() {
           <Users className="h-6 w-6 text-primary" />
           <h1 className="text-xl font-bold text-primary">TTS đang ở Nhật</h1>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => refetch()}
-          disabled={isRefetching}
-        >
-          <RefreshCw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowChart(!showChart)}
+          >
+            <BarChart3 className="h-4 w-4 mr-2" />
+            {showChart ? "Ẩn biểu đồ" : "Hiện biểu đồ"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportExcel}
+            disabled={filteredTrainees.length === 0}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Xuất Excel
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => refetch()}
+            disabled={isRefetching}
+          >
+            <RefreshCw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
+          </Button>
+        </div>
       </div>
+
+      {/* Chart */}
+      {showChart && chartData.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium">
+              Thống kê TTS theo năm xuất cảnh và tình trạng
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="year" className="text-xs" />
+                  <YAxis className="text-xs" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: "hsl(var(--background))", 
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px"
+                    }}
+                  />
+                  <Legend />
+                  <Bar dataKey="working" name="Đang ở Nhật" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="completed" name="Hoàn thành HĐ" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="earlyReturn" name="Về giữa chừng" fill="#f97316" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="absconded" name="Bỏ trốn" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
