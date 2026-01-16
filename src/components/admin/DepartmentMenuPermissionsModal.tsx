@@ -52,9 +52,9 @@ export function DepartmentMenuPermissionsModal({
   const [hasChanges, setHasChanges] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
-  // Fetch all menus (always refetch when opening to avoid stale cache)
+  // Fetch all menus for permission UI (use a distinct queryKey to avoid clobbering the global sidebar menus cache)
   const { data: menus = [], isLoading: loadingMenus } = useQuery({
-    queryKey: ["menus"],
+    queryKey: ["menus-basic"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("menus")
@@ -158,6 +158,9 @@ export function DepartmentMenuPermissionsModal({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["department-menu-permissions"] });
       queryClient.invalidateQueries({ queryKey: ["department-menu-perm-counts"] });
+      // refresh sidebar permissions immediately
+      queryClient.invalidateQueries({ queryKey: ["effective-menu-permissions"] });
+      queryClient.invalidateQueries({ queryKey: ["menus-full"] });
       setHasChanges(false);
       toast.success("Đã lưu quyền menu cho phòng ban");
     },
