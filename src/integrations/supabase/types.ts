@@ -253,6 +253,36 @@ export type Database = {
         }
         Relationships: []
       }
+      department_members: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          created_at: string | null
+          department: string
+          id: string
+          role_in_department: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          created_at?: string | null
+          department: string
+          id?: string
+          role_in_department: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          created_at?: string | null
+          department?: string
+          id?: string
+          role_in_department?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       edit_permissions: {
         Row: {
           approved_at: string | null
@@ -1884,6 +1914,26 @@ export type Database = {
         Returns: Json
       }
       count_sub_admins: { Args: never; Returns: number }
+      get_department_counts: {
+        Args: never
+        Returns: {
+          department: string
+          manager_count: number
+          staff_count: number
+          total_count: number
+        }[]
+      }
+      get_department_members: {
+        Args: { _department: string }
+        Returns: {
+          assigned_at: string
+          email: string
+          full_name: string
+          id: string
+          role_in_department: string
+          user_id: string
+        }[]
+      }
       get_user_department: { Args: { _user_id: string }; Returns: string }
       get_user_menu_permissions: {
         Args: { _user_id: string }

@@ -1,61 +1,36 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Monitor, UserCog, Building2 } from "lucide-react";
-import { useUserRole } from "@/hooks/useUserRole";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 import { Card, CardTitle } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
-// Import content components - we'll lazy load their content
+// Import content components
 import SystemMonitorContent from "./SystemMonitorContent";
 import UserManagementContent from "./UserManagementContent";
 import DepartmentsContent from "./DepartmentsContent";
 
 export default function AdminPage() {
-  const { isAdmin, isManager } = useUserRole();
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  
-  // Map tab query param to internal tab value
-  const tabParamMap: Record<string, string> = {
-    monitor: "system",
-    users: "users", 
-    departments: "departments",
-  };
-  
-  const getInitialTab = () => {
-    const tabParam = searchParams.get("tab");
-    return tabParam && tabParamMap[tabParam] ? tabParamMap[tabParam] : "system";
-  };
-  
-  const [activeTab, setActiveTab] = useState(getInitialTab);
-  
-  // Sync tab with URL
-  useEffect(() => {
-    const tabParam = searchParams.get("tab");
-    if (tabParam && tabParamMap[tabParam]) {
-      setActiveTab(tabParamMap[tabParam]);
-    }
-  }, [searchParams]);
-  
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    const reverseMap: Record<string, string> = {
-      system: "monitor",
-      users: "users",
-      departments: "departments",
-    };
-    setSearchParams({ tab: reverseMap[value] });
-  };
-  
-  const canAccess = isAdmin || isManager;
-  
+  const { isPrimaryAdmin, isAdmin, isLoading } = useMenuPermissions();
+  const [activeTab, setActiveTab] = useState("system");
+
+  const canAccess = isPrimaryAdmin || isAdmin;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   if (!canAccess) {
     return (
       <div className="flex items-center justify-center h-full">
         <Card className="p-8 text-center">
           <CardTitle className="text-destructive">Không có quyền truy cập</CardTitle>
           <p className="mt-2 text-muted-foreground">
-            Chỉ Admin và Manager mới có thể xem trang này.
+            Chỉ Admin mới có thể xem trang này.
           </p>
         </Card>
       </div>
@@ -71,7 +46,7 @@ export default function AdminPage() {
         </p>
       </header>
 
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
           <TabsTrigger value="system" className="gap-2">
             <Monitor className="h-4 w-4" />
