@@ -35,7 +35,7 @@ const departmentConfig: { value: Department; label: string; icon: any; color: st
   },
   { 
     value: "legal", 
-    label: "Phòng Pháp lý", 
+    label: "Bộ phận hồ sơ", 
     icon: Building2, 
     color: "bg-amber-500",
     description: "Quản lý hồ sơ pháp lý, visa, COE"

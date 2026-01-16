@@ -34,7 +34,7 @@ const roleOptions: { value: AppRole; label: string; icon: any; color: string; de
 const departmentOptions: { value: Department; label: string }[] = [
   { value: "recruitment", label: "Phòng Tuyển dụng" },
   { value: "training", label: "Phòng Đào tạo" },
-  { value: "legal", label: "Phòng Pháp lý" },
+  { value: "legal", label: "Bộ phận hồ sơ" },
   { value: "dormitory", label: "Phòng KTX" },
   { value: "post_departure", label: "Phòng Sau xuất cảnh" },
   { value: "admin", label: "Phòng Hành chính" },
