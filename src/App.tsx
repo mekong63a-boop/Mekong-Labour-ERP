@@ -24,6 +24,12 @@ import PartnerList from "./pages/partners/PartnerList";
 import CompanyForm from "./pages/partners/CompanyForm";
 import UnionForm from "./pages/partners/UnionForm";
 import JobCategoryForm from "./pages/partners/JobCategoryForm";
+import DormitoryPage from "./pages/dormitory/DormitoryPage";
+import LegalPage from "./pages/legal/LegalPage";
+import HandbookPage from "./pages/handbook/HandbookPage";
+import ViolationsPage from "./pages/violations/ViolationsPage";
+import ReportsPage from "./pages/reports/ReportsPage";
+import SystemMonitorPage from "./pages/system/SystemMonitorPage";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -265,6 +271,64 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRoles={["admin", "manager"]}>
                     <PostDeparturePage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Internal Ops */}
+              <Route
+                path="/dormitory"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager", "staff"]}>
+                    <DormitoryPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/legal"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager", "staff"]}>
+                    <LegalPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Handbook */}
+              <Route
+                path="/handbook"
+                element={
+                  <ProtectedRoute>
+                    <HandbookPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Blacklist */}
+              <Route
+                path="/violations"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager", "staff"]}>
+                    <ViolationsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Reports */}
+              <Route
+                path="/reports"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <ReportsPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* System monitor */}
+              <Route
+                path="/system-monitor"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <SystemMonitorPage />
                   </ProtectedRoute>
                 }
               />
