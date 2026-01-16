@@ -24,11 +24,11 @@ interface UserWithRole {
   created_at: string;
 }
 
-const roleOptions: { value: AppRole; label: string; icon: any; color: string }[] = [
-  { value: "admin", label: "Quản trị viên", icon: Crown, color: "bg-red-500" },
-  { value: "manager", label: "Trưởng phòng", icon: Briefcase, color: "bg-blue-500" },
-  { value: "staff", label: "Nhân viên", icon: Users, color: "bg-green-500" },
-  { value: "teacher", label: "Giáo viên", icon: GraduationCap, color: "bg-purple-500" },
+const roleOptions: { value: AppRole; label: string; icon: any; color: string; description: string }[] = [
+  { value: "admin", label: "Admin", icon: Crown, color: "bg-red-500", description: "Gần như toàn quyền" },
+  { value: "manager", label: "Trưởng phòng", icon: Briefcase, color: "bg-blue-500", description: "CRUD trong phòng ban" },
+  { value: "staff", label: "Nhân viên", icon: Users, color: "bg-green-500", description: "Xem + Thêm + Sửa" },
+  { value: "teacher", label: "Giáo viên", icon: GraduationCap, color: "bg-purple-500", description: "Module Đào tạo" },
 ];
 
 const departmentOptions: { value: Department; label: string }[] = [
@@ -105,10 +105,10 @@ export default function UserManagement() {
       // Check if trying to assign admin role
       if (newRole === "admin") {
         if (!canAssignAdmins) {
-          throw new Error("Chỉ Giám đốc (Admin chính) mới có thể gán quyền Admin");
+          throw new Error("Chỉ Admin chính mới có thể gán quyền Admin");
         }
         if (subAdminCount >= 2) {
-          throw new Error("Đã đạt giới hạn số lượng Admin phụ (tối đa 2)");
+          throw new Error("Đã đạt giới hạn số lượng Admin (tối đa 2)");
         }
       }
 
@@ -119,13 +119,16 @@ export default function UserManagement() {
         .eq("user_id", userId)
         .maybeSingle();
 
+      // Department is required for manager and staff
+      const shouldHaveDepartment = newRole === "manager" || newRole === "staff";
+
       if (existingRole) {
         // Update existing role
         const { error } = await supabase
           .from("user_roles")
           .update({ 
             role: newRole,
-            department: newRole === "manager" ? department : null,
+            department: shouldHaveDepartment ? department : null,
             is_primary_admin: false, // Cannot change primary admin status here
           })
           .eq("user_id", userId);
@@ -137,7 +140,7 @@ export default function UserManagement() {
           .insert({ 
             user_id: userId, 
             role: newRole,
-            department: newRole === "manager" ? department : null,
+            department: shouldHaveDepartment ? department : null,
             is_primary_admin: false,
           });
         if (error) throw error;
@@ -225,7 +228,7 @@ export default function UserManagement() {
         <div className="flex items-center gap-2">
           <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white">
             <Star className="h-3 w-3 mr-1" />
-            Giám đốc
+            Admin chính
           </Badge>
         </div>
       );
@@ -270,14 +273,14 @@ export default function UserManagement() {
             <div className="flex items-start gap-2">
               <Star className="h-4 w-4 text-amber-500 mt-0.5" />
               <div>
-                <p className="font-medium">Giám đốc (1)</p>
+                <p className="font-medium">Admin chính (1)</p>
                 <p className="text-muted-foreground">Toàn quyền, gán Admin</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <Crown className="h-4 w-4 text-red-500 mt-0.5" />
               <div>
-                <p className="font-medium">Admin phụ ({subAdminCount}/2)</p>
+                <p className="font-medium">Admin ({subAdminCount}/2)</p>
                 <p className="text-muted-foreground">Gần như toàn quyền</p>
               </div>
             </div>
@@ -311,7 +314,7 @@ export default function UserManagement() {
               <p className="text-2xl font-bold">
                 {users?.filter(u => u.is_primary_admin).length || 0}
               </p>
-              <p className="text-sm text-muted-foreground">Giám đốc</p>
+              <p className="text-sm text-muted-foreground">Admin chính</p>
             </div>
           </CardContent>
         </Card>
@@ -433,7 +436,9 @@ export default function UserManagement() {
                             </SelectContent>
                           </Select>
                           
-                          {(selectedRole === "manager" || (!selectedRole && u.role === "manager")) && (
+                          {/* Show department selector for manager and staff */}
+                          {(selectedRole === "manager" || selectedRole === "staff" || 
+                            (!selectedRole && (u.role === "manager" || u.role === "staff"))) && (
                             <Select
                               value={selectedDepartment || u.department || ""}
                               onValueChange={(val) => setSelectedDepartment(val as Department)}
