@@ -3,7 +3,7 @@ import ClassStudentsPage from "@/pages/education/ClassStudentsPage";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AuthProviderWrapper } from "@/components/auth/AuthProvider";
@@ -29,13 +29,11 @@ import LegalPage from "./pages/legal/LegalPage";
 import HandbookPage from "./pages/handbook/HandbookPage";
 import ViolationsPage from "./pages/violations/ViolationsPage";
 import ReportsPage from "./pages/reports/ReportsPage";
-import SystemMonitorPage from "./pages/system/SystemMonitorPage";
+import AdminPage from "./pages/admin/AdminPage";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import ChangePassword from "./pages/ChangePassword";
-import UserManagement from "./pages/admin/UserManagement";
-import DepartmentsPage from "./pages/admin/DepartmentsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -324,33 +322,30 @@ const App = () => (
                 }
               />
 
-              {/* System monitor */}
+              {/* Admin Page - Combined System Monitor, User Management, Departments */}
               <Route
-                path="/system-monitor"
+                path="/admin"
                 element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
-                    <SystemMonitorPage />
+                  <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                    <AdminPage />
                   </ProtectedRoute>
                 }
               />
 
-              {/* Admin Routes */}
+              {/* Legacy redirects for old routes */}
+              <Route
+                path="/system-monitor"
+                element={<Navigate to="/admin" replace />}
+              />
               <Route
                 path="/admin/users"
-                element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
-                    <UserManagement />
-                  </ProtectedRoute>
-                }
+                element={<Navigate to="/admin" replace />}
               />
               <Route
                 path="/admin/departments"
-                element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
-                    <DepartmentsPage />
-                  </ProtectedRoute>
-                }
+                element={<Navigate to="/admin" replace />}
               />
+              
               <Route
                 path="/change-password"
                 element={

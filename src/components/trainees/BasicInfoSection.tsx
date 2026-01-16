@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Trainee, CURRENT_ROLE } from "@/types/trainee";
 import { useUpdateTrainee } from "@/hooks/useTrainees";
 import { useToast } from "@/hooks/use-toast";
+import { useDataMasking } from "@/hooks/useSecureData";
 import { format } from "date-fns";
 
 interface BasicInfoSectionProps {
@@ -29,6 +30,7 @@ export function BasicInfoSection({ trainee }: BasicInfoSectionProps) {
 
   const updateTrainee = useUpdateTrainee();
   const { toast } = useToast();
+  const { maskPhone, canViewUnmasked } = useDataMasking();
 
   const canEdit = CURRENT_ROLE === "consultant" || CURRENT_ROLE === "admin";
 
@@ -84,11 +86,11 @@ export function BasicInfoSection({ trainee }: BasicInfoSectionProps) {
           </div>
           <div>
             <Label className="text-muted-foreground">Số điện thoại</Label>
-            <p>{trainee.phone || "—"}</p>
+            <p>{maskPhone(trainee.phone)}</p>
           </div>
           <div>
             <Label className="text-muted-foreground">Zalo</Label>
-            <p>{trainee.zalo || "—"}</p>
+            <p>{maskPhone(trainee.zalo)}</p>
           </div>
           <div>
             <Label className="text-muted-foreground">Facebook</Label>
