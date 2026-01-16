@@ -20,13 +20,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   useClass, 
   useTestScores, 
@@ -199,12 +193,28 @@ function getLatestScore(
   
   if (studentScores.length === 0) return null;
   
-  // Sort by created_at descending to get the most recent entry
-  // (since test_date might be the same for multiple tests)
+  // Extract lesson number from test_name (e.g., "Nhập môn - Bài 5" -> 5)
+  const getLessonNumber = (testName: string): number => {
+    const match = testName.match(/Bài\s*(\d+)/i);
+    return match ? parseInt(match[1], 10) : 0;
+  };
+  
+  // Sort by:
+  // 1. created_at descending (most recent first)
+  // 2. lesson number descending (higher lesson number = later in sequence)
   studentScores.sort((a, b) => {
-    const createdA = new Date(a.created_at);
-    const createdB = new Date(b.created_at);
-    return createdB.getTime() - createdA.getTime();
+    const createdA = new Date(a.created_at).getTime();
+    const createdB = new Date(b.created_at).getTime();
+    
+    // If created_at differs by more than 1 minute, use that
+    if (Math.abs(createdA - createdB) > 60000) {
+      return createdB - createdA;
+    }
+    
+    // Otherwise, sort by lesson number (higher = more recent)
+    const lessonA = getLessonNumber(a.test_name || "");
+    const lessonB = getLessonNumber(b.test_name || "");
+    return lessonB - lessonA;
   });
   
   const latest = studentScores[0];
@@ -334,15 +344,32 @@ export default function ClassStudentsPage() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Tìm theo tên hoặc mã học viên..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
+      {/* Search and Category Tabs */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <div className="relative max-w-md flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Tìm theo tên hoặc mã học viên..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        {/* Category Tabs for Sức học */}
+        <Tabs value={gradeCategory} onValueChange={setGradeCategory} className="w-auto">
+          <TabsList className="h-8">
+            {TEST_CATEGORIES.map((cat) => (
+              <TabsTrigger 
+                key={cat.value} 
+                value={cat.value}
+                className="text-xs px-2 py-1 h-6"
+              >
+                {cat.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* Students Table */}
@@ -366,20 +393,7 @@ export default function ClassStudentsPage() {
                 <TableHead className="w-28">Ngày sinh</TableHead>
                 <TableHead>Quê quán</TableHead>
                 <TableHead className="w-28">Tình trạng</TableHead>
-                <TableHead className="w-32 text-center">
-                  <Select value={gradeCategory} onValueChange={setGradeCategory}>
-                    <SelectTrigger className="h-7 text-xs border-none bg-transparent px-1 gap-1 justify-center">
-                      <SelectValue placeholder="Sức học" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TEST_CATEGORIES.map((cat) => (
-                        <SelectItem key={cat.value} value={cat.value}>
-                          {cat.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableHead>
+                <TableHead className="w-24 text-center">Sức học</TableHead>
                 <TableHead className="w-24 text-center">Chuyên cần</TableHead>
                 <TableHead className="w-20 text-center">Lịch sử</TableHead>
               </TableRow>
