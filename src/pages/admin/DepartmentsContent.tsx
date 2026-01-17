@@ -20,6 +20,9 @@ import { Input } from "@/components/ui/input";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
+// Extended role type để hỗ trợ Nhân viên cấp cao (staff với is_senior_staff=true)
+type ExtendedRole = "admin" | "senior_staff" | "staff";
+
 interface DepartmentCount {
   department: string;
   manager_count: number;
@@ -47,15 +50,17 @@ interface UserWithRole {
   email: string | null;
   full_name: string | null;
   role: AppRole | null;
+  is_senior_staff: boolean;
   role_id: string | null;
   is_primary_admin: boolean;
   created_at: string;
 }
 
-// Chỉ còn 2 quyền: Admin và Nhân viên
-const roleOptions: { value: AppRole; label: string; icon: React.ElementType; description: string }[] = [
-  { value: "admin", label: "Admin", icon: ShieldCheck, description: "Quản trị viên hệ thống" },
-  { value: "staff", label: "Nhân viên", icon: Users, description: "Nhân viên thông thường" },
+// 3 cấp quyền hệ thống: Admin, Nhân viên cấp cao, Nhân viên
+const roleOptions: { value: ExtendedRole; label: string; icon: React.ElementType; description: string }[] = [
+  { value: "admin", label: "Admin", icon: ShieldCheck, description: "Quản trị viên hệ thống - Toàn quyền" },
+  { value: "senior_staff", label: "Nhân viên cấp cao", icon: Star, description: "Xem được thông tin nhạy cảm (CCCD, Passport, SĐT)" },
+  { value: "staff", label: "Nhân viên", icon: Users, description: "Thông tin nhạy cảm được che" },
 ];
 
 const departmentConfig = [
@@ -124,9 +129,9 @@ export default function DepartmentsContent() {
   const { logAudit } = useAuditLog();
   const [selectedDepartment, setSelectedDepartment] = useState<typeof departmentConfig[0] | null>(null);
   const [modalType, setModalType] = useState<ModalType>(null);
-  const [pendingRoles, setPendingRoles] = useState<Record<string, AppRole>>({});
+  const [pendingRoles, setPendingRoles] = useState<Record<string, ExtendedRole>>({});
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [editingRole, setEditingRole] = useState<AppRole | null>(null);
+  const [editingRole, setEditingRole] = useState<ExtendedRole | null>(null);
   const [userSearch, setUserSearch] = useState("");
   const [userTab, setUserTab] = useState<"pending" | "all">("all");
   // State for user menu permissions modal
@@ -137,6 +142,21 @@ export default function DepartmentsContent() {
   } | null>(null);
   const { isPrimaryAdmin, isAdmin } = useMenuPermissions();
   const canManage = isPrimaryAdmin || isAdmin;
+
+  // Helper function: Convert ExtendedRole to database role + is_senior_staff
+  const extendedRoleToDb = (extendedRole: ExtendedRole): { role: AppRole; is_senior_staff: boolean } => {
+    if (extendedRole === "admin") return { role: "admin", is_senior_staff: false };
+    if (extendedRole === "senior_staff") return { role: "staff", is_senior_staff: true };
+    return { role: "staff", is_senior_staff: false };
+  };
+
+  // Helper function: Convert database role + is_senior_staff to ExtendedRole
+  const dbToExtendedRole = (role: AppRole | null, isSenior: boolean): ExtendedRole | null => {
+    if (!role) return null;
+    if (role === "admin") return "admin";
+    if (role === "staff" && isSenior) return "senior_staff";
+    return "staff";
+  };
 
   // Fetch ALL users with their roles
   const { data: allUsersWithRoles = [], isLoading: loadingAllUsers, refetch: refetchAllUsers } = useQuery({
@@ -150,7 +170,7 @@ export default function DepartmentsContent() {
 
       const { data: roles, error: rolesError } = await supabase
         .from("user_roles")
-        .select("id, user_id, role, is_primary_admin");
+        .select("id, user_id, role, is_primary_admin, is_senior_staff");
       if (rolesError) throw rolesError;
 
       return profiles.map((p) => {
@@ -160,6 +180,7 @@ export default function DepartmentsContent() {
           email: p.email,
           full_name: p.full_name,
           role: userRole?.role || null,
+          is_senior_staff: userRole?.is_senior_staff ?? false,
           role_id: userRole?.id || null,
           is_primary_admin: userRole?.is_primary_admin || false,
           created_at: p.created_at,
@@ -179,10 +200,11 @@ export default function DepartmentsContent() {
 
   // Mutation to assign role to pending user with audit log
   const assignRoleMutation = useMutation({
-    mutationFn: async ({ userId, role, userName }: { userId: string; role: AppRole; userName?: string }) => {
+    mutationFn: async ({ userId, extendedRole, userName }: { userId: string; extendedRole: ExtendedRole; userName?: string }) => {
+      const { role, is_senior_staff } = extendedRoleToDb(extendedRole);
       const { error } = await supabase
         .from("user_roles")
-        .insert({ user_id: userId, role });
+        .insert({ user_id: userId, role, is_senior_staff });
       if (error) throw error;
       
       // Log audit
@@ -191,8 +213,8 @@ export default function DepartmentsContent() {
         "user_roles",
         userId,
         null,
-        { user_id: userId, role },
-        `Cấp quyền "${roleOptions.find(r => r.value === role)?.label}" cho ${userName || userId}`
+        { user_id: userId, role, is_senior_staff },
+        `Cấp quyền "${roleOptions.find(r => r.value === extendedRole)?.label}" cho ${userName || userId}`
       );
     },
     onSuccess: (_, { userId }) => {
@@ -212,10 +234,11 @@ export default function DepartmentsContent() {
 
   // Mutation to UPDATE role with audit log
   const updateRoleMutation = useMutation({
-    mutationFn: async ({ roleId, oldRole, newRole, userName }: { roleId: string; oldRole: AppRole; newRole: AppRole; userName?: string }) => {
+    mutationFn: async ({ roleId, oldExtendedRole, newExtendedRole, userName }: { roleId: string; oldExtendedRole: ExtendedRole; newExtendedRole: ExtendedRole; userName?: string }) => {
+      const { role, is_senior_staff } = extendedRoleToDb(newExtendedRole);
       const { error } = await supabase
         .from("user_roles")
-        .update({ role: newRole })
+        .update({ role, is_senior_staff })
         .eq("id", roleId);
       if (error) throw error;
       
@@ -223,9 +246,9 @@ export default function DepartmentsContent() {
         "UPDATE",
         "user_roles",
         roleId,
-        { role: oldRole },
-        { role: newRole },
-        `Thay đổi quyền từ "${roleOptions.find(r => r.value === oldRole)?.label}" thành "${roleOptions.find(r => r.value === newRole)?.label}" cho ${userName}`
+        { role: oldExtendedRole },
+        { role: newExtendedRole, is_senior_staff },
+        `Thay đổi quyền từ "${roleOptions.find(r => r.value === oldExtendedRole)?.label}" thành "${roleOptions.find(r => r.value === newExtendedRole)?.label}" cho ${userName}`
       );
     },
     onSuccess: () => {
@@ -242,7 +265,7 @@ export default function DepartmentsContent() {
 
   // Mutation to DELETE role with audit log
   const deleteRoleMutation = useMutation({
-    mutationFn: async ({ roleId, role, userName }: { roleId: string; role: AppRole; userName?: string }) => {
+    mutationFn: async ({ roleId, extendedRole, userName }: { roleId: string; extendedRole: ExtendedRole; userName?: string }) => {
       const { error } = await supabase
         .from("user_roles")
         .delete()
@@ -253,9 +276,9 @@ export default function DepartmentsContent() {
         "DELETE",
         "user_roles",
         roleId,
-        { role },
+        { role: extendedRole },
         null,
-        `Xóa quyền "${roleOptions.find(r => r.value === role)?.label}" của ${userName}`
+        `Xóa quyền "${roleOptions.find(r => r.value === extendedRole)?.label}" của ${userName}`
       );
     },
     onSuccess: () => {
@@ -396,9 +419,10 @@ export default function DepartmentsContent() {
                 Cách thức phân quyền
               </h4>
               <div className="text-sm text-blue-800 space-y-1">
-                <p><strong>• Quyền hệ thống:</strong> Cấp vai trò (Admin/Staff/Teacher/Manager) - Admin thấy tất cả</p>
+                <p><strong>• Admin:</strong> Toàn quyền, xem được tất cả thông tin nhạy cảm (CCCD, Passport, SĐT)</p>
+                <p><strong>• Nhân viên cấp cao:</strong> Xem được thông tin nhạy cảm để xử lý hồ sơ</p>
+                <p><strong>• Nhân viên:</strong> Thông tin nhạy cảm được che (CCCD, Passport, SĐT...)</p>
                 <p><strong>• Quyền menu (nút <Menu className="inline h-3 w-3" />):</strong> Click vào icon menu để gán quyền xem/tạo/sửa/xóa từng menu</p>
-                <p><strong>• Phòng ban:</strong> Chỉ để hiển thị thông tin, user thuộc phòng nào</p>
                 <p className="text-green-700 font-medium mt-2">
                   → Sau khi cấp quyền hệ thống, nhấn icon <Menu className="inline h-3 w-3" /> để gán quyền menu cho tài khoản.
                 </p>
@@ -460,153 +484,177 @@ export default function DepartmentsContent() {
                           </TableCell>
                           <TableCell className="text-muted-foreground">{user.email}</TableCell>
                           <TableCell>
-                            {isEditing ? (
-                              <Select
-                                value={editingRole || ""}
-                                onValueChange={(val) => setEditingRole(val as AppRole)}
-                              >
-                                <SelectTrigger className="w-36">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {roleOptions.map((opt) => (
-                                    <SelectItem key={opt.value} value={opt.value}>
-                                      <div className="flex items-center gap-2">
-                                        <opt.icon className="h-4 w-4" />
-                                        {opt.label}
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            ) : user.role ? (
-                              <Badge variant={user.role === "admin" ? "destructive" : user.role === "manager" ? "default" : "secondary"}>
-                                {roleOptions.find(r => r.value === user.role)?.label || user.role}
-                              </Badge>
-                            ) : (
-                              <Select
-                                value={pendingRoles[user.user_id] || ""}
-                                onValueChange={(val) => setPendingRoles((prev) => ({ ...prev, [user.user_id]: val as AppRole }))}
-                              >
-                                <SelectTrigger className="w-36">
-                                  <SelectValue placeholder="Chọn quyền" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {roleOptions.map((opt) => (
-                                    <SelectItem key={opt.value} value={opt.value}>
-                                      <div className="flex items-center gap-2">
-                                        <opt.icon className="h-4 w-4" />
-                                        {opt.label}
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            )}
+                            {(() => {
+                              const userExtendedRole = dbToExtendedRole(user.role, user.is_senior_staff);
+                              
+                              if (isEditing) {
+                                return (
+                                  <Select
+                                    value={editingRole || ""}
+                                    onValueChange={(val) => setEditingRole(val as ExtendedRole)}
+                                  >
+                                    <SelectTrigger className="w-44">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {roleOptions.map((opt) => (
+                                        <SelectItem key={opt.value} value={opt.value}>
+                                          <div className="flex items-center gap-2">
+                                            <opt.icon className="h-4 w-4" />
+                                            {opt.label}
+                                          </div>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                );
+                              }
+                              
+                              if (userExtendedRole) {
+                                return (
+                                  <Badge variant={userExtendedRole === "admin" ? "destructive" : userExtendedRole === "senior_staff" ? "default" : "secondary"}>
+                                    {roleOptions.find(r => r.value === userExtendedRole)?.label || userExtendedRole}
+                                  </Badge>
+                                );
+                              }
+                              
+                              return (
+                                <Select
+                                  value={pendingRoles[user.user_id] || ""}
+                                  onValueChange={(val) => setPendingRoles((prev) => ({ ...prev, [user.user_id]: val as ExtendedRole }))}
+                                >
+                                  <SelectTrigger className="w-44">
+                                    <SelectValue placeholder="Chọn quyền" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {roleOptions.map((opt) => (
+                                      <SelectItem key={opt.value} value={opt.value}>
+                                        <div className="flex items-center gap-2">
+                                          <opt.icon className="h-4 w-4" />
+                                          {opt.label}
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell className="text-right">
-                            {isPrimary ? (
-                              <span className="text-xs text-muted-foreground">Không thể chỉnh sửa</span>
-                            ) : isEditing ? (
-                              <div className="flex justify-end gap-1">
+                            {(() => {
+                              const userExtendedRole = dbToExtendedRole(user.role, user.is_senior_staff);
+                              
+                              if (isPrimary) {
+                                return <span className="text-xs text-muted-foreground">Không thể chỉnh sửa</span>;
+                              }
+                              
+                              if (isEditing) {
+                                return (
+                                  <div className="flex justify-end gap-1">
+                                    <Button
+                                      size="sm"
+                                      disabled={!editingRole || editingRole === userExtendedRole || updateRoleMutation.isPending}
+                                      onClick={() => {
+                                        if (editingRole && user.role_id && userExtendedRole) {
+                                          updateRoleMutation.mutate({
+                                            roleId: user.role_id,
+                                            oldExtendedRole: userExtendedRole,
+                                            newExtendedRole: editingRole,
+                                            userName: user.full_name || user.email || undefined,
+                                          });
+                                        }
+                                      }}
+                                    >
+                                      <Check className="h-4 w-4" />
+                                    </Button>
+                                    <Button size="sm" variant="ghost" onClick={() => { setEditingUserId(null); setEditingRole(null); }}>
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                );
+                              }
+                              
+                              if (userExtendedRole) {
+                                return (
+                                  <div className="flex justify-end gap-1">
+                                    {/* Button to open menu permissions modal */}
+                                    <Button 
+                                      size="sm" 
+                                      variant="ghost"
+                                      onClick={() => setSelectedUserForMenu({
+                                        user_id: user.user_id,
+                                        full_name: user.full_name,
+                                        email: user.email,
+                                      })}
+                                      title="Quyền menu"
+                                      className="text-primary"
+                                    >
+                                      <Menu className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      size="sm" 
+                                      variant="ghost"
+                                      onClick={() => { setEditingUserId(user.user_id); setEditingRole(userExtendedRole); }}
+                                      title="Sửa quyền hệ thống"
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" title="Xóa quyền">
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Xóa quyền người dùng?</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Bạn có chắc muốn xóa quyền "{roleOptions.find(r => r.value === userExtendedRole)?.label}" của {user.full_name || user.email}? 
+                                            Người dùng sẽ không còn quyền truy cập hệ thống.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                          <AlertDialogAction
+                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            onClick={() => {
+                                              if (user.role_id) {
+                                                deleteRoleMutation.mutate({
+                                                  roleId: user.role_id,
+                                                  extendedRole: userExtendedRole,
+                                                  userName: user.full_name || user.email || undefined,
+                                                });
+                                              }
+                                            }}
+                                          >
+                                            Xóa quyền
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </div>
+                                );
+                              }
+                              
+                              return (
                                 <Button
                                   size="sm"
-                                  disabled={!editingRole || editingRole === user.role || updateRoleMutation.isPending}
+                                  disabled={!pendingRoles[user.user_id] || assignRoleMutation.isPending}
                                   onClick={() => {
-                                    if (editingRole && user.role_id) {
-                                      updateRoleMutation.mutate({
-                                        roleId: user.role_id,
-                                        oldRole: user.role!,
-                                        newRole: editingRole,
+                                    if (pendingRoles[user.user_id]) {
+                                      assignRoleMutation.mutate({
+                                        userId: user.user_id,
+                                        extendedRole: pendingRoles[user.user_id],
                                         userName: user.full_name || user.email || undefined,
                                       });
                                     }
                                   }}
                                 >
-                                  <Check className="h-4 w-4" />
+                                  <Check className="h-4 w-4 mr-1" />
+                                  Cấp quyền
                                 </Button>
-                                <Button size="sm" variant="ghost" onClick={() => { setEditingUserId(null); setEditingRole(null); }}>
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ) : user.role ? (
-                              <div className="flex justify-end gap-1">
-                                {/* Button to open menu permissions modal */}
-                                {!isPrimary && (
-                                  <Button 
-                                    size="sm" 
-                                    variant="ghost"
-                                    onClick={() => setSelectedUserForMenu({
-                                      user_id: user.user_id,
-                                      full_name: user.full_name,
-                                      email: user.email,
-                                    })}
-                                    title="Quyền menu"
-                                    className="text-primary"
-                                  >
-                                    <Menu className="h-4 w-4" />
-                                  </Button>
-                                )}
-                                <Button 
-                                  size="sm" 
-                                  variant="ghost"
-                                  onClick={() => { setEditingUserId(user.user_id); setEditingRole(user.role); }}
-                                  title="Sửa quyền hệ thống"
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" title="Xóa quyền">
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Xóa quyền người dùng?</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Bạn có chắc muốn xóa quyền "{roleOptions.find(r => r.value === user.role)?.label}" của {user.full_name || user.email}? 
-                                        Người dùng sẽ không còn quyền truy cập hệ thống.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel>Hủy</AlertDialogCancel>
-                                      <AlertDialogAction
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                        onClick={() => {
-                                          if (user.role_id && user.role) {
-                                            deleteRoleMutation.mutate({
-                                              roleId: user.role_id,
-                                              role: user.role,
-                                              userName: user.full_name || user.email || undefined,
-                                            });
-                                          }
-                                        }}
-                                      >
-                                        Xóa quyền
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </div>
-                            ) : (
-                              <Button
-                                size="sm"
-                                disabled={!pendingRoles[user.user_id] || assignRoleMutation.isPending}
-                                onClick={() => {
-                                  if (pendingRoles[user.user_id]) {
-                                    assignRoleMutation.mutate({
-                                      userId: user.user_id,
-                                      role: pendingRoles[user.user_id],
-                                      userName: user.full_name || user.email || undefined,
-                                    });
-                                  }
-                                }}
-                              >
-                                <Check className="h-4 w-4 mr-1" />
-                                Cấp quyền
-                              </Button>
-                            )}
+                              );
+                            })()}
                           </TableCell>
                         </TableRow>
                       );
