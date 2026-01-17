@@ -3,9 +3,13 @@ import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSystemRealtime } from "@/hooks/useSystemRealtime";
 
 export function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  
+  // Enable system-wide realtime updates for all users
+  useSystemRealtime();
 
   return (
     <div className="flex min-h-screen w-full">

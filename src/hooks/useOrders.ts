@@ -1,6 +1,30 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+// Realtime hook for orders - sync across all browsers
+function useOrdersRealtime() {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`orders-realtime-${Date.now()}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        (payload) => {
+          console.log('[Realtime] Orders changed:', payload.eventType);
+          queryClient.invalidateQueries({ queryKey: ["orders"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+}
 
 export interface Order {
   id: string;
@@ -39,6 +63,9 @@ export interface OrderFormData {
 }
 
 export function useOrders() {
+  // Subscribe to realtime changes
+  useOrdersRealtime();
+  
   return useQuery({
     queryKey: ["orders"],
     queryFn: async () => {
