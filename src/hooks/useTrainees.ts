@@ -1,11 +1,57 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Trainee } from "@/types/trainee";
 import { Database } from "@/integrations/supabase/types";
 
 type TraineeUpdate = Database["public"]["Tables"]["trainees"]["Update"];
 
+/**
+ * Hook để lắng nghe realtime changes từ trainees table
+ * Tự động invalidate queries khi có thay đổi từ bất kỳ browser nào
+ */
+export function useTraineesRealtime() {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('trainees_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'trainees',
+        },
+        (payload) => {
+          console.log('Trainee data changed:', payload.eventType);
+          // Invalidate all trainee-related queries
+          queryClient.invalidateQueries({ queryKey: ["trainees"] });
+          queryClient.invalidateQueries({ queryKey: ["trainees-paginated"] });
+          queryClient.invalidateQueries({ queryKey: ["trainee-stage-counts"] });
+          queryClient.invalidateQueries({ queryKey: ["trainees-count"] });
+          
+          // If it's an update/delete for a specific trainee, invalidate that too
+          if (payload.old && (payload.old as any).id) {
+            queryClient.invalidateQueries({ queryKey: ["trainee", (payload.old as any).id] });
+          }
+          if (payload.new && (payload.new as any).id) {
+            queryClient.invalidateQueries({ queryKey: ["trainee", (payload.new as any).id] });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+}
+
 export function useTrainees() {
+  // Subscribe to realtime changes
+  useTraineesRealtime();
+  
   return useQuery({
     queryKey: ["trainees"],
     queryFn: async () => {
