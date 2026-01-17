@@ -7,11 +7,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trainee, CURRENT_ROLE } from "@/types/trainee";
+import { Trainee } from "@/types/trainee";
 import { useUpdateTrainee } from "@/hooks/useTrainees";
 import { useToast } from "@/hooks/use-toast";
 import { Constants } from "@/integrations/supabase/types";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ActionPanelProps {
   trainee: Trainee;
@@ -20,13 +21,15 @@ interface ActionPanelProps {
 export function ActionPanel({ trainee }: ActionPanelProps) {
   const updateTrainee = useUpdateTrainee();
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
   const [selectedStatus, setSelectedStatus] = useState(trainee.simple_status || "");
   const [selectedStage, setSelectedStage] = useState(trainee.progression_stage || "");
 
   const simpleStatuses = Constants.public.Enums.simple_status;
   const progressionStages = Constants.public.Enums.progression_stage;
 
-  const canManage = CURRENT_ROLE === "manager" || CURRENT_ROLE === "admin";
+  // Chỉ Admin có quyền thao tác
+  const canManage = isAdmin;
 
   const handleStatusChange = async () => {
     try {
