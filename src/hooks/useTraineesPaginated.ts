@@ -36,6 +36,36 @@ export interface TraineeListItem {
   job_category: { id: string; name: string; name_japanese: string | null } | null;
 }
 
+// Raw trainee data from masked view
+interface TraineeMaskedRaw {
+  id: string;
+  trainee_code: string;
+  full_name: string;
+  birth_date: string | null;
+  birthplace: string | null;
+  progression_stage: ProgressionStage | null;
+  simple_status: SimpleStatus | null;
+  enrollment_status: string | null;
+  trainee_type: TraineeType | null;
+  entry_date: string | null;
+  interview_pass_date: string | null;
+  document_submission_date: string | null;
+  otit_entry_date: string | null;
+  nyukan_entry_date: string | null;
+  coe_date: string | null;
+  departure_date: string | null;
+  expected_return_date: string | null;
+  absconded_date: string | null;
+  early_return_date: string | null;
+  early_return_reason: string | null;
+  return_date: string | null;
+  contract_term: number | null;
+  updated_at: string | null;
+  receiving_company_id: string | null;
+  union_id: string | null;
+  job_category_id: string | null;
+}
+
 interface UseTraineesPaginatedParams {
   from: number;
   to: number;
@@ -59,6 +89,11 @@ const VALID_PROGRESSION_STAGES: ProgressionStage[] = [
   'Xuất cảnh', 'Đang làm việc', 'Hoàn thành hợp đồng', 'Bỏ trốn', 'Về trước hạn'
 ];
 
+/**
+ * Hook lấy danh sách trainees với phân trang và dữ liệu đã được che giấu
+ * - Admin & Senior Staff: xem dữ liệu thực
+ * - Staff thường: dữ liệu nhạy cảm bị che (phone, cccd, passport, địa chỉ)
+ */
 export function useTraineesPaginated({
   from,
   to,
@@ -70,14 +105,15 @@ export function useTraineesPaginated({
   // Subscribe to realtime changes for auto-refresh across all browsers
   useTraineesRealtime();
   
-  // Query for count
+  // Query for count - sử dụng view trainees_masked
   const countQuery = useQuery({
     queryKey: ['trainees-count', progressionStage, searchQuery],
     queryFn: async () => {
       const startTime = performance.now();
       
+      // Sử dụng view trainees_masked để che giấu dữ liệu nhạy cảm
       let query = supabase
-        .from('trainees')
+        .from('trainees_masked')
         .select('*', { count: 'exact', head: true });
 
       // Apply progression stage filter with type safety
@@ -106,14 +142,15 @@ export function useTraineesPaginated({
     staleTime: 30000, // Cache for 30 seconds
   });
 
-  // Query for data
+  // Query for data - sử dụng view trainees_masked
   const dataQuery = useQuery({
     queryKey: ['trainees-paginated', from, to, progressionStage, searchQuery],
     queryFn: async () => {
       const startTime = performance.now();
 
+      // Sử dụng view trainees_masked để che giấu dữ liệu nhạy cảm
       let query = supabase
-        .from('trainees')
+        .from('trainees_masked')
         .select(`
           id,
           trainee_code,
@@ -165,10 +202,13 @@ export function useTraineesPaginated({
 
       if (error) throw error;
 
+      // Cast to proper type
+      const rawData = data as unknown as TraineeMaskedRaw[];
+
       // Fetch related data separately for proper typing
-      const companyIds = [...new Set(data?.map(t => t.receiving_company_id).filter(Boolean) as string[])];
-      const unionIds = [...new Set(data?.map(t => t.union_id).filter(Boolean) as string[])];
-      const jobCategoryIds = [...new Set(data?.map(t => t.job_category_id).filter(Boolean) as string[])];
+      const companyIds = [...new Set(rawData?.map(t => t.receiving_company_id).filter(Boolean) as string[])];
+      const unionIds = [...new Set(rawData?.map(t => t.union_id).filter(Boolean) as string[])];
+      const jobCategoryIds = [...new Set(rawData?.map(t => t.job_category_id).filter(Boolean) as string[])];
 
       const [companiesRes, unionsRes, jobCategoriesRes] = await Promise.all([
         companyIds.length > 0 
@@ -187,11 +227,11 @@ export function useTraineesPaginated({
       const jobCategoriesMap = new Map((jobCategoriesRes.data || []).map(j => [j.id, j]));
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[TraineeQuery] page from=${from} to=${to}, ${(performance.now() - startTime).toFixed(0)}ms, fetched: ${data?.length || 0}`);
+        console.log(`[TraineeQuery] page from=${from} to=${to}, ${(performance.now() - startTime).toFixed(0)}ms, fetched: ${rawData?.length || 0}`);
       }
 
       // Transform data to match expected format
-      const trainees: TraineeListItem[] = (data || []).map((trainee) => ({
+      const trainees: TraineeListItem[] = (rawData || []).map((trainee) => ({
         id: trainee.id,
         trainee_code: trainee.trainee_code,
         full_name: trainee.full_name,
