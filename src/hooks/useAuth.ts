@@ -2,7 +2,8 @@ import { useState, useEffect, createContext, useContext } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AppRole = "admin" | "manager" | "staff" | "teacher";
+// Chỉ còn 2 quyền: admin và staff (nhân viên)
+export type AppRole = "admin" | "staff";
 
 interface AuthContextType {
   user: User | null;
@@ -10,8 +11,7 @@ interface AuthContextType {
   role: AppRole | null;
   isLoading: boolean;
   isAdmin: boolean;
-  isManager: boolean;
-  isTeacher: boolean;
+  isStaff: boolean;
   hasAnyAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
@@ -188,8 +188,7 @@ export function useAuthState(): AuthContextType {
     role,
     isLoading,
     isAdmin: role === "admin",
-    isManager: role === "manager",
-    isTeacher: role === "teacher",
+    isStaff: role === "staff",
     hasAnyAdmin,
     signIn,
     signUp,

@@ -52,11 +52,10 @@ interface UserWithRole {
   created_at: string;
 }
 
+// Chỉ còn 2 quyền: Admin và Nhân viên
 const roleOptions: { value: AppRole; label: string; icon: React.ElementType; description: string }[] = [
   { value: "admin", label: "Admin", icon: ShieldCheck, description: "Quản trị viên hệ thống" },
-  { value: "manager", label: "Trưởng phòng", icon: Crown, description: "Quản lý phòng ban" },
   { value: "staff", label: "Nhân viên", icon: Users, description: "Nhân viên thông thường" },
-  { value: "teacher", label: "Giáo viên", icon: GraduationCap, description: "Giáo viên đào tạo" },
 ];
 
 const departmentConfig = [

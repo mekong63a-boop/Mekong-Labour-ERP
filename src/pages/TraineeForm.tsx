@@ -144,11 +144,11 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("personal");
   const { convertToKatakana } = useKatakanaConverter();
-  const { isAdmin, isManager } = useUserRole();
+  const { isAdmin } = useUserRole();
   const { canViewUnmasked } = useDataMasking();
   
-  // Staff can only edit non-sensitive fields
-  const canEditSensitiveFields = isAdmin || isManager;
+  // Chỉ admin mới được sửa trường nhạy cảm
+  const canEditSensitiveFields = isAdmin;
   
   // Pending photo file for upload on save
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);

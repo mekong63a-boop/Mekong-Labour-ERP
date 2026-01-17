@@ -126,14 +126,14 @@ const TABLE_LABELS: Record<string, string> = {
 };
 
 export default function SystemMonitorPage() {
-  const { isAdmin, isManager } = useUserRole();
+  const { isAdmin } = useUserRole();
   const [searchTerm, setSearchTerm] = useState("");
   const [actionFilter, setActionFilter] = useState<string>("all");
   const [tableFilter, setTableFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(subDays(new Date(), 7));
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
   
-  const canAccess = isAdmin || isManager;
+  const canAccess = isAdmin;
   
   // Fetch online users
   const { data: onlineUsers = [], refetch: refetchUsers } = useQuery({
@@ -348,9 +348,6 @@ export default function SystemMonitorPage() {
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-foreground">Giám sát hệ thống</h1>
-          {isManager && !isAdmin && (
-            <p className="text-sm text-muted-foreground">Đang xem với quyền Manager</p>
-          )}
         </div>
         <Button 
           variant="outline" 
@@ -447,9 +444,7 @@ export default function SystemMonitorPage() {
                       const getRoleLabel = (role: string | null | undefined) => {
                         switch (role) {
                           case "admin": return { label: "Quản trị viên", color: "bg-red-50 text-red-700 border-red-200" };
-                          case "manager": return { label: "Quản lý", color: "bg-blue-50 text-blue-700 border-blue-200" };
                           case "staff": return { label: "Nhân viên", color: "bg-gray-50 text-gray-700 border-gray-200" };
-                          case "teacher": return { label: "Giáo viên", color: "bg-purple-50 text-purple-700 border-purple-200" };
                           default: return { label: "Chưa phân quyền", color: "bg-yellow-50 text-yellow-700 border-yellow-200" };
                         }
                       };

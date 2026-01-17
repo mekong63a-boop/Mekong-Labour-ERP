@@ -123,14 +123,14 @@ const TABLE_LABELS: Record<string, string> = {
 };
 
 export default function SystemMonitorContent() {
-  const { isAdmin, isManager } = useUserRole();
+  const { isAdmin } = useUserRole();
   const [searchTerm, setSearchTerm] = useState("");
   const [actionFilter, setActionFilter] = useState<string>("all");
   const [tableFilter, setTableFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(subDays(new Date(), 7));
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
   
-  const canAccess = isAdmin || isManager;
+  const canAccess = isAdmin;
   
   // Fetch online users
   const { data: onlineUsers = [], refetch: refetchUsers } = useQuery({

@@ -378,7 +378,7 @@ export default function AttendanceCalendar() {
   const [pendingChanges, setPendingChanges] = useState<Map<string, { status: string; notes: string }>>(new Map());
   const monthStr = format(currentMonth, "yyyy-MM");
   
-  const { isAdmin, isTeacher } = useUserRole();
+  const { isAdmin, isStaff } = useUserRole();
   const today = startOfDay(new Date());
   
   const { data: classInfo, isLoading: classLoading } = useClass(classId || "");
@@ -389,11 +389,11 @@ export default function AttendanceCalendar() {
   const deleteAttendance = useDeleteAttendance();
   const { toast } = useToast();
 
-  // Check if can edit a specific day (admin can edit any day, teacher only today)
+  // Check if can edit a specific day (admin can edit any day, staff only today)
   const canEditDay = (day: Date) => {
     if (isAdmin) return true;
-    if (isTeacher) return isSameDay(day, today);
-    return true; // staff/manager can edit any day
+    if (isStaff) return isSameDay(day, today);
+    return true;
   };
 
   // Only show days up to today (not future days)
