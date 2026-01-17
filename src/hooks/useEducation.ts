@@ -7,34 +7,42 @@ export type Teacher = Tables<"teachers">;
 export type Class = Tables<"classes">;
 export type Attendance = Tables<"attendance">;
 
-// Realtime hook for education data - auto refresh when data changes
+// Realtime hook for education data - auto refresh when data changes across all browsers
 export function useEducationRealtime() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    // Create unique channel to avoid conflicts
+    const channelId = `education-realtime-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
     const channel = supabase
-      .channel('education-realtime')
+      .channel(channelId)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'classes' },
-        () => {
+        (payload) => {
+          console.log('[Realtime] Classes changed:', payload.eventType);
           queryClient.invalidateQueries({ queryKey: ["classes"] });
           queryClient.invalidateQueries({ queryKey: ["class"] });
+          queryClient.invalidateQueries({ queryKey: ["class-students"] });
           queryClient.invalidateQueries({ queryKey: ["education-stats"] });
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'teachers' },
-        () => {
+        (payload) => {
+          console.log('[Realtime] Teachers changed:', payload.eventType);
           queryClient.invalidateQueries({ queryKey: ["teachers"] });
+          queryClient.invalidateQueries({ queryKey: ["class-teachers"] });
           queryClient.invalidateQueries({ queryKey: ["education-stats"] });
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'class_teachers' },
-        () => {
+        (payload) => {
+          console.log('[Realtime] Class teachers changed:', payload.eventType);
           queryClient.invalidateQueries({ queryKey: ["class-teachers"] });
           queryClient.invalidateQueries({ queryKey: ["classes"] });
         }
@@ -42,21 +50,26 @@ export function useEducationRealtime() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'attendance' },
-        () => {
+        (payload) => {
+          console.log('[Realtime] Attendance changed:', payload.eventType);
           queryClient.invalidateQueries({ queryKey: ["attendance"] });
         }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'test_scores' },
-        () => {
+        (payload) => {
+          console.log('[Realtime] Test scores changed:', payload.eventType);
           queryClient.invalidateQueries({ queryKey: ["test-scores"] });
           queryClient.invalidateQueries({ queryKey: ["test-names"] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[Realtime] Education subscription status:', status);
+      });
 
     return () => {
+      console.log('[Realtime] Cleaning up education channel');
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
