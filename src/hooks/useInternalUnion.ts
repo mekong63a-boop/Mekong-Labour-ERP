@@ -1,6 +1,38 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+// Realtime hook for internal union - sync across all browsers
+function useInternalUnionRealtime() {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`internal-union-realtime-${Date.now()}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'union_members' },
+        (payload) => {
+          console.log('[Realtime] Union members changed:', payload.eventType);
+          queryClient.invalidateQueries({ queryKey: ["union-members"] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'union_transactions' },
+        (payload) => {
+          console.log('[Realtime] Union transactions changed:', payload.eventType);
+          queryClient.invalidateQueries({ queryKey: ["union-transactions"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+}
 
 export interface UnionMember {
   id: string;
@@ -29,6 +61,9 @@ export interface UnionTransaction {
 }
 
 export const useUnionMembers = () => {
+  // Subscribe to realtime changes
+  useInternalUnionRealtime();
+  
   return useQuery({
     queryKey: ['union-members'],
     queryFn: async () => {

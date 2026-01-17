@@ -1,6 +1,46 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+// Realtime hook for partners module - sync across all browsers
+function usePartnersRealtime() {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`partners-realtime-${Date.now()}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'companies' },
+        (payload) => {
+          console.log('[Realtime] Companies changed:', payload.eventType);
+          queryClient.invalidateQueries({ queryKey: ["companies"] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'unions' },
+        (payload) => {
+          console.log('[Realtime] Unions changed:', payload.eventType);
+          queryClient.invalidateQueries({ queryKey: ["unions"] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'job_categories' },
+        (payload) => {
+          console.log('[Realtime] Job categories changed:', payload.eventType);
+          queryClient.invalidateQueries({ queryKey: ["job_categories"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+}
 
 // Companies
 export interface Company {
@@ -22,6 +62,9 @@ export interface Company {
 }
 
 export function useCompanies() {
+  // Subscribe to realtime changes
+  usePartnersRealtime();
+  
   return useQuery({
     queryKey: ["companies"],
     queryFn: async () => {

@@ -14,8 +14,11 @@ export function useTraineesRealtime() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    // Create unique channel to avoid conflicts
+    const channelId = `trainees-realtime-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
     const channel = supabase
-      .channel('trainees_changes')
+      .channel(channelId)
       .on(
         'postgres_changes',
         {
@@ -24,12 +27,13 @@ export function useTraineesRealtime() {
           table: 'trainees',
         },
         (payload) => {
-          console.log('Trainee data changed:', payload.eventType);
+          console.log('[Realtime] Trainee data changed:', payload.eventType);
           // Invalidate all trainee-related queries
           queryClient.invalidateQueries({ queryKey: ["trainees"] });
           queryClient.invalidateQueries({ queryKey: ["trainees-paginated"] });
           queryClient.invalidateQueries({ queryKey: ["trainee-stage-counts"] });
           queryClient.invalidateQueries({ queryKey: ["trainees-count"] });
+          queryClient.invalidateQueries({ queryKey: ["class-students"] });
           
           // If it's an update/delete for a specific trainee, invalidate that too
           if (payload.old && (payload.old as any).id) {
@@ -40,9 +44,12 @@ export function useTraineesRealtime() {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[Realtime] Trainees subscription status:', status);
+      });
 
     return () => {
+      console.log('[Realtime] Cleaning up trainees channel');
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
