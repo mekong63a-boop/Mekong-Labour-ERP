@@ -103,13 +103,14 @@ export function useMenuPermissions() {
     // Primary Admin thấy tất cả
     if (isPrimaryAdmin) return menus;
 
-    // Admin thấy tất cả (nhưng vẫn có thể giới hạn nếu cần)
-    if (isAdmin) return menus;
-
-    // Lọc menus dựa trên can_view
+    // User thường (kể cả admin phụ, staff, teacher): CHỈ thấy menu có quyền can_view
+    // Nếu chưa được cấp quyền nào → không thấy menu nào
     const allowedKeys = new Set(
       permissions.filter(p => p.can_view).map(p => p.menu_key)
     );
+
+    // Nếu không có quyền nào được cấp → trả về mảng rỗng
+    if (allowedKeys.size === 0) return [];
 
     // Phải check cả parent menu
     const visibleSet = new Set<string>();
@@ -126,7 +127,7 @@ export function useMenuPermissions() {
     });
 
     return menus.filter(menu => visibleSet.has(menu.key));
-  }, [menus, permissions, isPrimaryAdmin, isAdmin]);
+  }, [menus, permissions, isPrimaryAdmin]);
 
   const isLoading = isPrimaryAdminLoading || isAdminLoading || menusLoading || permissionsLoading;
 
@@ -145,11 +146,11 @@ export function useMenuPermissions() {
  * Hook kiểm tra quyền truy cập một menu cụ thể
  */
 export function useCanAccessMenu(menuKey: string) {
-  const { permissions, isPrimaryAdmin, isAdmin, isLoading } = useMenuPermissions();
+  const { permissions, isPrimaryAdmin, isLoading } = useMenuPermissions();
 
   const permission = useMemo(() => {
-    // Primary Admin và Admin có tất cả quyền
-    if (isPrimaryAdmin || isAdmin) {
+    // CHỈ Primary Admin có tất cả quyền tự động
+    if (isPrimaryAdmin) {
       return {
         canView: true,
         canCreate: true,
@@ -158,6 +159,7 @@ export function useCanAccessMenu(menuKey: string) {
       };
     }
 
+    // Tất cả user khác (kể cả admin phụ) phải có quyền được cấp trong user_menu_permissions
     const found = permissions.find(p => p.menu_key === menuKey);
     return {
       canView: found?.can_view ?? false,
@@ -165,7 +167,7 @@ export function useCanAccessMenu(menuKey: string) {
       canUpdate: found?.can_update ?? false,
       canDelete: found?.can_delete ?? false,
     };
-  }, [permissions, menuKey, isPrimaryAdmin, isAdmin]);
+  }, [permissions, menuKey, isPrimaryAdmin]);
 
   return {
     ...permission,
