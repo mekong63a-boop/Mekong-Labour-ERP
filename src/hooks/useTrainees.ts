@@ -16,35 +16,43 @@ export function useTraineesRealtime() {
   console.log('[Realtime] Trainees realtime disabled - use manual refresh instead');
 }
 
+/**
+ * Hook lấy danh sách trainees với dữ liệu đã được che giấu
+ * - Admin & Senior Staff: xem dữ liệu thực
+ * - Staff thường: dữ liệu nhạy cảm bị che (phone, cccd, passport, địa chỉ)
+ */
 export function useTrainees() {
-  // Không còn realtime cho trainees
-  
   return useQuery({
     queryKey: ["trainees"],
     queryFn: async () => {
+      // Sử dụng view trainees_masked để tự động che giấu dữ liệu nhạy cảm
       const { data, error } = await supabase
-        .from("trainees")
+        .from("trainees_masked")
         .select("*")
         .order("updated_at", { ascending: false });
 
       if (error) throw error;
-      return data as Trainee[];
+      return data as unknown as Trainee[];
     },
   });
 }
 
+/**
+ * Hook lấy chi tiết 1 trainee với dữ liệu đã được che giấu
+ */
 export function useTrainee(id: string) {
   return useQuery({
     queryKey: ["trainee", id],
     queryFn: async () => {
+      // Sử dụng view trainees_masked để tự động che giấu dữ liệu nhạy cảm
       const { data, error } = await supabase
-        .from("trainees")
+        .from("trainees_masked")
         .select("*")
         .eq("id", id)
         .single();
 
       if (error) throw error;
-      return data as Trainee;
+      return data as unknown as Trainee;
     },
     enabled: !!id,
   });

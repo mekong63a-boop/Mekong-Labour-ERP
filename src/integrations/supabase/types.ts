@@ -67,6 +67,13 @@ export type Database = {
             referencedRelation: "trainees_basic"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "attendance_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_masked"
+            referencedColumns: ["id"]
+          },
         ]
       }
       audit_logs: {
@@ -418,6 +425,13 @@ export type Database = {
             referencedRelation: "trainees_basic"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "education_history_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_masked"
+            referencedColumns: ["id"]
+          },
         ]
       }
       enrollment_history: {
@@ -493,6 +507,13 @@ export type Database = {
             referencedRelation: "trainees_basic"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "enrollment_history_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_masked"
+            referencedColumns: ["id"]
+          },
         ]
       }
       family_members: {
@@ -545,6 +566,13 @@ export type Database = {
             columns: ["trainee_id"]
             isOneToOne: false
             referencedRelation: "trainees_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_members_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_masked"
             referencedColumns: ["id"]
           },
         ]
@@ -623,6 +651,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "interview_history_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_masked"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "interview_history_union_id_fkey"
             columns: ["union_id"]
             isOneToOne: false
@@ -678,6 +713,13 @@ export type Database = {
             columns: ["trainee_id"]
             isOneToOne: false
             referencedRelation: "trainees_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "japan_relatives_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_masked"
             referencedColumns: ["id"]
           },
         ]
@@ -1081,6 +1123,13 @@ export type Database = {
             referencedRelation: "trainees_basic"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "test_scores_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_masked"
+            referencedColumns: ["id"]
+          },
         ]
       }
       trainee_reviews: {
@@ -1143,6 +1192,13 @@ export type Database = {
             columns: ["trainee_id"]
             isOneToOne: false
             referencedRelation: "trainees_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainee_reviews_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_masked"
             referencedColumns: ["id"]
           },
         ]
@@ -1686,6 +1742,13 @@ export type Database = {
             referencedRelation: "trainees_basic"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "work_history_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_masked"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -1930,6 +1993,234 @@ export type Database = {
         }
         Relationships: []
       }
+      trainees_masked: {
+        Row: {
+          absconded_date: string | null
+          birth_date: string | null
+          birthplace: string | null
+          blood_group: string | null
+          cccd_date: string | null
+          cccd_number: string | null
+          cccd_place: string | null
+          class_id: string | null
+          coe_date: string | null
+          contract_end_date: string | null
+          contract_term: number | null
+          created_at: string | null
+          current_address: string | null
+          current_situation: string | null
+          departure_date: string | null
+          document_submission_date: string | null
+          dominant_hand: string | null
+          drinking: string | null
+          early_return_date: string | null
+          early_return_reason: string | null
+          education_level: string | null
+          email: string | null
+          enrollment_status: string | null
+          entry_date: string | null
+          ethnicity: string | null
+          expected_entry_month: string | null
+          expected_return_date: string | null
+          facebook: string | null
+          full_name: string | null
+          furigana: string | null
+          gender: string | null
+          health_status: string | null
+          height: number | null
+          hobbies: string | null
+          household_address: string | null
+          id: string | null
+          interview_count: number | null
+          interview_pass_date: string | null
+          job_category_id: string | null
+          marital_status: string | null
+          notes: string | null
+          nyukan_entry_date: string | null
+          otit_entry_date: string | null
+          parent_phone_1: string | null
+          parent_phone_2: string | null
+          passport_date: string | null
+          passport_number: string | null
+          permanent_address: string | null
+          phone: string | null
+          photo_url: string | null
+          policy_category: string | null
+          progression_stage:
+            | Database["public"]["Enums"]["progression_stage"]
+            | null
+          receiving_company_id: string | null
+          registration_date: string | null
+          religion: string | null
+          return_date: string | null
+          simple_status: Database["public"]["Enums"]["simple_status"] | null
+          smoking: string | null
+          source: string | null
+          tattoo: boolean | null
+          tattoo_description: string | null
+          temp_address: string | null
+          trainee_code: string | null
+          trainee_type: Database["public"]["Enums"]["trainee_type"] | null
+          union_id: string | null
+          updated_at: string | null
+          visa_date: string | null
+          vision_left: number | null
+          vision_right: number | null
+          weight: number | null
+          zalo: string | null
+        }
+        Insert: {
+          absconded_date?: string | null
+          birth_date?: string | null
+          birthplace?: string | null
+          blood_group?: string | null
+          cccd_date?: never
+          cccd_number?: never
+          cccd_place?: never
+          class_id?: string | null
+          coe_date?: string | null
+          contract_end_date?: string | null
+          contract_term?: number | null
+          created_at?: string | null
+          current_address?: never
+          current_situation?: string | null
+          departure_date?: string | null
+          document_submission_date?: string | null
+          dominant_hand?: string | null
+          drinking?: string | null
+          early_return_date?: string | null
+          early_return_reason?: string | null
+          education_level?: string | null
+          email?: never
+          enrollment_status?: string | null
+          entry_date?: string | null
+          ethnicity?: string | null
+          expected_entry_month?: string | null
+          expected_return_date?: string | null
+          facebook?: never
+          full_name?: string | null
+          furigana?: string | null
+          gender?: string | null
+          health_status?: string | null
+          height?: number | null
+          hobbies?: string | null
+          household_address?: never
+          id?: string | null
+          interview_count?: number | null
+          interview_pass_date?: string | null
+          job_category_id?: string | null
+          marital_status?: string | null
+          notes?: string | null
+          nyukan_entry_date?: string | null
+          otit_entry_date?: string | null
+          parent_phone_1?: never
+          parent_phone_2?: never
+          passport_date?: never
+          passport_number?: never
+          permanent_address?: never
+          phone?: never
+          photo_url?: string | null
+          policy_category?: string | null
+          progression_stage?:
+            | Database["public"]["Enums"]["progression_stage"]
+            | null
+          receiving_company_id?: string | null
+          registration_date?: string | null
+          religion?: string | null
+          return_date?: string | null
+          simple_status?: Database["public"]["Enums"]["simple_status"] | null
+          smoking?: string | null
+          source?: string | null
+          tattoo?: boolean | null
+          tattoo_description?: string | null
+          temp_address?: never
+          trainee_code?: string | null
+          trainee_type?: Database["public"]["Enums"]["trainee_type"] | null
+          union_id?: string | null
+          updated_at?: string | null
+          visa_date?: string | null
+          vision_left?: number | null
+          vision_right?: number | null
+          weight?: number | null
+          zalo?: never
+        }
+        Update: {
+          absconded_date?: string | null
+          birth_date?: string | null
+          birthplace?: string | null
+          blood_group?: string | null
+          cccd_date?: never
+          cccd_number?: never
+          cccd_place?: never
+          class_id?: string | null
+          coe_date?: string | null
+          contract_end_date?: string | null
+          contract_term?: number | null
+          created_at?: string | null
+          current_address?: never
+          current_situation?: string | null
+          departure_date?: string | null
+          document_submission_date?: string | null
+          dominant_hand?: string | null
+          drinking?: string | null
+          early_return_date?: string | null
+          early_return_reason?: string | null
+          education_level?: string | null
+          email?: never
+          enrollment_status?: string | null
+          entry_date?: string | null
+          ethnicity?: string | null
+          expected_entry_month?: string | null
+          expected_return_date?: string | null
+          facebook?: never
+          full_name?: string | null
+          furigana?: string | null
+          gender?: string | null
+          health_status?: string | null
+          height?: number | null
+          hobbies?: string | null
+          household_address?: never
+          id?: string | null
+          interview_count?: number | null
+          interview_pass_date?: string | null
+          job_category_id?: string | null
+          marital_status?: string | null
+          notes?: string | null
+          nyukan_entry_date?: string | null
+          otit_entry_date?: string | null
+          parent_phone_1?: never
+          parent_phone_2?: never
+          passport_date?: never
+          passport_number?: never
+          permanent_address?: never
+          phone?: never
+          photo_url?: string | null
+          policy_category?: string | null
+          progression_stage?:
+            | Database["public"]["Enums"]["progression_stage"]
+            | null
+          receiving_company_id?: string | null
+          registration_date?: string | null
+          religion?: string | null
+          return_date?: string | null
+          simple_status?: Database["public"]["Enums"]["simple_status"] | null
+          smoking?: string | null
+          source?: string | null
+          tattoo?: boolean | null
+          tattoo_description?: string | null
+          temp_address?: never
+          trainee_code?: string | null
+          trainee_type?: Database["public"]["Enums"]["trainee_type"] | null
+          union_id?: string | null
+          updated_at?: string | null
+          visa_date?: string | null
+          vision_left?: number | null
+          vision_right?: number | null
+          weight?: number | null
+          zalo?: never
+        }
+        Relationships: []
+      }
     }
     Functions: {
       assign_first_admin: { Args: { _user_id: string }; Returns: boolean }
@@ -1965,6 +2256,7 @@ export type Database = {
         Returns: Json
       }
       count_sub_admins: { Args: never; Returns: number }
+      current_user_is_senior: { Args: never; Returns: boolean }
       get_department_counts: {
         Args: never
         Returns: {
@@ -2044,6 +2336,10 @@ export type Database = {
         Returns: string
       }
       mask_audit_sensitive_fields: { Args: { data: Json }; Returns: Json }
+      mask_cccd: { Args: { cccd_value: string }; Returns: string }
+      mask_email: { Args: { email_value: string }; Returns: string }
+      mask_passport: { Args: { passport_value: string }; Returns: string }
+      mask_phone: { Args: { phone_value: string }; Returns: string }
       record_login_attempt: {
         Args: { _identifier: string; _ip_address?: string; _success: boolean }
         Returns: undefined
