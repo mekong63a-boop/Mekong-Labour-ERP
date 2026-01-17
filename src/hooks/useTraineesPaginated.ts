@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import { useTraineesRealtime } from './useTrainees';
 
 type ProgressionStage = Database['public']['Enums']['progression_stage'];
 type SimpleStatus = Database['public']['Enums']['simple_status'];
@@ -65,6 +66,9 @@ export function useTraineesPaginated({
   searchQuery,
   enabled = true,
 }: UseTraineesPaginatedParams): UseTraineesPaginatedResult {
+  
+  // Subscribe to realtime changes for auto-refresh across all browsers
+  useTraineesRealtime();
   
   // Query for count
   const countQuery = useQuery({
