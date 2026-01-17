@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
@@ -6,8 +7,64 @@ export type Teacher = Tables<"teachers">;
 export type Class = Tables<"classes">;
 export type Attendance = Tables<"attendance">;
 
+// Realtime hook for education data - auto refresh when data changes
+export function useEducationRealtime() {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('education-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'classes' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["classes"] });
+          queryClient.invalidateQueries({ queryKey: ["class"] });
+          queryClient.invalidateQueries({ queryKey: ["education-stats"] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'teachers' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["teachers"] });
+          queryClient.invalidateQueries({ queryKey: ["education-stats"] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'class_teachers' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["class-teachers"] });
+          queryClient.invalidateQueries({ queryKey: ["classes"] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'attendance' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["attendance"] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'test_scores' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["test-scores"] });
+          queryClient.invalidateQueries({ queryKey: ["test-names"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+}
+
 // Teachers hooks
 export function useTeachers() {
+  useEducationRealtime();
   return useQuery({
     queryKey: ["teachers"],
     queryFn: async () => {
@@ -41,6 +98,7 @@ export function useCreateTeacher() {
 
 // Classes hooks
 export function useClasses() {
+  useEducationRealtime();
   return useQuery({
     queryKey: ["classes"],
     queryFn: async () => {
