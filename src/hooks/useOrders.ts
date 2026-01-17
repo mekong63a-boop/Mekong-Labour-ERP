@@ -3,27 +3,13 @@ import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// Realtime hook for orders - sync across all browsers
+/**
+ * DEPRECATED: Orders realtime đã được tắt để tối ưu hiệu suất.
+ * Sử dụng useManualRefresh().refreshOrders() từ useSystemRealtime để refresh thủ công.
+ */
 function useOrdersRealtime() {
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    const channel = supabase
-      .channel(`orders-realtime-${Date.now()}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
-        (payload) => {
-          console.log('[Realtime] Orders changed:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: ["orders"] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
+  // Realtime cho orders đã được tắt để tối ưu hiệu suất
+  console.log('[Realtime] Orders realtime disabled - use manual refresh instead');
 }
 
 export interface Order {
