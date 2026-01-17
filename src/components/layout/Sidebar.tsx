@@ -55,7 +55,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, signOut, role } = useAuth();
+  const { user, signOut, role, isSeniorStaff } = useAuth();
   const { menus, visibleMenus, isPrimaryAdmin, isAdmin, isLoading } = useMenuPermissions();
 
   // Build menu tree structure
@@ -109,7 +109,8 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
       case "admin":
         return "Quản trị viên";
       case "staff":
-        return "Nhân viên";
+        // Nhân viên cấp cao vs Nhân viên thường
+        return isSeniorStaff ? "Nhân viên cấp cao" : "Nhân viên";
       default:
         return "Chưa phân quyền";
     }
