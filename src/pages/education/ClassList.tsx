@@ -121,13 +121,13 @@ export default function ClassList() {
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>("");
   
   const [formData, setFormData] = useState({
-    code: "",
     name: "",
     level: "N5",
     target_audience: "Thực tập sinh",
     max_students: 30,
     schedule: "",
     start_date: "",
+    expected_end_date: "",
   });
 
   // Fetch available trainees and class students when dialog opens
@@ -142,16 +142,27 @@ export default function ClassList() {
     c.code.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
+  // Generate class code automatically
+  const generateClassCode = () => {
+    const now = new Date();
+    const year = now.getFullYear().toString().slice(-2);
+    const month = (now.getMonth() + 1).toString().padStart(2, "0");
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
+    return `LOP${year}${month}${random}`;
+  };
+
   const handleCreate = async () => {
-    if (!formData.code || !formData.name) {
-      toast({ title: "Vui lòng nhập mã và tên lớp", variant: "destructive" });
+    if (!formData.name) {
+      toast({ title: "Vui lòng nhập tên lớp", variant: "destructive" });
       return;
     }
 
     try {
       await createClass.mutateAsync({
         ...formData,
+        code: generateClassCode(),
         start_date: formData.start_date || null,
+        expected_end_date: formData.expected_end_date || null,
       });
       toast({ title: "Thêm lớp học thành công" });
       setIsCreateDialogOpen(false);
@@ -168,13 +179,13 @@ export default function ClassList() {
       await updateClass.mutateAsync({
         id: selectedClass.id,
         updates: {
-          code: formData.code,
           name: formData.name,
           level: formData.level,
           target_audience: formData.target_audience,
           max_students: formData.max_students,
           schedule: formData.schedule,
           start_date: formData.start_date || null,
+          expected_end_date: formData.expected_end_date || null,
         },
       });
       toast({ title: "Cập nhật lớp học thành công" });
@@ -261,26 +272,26 @@ export default function ClassList() {
 
   const resetForm = () => {
     setFormData({
-      code: "",
       name: "",
       level: "N5",
       target_audience: "Thực tập sinh",
       max_students: 30,
       schedule: "",
       start_date: "",
+      expected_end_date: "",
     });
   };
 
   const openEditDialog = (classData: Class) => {
     setSelectedClass(classData);
     setFormData({
-      code: classData.code,
       name: classData.name,
       level: classData.level || "N5",
       target_audience: classData.target_audience || "Thực tập sinh",
       max_students: classData.max_students || 30,
       schedule: classData.schedule || "",
       start_date: classData.start_date || "",
+      expected_end_date: classData.expected_end_date || "",
     });
     setIsEditDialogOpen(true);
   };
@@ -345,23 +356,13 @@ export default function ClassList() {
 
   const renderFormFields = () => (
     <div className="space-y-4 py-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Mã lớp *</Label>
-          <Input
-            placeholder="LOP001"
-            value={formData.code}
-            onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-          />
-        </div>
-        <div>
-          <Label>Tên lớp *</Label>
-          <Input
-            placeholder="Lớp N5 - Khóa 1"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          />
-        </div>
+      <div>
+        <Label>Tên lớp *</Label>
+        <Input
+          placeholder="Lớp N5 - Khóa 1"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+        />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -411,6 +412,16 @@ export default function ClassList() {
           />
         </div>
         <div>
+          <Label>Lịch học</Label>
+          <Input
+            placeholder="Thứ 2,4,6 - 8:00-11:00"
+            value={formData.schedule}
+            onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
           <Label>Ngày khai giảng</Label>
           <Input
             type="date"
@@ -418,14 +429,14 @@ export default function ClassList() {
             onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
           />
         </div>
-      </div>
-      <div>
-        <Label>Lịch học</Label>
-        <Input
-          placeholder="Thứ 2,4,6 - 8:00-11:00"
-          value={formData.schedule}
-          onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
-        />
+        <div>
+          <Label>Ngày dự kiến kết thúc</Label>
+          <Input
+            type="date"
+            value={formData.expected_end_date}
+            onChange={(e) => setFormData({ ...formData, expected_end_date: e.target.value })}
+          />
+        </div>
       </div>
     </div>
   );
