@@ -108,12 +108,8 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
     switch (role) {
       case "admin":
         return "Quản trị viên";
-      case "manager":
-        return "Trưởng phòng";
       case "staff":
         return "Nhân viên";
-      case "teacher":
-        return "Giáo viên";
       default:
         return "Chưa phân quyền";
     }

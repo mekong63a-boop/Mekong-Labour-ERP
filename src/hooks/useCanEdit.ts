@@ -5,12 +5,12 @@ import { toast } from "sonner";
 
 /**
  * Hook to check if current user can edit a record based on:
- * - Role (admin/manager can always edit)
+ * - Role (admin can always edit)
  * - Same-day rule for staff (can only edit records created today)
- * - Edit permissions granted by manager/admin
+ * - Edit permissions granted by admin
  */
 export function useCanEdit() {
-  const { isAdmin, isManager, isStaff, userId } = useUserRole();
+  const { isAdmin, isStaff, userId } = useUserRole();
   const [isRequesting, setIsRequesting] = useState(false);
 
   /**
@@ -25,8 +25,8 @@ export function useCanEdit() {
     recordId: string,
     recordCreatedAt: string | Date
   ): Promise<boolean> => {
-    // Admin and manager can always edit
-    if (isAdmin || isManager) {
+    // Admin can always edit
+    if (isAdmin) {
       return true;
     }
 

@@ -5,9 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 /**
  * useUserRole - Hook lấy thông tin vai trò hệ thống của user
  * 
+ * CHỈ CÒN 2 QUYỀN: Admin và Nhân viên (staff)
+ * 
  * CHỈ DÙNG CHO:
- * - Kiểm tra vai trò hệ thống (Admin/Manager/Staff/Teacher)
- * - Business logic: canDelete, canEditSensitiveFields, same-day edit rule
+ * - Kiểm tra vai trò hệ thống (Admin/Staff)
+ * - Business logic: canDelete, same-day edit rule
  * - isPrimaryAdmin check
  * 
  * KHÔNG DÙNG CHO:
@@ -24,12 +26,10 @@ interface UseUserRoleResult {
   role: AppRole | null;
   isPrimaryAdmin: boolean;
   isAdmin: boolean;
-  isManager: boolean;
   isStaff: boolean;
-  isTeacher: boolean;
   isLoading: boolean;
   userId: string | null;
-  // Business logic helpers - vẫn cần thiết
+  // Business logic helpers
   canDelete: boolean;
   canManageUsers: boolean;
   canAssignAdmins: boolean;
@@ -98,12 +98,10 @@ export function useUserRoleStandalone(): UseUserRoleResult {
   
   const isPrimaryAdmin = role === "admin" && is_primary_admin;
   const isAdmin = role === "admin";
-  const isManager = role === "manager";
   const isStaff = role === "staff";
-  const isTeacher = role === "teacher";
 
-  // Business logic permissions
-  const canDelete = isAdmin || isManager; // Staff cannot delete
+  // Business logic permissions - chỉ admin mới có quyền xóa
+  const canDelete = isAdmin;
   const canManageUsers = isAdmin;
   const canAssignAdmins = isPrimaryAdmin; // Only primary admin can assign admin roles
 
@@ -111,9 +109,7 @@ export function useUserRoleStandalone(): UseUserRoleResult {
     role,
     isPrimaryAdmin,
     isAdmin,
-    isManager,
     isStaff,
-    isTeacher,
     isLoading,
     userId,
     canDelete,
@@ -181,12 +177,10 @@ export function useUserRole(): UseUserRoleResult {
 
   const isPrimaryAdmin = role === "admin" && roleData.is_primary_admin;
   const isAdmin = role === "admin";
-  const isManager = role === "manager";
   const isStaff = role === "staff";
-  const isTeacher = role === "teacher";
 
-  // Business logic permissions
-  const canDelete = isAdmin || isManager;
+  // Business logic permissions - chỉ admin mới có quyền xóa
+  const canDelete = isAdmin;
   const canManageUsers = isAdmin;
   const canAssignAdmins = isPrimaryAdmin;
 
@@ -194,9 +188,7 @@ export function useUserRole(): UseUserRoleResult {
     role,
     isPrimaryAdmin,
     isAdmin,
-    isManager,
     isStaff,
-    isTeacher,
     isLoading: isLoading || extraLoading,
     userId: user?.id ?? null,
     canDelete,
