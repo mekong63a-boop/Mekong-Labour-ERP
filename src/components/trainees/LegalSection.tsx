@@ -10,10 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trainee, CURRENT_ROLE } from "@/types/trainee";
+import { Trainee } from "@/types/trainee";
 import { useUpdateTrainee } from "@/hooks/useTrainees";
 import { useToast } from "@/hooks/use-toast";
 import { Constants } from "@/integrations/supabase/types";
+import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 
 interface LegalSectionProps {
@@ -30,8 +31,10 @@ export function LegalSection({ trainee }: LegalSectionProps) {
 
   const updateTrainee = useUpdateTrainee();
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
 
-  const canEdit = CURRENT_ROLE === "legal" || CURRENT_ROLE === "admin";
+  // Chỉ Admin có quyền chỉnh sửa
+  const canEdit = isAdmin;
   const traineeTypes = Constants.public.Enums.trainee_type;
 
   const handleSave = async () => {

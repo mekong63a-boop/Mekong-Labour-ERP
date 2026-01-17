@@ -4,10 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Trainee, CURRENT_ROLE } from "@/types/trainee";
+import { Trainee } from "@/types/trainee";
 import { useUpdateTrainee } from "@/hooks/useTrainees";
 import { useToast } from "@/hooks/use-toast";
 import { useDataMasking } from "@/hooks/useSecureData";
+import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 
 interface BasicInfoSectionProps {
@@ -31,8 +32,10 @@ export function BasicInfoSection({ trainee }: BasicInfoSectionProps) {
   const updateTrainee = useUpdateTrainee();
   const { toast } = useToast();
   const { maskPhone, canViewUnmasked } = useDataMasking();
+  const { isAdmin } = useAuth();
 
-  const canEdit = CURRENT_ROLE === "consultant" || CURRENT_ROLE === "admin";
+  // Chỉ Admin có quyền chỉnh sửa
+  const canEdit = isAdmin;
 
   const handleSave = async () => {
     try {
