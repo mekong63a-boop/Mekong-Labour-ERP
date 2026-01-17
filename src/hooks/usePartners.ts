@@ -3,43 +3,13 @@ import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// Realtime hook for partners module - sync across all browsers
+/**
+ * DEPRECATED: Partners realtime đã được tắt để tối ưu hiệu suất.
+ * Sử dụng useManualRefresh().refreshPartners() từ useSystemRealtime để refresh thủ công.
+ */
 function usePartnersRealtime() {
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    const channel = supabase
-      .channel(`partners-realtime-${Date.now()}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'companies' },
-        (payload) => {
-          console.log('[Realtime] Companies changed:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: ["companies"] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'unions' },
-        (payload) => {
-          console.log('[Realtime] Unions changed:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: ["unions"] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'job_categories' },
-        (payload) => {
-          console.log('[Realtime] Job categories changed:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: ["job_categories"] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
+  // Realtime cho partners đã được tắt để tối ưu hiệu suất
+  console.log('[Realtime] Partners realtime disabled - use manual refresh instead');
 }
 
 // Companies

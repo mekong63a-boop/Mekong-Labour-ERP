@@ -3,35 +3,13 @@ import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-// Realtime hook for internal union - sync across all browsers
+/**
+ * DEPRECATED: Internal Union realtime đã được tắt để tối ưu hiệu suất.
+ * Sử dụng manual refresh để cập nhật dữ liệu.
+ */
 function useInternalUnionRealtime() {
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    const channel = supabase
-      .channel(`internal-union-realtime-${Date.now()}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'union_members' },
-        (payload) => {
-          console.log('[Realtime] Union members changed:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: ["union-members"] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'union_transactions' },
-        (payload) => {
-          console.log('[Realtime] Union transactions changed:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: ["union-transactions"] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
+  // Realtime cho internal union đã được tắt để tối ưu hiệu suất
+  console.log('[Realtime] Internal Union realtime disabled - use manual refresh instead');
 }
 
 export interface UnionMember {

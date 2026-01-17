@@ -7,57 +7,17 @@ import { Database } from "@/integrations/supabase/types";
 type TraineeUpdate = Database["public"]["Tables"]["trainees"]["Update"];
 
 /**
- * Hook để lắng nghe realtime changes từ trainees table
- * Tự động invalidate queries khi có thay đổi từ bất kỳ browser nào
+ * DEPRECATED: Trainees realtime đã được tắt để tối ưu hiệu suất.
+ * Bảng trainees là bảng lớn, không nên dùng realtime.
+ * Sử dụng useManualRefresh().refreshTrainees() để refresh thủ công.
  */
 export function useTraineesRealtime() {
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    // Create unique channel to avoid conflicts
-    const channelId = `trainees-realtime-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
-    const channel = supabase
-      .channel(channelId)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'trainees',
-        },
-        (payload) => {
-          console.log('[Realtime] Trainee data changed:', payload.eventType);
-          // Invalidate all trainee-related queries
-          queryClient.invalidateQueries({ queryKey: ["trainees"] });
-          queryClient.invalidateQueries({ queryKey: ["trainees-paginated"] });
-          queryClient.invalidateQueries({ queryKey: ["trainee-stage-counts"] });
-          queryClient.invalidateQueries({ queryKey: ["trainees-count"] });
-          queryClient.invalidateQueries({ queryKey: ["class-students"] });
-          
-          // If it's an update/delete for a specific trainee, invalidate that too
-          if (payload.old && (payload.old as any).id) {
-            queryClient.invalidateQueries({ queryKey: ["trainee", (payload.old as any).id] });
-          }
-          if (payload.new && (payload.new as any).id) {
-            queryClient.invalidateQueries({ queryKey: ["trainee", (payload.new as any).id] });
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('[Realtime] Trainees subscription status:', status);
-      });
-
-    return () => {
-      console.log('[Realtime] Cleaning up trainees channel');
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
+  // Realtime cho trainees đã được tắt để tối ưu hiệu suất
+  console.log('[Realtime] Trainees realtime disabled - use manual refresh instead');
 }
 
 export function useTrainees() {
-  // Subscribe to realtime changes
-  useTraineesRealtime();
+  // Không còn realtime cho trainees
   
   return useQuery({
     queryKey: ["trainees"],
