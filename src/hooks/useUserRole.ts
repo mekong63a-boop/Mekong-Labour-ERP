@@ -5,7 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 /**
  * useUserRole - Hook lấy thông tin vai trò hệ thống của user
  * 
- * CHỈ CÒN 2 QUYỀN: Admin và Nhân viên (staff)
+ * 3 QUYỀN HỆ THỐNG:
+ * - Admin (role='admin'): Toàn quyền, xem dữ liệu nhạy cảm
+ * - Nhân viên cấp cao (role='staff' AND is_senior_staff=true): Xem dữ liệu nhạy cảm
+ * - Nhân viên (role='staff' AND is_senior_staff=false): Chỉ xem dữ liệu đã mask
  * 
  * CHỈ DÙNG CHO:
  * - Kiểm tra vai trò hệ thống (Admin/Staff)
@@ -20,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface UserRoleData {
   role: AppRole | null;
   is_primary_admin: boolean;
+  is_senior_staff: boolean;
 }
 
 interface UseUserRoleResult {
@@ -27,6 +31,8 @@ interface UseUserRoleResult {
   isPrimaryAdmin: boolean;
   isAdmin: boolean;
   isStaff: boolean;
+  isSeniorStaff: boolean;
+  canViewSensitiveData: boolean;
   isLoading: boolean;
   userId: string | null;
   // Business logic helpers
@@ -42,6 +48,7 @@ export function useUserRoleStandalone(): UseUserRoleResult {
   const [roleData, setRoleData] = useState<UserRoleData>({
     role: null,
     is_primary_admin: false,
+    is_senior_staff: false,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -52,7 +59,7 @@ export function useUserRoleStandalone(): UseUserRoleResult {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
-          setRoleData({ role: null, is_primary_admin: false });
+          setRoleData({ role: null, is_primary_admin: false, is_senior_staff: false });
           setUserId(null);
           setIsLoading(false);
           return;
@@ -62,24 +69,25 @@ export function useUserRoleStandalone(): UseUserRoleResult {
 
         const { data, error } = await supabase
           .from("user_roles")
-          .select("role, is_primary_admin")
+          .select("role, is_primary_admin, is_senior_staff")
           .eq("user_id", user.id)
           .maybeSingle();
 
         if (error) {
           console.error("Error fetching user role:", error);
-          setRoleData({ role: null, is_primary_admin: false });
+          setRoleData({ role: null, is_primary_admin: false, is_senior_staff: false });
         } else if (data) {
           setRoleData({
             role: data.role as AppRole,
             is_primary_admin: data.is_primary_admin || false,
+            is_senior_staff: data.is_senior_staff || false,
           });
         } else {
-          setRoleData({ role: null, is_primary_admin: false });
+          setRoleData({ role: null, is_primary_admin: false, is_senior_staff: false });
         }
       } catch (error) {
         console.error("Error in useUserRole:", error);
-        setRoleData({ role: null, is_primary_admin: false });
+        setRoleData({ role: null, is_primary_admin: false, is_senior_staff: false });
       } finally {
         setIsLoading(false);
       }
@@ -94,11 +102,13 @@ export function useUserRoleStandalone(): UseUserRoleResult {
     return () => subscription.unsubscribe();
   }, []);
 
-  const { role, is_primary_admin } = roleData;
+  const { role, is_primary_admin, is_senior_staff } = roleData;
   
   const isPrimaryAdmin = role === "admin" && is_primary_admin;
   const isAdmin = role === "admin";
   const isStaff = role === "staff";
+  const isSeniorStaff = is_senior_staff;
+  const canViewSensitiveData = isAdmin || isSeniorStaff;
 
   // Business logic permissions - chỉ admin mới có quyền xóa
   const canDelete = isAdmin;
@@ -110,6 +120,8 @@ export function useUserRoleStandalone(): UseUserRoleResult {
     isPrimaryAdmin,
     isAdmin,
     isStaff,
+    isSeniorStaff,
+    canViewSensitiveData,
     isLoading,
     userId,
     canDelete,
@@ -125,18 +137,21 @@ export function useUserRole(): UseUserRoleResult {
   const [roleData, setRoleData] = useState<UserRoleData>({
     role: null,
     is_primary_admin: false,
+    is_senior_staff: false,
   });
   const [extraLoading, setExtraLoading] = useState(true);
   
   let user: any = null;
   let role: AppRole | null = null;
   let isLoading = true;
+  let isSeniorStaffFromAuth = false;
   
   try {
     const authResult = useAuth();
     user = authResult.user;
     role = authResult.role;
     isLoading = authResult.isLoading;
+    isSeniorStaffFromAuth = authResult.isSeniorStaff;
   } catch {
     // If not within AuthProvider, use standalone version
     return useUserRoleStandalone();
@@ -145,7 +160,7 @@ export function useUserRole(): UseUserRoleResult {
   useEffect(() => {
     const fetchExtraRoleData = async () => {
       if (!user?.id) {
-        setRoleData({ role: null, is_primary_admin: false });
+        setRoleData({ role: null, is_primary_admin: false, is_senior_staff: false });
         setExtraLoading(false);
         return;
       }
@@ -153,7 +168,7 @@ export function useUserRole(): UseUserRoleResult {
       try {
         const { data, error } = await supabase
           .from("user_roles")
-          .select("is_primary_admin")
+          .select("is_primary_admin, is_senior_staff")
           .eq("user_id", user.id)
           .maybeSingle();
 
@@ -163,6 +178,7 @@ export function useUserRole(): UseUserRoleResult {
           setRoleData({
             role,
             is_primary_admin: data.is_primary_admin || false,
+            is_senior_staff: data.is_senior_staff || false,
           });
         }
       } catch (error) {
@@ -178,6 +194,8 @@ export function useUserRole(): UseUserRoleResult {
   const isPrimaryAdmin = role === "admin" && roleData.is_primary_admin;
   const isAdmin = role === "admin";
   const isStaff = role === "staff";
+  const isSeniorStaff = roleData.is_senior_staff || isSeniorStaffFromAuth;
+  const canViewSensitiveData = isAdmin || isSeniorStaff;
 
   // Business logic permissions - chỉ admin mới có quyền xóa
   const canDelete = isAdmin;
@@ -189,6 +207,8 @@ export function useUserRole(): UseUserRoleResult {
     isPrimaryAdmin,
     isAdmin,
     isStaff,
+    isSeniorStaff,
+    canViewSensitiveData,
     isLoading: isLoading || extraLoading,
     userId: user?.id ?? null,
     canDelete,

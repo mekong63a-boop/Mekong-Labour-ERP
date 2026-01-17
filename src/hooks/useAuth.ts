@@ -2,16 +2,23 @@ import { useState, useEffect, createContext, useContext } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-// Chỉ còn 2 quyền: admin và staff (nhân viên)
+/**
+ * Hệ thống CHỈ có 3 role:
+ * - admin: Quản trị viên - toàn quyền, xem dữ liệu nhạy cảm
+ * - staff + is_senior_staff=true: Nhân viên cấp cao - xem dữ liệu nhạy cảm
+ * - staff + is_senior_staff=false: Nhân viên - chỉ xem dữ liệu đã mask
+ */
 export type AppRole = "admin" | "staff";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   role: AppRole | null;
+  isSeniorStaff: boolean; // Nhân viên cấp cao
   isLoading: boolean;
   isAdmin: boolean;
   isStaff: boolean;
+  canViewSensitiveData: boolean; // Admin hoặc Nhân viên cấp cao
   hasAnyAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
@@ -23,25 +30,29 @@ export function useAuthState(): AuthContextType {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
+  const [isSeniorStaff, setIsSeniorStaff] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasAnyAdmin, setHasAnyAdmin] = useState(true);
 
-  const fetchRole = async (userId: string) => {
+  const fetchRoleData = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from("user_roles")
-        .select("role")
+        .select("role, is_senior_staff")
         .eq("user_id", userId)
         .maybeSingle();
 
       if (error) {
         console.error("Error fetching role:", error);
-        return null;
+        return { role: null, isSeniorStaff: false };
       }
-      return data?.role as AppRole | null;
+      return {
+        role: data?.role as AppRole | null,
+        isSeniorStaff: data?.is_senior_staff ?? false,
+      };
     } catch (error) {
-      console.error("Error in fetchRole:", error);
-      return null;
+      console.error("Error in fetchRoleData:", error);
+      return { role: null, isSeniorStaff: false };
     }
   };
 
@@ -69,14 +80,16 @@ export function useAuthState(): AuthContextType {
         if (session?.user) {
           // Use setTimeout to prevent potential deadlock
           setTimeout(async () => {
-            const userRole = await fetchRole(session.user.id);
-            setRole(userRole);
+            const roleData = await fetchRoleData(session.user.id);
+            setRole(roleData.role);
+            setIsSeniorStaff(roleData.isSeniorStaff);
             const adminExists = await checkHasAnyAdmin();
             setHasAnyAdmin(adminExists);
             setIsLoading(false);
           }, 0);
         } else {
           setRole(null);
+          setIsSeniorStaff(false);
           const adminExists = await checkHasAnyAdmin();
           setHasAnyAdmin(adminExists);
           setIsLoading(false);
@@ -90,8 +103,9 @@ export function useAuthState(): AuthContextType {
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        const userRole = await fetchRole(session.user.id);
-        setRole(userRole);
+        const roleData = await fetchRoleData(session.user.id);
+        setRole(roleData.role);
+        setIsSeniorStaff(roleData.isSeniorStaff);
       }
       
       const adminExists = await checkHasAnyAdmin();
@@ -182,13 +196,20 @@ export function useAuthState(): AuthContextType {
     }
   };
 
+  const isAdmin = role === "admin";
+  const isStaff = role === "staff";
+  // Admin hoặc Nhân viên cấp cao có thể xem dữ liệu nhạy cảm
+  const canViewSensitiveData = isAdmin || isSeniorStaff;
+
   return {
     user,
     session,
     role,
+    isSeniorStaff,
     isLoading,
-    isAdmin: role === "admin",
-    isStaff: role === "staff",
+    isAdmin,
+    isStaff,
+    canViewSensitiveData,
     hasAnyAdmin,
     signIn,
     signUp,

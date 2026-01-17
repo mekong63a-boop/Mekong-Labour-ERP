@@ -5,13 +5,17 @@ import { useToast } from "@/hooks/use-toast";
 
 /**
  * Security hook to ensure data is only fetched when user is authenticated and has proper role.
- * Use this hook at the top of components that fetch sensitive data.
+ * 
+ * 3 Role System:
+ * - Admin: Toàn quyền, xem dữ liệu nhạy cảm
+ * - Nhân viên cấp cao (staff + is_senior_staff): Xem dữ liệu nhạy cảm
+ * - Nhân viên (staff): Chỉ xem dữ liệu đã mask
  * 
  * @param requiredRoles - Optional array of roles required to access the data
  * @returns Object with security status and user info
  */
-export function useSecureData(requiredRoles?: ("admin" | "manager" | "staff" | "teacher")[]) {
-  const { user, role, isLoading, session } = useAuth();
+export function useSecureData(requiredRoles?: ("admin" | "staff")[]) {
+  const { user, role, isLoading, session, canViewSensitiveData } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -50,6 +54,7 @@ export function useSecureData(requiredRoles?: ("admin" | "manager" | "staff" | "
     isAuthenticated: Boolean(user && session),
     isAuthorized,
     canFetchData,
+    canViewSensitiveData,
     user,
     role,
     userId: user?.id,
@@ -158,17 +163,20 @@ export function maskSensitiveData(value: string | null | undefined, canView: boo
 
 /**
  * Hook to check data masking permissions and get masking functions
- * - Admin/Manager: See full data
- * - Staff/Teacher: See data with last 3 digits masked for phone/CCCD
+ * 
+ * 3 Role System:
+ * - Admin: Xem đầy đủ (canViewUnmasked = true)
+ * - Nhân viên cấp cao (is_senior_staff=true): Xem đầy đủ (canViewUnmasked = true)
+ * - Nhân viên (staff): Xem masked (canViewUnmasked = false)
  */
 export function useDataMasking() {
-  const { role, isLoading } = useAuth();
+  const { role, isLoading, canViewSensitiveData } = useAuth();
   
-  // Manager+ can view all sensitive data without masking
-  const canViewUnmasked = !isLoading && role && ["admin", "manager"].includes(role);
+  // Admin và Nhân viên cấp cao có thể xem dữ liệu nhạy cảm đầy đủ
+  const canViewUnmasked = !isLoading && canViewSensitiveData;
   
-  // Staff and teacher see masked data (last 3 digits hidden)
-  const isStaffOrTeacher = !isLoading && role && ["staff", "teacher"].includes(role);
+  // Nhân viên thường (không phải senior) thấy dữ liệu đã mask
+  const isRegularStaff = !isLoading && role === "staff" && !canViewSensitiveData;
   
   const maskedValue = useMemo(() => {
     return (value: string | null | undefined, type: "cccd" | "passport" | "phone" | "email" | "address") => {
@@ -182,14 +190,14 @@ export function useDataMasking() {
         case "phone":
           return maskPhone(value);
         case "email":
-          return isStaffOrTeacher ? maskEmail(value) : "****@****.***";
+          return isRegularStaff ? maskEmail(value) : "****@****.***";
         case "address":
           return maskAddress(value);
         default:
           return maskSensitiveData(value, canViewUnmasked);
       }
     };
-  }, [canViewUnmasked, isStaffOrTeacher]);
+  }, [canViewUnmasked, isRegularStaff]);
   
   return {
     isLoading,
@@ -206,21 +214,26 @@ export function useDataMasking() {
 
 /**
  * Check if user can view sensitive contact information
+ * 
+ * 3 Role System:
+ * - Admin: canViewContactInfo = true, canViewAllDetails = true, canViewSystemData = true
+ * - Nhân viên cấp cao: canViewContactInfo = true, canViewAllDetails = true, canViewSystemData = false
+ * - Nhân viên: canViewContactInfo = false (masked), canViewBasicContact = true (với mask)
  */
 export function useCanViewSensitiveData() {
-  const { role, isLoading } = useAuth();
+  const { role, isLoading, canViewSensitiveData, isAdmin } = useAuth();
   
-  // Only admin and manager can view full contact info without masking
-  const canViewContactInfo = !isLoading && role && ["admin", "manager"].includes(role);
+  // Admin và Nhân viên cấp cao có thể xem full contact info
+  const canViewContactInfo = !isLoading && canViewSensitiveData;
   
-  // Only admin and manager can view all personal details
-  const canViewAllDetails = !isLoading && role && ["admin", "manager"].includes(role);
+  // Admin và Nhân viên cấp cao có thể xem all personal details
+  const canViewAllDetails = !isLoading && canViewSensitiveData;
   
-  // Only admin can view system-level sensitive data
-  const canViewSystemData = !isLoading && role === "admin";
+  // Chỉ Admin có thể xem system-level sensitive data
+  const canViewSystemData = !isLoading && isAdmin;
   
-  // Staff can view basic contact info (masked)
-  const canViewBasicContact = !isLoading && role && ["admin", "manager", "staff"].includes(role);
+  // Tất cả nhân viên (kể cả staff thường) có thể xem basic contact (nhưng masked)
+  const canViewBasicContact = !isLoading && role && ["admin", "staff"].includes(role);
   
   return {
     isLoading,

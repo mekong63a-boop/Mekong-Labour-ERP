@@ -1558,6 +1558,7 @@ export type Database = {
           department: string | null
           id: string
           is_primary_admin: boolean | null
+          is_senior_staff: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
@@ -1568,6 +1569,7 @@ export type Database = {
           department?: string | null
           id?: string
           is_primary_admin?: boolean | null
+          is_senior_staff?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
@@ -1578,6 +1580,7 @@ export type Database = {
           department?: string | null
           id?: string
           is_primary_admin?: boolean | null
+          is_senior_staff?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
@@ -1956,6 +1959,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_view_sensitive_data: { Args: { _user_id: string }; Returns: boolean }
       check_login_rate_limit: {
         Args: { _identifier: string; _ip_address?: string }
         Returns: Json
@@ -2025,6 +2029,7 @@ export type Database = {
       is_manager_or_higher: { Args: { _user_id: string }; Returns: boolean }
       is_primary_admin: { Args: { _user_id: string }; Returns: boolean }
       is_primary_admin_check: { Args: { _user_id: string }; Returns: boolean }
+      is_senior_staff: { Args: { _user_id: string }; Returns: boolean }
       is_staff_or_higher: { Args: { _user_id: string }; Returns: boolean }
       is_teacher_or_higher: { Args: { _user_id: string }; Returns: boolean }
       log_audit: {
