@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 
 export interface MenuPermission {
   menu_key: string;
@@ -21,11 +21,81 @@ export interface Menu {
 }
 
 /**
+ * Realtime sync quyền & phòng ban cho user hiện tại.
+ * Mục tiêu: admin chỉnh quyền ở một trình duyệt → user đang đăng nhập ở trình duyệt khác tự cập nhật ngay.
+ */
+function useMenuPermissionsRealtime(userId?: string) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const invalidateAll = () => {
+      queryClient.invalidateQueries({ queryKey: ['is-primary-admin', userId] });
+      queryClient.invalidateQueries({ queryKey: ['is-admin-check', userId] });
+      queryClient.invalidateQueries({ queryKey: ['user-menu-permissions-direct', userId] });
+      queryClient.invalidateQueries({ queryKey: ['user-departments', userId] });
+      // menus-full ít đổi nên không invalidate mặc định
+    };
+
+    const channel = supabase
+      .channel(`user_permissions_${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_menu_permissions',
+          filter: `user_id=eq.${userId}`,
+        },
+        invalidateAll
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'department_members',
+          filter: `user_id=eq.${userId}`,
+        },
+        invalidateAll
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'department_menu_permissions',
+        },
+        invalidateAll
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_roles',
+          filter: `user_id=eq.${userId}`,
+        },
+        invalidateAll
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, userId]);
+}
+
+/**
  * Hook chính để lấy toàn bộ menu permissions của user hiện tại
  * Sử dụng user_menu_permissions - quyền theo tài khoản cá nhân
  */
 export function useMenuPermissions() {
   const { user } = useAuth();
+
+  // Realtime cập nhật quyền/phòng ban
+  useMenuPermissionsRealtime(user?.id);
 
   // Kiểm tra Primary Admin
   const { data: isPrimaryAdmin = false, isLoading: isPrimaryAdminLoading } = useQuery({

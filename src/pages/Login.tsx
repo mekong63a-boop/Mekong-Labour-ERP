@@ -57,19 +57,29 @@ export default function Login() {
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      // Log successful login
-      const { data: { user: loggedInUser } } = await supabase.auth.getUser();
-      if (loggedInUser) {
-        await logAuthEvent("LOGIN", loggedInUser.id, loginEmail, true);
-      }
-      toast({
-        title: "Đăng nhập thành công",
-        description: "Chào mừng bạn trở lại!",
-      });
-      navigate("/");
+      setIsLoading(false);
+      return;
     }
 
+    // Fire-and-forget audit log (đừng chặn UI / điều hướng)
+    void (async () => {
+      try {
+        const {
+          data: { user: loggedInUser },
+        } = await supabase.auth.getUser();
+        if (loggedInUser) {
+          await logAuthEvent("LOGIN", loggedInUser.id, loginEmail, true);
+        }
+      } catch (e) {
+        console.error("Error logging login event:", e);
+      }
+    })();
+
+    toast({
+      title: "Đăng nhập thành công",
+      description: "Chào mừng bạn trở lại!",
+    });
+    navigate("/");
     setIsLoading(false);
   };
 

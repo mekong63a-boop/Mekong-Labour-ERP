@@ -73,100 +73,75 @@ export function useAuthState(): AuthContextType {
   useEffect(() => {
     let roleSubscription: ReturnType<typeof supabase.channel> | null = null;
 
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          // Use setTimeout to prevent potential deadlock
-          setTimeout(async () => {
-            const roleData = await fetchRoleData(session.user.id);
-            setRole(roleData.role);
-            setIsSeniorStaff(roleData.isSeniorStaff);
-            const adminExists = await checkHasAnyAdmin();
-            setHasAnyAdmin(adminExists);
-            setIsLoading(false);
-          }, 0);
-
-          // Subscribe to realtime changes for this user's role
-          roleSubscription = supabase
-            .channel(`user_roles_${session.user.id}`)
-            .on(
-              'postgres_changes',
-              {
-                event: '*',
-                schema: 'public',
-                table: 'user_roles',
-                filter: `user_id=eq.${session.user.id}`,
-              },
-              async (payload) => {
-                console.log('Role changed:', payload);
-                // Refetch role data when it changes
-                const roleData = await fetchRoleData(session.user.id);
-                setRole(roleData.role);
-                setIsSeniorStaff(roleData.isSeniorStaff);
-              }
-            )
-            .subscribe();
-        } else {
-          setRole(null);
-          setIsSeniorStaff(false);
-          const adminExists = await checkHasAnyAdmin();
-          setHasAnyAdmin(adminExists);
-          setIsLoading(false);
-          
-          // Unsubscribe when logged out
-          if (roleSubscription) {
-            supabase.removeChannel(roleSubscription);
-            roleSubscription = null;
-          }
-        }
+    const cleanupRoleSubscription = () => {
+      if (roleSubscription) {
+        supabase.removeChannel(roleSubscription);
+        roleSubscription = null;
       }
-    );
+    };
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    const setupForSession = async (nextSession: Session | null) => {
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
 
-      if (session?.user) {
-        const roleData = await fetchRoleData(session.user.id);
-        setRole(roleData.role);
-        setIsSeniorStaff(roleData.isSeniorStaff);
+      if (!nextSession?.user) {
+        setRole(null);
+        setIsSeniorStaff(false);
+        cleanupRoleSubscription();
 
-        // Subscribe to realtime changes for this user's role
-        roleSubscription = supabase
-          .channel(`user_roles_${session.user.id}`)
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'user_roles',
-              filter: `user_id=eq.${session.user.id}`,
-            },
-            async (payload) => {
-              console.log('Role changed:', payload);
-              const roleData = await fetchRoleData(session.user.id);
-              setRole(roleData.role);
-              setIsSeniorStaff(roleData.isSeniorStaff);
-            }
-          )
-          .subscribe();
+        const adminExists = await checkHasAnyAdmin();
+        setHasAnyAdmin(adminExists);
+        setIsLoading(false);
+        return;
       }
-      
-      const adminExists = await checkHasAnyAdmin();
+
+      // Fetch role + admin-exists in parallel to reduce login/load latency
+      const [roleData, adminExists] = await Promise.all([
+        fetchRoleData(nextSession.user.id),
+        checkHasAnyAdmin(),
+      ]);
+
+      setRole(roleData.role);
+      setIsSeniorStaff(roleData.isSeniorStaff);
       setHasAnyAdmin(adminExists);
       setIsLoading(false);
+
+      // Subscribe to realtime changes for this user's role (single active subscription)
+      cleanupRoleSubscription();
+      roleSubscription = supabase
+        .channel(`user_roles_${nextSession.user.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "user_roles",
+            filter: `user_id=eq.${nextSession.user.id}`,
+          },
+          async () => {
+            const updatedRoleData = await fetchRoleData(nextSession.user.id);
+            setRole(updatedRoleData.role);
+            setIsSeniorStaff(updatedRoleData.isSeniorStaff);
+          }
+        )
+        .subscribe();
+    };
+
+    // Init from current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      void setupForSession(session);
+    });
+
+    // Listen for subsequent auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      void setupForSession(nextSession);
     });
 
     return () => {
       subscription.unsubscribe();
-      if (roleSubscription) {
-        supabase.removeChannel(roleSubscription);
-      }
+      cleanupRoleSubscription();
     };
   }, []);
 
@@ -183,10 +158,12 @@ export function useAuthState(): AuthContextType {
 
     // Parse rate limit response
     const rateLimitData = rateLimitCheck as { allowed?: boolean; message?: string } | null;
-    
+
     if (rateLimitData && rateLimitData.allowed === false) {
-      return { 
-        error: new Error(rateLimitData.message || "Tài khoản bị tạm khóa. Vui lòng thử lại sau.") 
+      return {
+        error: new Error(
+          rateLimitData.message || "Tài khoản bị tạm khóa. Vui lòng thử lại sau."
+        ),
       };
     }
 
@@ -195,11 +172,17 @@ export function useAuthState(): AuthContextType {
       password,
     });
 
-    // Record the login attempt
-    await supabase.rpc("record_login_attempt", {
-      _identifier: email.toLowerCase(),
-      _success: !error,
-    });
+    // Record the login attempt (non-blocking)
+    void (async () => {
+      try {
+        await supabase.rpc("record_login_attempt", {
+          _identifier: email.toLowerCase(),
+          _success: !error,
+        });
+      } catch (e) {
+        console.error("record_login_attempt error:", e);
+      }
+    })();
 
     return { error: error as Error | null };
   };
