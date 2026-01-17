@@ -71,6 +71,8 @@ export function useAuthState(): AuthContextType {
   };
 
   useEffect(() => {
+    let roleSubscription: ReturnType<typeof supabase.channel> | null = null;
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -87,12 +89,39 @@ export function useAuthState(): AuthContextType {
             setHasAnyAdmin(adminExists);
             setIsLoading(false);
           }, 0);
+
+          // Subscribe to realtime changes for this user's role
+          roleSubscription = supabase
+            .channel(`user_roles_${session.user.id}`)
+            .on(
+              'postgres_changes',
+              {
+                event: '*',
+                schema: 'public',
+                table: 'user_roles',
+                filter: `user_id=eq.${session.user.id}`,
+              },
+              async (payload) => {
+                console.log('Role changed:', payload);
+                // Refetch role data when it changes
+                const roleData = await fetchRoleData(session.user.id);
+                setRole(roleData.role);
+                setIsSeniorStaff(roleData.isSeniorStaff);
+              }
+            )
+            .subscribe();
         } else {
           setRole(null);
           setIsSeniorStaff(false);
           const adminExists = await checkHasAnyAdmin();
           setHasAnyAdmin(adminExists);
           setIsLoading(false);
+          
+          // Unsubscribe when logged out
+          if (roleSubscription) {
+            supabase.removeChannel(roleSubscription);
+            roleSubscription = null;
+          }
         }
       }
     );
@@ -106,6 +135,26 @@ export function useAuthState(): AuthContextType {
         const roleData = await fetchRoleData(session.user.id);
         setRole(roleData.role);
         setIsSeniorStaff(roleData.isSeniorStaff);
+
+        // Subscribe to realtime changes for this user's role
+        roleSubscription = supabase
+          .channel(`user_roles_${session.user.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'user_roles',
+              filter: `user_id=eq.${session.user.id}`,
+            },
+            async (payload) => {
+              console.log('Role changed:', payload);
+              const roleData = await fetchRoleData(session.user.id);
+              setRole(roleData.role);
+              setIsSeniorStaff(roleData.isSeniorStaff);
+            }
+          )
+          .subscribe();
       }
       
       const adminExists = await checkHasAnyAdmin();
@@ -113,7 +162,12 @@ export function useAuthState(): AuthContextType {
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      if (roleSubscription) {
+        supabase.removeChannel(roleSubscription);
+      }
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
