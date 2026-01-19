@@ -115,14 +115,6 @@ export default function OrderList() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => refetch()}
-            className="border-primary/30"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
           <Button onClick={handleAdd} className="bg-primary hover:bg-primary/90">
             <Plus className="h-4 w-4 mr-2" />
             Thêm đơn hàng

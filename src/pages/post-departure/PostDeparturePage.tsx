@@ -336,14 +336,6 @@ export default function PostDeparturePage() {
             <Download className="h-4 w-4 mr-2" />
             Xuất Excel
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => refetch()}
-            disabled={isRefetching}
-          >
-            <RefreshCw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
-          </Button>
         </div>
       </div>
 

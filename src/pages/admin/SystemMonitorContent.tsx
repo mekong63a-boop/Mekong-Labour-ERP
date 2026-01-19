@@ -315,22 +315,6 @@ export default function SystemMonitorContent() {
 
   return (
     <div className="space-y-6">
-      {/* Refresh Button */}
-      <div className="flex justify-end">
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => {
-            refetchUsers();
-            refetchLogs();
-            refetchRequests();
-          }}
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Làm mới
-        </Button>
-      </div>
-
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>

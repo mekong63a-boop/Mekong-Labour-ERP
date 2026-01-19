@@ -271,14 +271,6 @@ export default function PartnerList() {
               className="pl-9 border-primary/20 bg-primary/5"
             />
           </div>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleRefresh}
-            className="border-primary/30"
-          >
-            <Download className="h-4 w-4" />
-          </Button>
           {canCreate && (
             <Button onClick={handleAdd} className="bg-primary hover:bg-primary/90">
               <Plus className="h-4 w-4 mr-2" />
