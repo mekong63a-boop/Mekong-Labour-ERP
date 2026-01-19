@@ -17,6 +17,7 @@ export interface TraineeListItem {
   trainee_code: string;
   full_name: string;
   birth_date: string | null;
+  gender: string | null;
   birthplace: string | null;
   progression_stage: ProgressionStage | null;
   simple_status: SimpleStatus | null;
@@ -46,6 +47,7 @@ interface TraineeRaw {
   trainee_code: string;
   full_name: string;
   birth_date: string | null;
+  gender: string | null;
   birthplace: string | null;
   progression_stage: ProgressionStage | null;
   simple_status: SimpleStatus | null;
@@ -153,6 +155,7 @@ export function useTraineesPaginated({
           trainee_code,
           full_name,
           birth_date,
+          gender,
           birthplace,
           progression_stage,
           simple_status,
@@ -231,6 +234,7 @@ export function useTraineesPaginated({
         trainee_code: trainee.trainee_code,
         full_name: trainee.full_name,
         birth_date: trainee.birth_date,
+        gender: trainee.gender,
         birthplace: trainee.birthplace,
         progression_stage: trainee.progression_stage,
         simple_status: trainee.simple_status,
