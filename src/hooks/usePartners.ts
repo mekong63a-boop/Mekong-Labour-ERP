@@ -243,11 +243,12 @@ export function useDeleteJobCategory() {
         throw new Error(`Không thể xóa vì có ${traineeCount} học viên đang sử dụng ngành nghề này`);
       }
 
-      // Check if job category is being used by orders
+      // Check if job category is being used by active orders (exclude cancelled orders)
       const { count: orderCount } = await supabase
         .from("orders")
         .select("id", { count: "exact", head: true })
-        .eq("job_category_id", id);
+        .eq("job_category_id", id)
+        .neq("status", "Hủy");
 
       if (orderCount && orderCount > 0) {
         throw new Error(`Không thể xóa vì có ${orderCount} đơn hàng đang sử dụng ngành nghề này`);
@@ -281,11 +282,12 @@ export function useDeleteCompany() {
         throw new Error(`Không thể xóa vì có ${traineeCount} học viên đang liên kết với công ty này`);
       }
 
-      // Check if company is being used by orders
+      // Check if company is being used by active orders (exclude cancelled orders)
       const { count: orderCount } = await supabase
         .from("orders")
         .select("id", { count: "exact", head: true })
-        .eq("company_id", id);
+        .eq("company_id", id)
+        .neq("status", "Hủy");
 
       if (orderCount && orderCount > 0) {
         throw new Error(`Không thể xóa vì có ${orderCount} đơn hàng đang liên kết với công ty này`);
@@ -319,11 +321,12 @@ export function useDeleteUnion() {
         throw new Error(`Không thể xóa vì có ${traineeCount} học viên đang liên kết với nghiệp đoàn này`);
       }
 
-      // Check if union is being used by orders
+      // Check if union is being used by active orders (exclude cancelled orders)
       const { count: orderCount } = await supabase
         .from("orders")
         .select("id", { count: "exact", head: true })
-        .eq("union_id", id);
+        .eq("union_id", id)
+        .neq("status", "Hủy");
 
       if (orderCount && orderCount > 0) {
         throw new Error(`Không thể xóa vì có ${orderCount} đơn hàng đang liên kết với nghiệp đoàn này`);
