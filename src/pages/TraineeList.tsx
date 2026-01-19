@@ -190,9 +190,10 @@ export default function TraineeList() {
     const baseColumns = (
       <>
         <TableHead className="w-24">Mã HV</TableHead>
-        <TableHead>Họ và tên</TableHead>
-        <TableHead className="w-28">Ngày sinh</TableHead>
-        <TableHead>Quê quán</TableHead>
+        <TableHead className="min-w-[140px]">Họ và tên</TableHead>
+        <TableHead className="w-24">Ngày sinh</TableHead>
+        <TableHead className="w-16">Giới tính</TableHead>
+        <TableHead className="min-w-[100px]">Quê quán</TableHead>
       </>
     );
 
@@ -340,6 +341,7 @@ export default function TraineeList() {
         <TableCell className="font-mono text-sm">{trainee.trainee_code}</TableCell>
         <TableCell className="font-medium">{trainee.full_name}</TableCell>
         <TableCell className="text-sm">{formatDate(trainee.birth_date)}</TableCell>
+        <TableCell className="text-sm">{trainee.gender || "—"}</TableCell>
         <TableCell className="text-sm">{trainee.birthplace || "—"}</TableCell>
       </>
     );

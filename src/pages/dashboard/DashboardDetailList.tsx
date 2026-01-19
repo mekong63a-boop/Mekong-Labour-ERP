@@ -92,6 +92,7 @@ export default function DashboardDetailList() {
           trainee_code,
           full_name,
           birth_date,
+          gender,
           birthplace,
           registration_date,
           entry_date,
@@ -248,19 +249,20 @@ export default function DashboardDetailList() {
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead className="w-24">Mã HV</TableHead>
-                  <TableHead>Họ và tên</TableHead>
-                  <TableHead className="w-28">Ngày sinh</TableHead>
-                  <TableHead>Quê quán</TableHead>
-                  <TableHead className="w-28">Ngày đăng ký</TableHead>
-                  <TableHead className="w-28">Ngày nhập học</TableHead>
-                  <TableHead className="w-32">{dynamicColumn?.label || "—"}</TableHead>
+                  <TableHead className="min-w-[140px]">Họ và tên</TableHead>
+                  <TableHead className="w-24">Ngày sinh</TableHead>
+                  <TableHead className="w-16">Giới tính</TableHead>
+                  <TableHead className="min-w-[100px]">Quê quán</TableHead>
+                  <TableHead className="w-24">Ngày ĐK</TableHead>
+                  <TableHead className="w-24">Ngày nhập học</TableHead>
+                  <TableHead className="w-28">{dynamicColumn?.label || "—"}</TableHead>
                   <TableHead className="w-20 text-center">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredTrainees.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       Không có dữ liệu
                     </TableCell>
                   </TableRow>
@@ -274,6 +276,7 @@ export default function DashboardDetailList() {
                       <TableCell className="font-mono text-sm">{trainee.trainee_code}</TableCell>
                       <TableCell className="font-medium">{trainee.full_name}</TableCell>
                       <TableCell className="text-sm">{formatDate(trainee.birth_date)}</TableCell>
+                      <TableCell className="text-sm">{trainee.gender || "—"}</TableCell>
                       <TableCell className="text-sm">{getProvince(trainee.birthplace)}</TableCell>
                       <TableCell className="text-sm">
                         {formatDate(trainee.registration_date || trainee.created_at)}
