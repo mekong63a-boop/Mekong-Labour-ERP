@@ -27,7 +27,7 @@ serve(async (req) => {
 
     if (!image) {
       return new Response(
-        JSON.stringify({ error: "Image is required" }),
+        JSON.stringify({ error: "Cần có ảnh CCCD" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

@@ -43,7 +43,7 @@ export function useBackup(): UseBackupReturn {
       const result: BackupResult = {
         timestamp: new Date().toISOString(),
         success: false,
-        error: err instanceof Error ? err.message : 'Backup failed',
+        error: err instanceof Error ? err.message : 'Sao lưu thất bại',
       };
       setLastResult(result);
       return result;

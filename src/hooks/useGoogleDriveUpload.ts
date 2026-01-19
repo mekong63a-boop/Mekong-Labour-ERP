@@ -57,12 +57,12 @@ export function useGoogleDriveUpload(): UseGoogleDriveUploadReturn {
       }
 
       if (!data.success) {
-        throw new Error(data.error || 'Upload failed');
+        throw new Error(data.error || 'Tải lên thất bại');
       }
 
       return data;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Upload failed';
+      const errorMessage = err instanceof Error ? err.message : 'Tải lên thất bại';
       setError(errorMessage);
       return { success: false, error: errorMessage };
     } finally {

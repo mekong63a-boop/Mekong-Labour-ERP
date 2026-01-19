@@ -277,7 +277,7 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
           {!collapsed && (
             <div className="flex flex-col overflow-hidden">
               <span className="text-sm font-medium leading-tight truncate">
-                {user?.email?.split("@")[0] || "User"}
+                {user?.email?.split("@")[0] || "Người dùng"}
               </span>
               <span className="text-[11px] text-sidebar-foreground/70 leading-tight">
                 {getRoleLabel()}

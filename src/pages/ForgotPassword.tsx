@@ -182,7 +182,7 @@ export default function ForgotPassword() {
 
         {/* Footer */}
         <p className="text-center text-white/40 text-sm mt-8 font-medium">
-          © 2026 Mekong Connect Hub. All rights reserved.
+          © 2026 Mekong Connect Hub. Bảo lưu mọi quyền.
         </p>
       </div>
     </div>
