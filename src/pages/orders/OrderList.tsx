@@ -13,8 +13,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, RefreshCw, Search, FileText, Eye, Edit } from "lucide-react";
+import { Plus, RefreshCw, Search, FileText, Eye, Edit, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { useCanAction } from "@/hooks/useMenuPermissions";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function OrderList() {
   const { data: orders, isLoading, refetch } = useOrders();
@@ -22,6 +35,12 @@ export default function OrderList() {
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Kiểm tra quyền xóa
+  const { hasPermission: canDelete } = useCanAction("orders", "delete");
 
   const filteredOrders = orders?.filter(
     (order) =>
@@ -38,6 +57,34 @@ export default function OrderList() {
   const handleEdit = (order: Order) => {
     setSelectedOrder(order);
     setFormOpen(true);
+  };
+
+  const handleDeleteClick = (order: Order) => {
+    setOrderToDelete(order);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!orderToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .delete()
+        .eq("id", orderToDelete.id);
+
+      if (error) throw error;
+
+      toast.success("Đã xóa đơn hàng thành công!");
+      refetch();
+    } catch (error: any) {
+      toast.error("Lỗi khi xóa đơn hàng: " + error.message);
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setOrderToDelete(null);
+    }
   };
 
   const getStatusColor = (status: string | null) => {
@@ -206,6 +253,16 @@ export default function OrderList() {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteClick(order)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -221,6 +278,29 @@ export default function OrderList() {
         onOpenChange={setFormOpen}
         order={selectedOrder}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa đơn hàng</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa đơn hàng <strong>{orderToDelete?.code}</strong>? 
+              Hành động này không thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Hủy</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting ? "Đang xóa..." : "Xóa"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
