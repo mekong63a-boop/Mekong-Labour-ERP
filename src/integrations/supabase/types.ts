@@ -2014,6 +2014,107 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboard_trainee_by_birthplace: {
+        Row: {
+          birthplace: string | null
+          count: number | null
+        }
+        Relationships: []
+      }
+      dashboard_trainee_by_gender: {
+        Row: {
+          count: number | null
+          gender: string | null
+        }
+        Relationships: []
+      }
+      dashboard_trainee_by_source: {
+        Row: {
+          count: number | null
+          source: string | null
+        }
+        Relationships: []
+      }
+      dashboard_trainee_by_stage: {
+        Row: {
+          count: number | null
+          stage: string | null
+        }
+        Relationships: []
+      }
+      dashboard_trainee_by_status: {
+        Row: {
+          count: number | null
+          status: string | null
+        }
+        Relationships: []
+      }
+      dashboard_trainee_by_type: {
+        Row: {
+          count: number | null
+          trainee_type: string | null
+        }
+        Relationships: []
+      }
+      dashboard_trainee_departures_monthly: {
+        Row: {
+          departures: number | null
+          month_date: string | null
+          month_label: string | null
+        }
+        Relationships: []
+      }
+      dashboard_trainee_kpis: {
+        Row: {
+          departed_this_month: number | null
+          departed_this_year: number | null
+          registered_this_month: number | null
+          registered_this_year: number | null
+          stage_absconded: number | null
+          stage_coe: number | null
+          stage_completed: number | null
+          stage_departed: number | null
+          stage_early_return: number | null
+          stage_not_passed: number | null
+          stage_nyukan: number | null
+          stage_otit: number | null
+          stage_passed_interview: number | null
+          stage_submitted: number | null
+          stage_visa: number | null
+          stage_working: number | null
+          status_cancelled: number | null
+          status_in_japan: number | null
+          status_left_company: number | null
+          status_new: number | null
+          status_not_studying: number | null
+          status_reserved: number | null
+          status_stopped: number | null
+          status_studying: number | null
+          total_trainees: number | null
+          type_engineer: number | null
+          type_knd: number | null
+          type_student: number | null
+          type_tts: number | null
+          type_tts3: number | null
+        }
+        Relationships: []
+      }
+      dashboard_trainee_monthly: {
+        Row: {
+          month_date: string | null
+          month_label: string | null
+          registrations: number | null
+        }
+        Relationships: []
+      }
+      dashboard_trainee_passed_monthly: {
+        Row: {
+          month_date: string | null
+          month_label: string | null
+          passed_count: number | null
+        }
+        Relationships: []
+      }
       teachers_public: {
         Row: {
           class_end_date: string | null
