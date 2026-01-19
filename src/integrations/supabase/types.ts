@@ -2450,6 +2450,7 @@ export type Database = {
           trainee_code: string | null
           trainee_type: Database["public"]["Enums"]["trainee_type"] | null
           transitioned_at: string | null
+          transitioned_by: string | null
           union_id: string | null
           updated_at: string | null
           visa_date: string | null
