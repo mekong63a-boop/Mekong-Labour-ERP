@@ -596,33 +596,66 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
           expected_entry_month: toNull(projectData.expected_entry_month),
         };
 
-        const hasAny = Object.values(payload).some((v) => v !== null);
-        if (!hasAny) return;
+        // Chỉ log nếu có ngày phỏng vấn (field bắt buộc để tạo history)
+        if (!payload.interview_date) return;
 
-        const { data: latest, error: latestError } = await supabase
+        // Xác định result dựa trên progression_stage
+        const currentStage = formData.progression_stage;
+        let interviewResult = "Chờ";
+        if (currentStage === "Đậu phỏng vấn" || 
+            currentStage === "Nộp hồ sơ" || 
+            currentStage === "OTIT" || 
+            currentStage === "Nyukan" || 
+            currentStage === "COE" ||
+            currentStage === "Xuất cảnh" ||
+            currentStage === "Đang làm việc" ||
+            currentStage === "Hoàn thành hợp đồng") {
+          interviewResult = "Đậu";
+        } else if (currentStage === "Chưa đậu" && traineeData?.progression_stage && traineeData.progression_stage !== "Chưa đậu") {
+          // Nếu từ đậu chuyển về chưa đậu = Rớt
+          interviewResult = "Rớt";
+        }
+
+        // Lấy record mới nhất với cùng interview_date
+        const { data: existingRecord, error: existingError } = await supabase
           .from("interview_history")
-          .select("interview_date, company_id, union_id, job_category_id, expected_entry_month")
+          .select("id, interview_date, company_id, union_id, job_category_id, expected_entry_month, result")
           .eq("trainee_id", targetTraineeId)
+          .eq("interview_date", payload.interview_date)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
 
-        if (latestError) throw latestError;
+        if (existingError) throw existingError;
 
-        const isSameAsLatest =
-          !!latest &&
-          latest.interview_date === payload.interview_date &&
-          latest.company_id === payload.company_id &&
-          latest.union_id === payload.union_id &&
-          latest.job_category_id === payload.job_category_id &&
-          latest.expected_entry_month === payload.expected_entry_month;
+        // Nếu đã có record cùng ngày phỏng vấn -> UPDATE thay vì INSERT
+        if (existingRecord) {
+          const needsUpdate = 
+            existingRecord.company_id !== payload.company_id ||
+            existingRecord.union_id !== payload.union_id ||
+            existingRecord.job_category_id !== payload.job_category_id ||
+            existingRecord.expected_entry_month !== payload.expected_entry_month ||
+            existingRecord.result !== interviewResult;
 
-        if (isSameAsLatest) return;
+          if (needsUpdate) {
+            const { error: updateError } = await supabase
+              .from("interview_history")
+              .update({
+                ...payload,
+                result: interviewResult,
+              })
+              .eq("id", existingRecord.id);
 
+            if (updateError) throw updateError;
+          }
+          return; // Không tạo record mới
+        }
+
+        // Tạo record mới nếu không có record cùng ngày
         const { error: insertError } = await supabase.from("interview_history").insert({
           trainee_id: targetTraineeId,
           ...payload,
-          result: "Chờ",
+          result: interviewResult,
         });
 
         if (insertError) throw insertError;
