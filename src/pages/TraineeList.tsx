@@ -27,12 +27,13 @@ import { format, addYears } from "date-fns";
 import { usePagination } from "@/hooks/usePagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTraineesPaginated, TraineeListItem } from "@/hooks/useTraineesPaginated";
-import { useTraineeStageCounts } from "@/hooks/useTraineeStageCounts";
+import { useWorkflowStageCounts } from "@/hooks/useWorkflowStageCounts";
 import { useDeleteTrainee } from "@/hooks/useTrainees";
 import { useCanAction } from "@/hooks/useMenuPermissions";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { useToast } from "@/hooks/use-toast";
-import { StageTabsGrid, STAGE_TABS } from "@/components/trainees/StageTabsGrid";
+import { WorkflowStageTabs, WORKFLOW_STAGE_TABS } from "@/components/trainees/WorkflowStageTabs";
+import { WorkflowStage, WORKFLOW_STAGE_LABELS } from "@/hooks/useWorkflowStageCounts";
 
 export default function TraineeList() {
   const [activeTab, setActiveTab] = useState("all");
@@ -50,14 +51,14 @@ export default function TraineeList() {
   // Pagination state
   const pagination = usePagination({ pageSize: 50 });
   
-  // Fetch stage counts for tabs
-  const { data: stageCounts, isLoading: isCountsLoading } = useTraineeStageCounts();
+  // Fetch workflow stage counts for tabs - SINGLE SOURCE OF TRUTH
+  const { data: stageCounts, isLoading: isCountsLoading } = useWorkflowStageCounts();
   
-  // Get current progression stage for filtering
-  const activeTabConfig = STAGE_TABS.find((t) => t.value === activeTab);
-  const progressionStage = activeTabConfig?.key === 'all' ? 'all' : activeTabConfig?.key || 'all';
+  // Get current workflow stage for filtering
+  const activeTabConfig = WORKFLOW_STAGE_TABS.find((t) => t.value === activeTab);
+  const workflowStage = activeTabConfig?.stageKey === 'all' ? 'all' : activeTabConfig?.stageKey || 'all';
   
-  // Fetch trainees with pagination
+  // Fetch trainees with pagination - using workflow stage
   const { 
     trainees, 
     totalCount, 
@@ -68,7 +69,7 @@ export default function TraineeList() {
   } = useTraineesPaginated({
     from: pagination.from,
     to: pagination.to,
-    progressionStage,
+    workflowStage, // SINGLE SOURCE OF TRUTH
     searchQuery: debouncedSearch,
   });
   
@@ -137,33 +138,25 @@ export default function TraineeList() {
     return `${term} năm`;
   };
 
-  const getEnrollmentStatusBadge = (status: string | null) => {
-    switch (status) {
-      case "Đang học":
-        return <Badge className="bg-green-100 text-green-800">{status}</Badge>;
-      case "Bảo lưu":
-        return <Badge className="bg-yellow-100 text-yellow-800">{status}</Badge>;
-      case "Chưa nhập học":
-      default:
-        return <Badge className="bg-gray-100 text-gray-800">{status || "Chưa nhập học"}</Badge>;
-    }
-  };
-
-  const getStatusBadgeClass = (stage: string | null) => {
+  // Badge class based on workflow stage - SINGLE SOURCE OF TRUTH
+  const getWorkflowStageBadgeClass = (stage: WorkflowStage | null) => {
     switch (stage) {
-      case "Chưa đậu":
-        return "bg-muted text-muted-foreground";
-      case "Đậu phỏng vấn":
-        return "bg-green-100 text-green-800";
-      case "COE":
-        return "bg-orange-100 text-orange-800";
-      case "Visa":
+      case "recruited":
         return "bg-blue-100 text-blue-800";
-      case "Xuất cảnh":
-      case "Đang làm việc":
+      case "trained":
+        return "bg-green-100 text-green-800";
+      case "dormitory":
+        return "bg-yellow-100 text-yellow-800";
+      case "visa_processing":
+        return "bg-orange-100 text-orange-800";
+      case "ready_to_depart":
+        return "bg-purple-100 text-purple-800";
+      case "departed":
         return "bg-primary/10 text-primary";
-      case "Bỏ trốn":
-        return "bg-red-100 text-red-800";
+      case "post_departure":
+        return "bg-emerald-100 text-emerald-800";
+      case "archived":
+        return "bg-gray-100 text-gray-800";
       default:
         return "bg-muted text-muted-foreground";
     }
@@ -186,7 +179,7 @@ export default function TraineeList() {
 
   // Render table columns based on active tab
   const renderTableHeader = () => {
-    const progressionKey = activeTabConfig?.key;
+    const stageKey = activeTabConfig?.stageKey;
 
     // Common columns for most stages
     const baseColumns = (
@@ -198,8 +191,8 @@ export default function TraineeList() {
       </>
     );
 
-    switch (progressionKey) {
-      case "Đậu phỏng vấn":
+    switch (stageKey) {
+      case "recruited":
         return (
           <TableRow className="bg-muted/50">
             {baseColumns}
@@ -207,64 +200,43 @@ export default function TraineeList() {
             <TableHead>Công ty tiếp nhận</TableHead>
             <TableHead>Nghiệp đoàn</TableHead>
             <TableHead>Ngành nghề</TableHead>
-            <TableHead>Trạng thái nhập học</TableHead>
             <TableHead className="w-28">Ngày nhập học</TableHead>
             <TableHead className="w-20 text-center">Thao tác</TableHead>
           </TableRow>
         );
-      case "Nộp hồ sơ":
+      case "trained":
         return (
           <TableRow className="bg-muted/50">
             {baseColumns}
-            <TableHead className="w-28">Ngày nộp HS</TableHead>
             <TableHead>Công ty tiếp nhận</TableHead>
             <TableHead>Nghiệp đoàn</TableHead>
             <TableHead>Ngành nghề</TableHead>
-            <TableHead>Trạng thái nhập học</TableHead>
             <TableHead className="w-28">Ngày nhập học</TableHead>
             <TableHead className="w-20 text-center">Thao tác</TableHead>
           </TableRow>
         );
-      case "OTIT":
+      case "visa_processing":
         return (
           <TableRow className="bg-muted/50">
             {baseColumns}
-            <TableHead className="w-28">Ngày vào OTIT</TableHead>
             <TableHead>Công ty tiếp nhận</TableHead>
             <TableHead>Nghiệp đoàn</TableHead>
             <TableHead>Ngành nghề</TableHead>
-            <TableHead>Trạng thái nhập học</TableHead>
-            <TableHead className="w-28">Ngày nhập học</TableHead>
+            <TableHead className="w-28">Ngày COE</TableHead>
             <TableHead className="w-20 text-center">Thao tác</TableHead>
           </TableRow>
         );
-      case "Nyukan":
+      case "ready_to_depart":
         return (
           <TableRow className="bg-muted/50">
             {baseColumns}
-            <TableHead className="w-28">Ngày vào Nyukan</TableHead>
             <TableHead>Công ty tiếp nhận</TableHead>
             <TableHead>Nghiệp đoàn</TableHead>
             <TableHead>Ngành nghề</TableHead>
-            <TableHead>Trạng thái nhập học</TableHead>
-            <TableHead className="w-28">Ngày nhập học</TableHead>
             <TableHead className="w-20 text-center">Thao tác</TableHead>
           </TableRow>
         );
-      case "COE":
-        return (
-          <TableRow className="bg-muted/50">
-            {baseColumns}
-            <TableHead className="w-28">Ngày có COE</TableHead>
-            <TableHead>Công ty tiếp nhận</TableHead>
-            <TableHead>Nghiệp đoàn</TableHead>
-            <TableHead>Ngành nghề</TableHead>
-            <TableHead>Trạng thái nhập học</TableHead>
-            <TableHead className="w-28">Ngày nhập học</TableHead>
-            <TableHead className="w-20 text-center">Thao tác</TableHead>
-          </TableRow>
-        );
-      case "Xuất cảnh":
+      case "departed":
         return (
           <TableRow className="bg-muted/50">
             {baseColumns}
@@ -277,7 +249,7 @@ export default function TraineeList() {
             <TableHead className="w-20 text-center">Thao tác</TableHead>
           </TableRow>
         );
-      case "Đang làm việc":
+      case "post_departure":
         return (
           <TableRow className="bg-muted/50">
             {baseColumns}
@@ -288,19 +260,7 @@ export default function TraineeList() {
             <TableHead className="w-20 text-center">Thao tác</TableHead>
           </TableRow>
         );
-      case "Bỏ trốn":
-        return (
-          <TableRow className="bg-muted/50">
-            {baseColumns}
-            <TableHead className="w-28">Ngày xuất cảnh</TableHead>
-            <TableHead>Công ty tiếp nhận</TableHead>
-            <TableHead>Nghiệp đoàn</TableHead>
-            <TableHead>Ngành nghề</TableHead>
-            <TableHead className="w-28">Ngày bỏ trốn</TableHead>
-            <TableHead className="w-20 text-center">Thao tác</TableHead>
-          </TableRow>
-        );
-      case "Về trước hạn":
+      case "archived":
         return (
           <TableRow className="bg-muted/50">
             {baseColumns}
@@ -309,24 +269,11 @@ export default function TraineeList() {
             <TableHead>Nghiệp đoàn</TableHead>
             <TableHead>Ngành nghề</TableHead>
             <TableHead className="w-28">Ngày về</TableHead>
-            <TableHead>Lý do về nước</TableHead>
-            <TableHead className="w-20 text-center">Thao tác</TableHead>
-          </TableRow>
-        );
-      case "Hoàn thành hợp đồng":
-        return (
-          <TableRow className="bg-muted/50">
-            {baseColumns}
-            <TableHead className="w-28">Ngày xuất cảnh</TableHead>
-            <TableHead>Công ty tiếp nhận</TableHead>
-            <TableHead>Nghiệp đoàn</TableHead>
-            <TableHead>Ngành nghề</TableHead>
-            <TableHead className="w-28">Ngày hết HĐ</TableHead>
             <TableHead className="w-20 text-center">Thao tác</TableHead>
           </TableRow>
         );
       default:
-        // Default columns for "Tất cả" and "Chưa đậu"
+        // Default columns for "Tất cả" and "dormitory"
         return (
           <TableRow className="bg-muted/50">
             {baseColumns}
@@ -340,7 +287,7 @@ export default function TraineeList() {
   };
 
   const renderTableRow = (trainee: TraineeListItem) => {
-    const progressionKey = activeTabConfig?.key;
+    const stageKey = activeTabConfig?.stageKey;
 
     const baseColumns = (
       <>
@@ -380,8 +327,8 @@ export default function TraineeList() {
       </TableCell>
     );
 
-    switch (progressionKey) {
-      case "Đậu phỏng vấn":
+    switch (stageKey) {
+      case "recruited":
         return (
           <>
             {baseColumns}
@@ -389,64 +336,43 @@ export default function TraineeList() {
             <TableCell className="text-sm">{getCompanyName(trainee.receiving_company)}</TableCell>
             <TableCell className="text-sm">{getUnionName(trainee.union)}</TableCell>
             <TableCell className="text-sm">{getJobCategoryName(trainee.job_category)}</TableCell>
-            <TableCell>{getEnrollmentStatusBadge(trainee.enrollment_status)}</TableCell>
             <TableCell className="text-sm">{formatDate(trainee.entry_date)}</TableCell>
             {actionColumn}
           </>
         );
-      case "Nộp hồ sơ":
+      case "trained":
         return (
           <>
             {baseColumns}
-            <TableCell className="text-sm">{formatDate(trainee.document_submission_date)}</TableCell>
             <TableCell className="text-sm">{getCompanyName(trainee.receiving_company)}</TableCell>
             <TableCell className="text-sm">{getUnionName(trainee.union)}</TableCell>
             <TableCell className="text-sm">{getJobCategoryName(trainee.job_category)}</TableCell>
-            <TableCell>{getEnrollmentStatusBadge(trainee.enrollment_status)}</TableCell>
             <TableCell className="text-sm">{formatDate(trainee.entry_date)}</TableCell>
             {actionColumn}
           </>
         );
-      case "OTIT":
+      case "visa_processing":
         return (
           <>
             {baseColumns}
-            <TableCell className="text-sm">{formatDate(trainee.otit_entry_date)}</TableCell>
             <TableCell className="text-sm">{getCompanyName(trainee.receiving_company)}</TableCell>
             <TableCell className="text-sm">{getUnionName(trainee.union)}</TableCell>
             <TableCell className="text-sm">{getJobCategoryName(trainee.job_category)}</TableCell>
-            <TableCell>{getEnrollmentStatusBadge(trainee.enrollment_status)}</TableCell>
-            <TableCell className="text-sm">{formatDate(trainee.entry_date)}</TableCell>
-            {actionColumn}
-          </>
-        );
-      case "Nyukan":
-        return (
-          <>
-            {baseColumns}
-            <TableCell className="text-sm">{formatDate(trainee.nyukan_entry_date)}</TableCell>
-            <TableCell className="text-sm">{getCompanyName(trainee.receiving_company)}</TableCell>
-            <TableCell className="text-sm">{getUnionName(trainee.union)}</TableCell>
-            <TableCell className="text-sm">{getJobCategoryName(trainee.job_category)}</TableCell>
-            <TableCell>{getEnrollmentStatusBadge(trainee.enrollment_status)}</TableCell>
-            <TableCell className="text-sm">{formatDate(trainee.entry_date)}</TableCell>
-            {actionColumn}
-          </>
-        );
-      case "COE":
-        return (
-          <>
-            {baseColumns}
             <TableCell className="text-sm">{formatDate(trainee.coe_date)}</TableCell>
-            <TableCell className="text-sm">{getCompanyName(trainee.receiving_company)}</TableCell>
-            <TableCell className="text-sm">{getUnionName(trainee.union)}</TableCell>
-            <TableCell className="text-sm">{getJobCategoryName(trainee.job_category)}</TableCell>
-            <TableCell>{getEnrollmentStatusBadge(trainee.enrollment_status)}</TableCell>
-            <TableCell className="text-sm">{formatDate(trainee.entry_date)}</TableCell>
             {actionColumn}
           </>
         );
-      case "Xuất cảnh":
+      case "ready_to_depart":
+        return (
+          <>
+            {baseColumns}
+            <TableCell className="text-sm">{getCompanyName(trainee.receiving_company)}</TableCell>
+            <TableCell className="text-sm">{getUnionName(trainee.union)}</TableCell>
+            <TableCell className="text-sm">{getJobCategoryName(trainee.job_category)}</TableCell>
+            {actionColumn}
+          </>
+        );
+      case "departed":
         return (
           <>
             {baseColumns}
@@ -459,7 +385,7 @@ export default function TraineeList() {
             {actionColumn}
           </>
         );
-      case "Đang làm việc":
+      case "post_departure":
         return (
           <>
             {baseColumns}
@@ -470,7 +396,7 @@ export default function TraineeList() {
             {actionColumn}
           </>
         );
-      case "Bỏ trốn":
+      case "archived":
         return (
           <>
             {baseColumns}
@@ -478,43 +404,18 @@ export default function TraineeList() {
             <TableCell className="text-sm">{getCompanyName(trainee.receiving_company)}</TableCell>
             <TableCell className="text-sm">{getUnionName(trainee.union)}</TableCell>
             <TableCell className="text-sm">{getJobCategoryName(trainee.job_category)}</TableCell>
-            <TableCell className="text-sm text-red-600 font-medium">{formatDate(trainee.absconded_date)}</TableCell>
-            {actionColumn}
-          </>
-        );
-      case "Về trước hạn":
-        return (
-          <>
-            {baseColumns}
-            <TableCell className="text-sm">{formatDate(trainee.departure_date)}</TableCell>
-            <TableCell className="text-sm">{getCompanyName(trainee.receiving_company)}</TableCell>
-            <TableCell className="text-sm">{getUnionName(trainee.union)}</TableCell>
-            <TableCell className="text-sm">{getJobCategoryName(trainee.job_category)}</TableCell>
-            <TableCell className="text-sm">{formatDate(trainee.early_return_date)}</TableCell>
-            <TableCell className="text-sm text-muted-foreground">{trainee.early_return_reason || "—"}</TableCell>
-            {actionColumn}
-          </>
-        );
-      case "Hoàn thành hợp đồng":
-        return (
-          <>
-            {baseColumns}
-            <TableCell className="text-sm">{formatDate(trainee.departure_date)}</TableCell>
-            <TableCell className="text-sm">{getCompanyName(trainee.receiving_company)}</TableCell>
-            <TableCell className="text-sm">{getUnionName(trainee.union)}</TableCell>
-            <TableCell className="text-sm">{getJobCategoryName(trainee.job_category)}</TableCell>
-            <TableCell className="text-sm text-green-600 font-medium">{formatDate(trainee.return_date)}</TableCell>
+            <TableCell className="text-sm">{formatDate(trainee.return_date || trainee.early_return_date)}</TableCell>
             {actionColumn}
           </>
         );
       default:
-        // Default columns for "Tất cả" and "Chưa đậu"
+        // Default columns for "Tất cả" and "dormitory"
         return (
           <>
             {baseColumns}
             <TableCell>
-              <Badge className={getStatusBadgeClass(trainee.progression_stage)}>
-                {trainee.progression_stage || "Chưa đậu"}
+              <Badge className={getWorkflowStageBadgeClass(trainee.workflow_stage)}>
+                {trainee.workflow_stage_label || WORKFLOW_STAGE_LABELS[trainee.workflow_stage as WorkflowStage] || "Không xác định"}
               </Badge>
             </TableCell>
             <TableCell className="text-sm">{getCompanyName(trainee.receiving_company)}</TableCell>
@@ -552,8 +453,8 @@ export default function TraineeList() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <StageTabsGrid
+      {/* Tabs - USING WORKFLOW STAGE */}
+      <WorkflowStageTabs
         activeTab={activeTab}
         onTabChange={setActiveTab}
         stageCounts={stageCounts}
