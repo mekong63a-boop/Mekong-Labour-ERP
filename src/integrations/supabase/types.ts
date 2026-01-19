@@ -337,6 +337,56 @@ export type Database = {
           },
         ]
       }
+      departments: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          manager_id: string | null
+          name: string
+          name_japanese: string | null
+          order_index: number | null
+          parent_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          manager_id?: string | null
+          name: string
+          name_japanese?: string | null
+          order_index?: number | null
+          parent_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          manager_id?: string | null
+          name?: string
+          name_japanese?: string | null
+          order_index?: number | null
+          parent_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       edit_permissions: {
         Row: {
           approved_at: string | null
@@ -1196,6 +1246,145 @@ export type Database = {
           },
           {
             foreignKeyName: "trainee_reviews_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trainee_workflow: {
+        Row: {
+          created_at: string
+          current_stage: Database["public"]["Enums"]["trainee_workflow_stage"]
+          id: string
+          notes: string | null
+          owner_department_id: string | null
+          sub_status: string | null
+          trainee_id: string
+          transitioned_at: string | null
+          transitioned_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_stage?: Database["public"]["Enums"]["trainee_workflow_stage"]
+          id?: string
+          notes?: string | null
+          owner_department_id?: string | null
+          sub_status?: string | null
+          trainee_id: string
+          transitioned_at?: string | null
+          transitioned_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_stage?: Database["public"]["Enums"]["trainee_workflow_stage"]
+          id?: string
+          notes?: string | null
+          owner_department_id?: string | null
+          sub_status?: string | null
+          trainee_id?: string
+          transitioned_at?: string | null
+          transitioned_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainee_workflow_owner_department_id_fkey"
+            columns: ["owner_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainee_workflow_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: true
+            referencedRelation: "trainees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainee_workflow_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: true
+            referencedRelation: "trainees_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainee_workflow_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: true
+            referencedRelation: "trainees_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trainee_workflow_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          from_stage:
+            | Database["public"]["Enums"]["trainee_workflow_stage"]
+            | null
+          id: string
+          owner_department_id: string | null
+          reason: string | null
+          sub_status: string | null
+          to_stage: Database["public"]["Enums"]["trainee_workflow_stage"]
+          trainee_id: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          from_stage?:
+            | Database["public"]["Enums"]["trainee_workflow_stage"]
+            | null
+          id?: string
+          owner_department_id?: string | null
+          reason?: string | null
+          sub_status?: string | null
+          to_stage: Database["public"]["Enums"]["trainee_workflow_stage"]
+          trainee_id: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          from_stage?:
+            | Database["public"]["Enums"]["trainee_workflow_stage"]
+            | null
+          id?: string
+          owner_department_id?: string | null
+          reason?: string | null
+          sub_status?: string | null
+          to_stage?: Database["public"]["Enums"]["trainee_workflow_stage"]
+          trainee_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainee_workflow_history_owner_department_id_fkey"
+            columns: ["owner_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainee_workflow_history_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainee_workflow_history_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainee_workflow_history_trainee_id_fkey"
             columns: ["trainee_id"]
             isOneToOne: false
             referencedRelation: "trainees_masked"
@@ -2287,6 +2476,16 @@ export type Database = {
           menu_key: string
         }[]
       }
+      get_trainee_workflow: {
+        Args: { _trainee_id: string }
+        Returns: {
+          current_stage: Database["public"]["Enums"]["trainee_workflow_stage"]
+          id: string
+          owner_department_id: string
+          sub_status: string
+          transitioned_at: string
+        }[]
+      }
       get_user_department: { Args: { _user_id: string }; Returns: string }
       get_user_menu_permissions: {
         Args: { _user_id: string }
@@ -2346,6 +2545,15 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      transition_trainee_stage: {
+        Args: {
+          _new_stage: Database["public"]["Enums"]["trainee_workflow_stage"]
+          _notes?: string
+          _sub_status?: string
+          _trainee_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "manager" | "staff" | "teacher"
@@ -2399,6 +2607,15 @@ export type Database = {
         | "Kỹ sư"
         | "Du học sinh"
         | "Thực tập sinh số 3"
+      trainee_workflow_stage:
+        | "recruited"
+        | "trained"
+        | "dormitory"
+        | "visa_processing"
+        | "ready_to_depart"
+        | "departed"
+        | "post_departure"
+        | "archived"
       user_account_status: "pending" | "active" | "suspended" | "deleted"
       user_role: "admin" | "staff"
     }
@@ -2583,6 +2800,16 @@ export const Constants = {
         "Kỹ sư",
         "Du học sinh",
         "Thực tập sinh số 3",
+      ],
+      trainee_workflow_stage: [
+        "recruited",
+        "trained",
+        "dormitory",
+        "visa_processing",
+        "ready_to_depart",
+        "departed",
+        "post_departure",
+        "archived",
       ],
       user_account_status: ["pending", "active", "suspended", "deleted"],
       user_role: ["admin", "staff"],
