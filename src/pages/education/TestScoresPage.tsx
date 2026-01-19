@@ -174,14 +174,6 @@ export default function TestScoresPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => refetch()}
-            title="Làm mới"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-          <Button 
             onClick={handleSave} 
             disabled={!hasChanges || bulkUpsert.isPending}
             className="bg-primary"

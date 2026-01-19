@@ -22,7 +22,6 @@ import {
   BookOpen,
   PauseCircle,
   XCircle,
-  RefreshCw,
 } from "lucide-react";
 import {
   BarChart,
@@ -52,8 +51,6 @@ import {
 } from "@/hooks/useDashboardTrainee";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 
 // Color palette for charts
 const COLORS = [
@@ -376,11 +373,6 @@ export default function TraineeDashboard() {
 
   const isFiltering = selectedYear !== "all" || selectedMonth !== "all";
 
-  const handleRefresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["dashboard-trainees-raw"] });
-    toast.success("Đã làm mới dữ liệu");
-  };
-
   return (
     <div className="space-y-6">
       {/* Page Title with Filters */}
@@ -398,15 +390,6 @@ export default function TraineeDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            className="gap-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Làm mới dữ liệu
-          </Button>
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
             <SelectTrigger className="w-[130px]">

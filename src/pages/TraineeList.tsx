@@ -526,15 +526,6 @@ export default function TraineeList() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={() => refetch()}
-            disabled={isLoading}
-            title="Làm mới dữ liệu"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </Button>
           <Button className="gap-2" onClick={() => navigate("/trainees/new")}>
             <Plus className="h-4 w-4" />
             Thêm mới
