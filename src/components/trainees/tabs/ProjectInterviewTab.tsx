@@ -1,12 +1,29 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Trainee } from "@/types/trainee";
 import { useInterviewHistory } from "@/hooks/useTraineeHistory";
-import { Building2, Calendar, FileText, CheckCircle, XCircle, Clock } from "lucide-react";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Building2, Calendar, FileText, CheckCircle, XCircle, Clock, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
+import { toast } from "sonner";
 
 interface ProjectInterviewTabProps {
   trainee: Trainee;
@@ -14,6 +31,29 @@ interface ProjectInterviewTabProps {
 
 export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
   const { data: interviews, isLoading } = useInterviewHistory(trainee.id);
+  const { isPrimaryAdmin } = useUserRole();
+  const queryClient = useQueryClient();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteInterview = async (interviewId: string) => {
+    setDeletingId(interviewId);
+    try {
+      const { error } = await supabase
+        .from("interview_history")
+        .delete()
+        .eq("id", interviewId);
+
+      if (error) throw error;
+
+      toast.success("Đã xóa lịch sử phỏng vấn");
+      queryClient.invalidateQueries({ queryKey: ["interview-history", trainee.id] });
+    } catch (error) {
+      console.error("Error deleting interview:", error);
+      toast.error("Không thể xóa lịch sử phỏng vấn");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "—";
@@ -255,7 +295,40 @@ export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
                           {formatDate(interview.interview_date)}
                         </p>
                       </div>
-                      {getResultBadge(interview.result, index === 0)}
+                      <div className="flex items-center gap-2">
+                        {getResultBadge(interview.result, index === 0)}
+                        {isPrimaryAdmin && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                disabled={deletingId === interview.id}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Xóa lịch sử phỏng vấn?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Bạn có chắc chắn muốn xóa lịch sử phỏng vấn lần {interviews.length - index} ngày {formatDate(interview.interview_date)}? Hành động này không thể hoàn tác.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteInterview(interview.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Xóa
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm mt-3">
                       <div>

@@ -1,5 +1,13 @@
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Users,
   UserCheck,
@@ -9,6 +17,7 @@ import {
   GraduationCap,
   Building,
   CalendarDays,
+  Filter,
 } from "lucide-react";
 import {
   BarChart,
@@ -37,6 +46,8 @@ import {
   useTraineeDeparturesMonthly,
   useTraineePassedMonthly,
 } from "@/hooks/useDashboardTrainee";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 // Color palette for charts
 const COLORS = [
@@ -130,7 +141,112 @@ function ChartCard({
 }
 
 export default function TraineeDashboard() {
-  // Fetch all dashboard data
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
+  
+  // Filter states
+  const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+
+  // Fetch all trainees with registration_date for filtering
+  const { data: allTrainees = [], isLoading: loadingTrainees } = useQuery({
+    queryKey: ["dashboard-trainees-raw"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trainees")
+        .select("id, registration_date, departure_date, interview_pass_date, trainee_type, progression_stage, simple_status, source, birthplace, gender");
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30 * 1000,
+  });
+
+  // Generate year options from data
+  const yearOptions = useMemo(() => {
+    const years = new Set<number>();
+    allTrainees.forEach((t) => {
+      if (t.registration_date) {
+        years.add(new Date(t.registration_date).getFullYear());
+      }
+      if (t.departure_date) {
+        years.add(new Date(t.departure_date).getFullYear());
+      }
+    });
+    return Array.from(years).sort((a, b) => b - a);
+  }, [allTrainees]);
+
+  // Month options
+  const monthOptions = [
+    { value: "1", label: "Tháng 1" },
+    { value: "2", label: "Tháng 2" },
+    { value: "3", label: "Tháng 3" },
+    { value: "4", label: "Tháng 4" },
+    { value: "5", label: "Tháng 5" },
+    { value: "6", label: "Tháng 6" },
+    { value: "7", label: "Tháng 7" },
+    { value: "8", label: "Tháng 8" },
+    { value: "9", label: "Tháng 9" },
+    { value: "10", label: "Tháng 10" },
+    { value: "11", label: "Tháng 11" },
+    { value: "12", label: "Tháng 12" },
+  ];
+
+  // Filtered trainees based on registration_date
+  const filteredTrainees = useMemo(() => {
+    return allTrainees.filter((t) => {
+      if (!t.registration_date) return selectedYear === "all" && selectedMonth === "all";
+      
+      const regDate = new Date(t.registration_date);
+      const regYear = regDate.getFullYear();
+      const regMonth = regDate.getMonth() + 1;
+      
+      if (selectedYear !== "all" && regYear !== parseInt(selectedYear)) return false;
+      if (selectedMonth !== "all" && regMonth !== parseInt(selectedMonth)) return false;
+      
+      return true;
+    });
+  }, [allTrainees, selectedYear, selectedMonth]);
+
+  // Calculate filtered KPIs
+  const filteredKPIs = useMemo(() => {
+    const result = {
+      total: filteredTrainees.length,
+      status_in_japan: 0,
+      status_studying: 0,
+      stage_passed_interview: 0,
+      stage_not_passed: 0,
+      type_tts: 0,
+      type_knd: 0,
+      type_engineer: 0,
+      departed_count: 0,
+    };
+
+    filteredTrainees.forEach((t) => {
+      if (t.simple_status === "Đang ở Nhật") result.status_in_japan++;
+      if (t.simple_status === "Đang học") result.status_studying++;
+      if (t.progression_stage && t.progression_stage !== "Chưa đậu") result.stage_passed_interview++;
+      if (t.progression_stage === "Chưa đậu" || !t.progression_stage) result.stage_not_passed++;
+      if (t.trainee_type === "Thực tập sinh") result.type_tts++;
+      if (t.trainee_type === "Kỹ năng đặc định") result.type_knd++;
+      if (t.trainee_type === "Kỹ sư") result.type_engineer++;
+      
+      // Check departure based on filter
+      if (t.departure_date) {
+        const depDate = new Date(t.departure_date);
+        const depYear = depDate.getFullYear();
+        const depMonth = depDate.getMonth() + 1;
+        
+        const matchYear = selectedYear === "all" || depYear === parseInt(selectedYear);
+        const matchMonth = selectedMonth === "all" || depMonth === parseInt(selectedMonth);
+        
+        if (matchYear && matchMonth) result.departed_count++;
+      }
+    });
+
+    return result;
+  }, [filteredTrainees, selectedYear, selectedMonth]);
+
+  // Fetch all dashboard data (for non-filtered charts)
   const { data: kpis, isLoading: loadingKPIs } = useTraineeKPIs();
   const { data: stageData, isLoading: loadingStage } = useTraineeByStage();
   const { data: statusData, isLoading: loadingStatus } = useTraineeByStatus();
@@ -142,54 +258,96 @@ export default function TraineeDashboard() {
   const { data: departuresData, isLoading: loadingDepartures } = useTraineeDeparturesMonthly();
   const { data: passedData, isLoading: loadingPassed } = useTraineePassedMonthly();
 
+  const isFiltering = selectedYear !== "all" || selectedMonth !== "all";
+
   return (
     <div className="space-y-6">
-      {/* Page Title */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Dashboard Học viên</h1>
-        <p className="text-muted-foreground">Tổng quan số liệu học viên</p>
+      {/* Page Title with Filters */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard Học viên</h1>
+          <p className="text-muted-foreground">
+            Tổng quan số liệu học viên
+            {isFiltering && (
+              <span className="ml-2 text-primary font-medium">
+                (Đang lọc: {selectedMonth !== "all" ? `Tháng ${selectedMonth}` : ""} 
+                {selectedMonth !== "all" && selectedYear !== "all" ? "/" : ""}
+                {selectedYear !== "all" ? selectedYear : ""})
+              </span>
+            )}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="w-[130px]">
+              <SelectValue placeholder="Tháng" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả tháng</SelectItem>
+              {monthOptions.map((m) => (
+                <SelectItem key={m.value} value={m.value}>
+                  {m.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={selectedYear} onValueChange={setSelectedYear}>
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="Năm" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả năm</SelectItem>
+              {yearOptions.map((y) => (
+                <SelectItem key={y} value={y.toString()}>
+                  {y}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* KPI Cards Row 1 */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         <KPICard
           title="Tổng học viên"
-          value={kpis?.total_trainees || 0}
+          value={isFiltering ? filteredKPIs.total : (kpis?.total_trainees || 0)}
           icon={Users}
-          isLoading={loadingKPIs}
+          isLoading={loadingKPIs || loadingTrainees}
         />
         <KPICard
           title="Đang ở Nhật"
-          value={kpis?.status_in_japan || 0}
+          value={isFiltering ? filteredKPIs.status_in_japan : (kpis?.status_in_japan || 0)}
           icon={Plane}
-          isLoading={loadingKPIs}
+          isLoading={loadingKPIs || loadingTrainees}
           variant="success"
         />
         <KPICard
           title="Đang học"
-          value={kpis?.status_studying || 0}
+          value={isFiltering ? filteredKPIs.status_studying : (kpis?.status_studying || 0)}
           icon={GraduationCap}
-          isLoading={loadingKPIs}
+          isLoading={loadingKPIs || loadingTrainees}
         />
         <KPICard
           title="Đậu phỏng vấn"
-          value={kpis?.stage_passed_interview || 0}
+          value={isFiltering ? filteredKPIs.stage_passed_interview : (kpis?.stage_passed_interview || 0)}
           icon={UserCheck}
-          isLoading={loadingKPIs}
+          isLoading={loadingKPIs || loadingTrainees}
           variant="success"
         />
         <KPICard
           title="Chưa đậu"
-          value={kpis?.stage_not_passed || 0}
+          value={isFiltering ? filteredKPIs.stage_not_passed : (kpis?.stage_not_passed || 0)}
           icon={UserX}
-          isLoading={loadingKPIs}
+          isLoading={loadingKPIs || loadingTrainees}
           variant="warning"
         />
         <KPICard
-          title="Đăng ký tháng này"
-          value={kpis?.registered_this_month || 0}
+          title={isFiltering ? "Đăng ký theo lọc" : "Đăng ký tháng này"}
+          value={isFiltering ? filteredKPIs.total : (kpis?.registered_this_month || 0)}
           icon={CalendarDays}
-          isLoading={loadingKPIs}
+          isLoading={loadingKPIs || loadingTrainees}
         />
       </div>
 
@@ -197,34 +355,34 @@ export default function TraineeDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
         <KPICard
           title="Thực tập sinh"
-          value={kpis?.type_tts || 0}
+          value={isFiltering ? filteredKPIs.type_tts : (kpis?.type_tts || 0)}
           icon={Building}
-          isLoading={loadingKPIs}
+          isLoading={loadingKPIs || loadingTrainees}
         />
         <KPICard
           title="Kỹ năng đặc định"
-          value={kpis?.type_knd || 0}
+          value={isFiltering ? filteredKPIs.type_knd : (kpis?.type_knd || 0)}
           icon={Building}
-          isLoading={loadingKPIs}
+          isLoading={loadingKPIs || loadingTrainees}
         />
         <KPICard
           title="Kỹ sư"
-          value={kpis?.type_engineer || 0}
+          value={isFiltering ? filteredKPIs.type_engineer : (kpis?.type_engineer || 0)}
           icon={Building}
-          isLoading={loadingKPIs}
+          isLoading={loadingKPIs || loadingTrainees}
         />
         <KPICard
-          title="Xuất cảnh năm nay"
-          value={kpis?.departed_this_year || 0}
+          title={isFiltering ? "Xuất cảnh theo lọc" : "Xuất cảnh năm nay"}
+          value={isFiltering ? filteredKPIs.departed_count : (kpis?.departed_this_year || 0)}
           icon={TrendingUp}
-          isLoading={loadingKPIs}
+          isLoading={loadingKPIs || loadingTrainees}
           variant="success"
         />
         <KPICard
-          title="Đăng ký năm nay"
-          value={kpis?.registered_this_year || 0}
+          title={isFiltering ? "Đăng ký theo lọc" : "Đăng ký năm nay"}
+          value={isFiltering ? filteredKPIs.total : (kpis?.registered_this_year || 0)}
           icon={TrendingUp}
-          isLoading={loadingKPIs}
+          isLoading={loadingKPIs || loadingTrainees}
         />
       </div>
 
