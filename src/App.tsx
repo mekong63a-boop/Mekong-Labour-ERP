@@ -9,6 +9,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { MenuProtectedRoute } from "@/components/auth/MenuProtectedRoute";
 import { AuthProviderWrapper } from "@/components/auth/AuthProvider";
 import Dashboard from "./pages/Dashboard";
+import TraineeDashboard from "./pages/dashboard/TraineeDashboard";
 import TraineeList from "./pages/TraineeList";
 import TraineeDetail from "./pages/TraineeDetail";
 import TraineeForm from "./pages/TraineeForm";
@@ -70,6 +71,16 @@ const App = () => (
                 }
               />
               
+              {/* Dashboard Học viên */}
+              <Route
+                path="/dashboard/trainees"
+                element={
+                  <MenuProtectedRoute menuKey="dashboard">
+                    <TraineeDashboard />
+                  </MenuProtectedRoute>
+                }
+              />
+
               {/* Trainee Routes */}
               <Route
                 path="/trainees"
