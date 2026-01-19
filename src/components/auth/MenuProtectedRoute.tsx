@@ -12,9 +12,17 @@ interface MenuProtectedRouteProps {
 }
 
 /**
- * Protected Route component dựa trên menu permissions
- * - Primary Admin bypass tất cả
- * - Các user khác check quyền menu từ database
+ * =====================================================
+ * SYSTEM FIX - MenuProtectedRoute
+ * =====================================================
+ * 
+ * QUY TẮC BẮT BUỘC:
+ * 1. AUTH loading → CHẶN UI (redirect to login)
+ * 2. PERMISSION loading → KHÔNG CHẶN UI (render children, permission check ngầm)
+ * 3. Permission được cache theo session, KHÔNG refetch khi focus tab
+ * 
+ * KHÔNG BAO GIỜ hiển thị "Đang kiểm tra quyền..." khi chỉ chuyển tab
+ * =====================================================
  */
 export function MenuProtectedRoute({
   children,
@@ -23,27 +31,29 @@ export function MenuProtectedRoute({
   fallback,
 }: MenuProtectedRouteProps) {
   const { user, isLoading: authLoading } = useAuth();
-  const { canView, canCreate, canUpdate, canDelete, isLoading, isPrimaryAdmin } = useCanAccessMenu(menuKey);
+  const { canView, canCreate, canUpdate, canDelete, isLoading: permissionLoading, isPrimaryAdmin } = useCanAccessMenu(menuKey);
 
-  // Loading state
-  if (authLoading || isLoading) {
+  // ★ CHỈ AUTH loading mới chặn UI
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Đang kiểm tra quyền truy cập...</p>
+          <p className="text-muted-foreground">Đang xác thực...</p>
         </div>
       </div>
     );
   }
 
-  // Not authenticated
+  // Not authenticated - redirect to login
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  // Primary Admin bypasses all checks
-  if (isPrimaryAdmin) {
+  // ★ PERMISSION loading → KHÔNG CHẶN UI
+  // Primary Admin hoặc đang load permission → render children
+  // Permission sẽ được apply sau khi load xong (nếu cần)
+  if (isPrimaryAdmin || permissionLoading) {
     return <>{children}</>;
   }
 
@@ -58,7 +68,7 @@ export function MenuProtectedRoute({
     }
   })();
 
-  // Access denied
+  // Access denied - chỉ hiển thị khi CHẮC CHẮN không có quyền (đã load xong)
   if (!hasPermission) {
     if (fallback) return <>{fallback}</>;
     

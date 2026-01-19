@@ -72,7 +72,7 @@ export function useUserRoleStandalone(): UseUserRoleResult {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Sử dụng react-query với caching mạnh, không refetch khi focus
+  // ★ SYSTEM FIX: staleTime: Infinity, load 1 lần duy nhất
   const { data: roleData, isLoading: roleLoading } = useQuery({
     queryKey: ['user-role-standalone', userId],
     queryFn: async (): Promise<UserRoleData> => {
@@ -97,11 +97,11 @@ export function useUserRoleStandalone(): UseUserRoleResult {
         is_senior_staff: data?.is_senior_staff ?? false,
       };
     },
-    enabled: userId !== undefined && userId !== null, // Chỉ query khi có userId thực
-    staleTime: 10 * 60 * 1000, // 10 phút
-    gcTime: 30 * 60 * 1000, // 30 phút
-    refetchOnWindowFocus: false, // KHÔNG refetch khi chuyển tab
-    refetchOnMount: false, // KHÔNG refetch khi component mount lại
+    enabled: userId !== undefined && userId !== null,
+    staleTime: Infinity, // ★ KHÔNG BAO GIỜ stale
+    gcTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     refetchOnReconnect: false,
   });
 
@@ -162,7 +162,7 @@ export function useUserRole(): UseUserRoleResult {
     return useUserRoleStandalone();
   }
 
-  // Sử dụng react-query với caching mạnh, không refetch khi focus
+  // ★ SYSTEM FIX: staleTime: Infinity, load 1 lần duy nhất
   const { data: extraRoleData, isLoading: extraLoading } = useQuery({
     queryKey: ['user-role-extra', user?.id],
     queryFn: async (): Promise<{ is_primary_admin: boolean; is_senior_staff: boolean }> => {
@@ -187,10 +187,10 @@ export function useUserRole(): UseUserRoleResult {
       };
     },
     enabled: !!user?.id,
-    staleTime: 10 * 60 * 1000, // 10 phút
-    gcTime: 30 * 60 * 1000, // 30 phút
-    refetchOnWindowFocus: false, // KHÔNG refetch khi chuyển tab
-    refetchOnMount: false, // KHÔNG refetch khi component mount lại
+    staleTime: Infinity, // ★ KHÔNG BAO GIỜ stale
+    gcTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     refetchOnReconnect: false,
   });
 
