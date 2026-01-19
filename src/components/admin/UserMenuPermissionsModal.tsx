@@ -15,6 +15,32 @@ import { toast } from "sonner";
 import { Loader2, Menu, Eye, Plus, Edit, Trash2, Save, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
+// Map quyền menu (UI) -> quyền DB (RLS) cho các tính năng cần enforce ở database.
+// Mục tiêu: tick ở đây là "nguồn sự thật" cho việc được INSERT/UPDATE/DELETE ở DB.
+const MENU_DB_PERMISSION_MAP: Record<
+  string,
+  {
+    create?: string[];
+    update?: string[];
+    delete?: string[];
+  }
+> = {
+  // Đối tác: áp vào cả 3 bảng
+  partners: {
+    create: ["companies.create", "unions.create", "job_categories.create"],
+    update: ["companies.update", "unions.update", "job_categories.update"],
+    delete: ["companies.delete", "unions.delete", "job_categories.delete"],
+  },
+};
+
+const MANAGED_DB_PERMISSION_CODES = Array.from(
+  new Set(
+    Object.values(MENU_DB_PERMISSION_MAP)
+      .flatMap((v) => [v.create ?? [], v.update ?? [], v.delete ?? []])
+      .flat()
+  )
+);
+
 interface UserMenuPermissionsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -127,6 +153,7 @@ export function UserMenuPermissionsModal({
   // Save mutations
   const saveMutation = useMutation({
     mutationFn: async () => {
+      // 1) ======= MENU PERMISSIONS (UI) =======
       // Delete existing permissions for this user
       const { error: deleteError } = await supabase
         .from("user_menu_permissions")
@@ -153,9 +180,47 @@ export function UserMenuPermissionsModal({
           .insert(toInsert);
         if (insertError) throw insertError;
       }
+
+      // 2) ======= DB PERMISSIONS (RLS) =======
+      // Map checkbox actions -> user_permissions rows.
+      // NOTE: Chỉ quản lý các code nằm trong MANAGED_DB_PERMISSION_CODES để không đụng quyền khác.
+      const desiredDbPermissionCodes = new Set<string>();
+
+      Object.values(localPermissions).forEach((p) => {
+        const map = MENU_DB_PERMISSION_MAP[p.menu_key];
+        if (!map) return;
+
+        if (p.can_create) (map.create ?? []).forEach((c) => desiredDbPermissionCodes.add(c));
+        if (p.can_update) (map.update ?? []).forEach((c) => desiredDbPermissionCodes.add(c));
+        if (p.can_delete) (map.delete ?? []).forEach((c) => desiredDbPermissionCodes.add(c));
+      });
+
+      // Remove all managed codes, then insert desired (idempotent flow)
+      if (MANAGED_DB_PERMISSION_CODES.length > 0) {
+        const { error: delPermError } = await supabase
+          .from("user_permissions")
+          .delete()
+          .eq("user_id", targetUser.user_id)
+          .in("permission_code", MANAGED_DB_PERMISSION_CODES);
+        if (delPermError) throw delPermError;
+      }
+
+      const toInsertDbPerms = Array.from(desiredDbPermissionCodes).map((code) => ({
+        user_id: targetUser.user_id,
+        permission_code: code,
+        granted_by: user?.id,
+      }));
+
+      if (toInsertDbPerms.length > 0) {
+        const { error: insPermError } = await supabase
+          .from("user_permissions")
+          .insert(toInsertDbPerms);
+        if (insPermError) throw insPermError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user-menu-permissions", targetUser.user_id] });
+      queryClient.invalidateQueries({ queryKey: ["user-db-permissions", targetUser.user_id] });
       // Refresh sidebar permissions immediately for target user
       queryClient.invalidateQueries({ queryKey: ["user-menu-permissions-direct"] });
       setHasChanges(false);
@@ -300,7 +365,7 @@ export function UserMenuPermissionsModal({
             Tick chọn menu mà tài khoản này được phép truy cập.
             <br />
             <span className="text-destructive font-medium">
-              ⚠️ Nếu không tick menu nào, tài khoản sẽ KHÔNG THẤY menu nào (trừ Admin).
+              ⚠️ Nếu không tick menu nào, tài khoản sẽ KHÔNG THẤY menu nào.
             </span>
           </DialogDescription>
         </DialogHeader>
