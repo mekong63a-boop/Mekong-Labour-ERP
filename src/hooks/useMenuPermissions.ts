@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 
 /**
  * =====================================================
@@ -39,117 +39,27 @@ export interface Menu {
   order_index: number;
 }
 
-// ★ Flag đảm bảo permission chỉ load 1 lần per session
-const permissionLoadedMap = new Map<string, boolean>();
-
-/**
- * Realtime sync quyền menu - CHỈ UPDATE STATE, KHÔNG INVALIDATE
- */
-function useMenuPermissionsRealtime(
-  userId: string | undefined,
-  setPermissionsInline: (updater: (prev: MenuPermission[]) => MenuPermission[]) => void,
-  setIsPrimaryAdminInline: (value: boolean) => void
-) {
-  useEffect(() => {
-    if (!userId) return;
-
-    const channel = supabase
-      .channel(`user_permissions_${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_menu_permissions',
-          filter: `user_id=eq.${userId}`,
-        },
-        async (payload) => {
-          // ★ CHỈ UPDATE STATE INLINE - KHÔNG GỌI invalidateQueries
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const newPerm = payload.new as MenuPermission & { user_id: string };
-            setPermissionsInline((prev) => {
-              const exists = prev.findIndex(p => p.menu_key === newPerm.menu_key);
-              if (exists >= 0) {
-                const updated = [...prev];
-                updated[exists] = {
-                  menu_key: newPerm.menu_key,
-                  can_view: newPerm.can_view,
-                  can_create: newPerm.can_create,
-                  can_update: newPerm.can_update,
-                  can_delete: newPerm.can_delete,
-                };
-                return updated;
-              }
-              return [...prev, {
-                menu_key: newPerm.menu_key,
-                can_view: newPerm.can_view,
-                can_create: newPerm.can_create,
-                can_update: newPerm.can_update,
-                can_delete: newPerm.can_delete,
-              }];
-            });
-          } else if (payload.eventType === 'DELETE') {
-            const oldPerm = payload.old as { menu_key: string };
-            setPermissionsInline((prev) => prev.filter(p => p.menu_key !== oldPerm.menu_key));
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_roles',
-          filter: `user_id=eq.${userId}`,
-        },
-        async () => {
-          // Reload primary admin status nếu role thay đổi
-          const { data } = await supabase.rpc('is_primary_admin_check', { _user_id: userId });
-          setIsPrimaryAdminInline(data ?? false);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId, setPermissionsInline, setIsPrimaryAdminInline]);
-}
-
 /**
  * Hook chính để lấy toàn bộ menu permissions của user hiện tại
  */
 export function useMenuPermissions() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  
-  // ★ Inline state cho realtime updates - không gây re-render toàn bộ
-  const permissionsRef = useRef<MenuPermission[]>([]);
-  const isPrimaryAdminRef = useRef<boolean>(false);
 
   // Kiểm tra Primary Admin - CHỈ LOAD 1 LẦN
   const { data: isPrimaryAdmin = false, isLoading: isPrimaryAdminLoading } = useQuery({
     queryKey: ['is-primary-admin', user?.id],
     queryFn: async () => {
       if (!user?.id) return false;
-      
-      // ★ Nếu đã load rồi, dùng cache
-      if (permissionLoadedMap.get(`primary-admin-${user.id}`)) {
-        return isPrimaryAdminRef.current;
-      }
-      
       const { data, error } = await supabase.rpc('is_primary_admin_check', { _user_id: user.id });
       if (error) {
         console.error('Error checking primary admin:', error);
         return false;
       }
-      
-      isPrimaryAdminRef.current = data ?? false;
-      permissionLoadedMap.set(`primary-admin-${user.id}`, true);
       return data ?? false;
     },
     enabled: !!user?.id,
-    staleTime: Infinity, // ★ KHÔNG BAO GIỜ stale
+    staleTime: Infinity,
     gcTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -199,12 +109,6 @@ export function useMenuPermissions() {
     queryKey: ['user-menu-permissions-direct', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      
-      // ★ Nếu đã load rồi, dùng cache
-      if (permissionLoadedMap.get(`permissions-${user.id}`)) {
-        return permissionsRef.current;
-      }
-      
       const { data, error } = await supabase
         .from('user_menu_permissions')
         .select('menu_key, can_view, can_create, can_update, can_delete')
@@ -213,14 +117,10 @@ export function useMenuPermissions() {
         console.error('Error fetching user menu permissions:', error);
         return [];
       }
-      
-      const perms = (data ?? []) as MenuPermission[];
-      permissionsRef.current = perms;
-      permissionLoadedMap.set(`permissions-${user.id}`, true);
-      return perms;
+      return (data ?? []) as MenuPermission[];
     },
     enabled: !!user?.id,
-    staleTime: Infinity, // ★ KHÔNG BAO GIỜ stale
+    staleTime: Infinity,
     gcTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -228,25 +128,85 @@ export function useMenuPermissions() {
   });
 
   // ★ Inline setters cho realtime - update cache trực tiếp
-  const setPermissionsInline = (updater: (prev: MenuPermission[]) => MenuPermission[]) => {
-    const newPerms = updater(permissionsRef.current);
-    permissionsRef.current = newPerms;
-    queryClient.setQueryData(['user-menu-permissions-direct', user?.id], newPerms);
-  };
+  const updatePermissionsInline = useCallback((updater: (prev: MenuPermission[]) => MenuPermission[]) => {
+    queryClient.setQueryData<MenuPermission[]>(
+      ['user-menu-permissions-direct', user?.id],
+      (prev) => updater(prev ?? [])
+    );
+  }, [queryClient, user?.id]);
   
-  const setIsPrimaryAdminInline = (value: boolean) => {
-    isPrimaryAdminRef.current = value;
+  const updateIsPrimaryAdminInline = useCallback((value: boolean) => {
     queryClient.setQueryData(['is-primary-admin', user?.id], value);
-  };
+  }, [queryClient, user?.id]);
 
   // Realtime - CHỈ UPDATE STATE, KHÔNG INVALIDATE
-  useMenuPermissionsRealtime(user?.id, setPermissionsInline, setIsPrimaryAdminInline);
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`user_permissions_${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_menu_permissions',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const newPerm = payload.new as MenuPermission & { user_id: string };
+            updatePermissionsInline((prev) => {
+              const exists = prev.findIndex(p => p.menu_key === newPerm.menu_key);
+              if (exists >= 0) {
+                const updated = [...prev];
+                updated[exists] = {
+                  menu_key: newPerm.menu_key,
+                  can_view: newPerm.can_view,
+                  can_create: newPerm.can_create,
+                  can_update: newPerm.can_update,
+                  can_delete: newPerm.can_delete,
+                };
+                return updated;
+              }
+              return [...prev, {
+                menu_key: newPerm.menu_key,
+                can_view: newPerm.can_view,
+                can_create: newPerm.can_create,
+                can_update: newPerm.can_update,
+                can_delete: newPerm.can_delete,
+              }];
+            });
+          } else if (payload.eventType === 'DELETE') {
+            const oldPerm = payload.old as { menu_key: string };
+            updatePermissionsInline((prev) => prev.filter(p => p.menu_key !== oldPerm.menu_key));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_roles',
+          filter: `user_id=eq.${user.id}`,
+        },
+        async () => {
+          const { data } = await supabase.rpc('is_primary_admin_check', { _user_id: user.id });
+          updateIsPrimaryAdminInline(data ?? false);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, updatePermissionsInline, updateIsPrimaryAdminInline]);
 
   // Build visible menus với hierarchy
   const visibleMenus = useMemo(() => {
     if (!menus.length) return [];
     
-    // Primary Admin thấy tất cả
     if (isPrimaryAdmin) return menus;
 
     const allowedKeys = new Set(
@@ -370,7 +330,7 @@ export function useUserDepartments(userId?: string) {
 /**
  * Hook lấy version quyền runtime - KHÔNG CÒN SỬ DỤNG CHO INVALIDATE
  */
-export function useUserAccessVersion(userId?: string) {
+export function useUserAccessVersion(_userId?: string) {
   return { data: null };
 }
 
@@ -393,17 +353,4 @@ export function useHasDbPermission(_permissionCode: string) {
     hasPermission: false,
     isLoading: false,
   };
-}
-
-/**
- * ★ RESET permission cache khi logout
- * Gọi function này khi user signOut
- */
-export function resetPermissionCache(userId?: string) {
-  if (userId) {
-    permissionLoadedMap.delete(`primary-admin-${userId}`);
-    permissionLoadedMap.delete(`permissions-${userId}`);
-  } else {
-    permissionLoadedMap.clear();
-  }
 }
