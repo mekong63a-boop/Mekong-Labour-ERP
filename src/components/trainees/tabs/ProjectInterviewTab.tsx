@@ -273,7 +273,11 @@ export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
                       <div>
                         <span className="text-muted-foreground">Ngành nghề: </span>
                         <span className="font-medium">
-                          {interview.job_categories?.name || "—"}
+                          {interview.job_categories?.name
+                            ? interview.job_categories.name_japanese
+                              ? `${interview.job_categories.name} (${interview.job_categories.name_japanese})`
+                              : interview.job_categories.name
+                            : "—"}
                         </span>
                       </div>
                       {interview.expected_entry_month && (
