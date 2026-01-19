@@ -243,21 +243,36 @@ export function useDeleteJobCategory() {
         throw new Error(`Không thể xóa vì có ${traineeCount} học viên đang sử dụng ngành nghề này`);
       }
 
-      // Check if job category is being used by active orders (exclude cancelled orders)
-      const { count: orderCount } = await supabase
+      // 1) Block delete if any ACTIVE orders reference this job category
+      const { count: activeOrderCount, error: activeOrderCountError } = await supabase
         .from("orders")
         .select("id", { count: "exact", head: true })
         .eq("job_category_id", id)
         .neq("status", "Hủy");
+      if (activeOrderCountError) throw activeOrderCountError;
 
-      if (orderCount && orderCount > 0) {
-        throw new Error(`Không thể xóa vì có ${orderCount} đơn hàng đang sử dụng ngành nghề này`);
+      if (activeOrderCount && activeOrderCount > 0) {
+        throw new Error(`Không thể xóa vì có ${activeOrderCount} đơn hàng đang sử dụng ngành nghề này`);
       }
 
-      const { error } = await supabase
-        .from("job_categories")
-        .delete()
-        .eq("id", id);
+      // 2) If only CANCELLED orders reference it, detach them first so FK doesn't block the delete
+      const { data: cancelledOrders, error: cancelledOrdersError } = await supabase
+        .from("orders")
+        .select("id")
+        .eq("job_category_id", id)
+        .eq("status", "Hủy");
+      if (cancelledOrdersError) throw cancelledOrdersError;
+
+      if ((cancelledOrders?.length ?? 0) > 0) {
+        const { error: detachError } = await supabase
+          .from("orders")
+          .update({ job_category_id: null })
+          .eq("job_category_id", id)
+          .eq("status", "Hủy");
+        if (detachError) throw detachError;
+      }
+
+      const { error } = await supabase.from("job_categories").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -282,21 +297,36 @@ export function useDeleteCompany() {
         throw new Error(`Không thể xóa vì có ${traineeCount} học viên đang liên kết với công ty này`);
       }
 
-      // Check if company is being used by active orders (exclude cancelled orders)
-      const { count: orderCount } = await supabase
+      // 1) Block delete if any ACTIVE orders reference this company
+      const { count: activeOrderCount, error: activeOrderCountError } = await supabase
         .from("orders")
         .select("id", { count: "exact", head: true })
         .eq("company_id", id)
         .neq("status", "Hủy");
+      if (activeOrderCountError) throw activeOrderCountError;
 
-      if (orderCount && orderCount > 0) {
-        throw new Error(`Không thể xóa vì có ${orderCount} đơn hàng đang liên kết với công ty này`);
+      if (activeOrderCount && activeOrderCount > 0) {
+        throw new Error(`Không thể xóa vì có ${activeOrderCount} đơn hàng đang liên kết với công ty này`);
       }
 
-      const { error } = await supabase
-        .from("companies")
-        .delete()
-        .eq("id", id);
+      // 2) Detach CANCELLED orders so FK doesn't block delete
+      const { data: cancelledOrders, error: cancelledOrdersError } = await supabase
+        .from("orders")
+        .select("id")
+        .eq("company_id", id)
+        .eq("status", "Hủy");
+      if (cancelledOrdersError) throw cancelledOrdersError;
+
+      if ((cancelledOrders?.length ?? 0) > 0) {
+        const { error: detachError } = await supabase
+          .from("orders")
+          .update({ company_id: null })
+          .eq("company_id", id)
+          .eq("status", "Hủy");
+        if (detachError) throw detachError;
+      }
+
+      const { error } = await supabase.from("companies").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -321,21 +351,36 @@ export function useDeleteUnion() {
         throw new Error(`Không thể xóa vì có ${traineeCount} học viên đang liên kết với nghiệp đoàn này`);
       }
 
-      // Check if union is being used by active orders (exclude cancelled orders)
-      const { count: orderCount } = await supabase
+      // 1) Block delete if any ACTIVE orders reference this union
+      const { count: activeOrderCount, error: activeOrderCountError } = await supabase
         .from("orders")
         .select("id", { count: "exact", head: true })
         .eq("union_id", id)
         .neq("status", "Hủy");
+      if (activeOrderCountError) throw activeOrderCountError;
 
-      if (orderCount && orderCount > 0) {
-        throw new Error(`Không thể xóa vì có ${orderCount} đơn hàng đang liên kết với nghiệp đoàn này`);
+      if (activeOrderCount && activeOrderCount > 0) {
+        throw new Error(`Không thể xóa vì có ${activeOrderCount} đơn hàng đang liên kết với nghiệp đoàn này`);
       }
 
-      const { error } = await supabase
-        .from("unions")
-        .delete()
-        .eq("id", id);
+      // 2) Detach CANCELLED orders so FK doesn't block delete
+      const { data: cancelledOrders, error: cancelledOrdersError } = await supabase
+        .from("orders")
+        .select("id")
+        .eq("union_id", id)
+        .eq("status", "Hủy");
+      if (cancelledOrdersError) throw cancelledOrdersError;
+
+      if ((cancelledOrders?.length ?? 0) > 0) {
+        const { error: detachError } = await supabase
+          .from("orders")
+          .update({ union_id: null })
+          .eq("union_id", id)
+          .eq("status", "Hủy");
+        if (detachError) throw detachError;
+      }
+
+      const { error } = await supabase.from("unions").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
