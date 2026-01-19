@@ -62,59 +62,59 @@ const queryViewSingle = async (viewName: string): Promise<any> => {
 export const useTraineeKPIs = () => useQuery({
   queryKey: ["dashboard-trainee-kpis"],
   queryFn: () => queryViewSingle("dashboard_trainee_kpis") as Promise<TraineeKPIs>,
-  staleTime: 5 * 60 * 1000,
+  staleTime: 30 * 1000, // 30 seconds for fresher data
 });
 
 export const useTraineeByStage = () => useQuery({
   queryKey: ["dashboard-trainee-by-stage"],
   queryFn: () => queryView("dashboard_trainee_by_stage") as Promise<StageData[]>,
-  staleTime: 5 * 60 * 1000,
+  staleTime: 30 * 1000,
 });
 
 export const useTraineeByStatus = () => useQuery({
   queryKey: ["dashboard-trainee-by-status"],
   queryFn: () => queryView("dashboard_trainee_by_status") as Promise<StatusData[]>,
-  staleTime: 5 * 60 * 1000,
+  staleTime: 30 * 1000,
 });
 
 export const useTraineeByType = () => useQuery({
   queryKey: ["dashboard-trainee-by-type"],
   queryFn: () => queryView("dashboard_trainee_by_type") as Promise<TypeData[]>,
-  staleTime: 5 * 60 * 1000,
+  staleTime: 30 * 1000,
 });
 
 export const useTraineeMonthly = () => useQuery({
   queryKey: ["dashboard-trainee-monthly"],
   queryFn: () => queryView("dashboard_trainee_monthly") as Promise<MonthlyData[]>,
-  staleTime: 5 * 60 * 1000,
+  staleTime: 30 * 1000,
 });
 
 export const useTraineeBySource = () => useQuery({
   queryKey: ["dashboard-trainee-by-source"],
   queryFn: () => queryView("dashboard_trainee_by_source") as Promise<SourceData[]>,
-  staleTime: 5 * 60 * 1000,
+  staleTime: 30 * 1000,
 });
 
 export const useTraineeByBirthplace = () => useQuery({
   queryKey: ["dashboard-trainee-by-birthplace"],
   queryFn: () => queryView("dashboard_trainee_by_birthplace") as Promise<BirthplaceData[]>,
-  staleTime: 5 * 60 * 1000,
+  staleTime: 30 * 1000,
 });
 
 export const useTraineeByGender = () => useQuery({
   queryKey: ["dashboard-trainee-by-gender"],
   queryFn: () => queryView("dashboard_trainee_by_gender") as Promise<GenderData[]>,
-  staleTime: 5 * 60 * 1000,
+  staleTime: 30 * 1000,
 });
 
 export const useTraineeDeparturesMonthly = () => useQuery({
   queryKey: ["dashboard-trainee-departures-monthly"],
   queryFn: () => queryView("dashboard_trainee_departures_monthly") as Promise<DeparturesMonthlyData[]>,
-  staleTime: 5 * 60 * 1000,
+  staleTime: 30 * 1000,
 });
 
 export const useTraineePassedMonthly = () => useQuery({
   queryKey: ["dashboard-trainee-passed-monthly"],
   queryFn: () => queryView("dashboard_trainee_passed_monthly") as Promise<PassedMonthlyData[]>,
-  staleTime: 5 * 60 * 1000,
+  staleTime: 30 * 1000,
 });

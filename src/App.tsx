@@ -37,11 +37,47 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import ChangePassword from "./pages/ChangePassword";
 import NotFound from "./pages/NotFound";
+import { useMemo, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
-const queryClient = new QueryClient();
+// Create queryClient inside a hook so we can clear it on auth changes
+function useQueryClientWithAuthClear() {
+  const queryClient = useMemo(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            // Reduce default staleTime for fresher data
+            staleTime: 30 * 1000, // 30 seconds
+            gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
+            refetchOnWindowFocus: true,
+          },
+        },
+      }),
+    []
+  );
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event) => {
+        // Clear ALL cache on sign out or sign in to ensure fresh data
+        if (event === "SIGNED_OUT" || event === "SIGNED_IN") {
+          console.log(`[Auth] ${event} - clearing all query cache`);
+          queryClient.clear();
+        }
+      }
+    );
+    return () => subscription.unsubscribe();
+  }, [queryClient]);
+
+  return queryClient;
+}
+
+function AppWithQueryClient() {
+  const queryClient = useQueryClientWithAuthClear();
+
+  return (
+    <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -388,6 +424,9 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+}
+
+const App = () => <AppWithQueryClient />;
 
 export default App;
