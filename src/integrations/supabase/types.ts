@@ -2485,7 +2485,7 @@ export type Database = {
           contract_end_date?: string | null
           contract_term?: number | null
           created_at?: string | null
-          current_address?: never
+          current_address?: string | null
           current_situation?: string | null
           departure_date?: string | null
           document_submission_date?: string | null
@@ -2507,7 +2507,7 @@ export type Database = {
           health_status?: string | null
           height?: number | null
           hobbies?: string | null
-          household_address?: never
+          household_address?: string | null
           id?: string | null
           interview_count?: number | null
           interview_pass_date?: string | null
@@ -2520,7 +2520,7 @@ export type Database = {
           parent_phone_2?: never
           passport_date?: never
           passport_number?: never
-          permanent_address?: never
+          permanent_address?: string | null
           phone?: never
           photo_url?: string | null
           policy_category?: string | null
@@ -2536,7 +2536,7 @@ export type Database = {
           source?: string | null
           tattoo?: boolean | null
           tattoo_description?: string | null
-          temp_address?: never
+          temp_address?: string | null
           trainee_code?: string | null
           trainee_type?: Database["public"]["Enums"]["trainee_type"] | null
           union_id?: string | null
@@ -2560,7 +2560,7 @@ export type Database = {
           contract_end_date?: string | null
           contract_term?: number | null
           created_at?: string | null
-          current_address?: never
+          current_address?: string | null
           current_situation?: string | null
           departure_date?: string | null
           document_submission_date?: string | null
@@ -2582,7 +2582,7 @@ export type Database = {
           health_status?: string | null
           height?: number | null
           hobbies?: string | null
-          household_address?: never
+          household_address?: string | null
           id?: string | null
           interview_count?: number | null
           interview_pass_date?: string | null
@@ -2595,7 +2595,7 @@ export type Database = {
           parent_phone_2?: never
           passport_date?: never
           passport_number?: never
-          permanent_address?: never
+          permanent_address?: string | null
           phone?: never
           photo_url?: string | null
           policy_category?: string | null
@@ -2611,7 +2611,7 @@ export type Database = {
           source?: string | null
           tattoo?: boolean | null
           tattoo_description?: string | null
-          temp_address?: never
+          temp_address?: string | null
           trainee_code?: string | null
           trainee_type?: Database["public"]["Enums"]["trainee_type"] | null
           union_id?: string | null
@@ -2814,6 +2814,7 @@ export type Database = {
       is_manager_or_higher: { Args: { _user_id: string }; Returns: boolean }
       is_primary_admin: { Args: { _user_id: string }; Returns: boolean }
       is_primary_admin_check: { Args: { _user_id: string }; Returns: boolean }
+      is_regular_staff: { Args: never; Returns: boolean }
       is_senior_staff: { Args: { _user_id: string }; Returns: boolean }
       is_staff_or_higher: { Args: { _user_id: string }; Returns: boolean }
       is_teacher_or_higher: { Args: { _user_id: string }; Returns: boolean }
