@@ -170,8 +170,11 @@ export function useMenuPermissions() {
   });
 
   // Lấy quyền menu TRỰC TIẾP từ user_menu_permissions (theo tài khoản, không theo phòng ban)
+  // Cache busting: gắn thêm accessVersion để khi DB đổi quyền → invalidate ngay.
+  const { data: accessVersion } = useUserAccessVersion();
+
   const { data: permissions = [], isLoading: permissionsLoading } = useQuery({
-    queryKey: ['user-menu-permissions-direct', user?.id],
+    queryKey: ['user-menu-permissions-direct', user?.id, accessVersion],
     queryFn: async () => {
       if (!user?.id) return [];
       const { data, error } = await supabase
@@ -185,7 +188,9 @@ export function useMenuPermissions() {
       return (data ?? []) as MenuPermission[];
     },
     enabled: !!user?.id,
-    staleTime: 2 * 60 * 1000, // Cache 2 minutes
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   // Build visible menus với hierarchy
@@ -319,15 +324,49 @@ export function useUserDepartments(userId?: string) {
 }
 
 /**
+ * Hook lấy version quyền runtime của user hiện tại.
+ * Bất kỳ thay đổi nào ở user_menu_permissions / user_permissions sẽ bump updated_at.
+ */
+export function useUserAccessVersion(userId?: string) {
+  const { user } = useAuth();
+  const targetUserId = userId || user?.id;
+
+  const { data } = useQuery({
+    queryKey: ['user-access-version', targetUserId],
+    queryFn: async () => {
+      if (!targetUserId) return null;
+      const { data, error } = await supabase
+        .from('user_access_versions')
+        .select('updated_at')
+        .eq('user_id', targetUserId)
+        .maybeSingle();
+      if (error) {
+        // Nếu chưa có row (user chưa từng được gán quyền) thì coi như null
+        console.warn('Error fetching access version:', error);
+        return null;
+      }
+      return data?.updated_at ?? null;
+    },
+    enabled: !!targetUserId,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+  });
+
+  return { data };
+}
+
+/**
  * Hook lấy danh sách quyền DB (user_permissions table)
  * Đây là quyền cho các action như companies.create, unions.update, etc.
  * KHÔNG phụ thuộc UI hay build-time config
  */
 export function useUserDbPermissions() {
   const { user } = useAuth();
+  const { data: accessVersion } = useUserAccessVersion();
 
   const { data: dbPermissions = [], isLoading } = useQuery({
-    queryKey: ['user-db-permissions', user?.id],
+    queryKey: ['user-db-permissions', user?.id, accessVersion],
     queryFn: async () => {
       if (!user?.id) return [];
       const { data, error } = await supabase
@@ -341,21 +380,19 @@ export function useUserDbPermissions() {
       return data;
     },
     enabled: !!user?.id,
-    staleTime: 2 * 60 * 1000, // Cache 2 minutes
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
-  /**
-   * Check if user has a specific DB permission
-   * Example: hasDbPermission('companies.create')
-   */
   const hasDbPermission = (permissionCode: string): boolean => {
-    return dbPermissions.some(p => p.permission_code === permissionCode);
+    return dbPermissions.some((p) => p.permission_code === permissionCode);
   };
 
-  return { 
-    dbPermissions, 
+  return {
+    dbPermissions,
     hasDbPermission,
-    isLoading 
+    isLoading,
   };
 }
 
@@ -365,8 +402,8 @@ export function useUserDbPermissions() {
  */
 export function useHasDbPermission(permissionCode: string) {
   const { hasDbPermission, isLoading } = useUserDbPermissions();
-  return { 
-    hasPermission: hasDbPermission(permissionCode), 
-    isLoading 
+  return {
+    hasPermission: hasDbPermission(permissionCode),
+    isLoading,
   };
 }

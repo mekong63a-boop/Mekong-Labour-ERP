@@ -1751,6 +1751,21 @@ export type Database = {
         }
         Relationships: []
       }
+      user_access_versions: {
+        Row: {
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_menu_permissions: {
         Row: {
           assigned_at: string | null
@@ -2573,6 +2588,10 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      touch_user_access_version: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
       transition_trainee_stage: {
         Args: {
           _new_stage: Database["public"]["Enums"]["trainee_workflow_stage"]
