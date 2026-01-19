@@ -10,6 +10,7 @@ import { MenuProtectedRoute } from "@/components/auth/MenuProtectedRoute";
 import { AuthProviderWrapper } from "@/components/auth/AuthProvider";
 import Dashboard from "./pages/Dashboard";
 import TraineeDashboard from "./pages/dashboard/TraineeDashboard";
+import DashboardDetailList from "./pages/dashboard/DashboardDetailList";
 import TraineeList from "./pages/TraineeList";
 import TraineeDetail from "./pages/TraineeDetail";
 import TraineeForm from "./pages/TraineeForm";
@@ -142,6 +143,16 @@ function AppWithQueryClient() {
                 element={
                   <MenuProtectedRoute menuKey="dashboard">
                     <TraineeDashboard />
+                  </MenuProtectedRoute>
+                }
+              />
+              
+              {/* Dashboard Detail List */}
+              <Route
+                path="/dashboard/trainees/detail"
+                element={
+                  <MenuProtectedRoute menuKey="dashboard">
+                    <DashboardDetailList />
                   </MenuProtectedRoute>
                 }
               />
