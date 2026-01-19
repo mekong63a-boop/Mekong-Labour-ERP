@@ -23,6 +23,11 @@ export interface Menu {
 /**
  * Realtime sync quyền & phòng ban cho user hiện tại.
  * Mục tiêu: admin chỉnh quyền ở một trình duyệt → user đang đăng nhập ở trình duyệt khác tự cập nhật ngay.
+ * 
+ * QUAN TRỌNG: Tất cả permissions được load từ DB runtime
+ * - KHÔNG phụ thuộc config build-time
+ * - KHÔNG phụ thuộc nút Publish
+ * - F5 = lấy dữ liệu mới nhất
  */
 function useMenuPermissionsRealtime(userId?: string) {
   const queryClient = useQueryClient();
@@ -31,15 +36,18 @@ function useMenuPermissionsRealtime(userId?: string) {
     if (!userId) return;
 
     const invalidateAll = () => {
+      // Invalidate TẤT CẢ cache liên quan đến quyền
       queryClient.invalidateQueries({ queryKey: ['is-primary-admin', userId] });
       queryClient.invalidateQueries({ queryKey: ['is-admin-check', userId] });
       queryClient.invalidateQueries({ queryKey: ['user-menu-permissions-direct', userId] });
       queryClient.invalidateQueries({ queryKey: ['user-departments', userId] });
+      queryClient.invalidateQueries({ queryKey: ['user-db-permissions', userId] });
       // menus-full ít đổi nên không invalidate mặc định
     };
 
     const channel = supabase
       .channel(`user_permissions_${userId}`)
+      // Theo dõi thay đổi quyền menu
       .on(
         'postgres_changes',
         {
@@ -50,6 +58,7 @@ function useMenuPermissionsRealtime(userId?: string) {
         },
         invalidateAll
       )
+      // Theo dõi thay đổi phòng ban
       .on(
         'postgres_changes',
         {
@@ -60,6 +69,7 @@ function useMenuPermissionsRealtime(userId?: string) {
         },
         invalidateAll
       )
+      // Theo dõi quyền phòng ban (không filter vì user có thể thuộc nhiều phòng)
       .on(
         'postgres_changes',
         {
@@ -69,12 +79,24 @@ function useMenuPermissionsRealtime(userId?: string) {
         },
         invalidateAll
       )
+      // Theo dõi thay đổi role
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'user_roles',
+          filter: `user_id=eq.${userId}`,
+        },
+        invalidateAll
+      )
+      // ★ MỚI: Theo dõi thay đổi user_permissions (quyền DB: companies.create, etc.)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_permissions',
           filter: `user_id=eq.${userId}`,
         },
         invalidateAll
@@ -294,4 +316,57 @@ export function useUserDepartments(userId?: string) {
   });
 
   return { departments, isLoading };
+}
+
+/**
+ * Hook lấy danh sách quyền DB (user_permissions table)
+ * Đây là quyền cho các action như companies.create, unions.update, etc.
+ * KHÔNG phụ thuộc UI hay build-time config
+ */
+export function useUserDbPermissions() {
+  const { user } = useAuth();
+
+  const { data: dbPermissions = [], isLoading } = useQuery({
+    queryKey: ['user-db-permissions', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from('user_permissions')
+        .select('permission_code, created_at')
+        .eq('user_id', user.id);
+      if (error) {
+        console.error('Error fetching user db permissions:', error);
+        return [];
+      }
+      return data;
+    },
+    enabled: !!user?.id,
+    staleTime: 2 * 60 * 1000, // Cache 2 minutes
+  });
+
+  /**
+   * Check if user has a specific DB permission
+   * Example: hasDbPermission('companies.create')
+   */
+  const hasDbPermission = (permissionCode: string): boolean => {
+    return dbPermissions.some(p => p.permission_code === permissionCode);
+  };
+
+  return { 
+    dbPermissions, 
+    hasDbPermission,
+    isLoading 
+  };
+}
+
+/**
+ * Hook check một quyền DB cụ thể
+ * Shortcut for common use case
+ */
+export function useHasDbPermission(permissionCode: string) {
+  const { hasDbPermission, isLoading } = useUserDbPermissions();
+  return { 
+    hasPermission: hasDbPermission(permissionCode), 
+    isLoading 
+  };
 }
