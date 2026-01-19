@@ -3,6 +3,29 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect, useMemo } from 'react';
 
+/**
+ * =====================================================
+ * QUY TẮC PHÂN QUYỀN MỚI - MEKONG LABOUR ERP
+ * =====================================================
+ * 
+ * 1. NGUỒN QUYỀN DUY NHẤT: user_menu_permissions
+ *    - Tất cả quyền đều lấy từ bảng này
+ *    - RLS sử dụng function has_menu_permission() để kiểm tra
+ * 
+ * 2. ROLE (Admin/Staff/Senior Staff) chỉ là label mô tả
+ *    - KHÔNG có quyền ngầm nào
+ *    - NGOẠI LỆ DUY NHẤT: Primary Admin thấy tất cả
+ * 
+ * 3. Mapping bắt buộc:
+ *    can_view   → Xem danh sách / chi tiết
+ *    can_create → Thấy nút "Thêm"
+ *    can_update → Thấy nút "Sửa"
+ *    can_delete → Thấy nút "Xóa"
+ * 
+ * 4. KHÔNG TICK = KHÔNG TỒN TẠI (không render, không cho API)
+ * =====================================================
+ */
+
 export interface MenuPermission {
   menu_key: string;
   can_view: boolean;
@@ -21,13 +44,8 @@ export interface Menu {
 }
 
 /**
- * Realtime sync quyền & phòng ban cho user hiện tại.
- * Mục tiêu: admin chỉnh quyền ở một trình duyệt → user đang đăng nhập ở trình duyệt khác tự cập nhật ngay.
- * 
- * QUAN TRỌNG: Tất cả permissions được load từ DB runtime
- * - KHÔNG phụ thuộc config build-time
- * - KHÔNG phụ thuộc nút Publish
- * - F5 = lấy dữ liệu mới nhất
+ * Realtime sync quyền menu.
+ * Admin chỉnh quyền ở một trình duyệt → user khác F5 hoặc realtime cập nhật.
  */
 function useMenuPermissionsRealtime(userId?: string) {
   const queryClient = useQueryClient();
@@ -36,18 +54,13 @@ function useMenuPermissionsRealtime(userId?: string) {
     if (!userId) return;
 
     const invalidateAll = () => {
-      // Invalidate TẤT CẢ cache liên quan đến quyền
       queryClient.invalidateQueries({ queryKey: ['is-primary-admin', userId] });
-      queryClient.invalidateQueries({ queryKey: ['is-admin-check', userId] });
       queryClient.invalidateQueries({ queryKey: ['user-menu-permissions-direct', userId] });
-      queryClient.invalidateQueries({ queryKey: ['user-departments', userId] });
-      queryClient.invalidateQueries({ queryKey: ['user-db-permissions', userId] });
-      // menus-full ít đổi nên không invalidate mặc định
+      queryClient.invalidateQueries({ queryKey: ['user-access-version', userId] });
     };
 
     const channel = supabase
       .channel(`user_permissions_${userId}`)
-      // Theo dõi thay đổi quyền menu
       .on(
         'postgres_changes',
         {
@@ -58,45 +71,12 @@ function useMenuPermissionsRealtime(userId?: string) {
         },
         invalidateAll
       )
-      // Theo dõi thay đổi phòng ban
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'department_members',
-          filter: `user_id=eq.${userId}`,
-        },
-        invalidateAll
-      )
-      // Theo dõi quyền phòng ban (không filter vì user có thể thuộc nhiều phòng)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'department_menu_permissions',
-        },
-        invalidateAll
-      )
-      // Theo dõi thay đổi role
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'user_roles',
-          filter: `user_id=eq.${userId}`,
-        },
-        invalidateAll
-      )
-      // ★ MỚI: Theo dõi thay đổi user_permissions (quyền DB: companies.create, etc.)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_permissions',
           filter: `user_id=eq.${userId}`,
         },
         invalidateAll
@@ -157,16 +137,14 @@ export function useMenuPermissions() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Kiểm tra Admin
-  const { data: isAdmin = false, isLoading: isAdminLoading } = useQuery({
+  // NOTE: isAdmin chỉ là label, KHÔNG có quyền ngầm nào
+  // Giữ lại cho backward compatibility nếu UI cần hiển thị label
+  const { data: isAdmin = false } = useQuery({
     queryKey: ['is-admin-check', user?.id],
     queryFn: async () => {
       if (!user?.id) return false;
       const { data, error } = await supabase.rpc('is_admin_check', { _user_id: user.id });
-      if (error) {
-        console.error('Error checking admin:', error);
-        return false;
-      }
+      if (error) return false;
       return data ?? false;
     },
     enabled: !!user?.id,
@@ -244,7 +222,7 @@ export function useMenuPermissions() {
     return menus.filter(menu => visibleSet.has(menu.key));
   }, [menus, permissions, isPrimaryAdmin]);
 
-  const isLoading = isPrimaryAdminLoading || isAdminLoading || menusLoading || permissionsLoading;
+  const isLoading = isPrimaryAdminLoading || menusLoading || permissionsLoading;
 
   return {
     menus,
@@ -375,71 +353,23 @@ export function useUserAccessVersion(userId?: string) {
 }
 
 /**
- * Hook lấy danh sách quyền DB (user_permissions table)
- * Đây là quyền cho các action như companies.create, unions.update, etc.
- * KHÔNG phụ thuộc UI hay build-time config
+ * @deprecated Không còn sử dụng - RLS giờ dựa trên user_menu_permissions
+ * Giữ lại cho backward compatibility
  */
 export function useUserDbPermissions() {
-  const { user } = useAuth();
-
-  // Inline access version query để tránh nested hook
-  const { data: accessVersion } = useQuery({
-    queryKey: ['user-access-version-db', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const { data, error } = await supabase
-        .from('user_access_versions')
-        .select('updated_at')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      if (error) return null;
-      return data?.updated_at ?? null;
-    },
-    enabled: !!user?.id,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
-  });
-
-  const { data: dbPermissions = [], isLoading } = useQuery({
-    queryKey: ['user-db-permissions', user?.id, accessVersion],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const { data, error } = await supabase
-        .from('user_permissions')
-        .select('permission_code, created_at')
-        .eq('user_id', user.id);
-      if (error) {
-        console.error('Error fetching user db permissions:', error);
-        return [];
-      }
-      return data;
-    },
-    enabled: !!user?.id,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
-  });
-
-  const hasDbPermission = (permissionCode: string): boolean => {
-    return dbPermissions.some((p) => p.permission_code === permissionCode);
-  };
-
   return {
-    dbPermissions,
-    hasDbPermission,
-    isLoading,
+    dbPermissions: [],
+    hasDbPermission: () => false,
+    isLoading: false,
   };
 }
 
 /**
- * Hook check một quyền DB cụ thể
- * Shortcut for common use case
+ * @deprecated Không còn sử dụng - Dùng useCanAction thay thế
  */
-export function useHasDbPermission(permissionCode: string) {
-  const { hasDbPermission, isLoading } = useUserDbPermissions();
+export function useHasDbPermission(_permissionCode: string) {
   return {
-    hasPermission: hasDbPermission(permissionCode),
-    isLoading,
+    hasPermission: false,
+    isLoading: false,
   };
 }

@@ -15,31 +15,29 @@ import { toast } from "sonner";
 import { Loader2, Menu, Eye, Plus, Edit, Trash2, Save, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
-// Map quyền menu (UI) -> quyền DB (RLS) cho các tính năng cần enforce ở database.
-// Mục tiêu: tick ở đây là "nguồn sự thật" cho việc được INSERT/UPDATE/DELETE ở DB.
-const MENU_DB_PERMISSION_MAP: Record<
-  string,
-  {
-    create?: string[];
-    update?: string[];
-    delete?: string[];
-  }
-> = {
-  // Đối tác: áp vào cả 3 bảng
-  partners: {
-    create: ["companies.create", "unions.create", "job_categories.create"],
-    update: ["companies.update", "unions.update", "job_categories.update"],
-    delete: ["companies.delete", "unions.delete", "job_categories.delete"],
-  },
-};
-
-const MANAGED_DB_PERMISSION_CODES = Array.from(
-  new Set(
-    Object.values(MENU_DB_PERMISSION_MAP)
-      .flatMap((v) => [v.create ?? [], v.update ?? [], v.delete ?? []])
-      .flat()
-  )
-);
+/**
+ * =====================================================
+ * QUY TẮC PHÂN QUYỀN MỚI - MEKONG LABOUR ERP
+ * =====================================================
+ * 
+ * 1. NGUỒN QUYỀN DUY NHẤT: user_menu_permissions
+ *    - Chỉ cần tick ở đây là đủ
+ *    - RLS sử dụng function has_menu_permission() để kiểm tra
+ *    - KHÔNG cần bảng user_permissions riêng nữa
+ * 
+ * 2. ROLE (Admin/Staff/Senior Staff) chỉ là label
+ *    - KHÔNG có quyền ngầm nào
+ *    - NGOẠI LỆ DUY NHẤT: Primary Admin thấy tất cả
+ * 
+ * 3. Mapping:
+ *    can_view   → Xem danh sách / chi tiết
+ *    can_create → Thấy nút "Thêm"
+ *    can_update → Thấy nút "Sửa"
+ *    can_delete → Thấy nút "Xóa"
+ * 
+ * 4. KHÔNG TICK = KHÔNG TỒN TẠI trong UI và API
+ * =====================================================
+ */
 
 interface UserMenuPermissionsModalProps {
   open: boolean;
@@ -150,10 +148,9 @@ export function UserMenuPermissionsModal({
     }
   }, [open, menus, currentPermissions, loadingMenus, loadingPerms, initialized]);
 
-  // Save mutations
+  // Save mutation - CHỈ GHI VÀO user_menu_permissions (NGUỒN DUY NHẤT)
   const saveMutation = useMutation({
     mutationFn: async () => {
-      // 1) ======= MENU PERMISSIONS (UI) =======
       // Delete existing permissions for this user
       const { error: deleteError } = await supabase
         .from("user_menu_permissions")
@@ -181,50 +178,16 @@ export function UserMenuPermissionsModal({
         if (insertError) throw insertError;
       }
 
-      // 2) ======= DB PERMISSIONS (RLS) =======
-      // Map checkbox actions -> user_permissions rows.
-      // NOTE: Chỉ quản lý các code nằm trong MANAGED_DB_PERMISSION_CODES để không đụng quyền khác.
-      const desiredDbPermissionCodes = new Set<string>();
-
-      Object.values(localPermissions).forEach((p) => {
-        const map = MENU_DB_PERMISSION_MAP[p.menu_key];
-        if (!map) return;
-
-        if (p.can_create) (map.create ?? []).forEach((c) => desiredDbPermissionCodes.add(c));
-        if (p.can_update) (map.update ?? []).forEach((c) => desiredDbPermissionCodes.add(c));
-        if (p.can_delete) (map.delete ?? []).forEach((c) => desiredDbPermissionCodes.add(c));
-      });
-
-      // Remove all managed codes, then insert desired (idempotent flow)
-      if (MANAGED_DB_PERMISSION_CODES.length > 0) {
-        const { error: delPermError } = await supabase
-          .from("user_permissions")
-          .delete()
-          .eq("user_id", targetUser.user_id)
-          .in("permission_code", MANAGED_DB_PERMISSION_CODES);
-        if (delPermError) throw delPermError;
-      }
-
-      const toInsertDbPerms = Array.from(desiredDbPermissionCodes).map((code) => ({
-        user_id: targetUser.user_id,
-        permission_code: code,
-        granted_by: user?.id,
-      }));
-
-      if (toInsertDbPerms.length > 0) {
-        const { error: insPermError } = await supabase
-          .from("user_permissions")
-          .insert(toInsertDbPerms);
-        if (insPermError) throw insPermError;
-      }
+      // ★ RLS policies bây giờ trực tiếp kiểm tra user_menu_permissions
+      // ★ KHÔNG CẦN ghi vào user_permissions nữa
     },
     onSuccess: () => {
+      // Invalidate ALL permission caches
       queryClient.invalidateQueries({ queryKey: ["user-menu-permissions", targetUser.user_id] });
-      queryClient.invalidateQueries({ queryKey: ["user-db-permissions", targetUser.user_id] });
-      // Refresh sidebar permissions immediately for target user
       queryClient.invalidateQueries({ queryKey: ["user-menu-permissions-direct"] });
+      queryClient.invalidateQueries({ queryKey: ["user-access-version"] });
       setHasChanges(false);
-      toast.success(`Đã lưu quyền menu cho ${targetUser.full_name || targetUser.email}`);
+      toast.success(`Đã lưu quyền cho ${targetUser.full_name || targetUser.email}`);
     },
     onError: (error) => {
       toast.error("Lỗi khi lưu: " + (error as Error).message);
@@ -362,10 +325,10 @@ export function UserMenuPermissionsModal({
             <Badge variant="secondary">{selectedCount}/{menus.length} menu</Badge>
           </div>
           <DialogDescription>
-            Tick chọn menu mà tài khoản này được phép truy cập.
+            Tick chọn quyền cho tài khoản này. Đây là <strong>NGUỒN QUYỀN DUY NHẤT</strong>.
             <br />
             <span className="text-destructive font-medium">
-              ⚠️ Nếu không tick menu nào, tài khoản sẽ KHÔNG THẤY menu nào.
+              ⚠️ Không tick = Không tồn tại trong giao diện và API (kể cả Admin phụ).
             </span>
           </DialogDescription>
         </DialogHeader>
