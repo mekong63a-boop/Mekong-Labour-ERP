@@ -40,8 +40,8 @@ export interface TraineeListItem {
   job_category: { id: string; name: string; name_japanese: string | null } | null;
 }
 
-// Raw trainee data from masked view
-interface TraineeMaskedRaw {
+// Raw trainee data - SINGLE SOURCE OF TRUTH
+interface TraineeRaw {
   id: string;
   trainee_code: string;
   full_name: string;
@@ -111,7 +111,7 @@ export function useTraineesPaginated({
       const startTime = performance.now();
       
       let query = supabase
-        .from('trainees_masked')
+        .from('trainees')
         .select('*', { count: 'exact', head: true });
 
       // Apply progression stage filter
@@ -147,7 +147,7 @@ export function useTraineesPaginated({
       const startTime = performance.now();
 
       let query = supabase
-        .from('trainees_masked')
+        .from('trainees')
         .select(`
           id,
           trainee_code,
@@ -198,7 +198,7 @@ export function useTraineesPaginated({
 
       if (error) throw error;
 
-      const rawData = data as unknown as TraineeMaskedRaw[];
+      const rawData = data as unknown as TraineeRaw[];
 
       // Fetch related data
       const companyIds = [...new Set(rawData?.map(t => t.receiving_company_id).filter(Boolean) as string[])];

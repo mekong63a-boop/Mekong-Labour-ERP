@@ -17,42 +17,42 @@ export function useTraineesRealtime() {
 }
 
 /**
- * Hook lấy danh sách trainees với dữ liệu đã được che giấu
- * - Admin & Senior Staff: xem dữ liệu thực
- * - Staff thường: dữ liệu nhạy cảm bị che (phone, cccd, passport, địa chỉ)
+ * Hook lấy danh sách trainees - SINGLE SOURCE OF TRUTH
+ * Tất cả tài khoản đọc từ cùng 1 nguồn dữ liệu (bảng trainees)
+ * Quyền xem/sửa dựa trên menu permissions
  */
 export function useTrainees() {
   return useQuery({
     queryKey: ["trainees"],
     queryFn: async () => {
-      // Sử dụng view trainees_masked để tự động che giấu dữ liệu nhạy cảm
+      // Single Source of Truth: đọc trực tiếp từ bảng trainees
       const { data, error } = await supabase
-        .from("trainees_masked")
+        .from("trainees")
         .select("*")
         .order("updated_at", { ascending: false });
 
       if (error) throw error;
-      return data as unknown as Trainee[];
+      return data as Trainee[];
     },
   });
 }
 
 /**
- * Hook lấy chi tiết 1 trainee với dữ liệu đã được che giấu
+ * Hook lấy chi tiết 1 trainee - SINGLE SOURCE OF TRUTH
  */
 export function useTrainee(id: string) {
   return useQuery({
     queryKey: ["trainee", id],
     queryFn: async () => {
-      // Sử dụng view trainees_masked để tự động che giấu dữ liệu nhạy cảm
+      // Single Source of Truth: đọc trực tiếp từ bảng trainees
       const { data, error } = await supabase
-        .from("trainees_masked")
+        .from("trainees")
         .select("*")
         .eq("id", id)
         .single();
 
       if (error) throw error;
-      return data as unknown as Trainee;
+      return data as Trainee;
     },
     enabled: !!id,
   });
