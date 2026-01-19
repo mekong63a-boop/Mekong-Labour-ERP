@@ -59,19 +59,36 @@ function useQueryClientWithAuthClear() {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event) => {
+      (event, session) => {
         // Clear ALL cache on sign out or sign in to ensure fresh data
         if (event === "SIGNED_OUT" || event === "SIGNED_IN") {
           console.log(`[Auth] ${event} - clearing all query cache`);
           queryClient.clear();
         }
 
-        // IMPORTANT: When a new version is published, existing SPA tabs may keep running old JS.
-        // Force a full reload on SIGNED_IN so users always load the latest deployed bundle.
-        if (event === "SIGNED_IN") {
-          setTimeout(() => {
-            window.location.reload();
-          }, 50);
+        // Force reload ONLY on fresh login (not on page load with existing session)
+        // Use sessionStorage to prevent infinite reload loop
+        if (event === "SIGNED_IN" && session) {
+          const reloadKey = `auth_reload_${session.user.id}`;
+          const alreadyReloaded = sessionStorage.getItem(reloadKey);
+          
+          if (!alreadyReloaded) {
+            sessionStorage.setItem(reloadKey, 'true');
+            // Small delay to ensure cache is cleared first
+            setTimeout(() => {
+              window.location.reload();
+            }, 100);
+          }
+        }
+
+        // Clear reload flag on sign out so next login will reload
+        if (event === "SIGNED_OUT") {
+          // Clear all reload flags
+          Object.keys(sessionStorage).forEach(key => {
+            if (key.startsWith('auth_reload_')) {
+              sessionStorage.removeItem(key);
+            }
+          });
         }
       }
     );
