@@ -121,7 +121,7 @@ export function useMenuPermissions() {
   // Realtime cập nhật quyền/phòng ban
   useMenuPermissionsRealtime(user?.id);
 
-  // Kiểm tra Primary Admin
+  // Kiểm tra Primary Admin - cache lâu, không cần refetch khi focus
   const { data: isPrimaryAdmin = false, isLoading: isPrimaryAdminLoading } = useQuery({
     queryKey: ['is-primary-admin', user?.id],
     queryFn: async () => {
@@ -134,7 +134,10 @@ export function useMenuPermissions() {
       return data ?? false;
     },
     enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000, // 10 phút
+    gcTime: 30 * 60 * 1000, // 30 phút
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // NOTE: isAdmin chỉ là label, KHÔNG có quyền ngầm nào
@@ -148,7 +151,10 @@ export function useMenuPermissions() {
       return data ?? false;
     },
     enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Lấy danh sách tất cả menus (FULL fields cho sidebar)
@@ -165,7 +171,10 @@ export function useMenuPermissions() {
       }
       return data as Menu[];
     },
-    staleTime: 10 * 60 * 1000,
+    staleTime: 30 * 60 * 1000, // 30 phút - menu ít thay đổi
+    gcTime: 60 * 60 * 1000, // 1 giờ
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Lấy quyền menu TRỰC TIẾP từ user_menu_permissions
@@ -185,8 +194,10 @@ export function useMenuPermissions() {
       return (data ?? []) as MenuPermission[];
     },
     enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000, // 5 phút - realtime sẽ invalidate nếu có thay đổi
-    refetchOnWindowFocus: false, // KHÔNG refetch khi chuyển tab
+    staleTime: 10 * 60 * 1000, // 10 phút - realtime sẽ invalidate nếu có thay đổi
+    gcTime: 30 * 60 * 1000, // 30 phút
+    refetchOnWindowFocus: false,
+    refetchOnMount: false, // KHÔNG refetch khi component mount lại
   });
 
   // Build visible menus với hierarchy
