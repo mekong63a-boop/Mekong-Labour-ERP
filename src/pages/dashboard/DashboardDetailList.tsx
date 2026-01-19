@@ -276,7 +276,9 @@ export default function DashboardDetailList() {
                       <TableCell className="font-mono text-sm">{trainee.trainee_code}</TableCell>
                       <TableCell className="font-medium">{trainee.full_name}</TableCell>
                       <TableCell className="text-sm">{formatDate(trainee.birth_date)}</TableCell>
-                      <TableCell className="text-sm">{trainee.gender || "—"}</TableCell>
+                      <TableCell className={`text-sm font-medium ${trainee.gender === 'Nữ' ? 'text-red-600' : trainee.gender === 'Nam' ? 'text-blue-600' : ''}`}>
+                        {trainee.gender || "—"}
+                      </TableCell>
                       <TableCell className="text-sm">{getProvince(trainee.birthplace)}</TableCell>
                       <TableCell className="text-sm">
                         {formatDate(trainee.registration_date || trainee.created_at)}
