@@ -240,11 +240,23 @@ export default function SystemMonitorContent() {
     enabled: canAccess,
   });
 
-  // Update current user's session
+  // Update current user's session with IP and user agent
   useEffect(() => {
     const updateSession = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      // Get IP address from external service
+      let ipAddress = null;
+      try {
+        const ipResponse = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipResponse.json();
+        ipAddress = ipData.ip;
+      } catch (e) {
+        console.log('Could not fetch IP address');
+      }
+
+      const userAgent = navigator.userAgent;
 
       await supabase
         .from("user_sessions")
@@ -252,6 +264,8 @@ export default function SystemMonitorContent() {
           user_id: user.id,
           last_seen_at: new Date().toISOString(),
           is_active: true,
+          ip_address: ipAddress,
+          user_agent: userAgent,
         }, {
           onConflict: "user_id",
         });
@@ -386,33 +400,54 @@ export default function SystemMonitorContent() {
                     <TableRow>
                       <TableHead>Người dùng</TableHead>
                       <TableHead>Email</TableHead>
+                      <TableHead>Trình duyệt</TableHead>
+                      <TableHead>Địa chỉ IP</TableHead>
                       <TableHead>Hoạt động lần cuối</TableHead>
                       <TableHead>Trạng thái</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {onlineUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                            {user.full_name || user.email?.split("@")[0]}
-                          </div>
-                        </TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          {formatDistanceToNow(new Date(user.last_seen_at), {
-                            addSuffix: true,
-                            locale: vi,
-                          })}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                            Đang hoạt động
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {onlineUsers.map((user) => {
+                      // Parse user agent to get browser name
+                      const getBrowserName = (ua: string | null) => {
+                        if (!ua) return "Không xác định";
+                        if (ua.includes("Edg/")) return "Microsoft Edge";
+                        if (ua.includes("Chrome/") && !ua.includes("Edg/")) return "Google Chrome";
+                        if (ua.includes("Firefox/")) return "Mozilla Firefox";
+                        if (ua.includes("Safari/") && !ua.includes("Chrome/")) return "Safari";
+                        if (ua.includes("Opera/") || ua.includes("OPR/")) return "Opera";
+                        return "Không xác định";
+                      };
+
+                      return (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                              {user.full_name || user.email?.split("@")[0]}
+                            </div>
+                          </TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell className="text-sm">
+                            {getBrowserName(user.user_agent)}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {user.ip_address || "—"}
+                          </TableCell>
+                          <TableCell>
+                            {formatDistanceToNow(new Date(user.last_seen_at), {
+                              addSuffix: true,
+                              locale: vi,
+                            })}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              Đang hoạt động
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}
