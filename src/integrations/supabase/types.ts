@@ -2464,7 +2464,10 @@ export type Database = {
         Args: { _caller_id: string; _target_user_id: string }
         Returns: boolean
       }
-      can_delete: { Args: { _user_id: string }; Returns: boolean }
+      can_delete:
+        | { Args: { _menu_key: string }; Returns: boolean }
+        | { Args: { _user_id: string }; Returns: boolean }
+      can_insert: { Args: { _menu_key: string }; Returns: boolean }
       can_manage_department: {
         Args: { _department: string; _user_id: string }
         Returns: boolean
@@ -2478,6 +2481,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_update: { Args: { _menu_key: string }; Returns: boolean }
+      can_view: { Args: { _menu_key: string }; Returns: boolean }
       can_view_sensitive_data: { Args: { _user_id: string }; Returns: boolean }
       check_login_rate_limit: {
         Args: { _identifier: string; _ip_address?: string }
