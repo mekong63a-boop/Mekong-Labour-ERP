@@ -272,8 +272,6 @@ const ReferralSourcesTab = () => {
                         </Button>
                       )}
                     </div>
-                      </Button>
-                    </div>
                   </td>
                 </tr>
               ))
