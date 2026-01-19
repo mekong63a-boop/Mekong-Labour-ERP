@@ -260,15 +260,21 @@ export default function TraineeDashboard() {
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
-                data={(departuresData || []).map((d, i) => ({
-                  month_label: d.month_label,
-                  departures: d.departures,
-                  passed: passedData?.[i]?.passed_count || 0,
-                }))}
+                data={(() => {
+                  // Build a map from passedData keyed by month_label for reliable merge
+                  const passedMap = new Map(
+                    (passedData || []).map((p) => [p.month_label, p.passed_count])
+                  );
+                  return (departuresData || []).map((d) => ({
+                    month_label: d.month_label,
+                    departures: d.departures ?? 0,
+                    passed: passedMap.get(d.month_label) ?? 0,
+                  }));
+                })()}
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month_label" fontSize={12} />
-                <YAxis fontSize={12} />
+                <YAxis fontSize={12} allowDecimals={false} />
                 <Tooltip />
                 <Legend />
                 <Line
