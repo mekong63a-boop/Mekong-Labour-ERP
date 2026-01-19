@@ -4,6 +4,7 @@ import { Sidebar } from "./Sidebar";
 import { Menu, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSystemRealtime, useManualRefresh } from "@/hooks/useSystemRealtime";
+import { useSessionHeartbeat } from "@/hooks/useSessionHeartbeat";
 import { toast } from "sonner";
 
 export function MainLayout() {
@@ -11,6 +12,9 @@ export function MainLayout() {
 
   // Enable system-wide realtime updates for all users
   useSystemRealtime();
+
+  // Track online sessions for ALL logged-in users (not only when opening /admin)
+  useSessionHeartbeat();
 
   const { refreshAll } = useManualRefresh();
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useSessionHeartbeat } from "@/hooks/useSessionHeartbeat";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
   Popover,
@@ -240,42 +241,8 @@ export default function SystemMonitorContent() {
     enabled: canAccess,
   });
 
-  // Update current user's session with IP and user agent
-  useEffect(() => {
-    const updateSession = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Get IP address from external service
-      let ipAddress = null;
-      try {
-        const ipResponse = await fetch('https://api.ipify.org?format=json');
-        const ipData = await ipResponse.json();
-        ipAddress = ipData.ip;
-      } catch (e) {
-        console.log('Could not fetch IP address');
-      }
-
-      const userAgent = navigator.userAgent;
-
-      await supabase
-        .from("user_sessions")
-        .upsert({
-          user_id: user.id,
-          last_seen_at: new Date().toISOString(),
-          is_active: true,
-          ip_address: ipAddress,
-          user_agent: userAgent,
-        }, {
-          onConflict: "user_id",
-        });
-    };
-
-    updateSession();
-    const interval = setInterval(updateSession, 60000);
-
-    return () => clearInterval(interval);
-  }, []);
+  // Heartbeat session (IP + User Agent) để bảng Online Users luôn đúng
+  useSessionHeartbeat();
 
   // Handle approve/reject edit permission
   const handleEditPermission = async (id: string, approve: boolean) => {
