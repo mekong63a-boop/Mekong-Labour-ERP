@@ -306,8 +306,28 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       if (savedDraft) {
         try {
           const draft = JSON.parse(savedDraft);
-          // Check if draft has meaningful data (at least trainee_code or full_name)
-          if (draft.formData?.trainee_code || draft.formData?.full_name) {
+
+          const hasAnyValue = (obj: Record<string, unknown> | undefined) => {
+            if (!obj) return false;
+            return Object.values(obj).some((v) => {
+              if (v === null || v === undefined) return false;
+              if (typeof v === 'string') return v.trim().length > 0;
+              if (typeof v === 'number') return true;
+              if (typeof v === 'boolean') return v;
+              return Boolean(v);
+            });
+          };
+
+          const isMeaningfulDraft =
+            hasAnyValue(draft.formData) ||
+            (Array.isArray(draft.educationItems) && draft.educationItems.length > 0) ||
+            (Array.isArray(draft.workItems) && draft.workItems.length > 0) ||
+            (Array.isArray(draft.familyItems) && draft.familyItems.length > 0) ||
+            (Array.isArray(draft.japanRelativeItems) && draft.japanRelativeItems.length > 0) ||
+            hasAnyValue(draft.projectData) ||
+            typeof draft.activeTab === 'string';
+
+          if (isMeaningfulDraft) {
             setHasDraft(true);
             // Auto-restore draft
             if (draft.formData) setFormData(draft.formData);
@@ -317,7 +337,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
             if (draft.japanRelativeItems) setJapanRelativeItems(draft.japanRelativeItems);
             if (draft.projectData) setProjectData(draft.projectData);
             if (draft.activeTab) setActiveTab(draft.activeTab);
-            
+
             toast({
               title: "Đã khôi phục bản nháp",
               description: "Dữ liệu nhập liệu trước đó đã được khôi phục.",
@@ -334,14 +354,34 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
 
   // Helper function to save draft immediately
   const saveDraftNow = useCallback(() => {
-    if (!isEditMode && (formData.trainee_code || formData.full_name)) {
+    if (isEditMode) return false;
+
+    const hasAnyValue = (obj: Record<string, unknown>) => {
+      return Object.values(obj).some((v) => {
+        if (v === null || v === undefined) return false;
+        if (typeof v === 'string') return v.trim().length > 0;
+        if (typeof v === 'number') return true;
+        if (typeof v === 'boolean') return v;
+        return Boolean(v);
+      });
+    };
+
+    const shouldSave =
+      hasAnyValue(formData as unknown as Record<string, unknown>) ||
+      educationItems.length > 0 ||
+      workItems.length > 0 ||
+      familyItems.length > 0 ||
+      japanRelativeItems.length > 0 ||
+      hasAnyValue(projectData as unknown as Record<string, unknown>);
+
+    if (shouldSave) {
       const draft = {
-        formData: formData,
-        educationItems: educationItems,
-        workItems: workItems,
-        familyItems: familyItems,
-        japanRelativeItems: japanRelativeItems,
-        projectData: projectData,
+        formData,
+        educationItems,
+        workItems,
+        familyItems,
+        japanRelativeItems,
+        projectData,
         activeTab,
         savedAt: new Date().toISOString(),
       };
@@ -349,6 +389,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       console.log('[AutoSave] Draft saved immediately');
       return true;
     }
+
     return false;
   }, [isEditMode, formData, educationItems, workItems, familyItems, japanRelativeItems, projectData, activeTab]);
 
@@ -380,8 +421,25 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   // Auto-save to localStorage when form data changes (only for new trainees)
   useEffect(() => {
     if (!isEditMode && !isInitialLoad.current) {
-      // Only save if there's meaningful data
-      if (debouncedFormData.trainee_code || debouncedFormData.full_name) {
+      const hasAnyValue = (obj: Record<string, unknown>) => {
+        return Object.values(obj).some((v) => {
+          if (v === null || v === undefined) return false;
+          if (typeof v === 'string') return v.trim().length > 0;
+          if (typeof v === 'number') return true;
+          if (typeof v === 'boolean') return v;
+          return Boolean(v);
+        });
+      };
+
+      const shouldSave =
+        hasAnyValue(debouncedFormData as unknown as Record<string, unknown>) ||
+        (debouncedEducationItems?.length ?? 0) > 0 ||
+        (debouncedWorkItems?.length ?? 0) > 0 ||
+        (debouncedFamilyItems?.length ?? 0) > 0 ||
+        (debouncedJapanRelativeItems?.length ?? 0) > 0 ||
+        hasAnyValue(debouncedProjectData as unknown as Record<string, unknown>);
+
+      if (shouldSave) {
         const draft = {
           formData: debouncedFormData,
           educationItems: debouncedEducationItems,
@@ -394,7 +452,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         };
         localStorage.setItem(TRAINEE_DRAFT_KEY, JSON.stringify(draft));
         setDraftSaved(true);
-        
+
         // Reset indicator after 2 seconds
         setTimeout(() => setDraftSaved(false), 2000);
       }
