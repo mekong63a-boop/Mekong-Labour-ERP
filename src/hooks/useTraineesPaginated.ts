@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
-import { useTraineesRealtime } from './useTrainees';
+
+// NOTE: useTraineesRealtime REMOVED - deprecated hook không còn được import
+// Sử dụng invalidateQueries hoặc manual refetch thay thế
 
 type ProgressionStage = Database['public']['Enums']['progression_stage'];
 type SimpleStatus = Database['public']['Enums']['simple_status'];
@@ -102,8 +104,9 @@ export function useTraineesPaginated({
   enabled = true,
 }: UseTraineesPaginatedParams): UseTraineesPaginatedResult {
   
-  // Subscribe to realtime changes for auto-refresh across all browsers
-  useTraineesRealtime();
+  // NOTE: useTraineesRealtime đã bị REMOVED (deprecated)
+  // Realtime cho bảng lớn gây performance issue
+  // Sử dụng refetch() hoặc queryClient.invalidateQueries() để refresh
   
   // Query for count - sử dụng view trainees_masked
   const countQuery = useQuery({
