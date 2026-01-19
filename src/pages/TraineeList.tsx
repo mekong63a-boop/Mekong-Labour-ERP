@@ -29,7 +29,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useTraineesPaginated, TraineeListItem } from "@/hooks/useTraineesPaginated";
 import { useTraineeStageCounts } from "@/hooks/useTraineeStageCounts";
 import { useDeleteTrainee } from "@/hooks/useTrainees";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useCanAction } from "@/hooks/useMenuPermissions";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { useToast } from "@/hooks/use-toast";
 import { StageTabsGrid, STAGE_TABS } from "@/components/trainees/StageTabsGrid";
@@ -41,7 +41,7 @@ export default function TraineeList() {
   const [traineeToDelete, setTraineeToDelete] = useState<TraineeListItem | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isAdmin } = useUserRole();
+  const { hasPermission: canDelete } = useCanAction("trainees", "delete");
   const deleteTrainee = useDeleteTrainee();
   
   // Debounce search query (300ms delay)
@@ -365,7 +365,7 @@ export default function TraineeList() {
           >
             <Eye className="h-4 w-4" />
           </Button>
-          {isAdmin && (
+          {canDelete && (
             <Button
               variant="ghost"
               size="icon"

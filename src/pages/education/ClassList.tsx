@@ -90,6 +90,7 @@ import {
   Eye,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCanAction } from "@/hooks/useMenuPermissions";
 import { format } from "date-fns";
 
 const LEVELS = ["N5", "N4", "N3", "N2", "N1"];
@@ -107,6 +108,9 @@ export default function ClassList() {
   const assignTeacher = useAssignTeacherToClass();
   const removeTeacher = useRemoveTeacherFromClass();
   const { toast } = useToast();
+  const { hasPermission: canCreate } = useCanAction("education", "create");
+  const { hasPermission: canUpdate } = useCanAction("education", "update");
+  const { hasPermission: canDelete } = useCanAction("education", "delete");
   
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -458,28 +462,30 @@ export default function ClassList() {
             </p>
           </div>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="mr-2 h-4 w-4" />
-              Thêm lớp học
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Thêm lớp học mới</DialogTitle>
-            </DialogHeader>
-            {renderFormFields()}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                Hủy
+        {canCreate && (
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className="mr-2 h-4 w-4" />
+                Thêm lớp học
               </Button>
-              <Button onClick={handleCreate} disabled={createClass.isPending}>
-                Thêm
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Thêm lớp học mới</DialogTitle>
+              </DialogHeader>
+              {renderFormFields()}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                  Hủy
+                </Button>
+                <Button onClick={handleCreate} disabled={createClass.isPending}>
+                  Thêm
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {/* Search */}
@@ -592,23 +598,31 @@ export default function ClassList() {
                             <GraduationCap className="mr-2 h-4 w-4" />
                             Gán giáo viên
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => openEditDialog(cls)}>
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Sửa thông tin lớp
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEndClass(cls)}>
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Kết thúc lớp học
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={() => openDeleteDialog(cls)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Xóa lớp
-                          </DropdownMenuItem>
+                          {canUpdate && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => openEditDialog(cls)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Sửa thông tin lớp
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEndClass(cls)}>
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Kết thúc lớp học
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          {canDelete && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => openDeleteDialog(cls)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Xóa lớp
+                              </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

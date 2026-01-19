@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Plus, Save, X, Pencil, Trash2, Download, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { useCanAction } from "@/hooks/useMenuPermissions";
 import * as XLSX from "xlsx";
 
 interface ReferralSource {
@@ -20,6 +21,9 @@ const ReferralSourcesTab = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: "" });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { hasPermission: canCreate } = useCanAction("glossary", "create");
+  const { hasPermission: canUpdate } = useCanAction("glossary", "update");
+  const { hasPermission: canDelete } = useCanAction("glossary", "delete");
 
   const { data: sources = [], isLoading } = useQuery({
     queryKey: ["referral-sources", search],
@@ -196,10 +200,12 @@ const ReferralSourcesTab = () => {
             <Download className="h-4 w-4 mr-2" />
             Export Excel
           </Button>
-          <Button onClick={() => setShowAddForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm nguồn mới
-          </Button>
+          {canCreate && (
+            <Button onClick={() => setShowAddForm(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Thêm nguồn mới
+            </Button>
+          )}
         </div>
       </div>
 
@@ -255,11 +261,17 @@ const ReferralSourcesTab = () => {
                   <td className="px-4 py-3 text-sm font-medium text-primary">{item.name}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
-                        <Pencil className="h-4 w-4 text-primary" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(item.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                      {canUpdate && (
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(item)}>
+                          <Pencil className="h-4 w-4 text-primary" />
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(item.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
                       </Button>
                     </div>
                   </td>
