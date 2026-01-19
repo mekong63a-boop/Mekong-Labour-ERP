@@ -65,6 +65,14 @@ function useQueryClientWithAuthClear() {
           console.log(`[Auth] ${event} - clearing all query cache`);
           queryClient.clear();
         }
+
+        // IMPORTANT: When a new version is published, existing SPA tabs may keep running old JS.
+        // Force a full reload on SIGNED_IN so users always load the latest deployed bundle.
+        if (event === "SIGNED_IN") {
+          setTimeout(() => {
+            window.location.reload();
+          }, 50);
+        }
       }
     );
     return () => subscription.unsubscribe();
