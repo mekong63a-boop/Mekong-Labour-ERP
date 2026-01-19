@@ -191,26 +191,33 @@ export default function TraineeDashboard() {
     { value: "12", label: "Tháng 12" },
   ];
 
-  // Filtered trainees based on registration_date
-  const filteredTrainees = useMemo(() => {
+  // Helper function to check if trainee matches filter based on relevant date
+  const matchesFilter = (dateStr: string | null) => {
+    if (!dateStr) return false;
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    
+    if (selectedYear !== "all" && year !== parseInt(selectedYear)) return false;
+    if (selectedMonth !== "all" && month !== parseInt(selectedMonth)) return false;
+    
+    return true;
+  };
+
+  // Filtered trainees based on registration_date (for total count)
+  const filteredByRegistration = useMemo(() => {
+    if (selectedYear === "all" && selectedMonth === "all") return allTrainees;
+    
     return allTrainees.filter((t) => {
-      if (!t.registration_date) return selectedYear === "all" && selectedMonth === "all";
-      
-      const regDate = new Date(t.registration_date);
-      const regYear = regDate.getFullYear();
-      const regMonth = regDate.getMonth() + 1;
-      
-      if (selectedYear !== "all" && regYear !== parseInt(selectedYear)) return false;
-      if (selectedMonth !== "all" && regMonth !== parseInt(selectedMonth)) return false;
-      
-      return true;
+      if (!t.registration_date) return false;
+      return matchesFilter(t.registration_date);
     });
   }, [allTrainees, selectedYear, selectedMonth]);
 
-  // Calculate filtered KPIs
+  // Calculate filtered KPIs - each metric uses the appropriate date
   const filteredKPIs = useMemo(() => {
     const result = {
-      total: filteredTrainees.length,
+      total: 0,
       status_in_japan: 0,
       status_studying: 0,
       stage_passed_interview: 0,
@@ -221,30 +228,44 @@ export default function TraineeDashboard() {
       departed_count: 0,
     };
 
-    filteredTrainees.forEach((t) => {
-      if (t.simple_status === "Đang ở Nhật") result.status_in_japan++;
+    // Đếm tổng theo ngày đăng ký
+    result.total = filteredByRegistration.length;
+
+    // Với bộ lọc, đếm "Đang ở Nhật" theo ngày xuất cảnh
+    allTrainees.forEach((t) => {
+      // Đang ở Nhật: lọc theo departure_date (ngày xuất cảnh)
+      if (t.simple_status === "Đang ở Nhật") {
+        if (selectedYear === "all" && selectedMonth === "all") {
+          result.status_in_japan++;
+        } else if (t.departure_date && matchesFilter(t.departure_date)) {
+          result.status_in_japan++;
+        }
+      }
+    });
+
+    // Các chỉ số khác lọc theo registration_date
+    filteredByRegistration.forEach((t) => {
       if (t.simple_status === "Đang học") result.status_studying++;
       if (t.progression_stage && t.progression_stage !== "Chưa đậu") result.stage_passed_interview++;
       if (t.progression_stage === "Chưa đậu" || !t.progression_stage) result.stage_not_passed++;
       if (t.trainee_type === "Thực tập sinh") result.type_tts++;
       if (t.trainee_type === "Kỹ năng đặc định") result.type_knd++;
       if (t.trainee_type === "Kỹ sư") result.type_engineer++;
-      
-      // Check departure based on filter
+    });
+    
+    // Xuất cảnh: lọc theo departure_date
+    allTrainees.forEach((t) => {
       if (t.departure_date) {
-        const depDate = new Date(t.departure_date);
-        const depYear = depDate.getFullYear();
-        const depMonth = depDate.getMonth() + 1;
-        
-        const matchYear = selectedYear === "all" || depYear === parseInt(selectedYear);
-        const matchMonth = selectedMonth === "all" || depMonth === parseInt(selectedMonth);
-        
-        if (matchYear && matchMonth) result.departed_count++;
+        if (selectedYear === "all" && selectedMonth === "all") {
+          result.departed_count++;
+        } else if (matchesFilter(t.departure_date)) {
+          result.departed_count++;
+        }
       }
     });
 
     return result;
-  }, [filteredTrainees, selectedYear, selectedMonth]);
+  }, [allTrainees, filteredByRegistration, selectedYear, selectedMonth]);
 
   // Fetch all dashboard data (for non-filtered charts)
   const { data: kpis, isLoading: loadingKPIs } = useTraineeKPIs();
