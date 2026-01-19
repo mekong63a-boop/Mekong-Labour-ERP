@@ -87,7 +87,7 @@ interface FormData {
   phone: string;
   source: string;
   education_level: string;
-  temp_address: string;
+  current_address: string;
   email: string;
   permanent_address: string;
   facebook: string;
@@ -241,7 +241,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     phone: "",
     source: "",
     education_level: "",
-    temp_address: "",
+    current_address: "",
     email: "",
     permanent_address: "",
     facebook: "",
@@ -309,7 +309,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         phone: trainee.phone || "",
         source: trainee.source || "",
         education_level: trainee.education_level || "",
-        temp_address: trainee.temp_address || "",
+        current_address: trainee.current_address || "",
         email: trainee.email || "",
         permanent_address: trainee.permanent_address || "",
         facebook: trainee.facebook || "",
@@ -502,7 +502,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     phone: formData.phone || null,
     source: formData.source || null,
     education_level: formData.education_level || null,
-    temp_address: formData.temp_address || null,
+    current_address: formData.current_address || null,
     email: formData.email || null,
     permanent_address: formData.permanent_address || null,
     facebook: formData.facebook || null,
@@ -1132,12 +1132,12 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-xs text-muted-foreground">Địa chỉ Tạm trú</Label>
+                      <Label className="text-xs text-muted-foreground">Địa chỉ hiện tại</Label>
                       <Input
-                        placeholder="ĐỊA CHỈ HIỆN TẠI"
-                        value={formData.temp_address}
-                        onChange={(e) => handleAddressChange("temp_address", e.target.value)}
-                        className={getInputClass(formData.temp_address)}
+                        placeholder="Địa chỉ hiện tại của học viên"
+                        value={formData.current_address}
+                        onChange={(e) => handleAddressChange("current_address", e.target.value)}
+                        className={getInputClass(formData.current_address)}
                       />
                     </div>
                     <div>
@@ -1152,9 +1152,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-xs text-muted-foreground">Địa chỉ Thường trú</Label>
+                      <Label className="text-xs text-muted-foreground">Địa chỉ thường trú</Label>
                       <Input
-                        placeholder="ĐỊA CHỈ HỘ KHẨU"
+                        placeholder="Địa chỉ thường trú (hộ khẩu)"
                         value={formData.permanent_address}
                         onChange={(e) => handleAddressChange("permanent_address", e.target.value)}
                         className={getInputClass(formData.permanent_address)}
