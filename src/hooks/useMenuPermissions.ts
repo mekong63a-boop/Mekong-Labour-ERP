@@ -116,6 +116,28 @@ function useMenuPermissionsRealtime(userId?: string) {
 export function useMenuPermissions() {
   const { user } = useAuth();
 
+  // ★ Access version phải đứng đầu để đảm bảo hook order nhất quán
+  const { data: accessVersion } = useQuery({
+    queryKey: ['user-access-version', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('user_access_versions')
+        .select('updated_at')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (error) {
+        console.warn('Error fetching access version:', error);
+        return null;
+      }
+      return data?.updated_at ?? null;
+    },
+    enabled: !!user?.id,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+  });
+
   // Realtime cập nhật quyền/phòng ban
   useMenuPermissionsRealtime(user?.id);
 
@@ -132,7 +154,7 @@ export function useMenuPermissions() {
       return data ?? false;
     },
     enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000, // Cache 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
   // Kiểm tra Admin
@@ -152,7 +174,6 @@ export function useMenuPermissions() {
   });
 
   // Lấy danh sách tất cả menus (FULL fields cho sidebar)
-  // IMPORTANT: dùng queryKey riêng để tránh bị modal phân quyền (chỉ select vài field) ghi đè cache.
   const { data: menus = [], isLoading: menusLoading } = useQuery({
     queryKey: ['menus-full'],
     queryFn: async () => {
@@ -166,13 +187,10 @@ export function useMenuPermissions() {
       }
       return data as Menu[];
     },
-    staleTime: 10 * 60 * 1000, // Cache 10 minutes - menus rarely change
+    staleTime: 10 * 60 * 1000,
   });
 
-  // Lấy quyền menu TRỰC TIẾP từ user_menu_permissions (theo tài khoản, không theo phòng ban)
-  // Cache busting: gắn thêm accessVersion để khi DB đổi quyền → invalidate ngay.
-  const { data: accessVersion } = useUserAccessVersion();
-
+  // Lấy quyền menu TRỰC TIẾP từ user_menu_permissions
   const { data: permissions = [], isLoading: permissionsLoading } = useQuery({
     queryKey: ['user-menu-permissions-direct', user?.id, accessVersion],
     queryFn: async () => {
@@ -363,7 +381,25 @@ export function useUserAccessVersion(userId?: string) {
  */
 export function useUserDbPermissions() {
   const { user } = useAuth();
-  const { data: accessVersion } = useUserAccessVersion();
+
+  // Inline access version query để tránh nested hook
+  const { data: accessVersion } = useQuery({
+    queryKey: ['user-access-version-db', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('user_access_versions')
+        .select('updated_at')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (error) return null;
+      return data?.updated_at ?? null;
+    },
+    enabled: !!user?.id,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+  });
 
   const { data: dbPermissions = [], isLoading } = useQuery({
     queryKey: ['user-db-permissions', user?.id, accessVersion],
