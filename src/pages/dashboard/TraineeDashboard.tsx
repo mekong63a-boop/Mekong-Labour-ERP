@@ -191,17 +191,27 @@ export default function TraineeDashboard() {
     staleTime: 30 * 1000,
   });
 
-  // Generate year options from data
+  // Generate year options from data - include all relevant date fields
   const yearOptions = useMemo(() => {
     const years = new Set<number>();
     // Add current year always
     years.add(currentYear);
     allTrainees.forEach((t) => {
+      // Registration date (primary for "Đăng ký mới")
+      if (t.registration_date) {
+        years.add(new Date(t.registration_date).getFullYear());
+      }
+      // Created at (fallback for registration)
       if (t.created_at) {
         years.add(new Date(t.created_at).getFullYear());
       }
+      // Departure date (for output metrics)
       if (t.departure_date) {
         years.add(new Date(t.departure_date).getFullYear());
+      }
+      // Interview pass date (for "Đậu phỏng vấn")
+      if (t.interview_pass_date) {
+        years.add(new Date(t.interview_pass_date).getFullYear());
       }
     });
     return Array.from(years).sort((a, b) => b - a);
