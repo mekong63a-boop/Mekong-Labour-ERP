@@ -90,6 +90,20 @@ export default function CompanyTraineesModal({
     }
   }, [open, companyId]);
 
+  // Danh sách các trạng thái được tính là "đậu phỏng vấn trở về sau"
+  const PASSED_STAGES = [
+    "Đậu phỏng vấn",
+    "Nộp hồ sơ",
+    "OTIT",
+    "Nyukan",
+    "COE",
+    "Xuất cảnh",
+    "Đang làm việc",
+    "Bỏ trốn",
+    "Về trước hạn",
+    "Hoàn thành hợp đồng",
+  ] as const;
+
   const fetchTrainees = async () => {
     setLoading(true);
     try {
@@ -97,6 +111,7 @@ export default function CompanyTraineesModal({
         .from("trainees")
         .select("id, trainee_code, full_name, birth_date, birthplace, progression_stage, departure_date, contract_term, trainee_type")
         .eq("receiving_company_id", companyId)
+        .in("progression_stage", [...PASSED_STAGES])
         .order("trainee_code", { ascending: true });
 
       if (error) throw error;

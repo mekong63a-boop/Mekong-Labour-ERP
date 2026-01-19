@@ -88,7 +88,7 @@ export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
         );
       case "chờ":
       case "pending":
-        // If trainee has passed interview, show "Đậu" instead of "Chờ kết quả" for the latest interview
+        // If trainee has passed interview, show "Đậu" instead of "Chưa đậu" for the latest interview
         if (hasPassedInterview && isLatestInterview) {
           return (
             <Badge className="bg-green-100 text-green-800">
@@ -97,10 +97,11 @@ export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
             </Badge>
           );
         }
+        // Thay đổi từ "Chờ kết quả" sang "Chưa đậu"
         return (
-          <Badge className="bg-yellow-100 text-yellow-800">
-            <Clock className="h-3 w-3 mr-1" />
-            Chờ kết quả
+          <Badge className="bg-gray-100 text-gray-800">
+            <XCircle className="h-3 w-3 mr-1" />
+            Chưa đậu
           </Badge>
         );
       default:
