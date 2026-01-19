@@ -1,12 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import { WorkflowStage, WORKFLOW_STAGES } from './useWorkflowStageCounts';
 
 // NOTE: useTraineesRealtime REMOVED - deprecated hook không còn được import
 // Sử dụng invalidateQueries hoặc manual refetch thay thế
 
-type ProgressionStage = Database['public']['Enums']['progression_stage'];
-type SimpleStatus = Database['public']['Enums']['simple_status'];
 type TraineeType = Database['public']['Enums']['trainee_type'];
 
 export interface TraineeListItem {
@@ -15,9 +14,6 @@ export interface TraineeListItem {
   full_name: string;
   birth_date: string | null;
   birthplace: string | null;
-  progression_stage: ProgressionStage | null;
-  simple_status: SimpleStatus | null;
-  enrollment_status: string | null;
   trainee_type: TraineeType | null;
   entry_date: string | null;
   interview_pass_date: string | null;
@@ -33,21 +29,23 @@ export interface TraineeListItem {
   return_date: string | null;
   contract_term: number | null;
   updated_at: string | null;
+  // Workflow fields (SINGLE SOURCE OF TRUTH)
+  workflow_stage: WorkflowStage | null;
+  workflow_stage_label: string | null;
+  workflow_sub_status: string | null;
+  // Related entities
   receiving_company: { id: string; name: string; name_japanese: string | null } | null;
   union: { id: string; name: string; name_japanese: string | null } | null;
   job_category: { id: string; name: string; name_japanese: string | null } | null;
 }
 
-// Raw trainee data from masked view
-interface TraineeMaskedRaw {
+// Raw trainee data from view
+interface TraineeWithWorkflowRaw {
   id: string;
   trainee_code: string;
   full_name: string;
   birth_date: string | null;
   birthplace: string | null;
-  progression_stage: ProgressionStage | null;
-  simple_status: SimpleStatus | null;
-  enrollment_status: string | null;
   trainee_type: TraineeType | null;
   entry_date: string | null;
   interview_pass_date: string | null;
@@ -66,12 +64,15 @@ interface TraineeMaskedRaw {
   receiving_company_id: string | null;
   union_id: string | null;
   job_category_id: string | null;
+  workflow_stage: WorkflowStage | null;
+  workflow_stage_label: string | null;
+  workflow_sub_status: string | null;
 }
 
 interface UseTraineesPaginatedParams {
   from: number;
   to: number;
-  progressionStage?: string | null;
+  workflowStage?: string | null; // Changed from progressionStage
   searchQuery?: string;
   enabled?: boolean;
 }
@@ -85,44 +86,33 @@ interface UseTraineesPaginatedResult {
   refetch: () => void;
 }
 
-// Valid progression stages for type safety
-const VALID_PROGRESSION_STAGES: ProgressionStage[] = [
-  'Chưa đậu', 'Đậu phỏng vấn', 'Nộp hồ sơ', 'OTIT', 'Nyukan', 'COE', 'Visa',
-  'Xuất cảnh', 'Đang làm việc', 'Hoàn thành hợp đồng', 'Bỏ trốn', 'Về trước hạn'
-];
-
 /**
- * Hook lấy danh sách trainees với phân trang và dữ liệu đã được che giấu
- * - Admin & Senior Staff: xem dữ liệu thực
- * - Staff thường: dữ liệu nhạy cảm bị che (phone, cccd, passport, địa chỉ)
+ * Hook lấy danh sách trainees với phân trang
+ * SỬ DỤNG trainee_workflow.current_stage LÀM SINGLE SOURCE OF TRUTH
  */
 export function useTraineesPaginated({
   from,
   to,
-  progressionStage,
+  workflowStage, // Changed from progressionStage
   searchQuery,
   enabled = true,
 }: UseTraineesPaginatedParams): UseTraineesPaginatedResult {
   
-  // NOTE: useTraineesRealtime đã bị REMOVED (deprecated)
-  // Realtime cho bảng lớn gây performance issue
-  // Sử dụng refetch() hoặc queryClient.invalidateQueries() để refresh
-  
-  // Query for count - sử dụng view trainees_masked
+  // Query for count
   const countQuery = useQuery({
-    queryKey: ['trainees-count', progressionStage, searchQuery],
+    queryKey: ['trainees-count', workflowStage, searchQuery],
     queryFn: async () => {
       const startTime = performance.now();
       
-      // Sử dụng view trainees_masked để che giấu dữ liệu nhạy cảm
+      // Use trainees_with_workflow view
       let query = supabase
-        .from('trainees_masked')
+        .from('trainees_with_workflow')
         .select('*', { count: 'exact', head: true });
 
-      // Apply progression stage filter with type safety
-      if (progressionStage && progressionStage !== 'all' && 
-          VALID_PROGRESSION_STAGES.includes(progressionStage as ProgressionStage)) {
-        query = query.eq('progression_stage', progressionStage as ProgressionStage);
+      // Apply workflow stage filter
+      if (workflowStage && workflowStage !== 'all' && 
+          (WORKFLOW_STAGES as readonly string[]).includes(workflowStage)) {
+        query = query.eq('workflow_stage', workflowStage as WorkflowStage);
       }
 
       // Apply search filter using ILIKE for partial matching
@@ -145,24 +135,21 @@ export function useTraineesPaginated({
     staleTime: 30000, // Cache for 30 seconds
   });
 
-  // Query for data - sử dụng view trainees_masked
+  // Query for data
   const dataQuery = useQuery({
-    queryKey: ['trainees-paginated', from, to, progressionStage, searchQuery],
+    queryKey: ['trainees-paginated', from, to, workflowStage, searchQuery],
     queryFn: async () => {
       const startTime = performance.now();
 
-      // Sử dụng view trainees_masked để che giấu dữ liệu nhạy cảm
+      // Use trainees_with_workflow view - SINGLE SOURCE OF TRUTH
       let query = supabase
-        .from('trainees_masked')
+        .from('trainees_with_workflow')
         .select(`
           id,
           trainee_code,
           full_name,
           birth_date,
           birthplace,
-          progression_stage,
-          simple_status,
-          enrollment_status,
           trainee_type,
           entry_date,
           interview_pass_date,
@@ -180,13 +167,16 @@ export function useTraineesPaginated({
           updated_at,
           receiving_company_id,
           union_id,
-          job_category_id
+          job_category_id,
+          workflow_stage,
+          workflow_stage_label,
+          workflow_sub_status
         `);
 
-      // Apply progression stage filter with type safety
-      if (progressionStage && progressionStage !== 'all' &&
-          VALID_PROGRESSION_STAGES.includes(progressionStage as ProgressionStage)) {
-        query = query.eq('progression_stage', progressionStage as ProgressionStage);
+      // Apply workflow stage filter
+      if (workflowStage && workflowStage !== 'all' &&
+          (WORKFLOW_STAGES as readonly string[]).includes(workflowStage)) {
+        query = query.eq('workflow_stage', workflowStage as WorkflowStage);
       }
 
       // Apply search filter
@@ -206,7 +196,7 @@ export function useTraineesPaginated({
       if (error) throw error;
 
       // Cast to proper type
-      const rawData = data as unknown as TraineeMaskedRaw[];
+      const rawData = data as unknown as TraineeWithWorkflowRaw[];
 
       // Fetch related data separately for proper typing
       const companyIds = [...new Set(rawData?.map(t => t.receiving_company_id).filter(Boolean) as string[])];
@@ -240,9 +230,6 @@ export function useTraineesPaginated({
         full_name: trainee.full_name,
         birth_date: trainee.birth_date,
         birthplace: trainee.birthplace,
-        progression_stage: trainee.progression_stage,
-        simple_status: trainee.simple_status,
-        enrollment_status: trainee.enrollment_status,
         trainee_type: trainee.trainee_type,
         entry_date: trainee.entry_date,
         interview_pass_date: trainee.interview_pass_date,
@@ -258,6 +245,11 @@ export function useTraineesPaginated({
         return_date: trainee.return_date,
         contract_term: trainee.contract_term,
         updated_at: trainee.updated_at,
+        // Workflow fields - SINGLE SOURCE OF TRUTH
+        workflow_stage: trainee.workflow_stage,
+        workflow_stage_label: trainee.workflow_stage_label,
+        workflow_sub_status: trainee.workflow_sub_status,
+        // Related entities
         receiving_company: trainee.receiving_company_id ? companiesMap.get(trainee.receiving_company_id) || null : null,
         union: trainee.union_id ? unionsMap.get(trainee.union_id) || null : null,
         job_category: trainee.job_category_id ? jobCategoriesMap.get(trainee.job_category_id) || null : null,

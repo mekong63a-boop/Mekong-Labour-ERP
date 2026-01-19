@@ -74,6 +74,13 @@ export type Database = {
             referencedRelation: "trainees_masked"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "attendance_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_with_workflow"
+            referencedColumns: ["id"]
+          },
         ]
       }
       audit_logs: {
@@ -482,6 +489,13 @@ export type Database = {
             referencedRelation: "trainees_masked"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "education_history_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_with_workflow"
+            referencedColumns: ["id"]
+          },
         ]
       }
       enrollment_history: {
@@ -564,6 +578,13 @@ export type Database = {
             referencedRelation: "trainees_masked"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "enrollment_history_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_with_workflow"
+            referencedColumns: ["id"]
+          },
         ]
       }
       family_members: {
@@ -623,6 +644,13 @@ export type Database = {
             columns: ["trainee_id"]
             isOneToOne: false
             referencedRelation: "trainees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_members_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_with_workflow"
             referencedColumns: ["id"]
           },
         ]
@@ -708,6 +736,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "interview_history_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_with_workflow"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "interview_history_union_id_fkey"
             columns: ["union_id"]
             isOneToOne: false
@@ -770,6 +805,13 @@ export type Database = {
             columns: ["trainee_id"]
             isOneToOne: false
             referencedRelation: "trainees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "japan_relatives_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_with_workflow"
             referencedColumns: ["id"]
           },
         ]
@@ -1180,6 +1222,13 @@ export type Database = {
             referencedRelation: "trainees_masked"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "test_scores_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_with_workflow"
+            referencedColumns: ["id"]
+          },
         ]
       }
       trainee_reviews: {
@@ -1251,6 +1300,13 @@ export type Database = {
             referencedRelation: "trainees_masked"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "trainee_reviews_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_with_workflow"
+            referencedColumns: ["id"]
+          },
         ]
       }
       trainee_workflow: {
@@ -1317,6 +1373,13 @@ export type Database = {
             columns: ["trainee_id"]
             isOneToOne: true
             referencedRelation: "trainees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainee_workflow_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: true
+            referencedRelation: "trainees_with_workflow"
             referencedColumns: ["id"]
           },
         ]
@@ -1388,6 +1451,13 @@ export type Database = {
             columns: ["trainee_id"]
             isOneToOne: false
             referencedRelation: "trainees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainee_workflow_history_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_with_workflow"
             referencedColumns: ["id"]
           },
         ]
@@ -1977,6 +2047,13 @@ export type Database = {
             referencedRelation: "trainees_masked"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "work_history_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_with_workflow"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -2039,6 +2116,7 @@ export type Database = {
         Row: {
           count: number | null
           stage: string | null
+          stage_label: string | null
         }
         Relationships: []
       }
@@ -2070,26 +2148,14 @@ export type Database = {
           departed_this_year: number | null
           registered_this_month: number | null
           registered_this_year: number | null
-          stage_absconded: number | null
-          stage_coe: number | null
-          stage_completed: number | null
+          stage_archived: number | null
           stage_departed: number | null
-          stage_early_return: number | null
-          stage_not_passed: number | null
-          stage_nyukan: number | null
-          stage_otit: number | null
-          stage_passed_interview: number | null
-          stage_submitted: number | null
-          stage_visa: number | null
-          stage_working: number | null
-          status_cancelled: number | null
-          status_in_japan: number | null
-          status_left_company: number | null
-          status_new: number | null
-          status_not_studying: number | null
-          status_reserved: number | null
-          status_stopped: number | null
-          status_studying: number | null
+          stage_dormitory: number | null
+          stage_post_departure: number | null
+          stage_ready_to_depart: number | null
+          stage_recruited: number | null
+          stage_trained: number | null
+          stage_visa_processing: number | null
           total_trainees: number | null
           type_engineer: number | null
           type_knd: number | null
@@ -2148,6 +2214,14 @@ export type Database = {
           specialty?: string | null
           status?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      trainee_workflow_counts: {
+        Row: {
+          count: number | null
+          stage_key: string | null
+          stage_label: string | null
         }
         Relationships: []
       }
@@ -2550,6 +2624,77 @@ export type Database = {
         }
         Relationships: []
       }
+      trainees_with_workflow: {
+        Row: {
+          absconded_date: string | null
+          birth_date: string | null
+          birthplace: string | null
+          blood_group: string | null
+          class_id: string | null
+          coe_date: string | null
+          contract_end_date: string | null
+          contract_term: number | null
+          created_at: string | null
+          current_situation: string | null
+          departure_date: string | null
+          document_submission_date: string | null
+          dominant_hand: string | null
+          drinking: string | null
+          early_return_date: string | null
+          early_return_reason: string | null
+          education_level: string | null
+          entry_date: string | null
+          ethnicity: string | null
+          expected_entry_month: string | null
+          expected_return_date: string | null
+          full_name: string | null
+          furigana: string | null
+          gender: string | null
+          health_status: string | null
+          height: number | null
+          hobbies: string | null
+          id: string | null
+          interview_count: number | null
+          interview_pass_date: string | null
+          job_category_id: string | null
+          marital_status: string | null
+          notes: string | null
+          nyukan_entry_date: string | null
+          otit_entry_date: string | null
+          owner_department_id: string | null
+          photo_url: string | null
+          receiving_company_id: string | null
+          registration_date: string | null
+          return_date: string | null
+          smoking: string | null
+          tattoo: boolean | null
+          tattoo_description: string | null
+          trainee_code: string | null
+          trainee_type: Database["public"]["Enums"]["trainee_type"] | null
+          transitioned_at: string | null
+          transitioned_by: string | null
+          union_id: string | null
+          updated_at: string | null
+          visa_date: string | null
+          vision_left: number | null
+          vision_right: number | null
+          weight: number | null
+          workflow_stage:
+            | Database["public"]["Enums"]["trainee_workflow_stage"]
+            | null
+          workflow_stage_label: string | null
+          workflow_sub_status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainee_workflow_owner_department_id_fkey"
+            columns: ["owner_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       assign_first_admin: { Args: { _user_id: string }; Returns: boolean }
@@ -2683,6 +2828,10 @@ export type Database = {
         }
         Returns: string
       }
+      map_progression_to_workflow_stage: {
+        Args: { old_stage: string }
+        Returns: Database["public"]["Enums"]["trainee_workflow_stage"]
+      }
       mask_audit_sensitive_fields: { Args: { data: Json }; Returns: Json }
       mask_cccd: { Args: { cccd_value: string }; Returns: string }
       mask_email: { Args: { email_value: string }; Returns: string }
@@ -2706,6 +2855,10 @@ export type Database = {
           _trainee_id: string
         }
         Returns: boolean
+      }
+      workflow_stage_label: {
+        Args: { stage: Database["public"]["Enums"]["trainee_workflow_stage"] }
+        Returns: string
       }
     }
     Enums: {
