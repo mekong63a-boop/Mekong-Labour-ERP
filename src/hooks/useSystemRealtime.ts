@@ -76,9 +76,15 @@ export function useSystemRealtime() {
         { event: '*', schema: 'public', table: 'user_roles' },
         (payload) => {
           console.log('[Realtime] User roles changed:', payload.eventType);
+          // Invalidate tất cả query liên quan đến roles/permissions
           queryClient.invalidateQueries({ queryKey: ["user-role"] });
           queryClient.invalidateQueries({ queryKey: ["users"] });
           queryClient.invalidateQueries({ queryKey: ["all-users"] });
+          queryClient.invalidateQueries({ queryKey: ["all-users-with-roles"] });
+          queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+          queryClient.invalidateQueries({ queryKey: ["is-primary-admin"] });
+          queryClient.invalidateQueries({ queryKey: ["is-admin-check"] });
+          queryClient.invalidateQueries({ queryKey: ["user-access-version"] });
         }
       )
       // ========== MENUS (cấu trúc menu) ==========
@@ -88,6 +94,7 @@ export function useSystemRealtime() {
         (payload) => {
           console.log('[Realtime] Menus changed:', payload.eventType);
           queryClient.invalidateQueries({ queryKey: ["menus"] });
+          queryClient.invalidateQueries({ queryKey: ["menus-full"] });
         }
       )
       // ========== USER MENU PERMISSIONS ==========
@@ -96,9 +103,13 @@ export function useSystemRealtime() {
         { event: '*', schema: 'public', table: 'user_menu_permissions' },
         (payload) => {
           console.log('[Realtime] User menu permissions changed:', payload.eventType);
+          // Invalidate tất cả query liên quan đến permissions
           queryClient.invalidateQueries({ queryKey: ["menu-permissions"] });
           queryClient.invalidateQueries({ queryKey: ["effective-permissions"] });
           queryClient.invalidateQueries({ queryKey: ["user-permissions"] });
+          queryClient.invalidateQueries({ queryKey: ["user-menu-permissions-direct"] });
+          queryClient.invalidateQueries({ queryKey: ["user-access-version"] });
+          queryClient.invalidateQueries({ queryKey: ["is-primary-admin"] });
         }
       )
       // ========== DEPARTMENT MENU PERMISSIONS ==========
@@ -109,6 +120,7 @@ export function useSystemRealtime() {
           console.log('[Realtime] Department menu permissions changed:', payload.eventType);
           queryClient.invalidateQueries({ queryKey: ["department-permissions"] });
           queryClient.invalidateQueries({ queryKey: ["effective-permissions"] });
+          queryClient.invalidateQueries({ queryKey: ["user-menu-permissions-direct"] });
         }
       )
       // ========== DEPARTMENT MEMBERS ==========
@@ -120,6 +132,18 @@ export function useSystemRealtime() {
           queryClient.invalidateQueries({ queryKey: ["department-members"] });
           queryClient.invalidateQueries({ queryKey: ["department-counts"] });
           queryClient.invalidateQueries({ queryKey: ["effective-permissions"] });
+          queryClient.invalidateQueries({ queryKey: ["user-departments"] });
+        }
+      )
+      // ========== USER ACCESS VERSIONS (quyền được thay đổi) ==========
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_access_versions' },
+        (payload) => {
+          console.log('[Realtime] User access version changed:', payload.eventType);
+          queryClient.invalidateQueries({ queryKey: ["user-access-version"] });
+          queryClient.invalidateQueries({ queryKey: ["user-menu-permissions-direct"] });
+          queryClient.invalidateQueries({ queryKey: ["is-primary-admin"] });
         }
       )
       .subscribe((status) => {
