@@ -270,54 +270,71 @@ export default function TraineeDashboard() {
     // Calculate total trainees (no filter for total)
     result.total = allTrainees.length;
 
+    // Helper to check if a specific date matches filter
+    const checkDateMatch = (dateStr: string | null) => {
+      if (!dateStr) return false;
+      const date = new Date(dateStr);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      if (selectedYear !== "all" && year !== parseInt(selectedYear)) return false;
+      if (selectedMonth !== "all" && month !== parseInt(selectedMonth)) return false;
+      return true;
+    };
+
+    const noFilter = selectedYear === "all" && selectedMonth === "all";
+
     // For each trainee, calculate relevant metrics
     allTrainees.forEach((t) => {
-      // PHẦN 1: SỐ LIỆU ĐẦU VÀO - Lọc theo registration_date (hoặc created_at nếu không có)
+      // === PHẦN 1: SỐ LIỆU ĐẦU VÀO ===
+      
+      // 1. Đăng ký mới: Lọc theo registration_date (hoặc created_at nếu không có)
       const registrationDateStr = t.registration_date || t.created_at;
-      const matchesRegistrationFilter = registrationDateStr && matchesDateFilter(registrationDateStr);
-
-      // Đăng ký mới: trainees registered in filter period (using actual registration_date)
-      if (matchesRegistrationFilter) {
+      const matchesRegistration = checkDateMatch(registrationDateStr);
+      if (noFilter || matchesRegistration) {
         result.registered_new++;
       }
 
-      // Status-based metrics (these are current state, optionally filter by registration_date)
-      // If no filter, show all; if filter, only show those registered in that period
-      const shouldCountForInput = selectedYear === "all" && selectedMonth === "all" 
-        ? true 
-        : matchesRegistrationFilter;
-
-      if (shouldCountForInput) {
-        // Chưa học: enrollment_status is null or "Chưa học"
-        if (!t.enrollment_status || t.enrollment_status === "Chưa học") {
+      // 2. Chưa học: Lọc theo registration_date
+      if (!t.enrollment_status || t.enrollment_status === "Chưa học") {
+        if (noFilter || matchesRegistration) {
           result.not_studying++;
         }
-        // Đang học
-        if (t.enrollment_status === "Đang học" || t.simple_status === "Đang học") {
+      }
+
+      // 3. Đang học: Lọc theo registration_date
+      if (t.enrollment_status === "Đang học" || t.simple_status === "Đang học") {
+        if (noFilter || matchesRegistration) {
           result.studying++;
         }
-        // Bảo lưu
-        if (t.enrollment_status === "Bảo lưu" || t.simple_status === "Bảo lưu") {
+      }
+
+      // 4. Bảo lưu: Lọc theo registration_date
+      if (t.enrollment_status === "Bảo lưu" || t.simple_status === "Bảo lưu") {
+        if (noFilter || matchesRegistration) {
           result.reserved++;
         }
-        // Hủy
-        if (t.simple_status === "Hủy" || t.enrollment_status === "Đã hủy") {
+      }
+
+      // 5. Hủy: Lọc theo registration_date
+      if (t.simple_status === "Hủy" || t.enrollment_status === "Đã hủy") {
+        if (noFilter || matchesRegistration) {
           result.cancelled++;
         }
-        // Đậu phỏng vấn: has interview_pass_date or progression_stage indicates passed
-        if (t.interview_pass_date || (t.progression_stage && t.progression_stage !== "Chưa đậu")) {
+      }
+
+      // 6. Đậu phỏng vấn: Lọc theo interview_pass_date (KHÔNG PHẢI registration_date)
+      const hasPassedInterview = t.interview_pass_date || (t.progression_stage && !["Chưa đậu", "Tuyển dụng"].includes(t.progression_stage as string));
+      if (hasPassedInterview) {
+        const matchesInterviewDate = checkDateMatch(t.interview_pass_date);
+        if (noFilter || matchesInterviewDate) {
           result.passed_interview++;
         }
       }
 
-      // PHẦN 2: SỐ LIỆU ĐẦU RA - Lọc theo departure_date
+      // === PHẦN 2: SỐ LIỆU ĐẦU RA - Lọc theo departure_date ===
       if (t.departure_date) {
-        const matchesDepartureFilter = matchesDateFilter(t.departure_date);
-        const shouldCountDeparture = selectedYear === "all" && selectedMonth === "all"
-          ? true
-          : matchesDepartureFilter;
-
-        if (shouldCountDeparture) {
+        const matchesDeparture = checkDateMatch(t.departure_date);
+        if (noFilter || matchesDeparture) {
           result.departed_total++;
           
           // Count by trainee_type
