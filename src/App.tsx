@@ -47,10 +47,14 @@ function useQueryClientWithAuthClear() {
       new QueryClient({
         defaultOptions: {
           queries: {
-            // Reduce default staleTime for fresher data
-            staleTime: 30 * 1000, // 30 seconds
-            gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
-            refetchOnWindowFocus: true,
+            staleTime: 2 * 60 * 1000, // 2 minutes - dữ liệu còn fresh
+            gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
+            // CRITICAL: Tắt refetchOnWindowFocus để tránh load lại khi chuyển tab
+            refetchOnWindowFocus: false,
+            // Không refetch khi reconnect network
+            refetchOnReconnect: false,
+            // Không retry quá nhiều
+            retry: 1,
           },
         },
       }),

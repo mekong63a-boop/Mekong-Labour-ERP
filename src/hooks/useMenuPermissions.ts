@@ -97,6 +97,7 @@ export function useMenuPermissions() {
   const { user } = useAuth();
 
   // ★ Access version phải đứng đầu để đảm bảo hook order nhất quán
+  // Realtime đã handle cập nhật quyền, không cần refetch khi focus
   const { data: accessVersion } = useQuery({
     queryKey: ['user-access-version', user?.id],
     queryFn: async () => {
@@ -113,9 +114,8 @@ export function useMenuPermissions() {
       return data?.updated_at ?? null;
     },
     enabled: !!user?.id,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    staleTime: 5 * 60 * 1000, // 5 phút - realtime sẽ invalidate nếu có thay đổi
+    refetchOnWindowFocus: false, // KHÔNG refetch khi chuyển tab
   });
 
   // Realtime cập nhật quyền/phòng ban
@@ -169,6 +169,7 @@ export function useMenuPermissions() {
   });
 
   // Lấy quyền menu TRỰC TIẾP từ user_menu_permissions
+  // Realtime đã handle cập nhật, không cần refetch khi focus
   const { data: permissions = [], isLoading: permissionsLoading } = useQuery({
     queryKey: ['user-menu-permissions-direct', user?.id, accessVersion],
     queryFn: async () => {
@@ -184,9 +185,8 @@ export function useMenuPermissions() {
       return (data ?? []) as MenuPermission[];
     },
     enabled: !!user?.id,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    staleTime: 5 * 60 * 1000, // 5 phút - realtime sẽ invalidate nếu có thay đổi
+    refetchOnWindowFocus: false, // KHÔNG refetch khi chuyển tab
   });
 
   // Build visible menus với hierarchy
@@ -344,9 +344,8 @@ export function useUserAccessVersion(userId?: string) {
       return data?.updated_at ?? null;
     },
     enabled: !!targetUserId,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    staleTime: 5 * 60 * 1000, // 5 phút
+    refetchOnWindowFocus: false, // KHÔNG refetch khi chuyển tab
   });
 
   return { data };
