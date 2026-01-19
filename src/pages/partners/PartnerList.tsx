@@ -79,13 +79,28 @@ export default function PartnerList() {
   const { data: unions, isLoading: loadingUnions, refetch: refetchUnions } = useUnions();
   const { data: jobCategories, isLoading: loadingJobs, refetch: refetchJobs } = useJobCategories();
 
-  // Fetch trainee counts for companies
+  // Danh sách các trạng thái được tính là "đậu phỏng vấn trở về sau"
+  const PASSED_STAGES = [
+    "Đậu phỏng vấn",
+    "Nộp hồ sơ",
+    "OTIT",
+    "Nyukan",
+    "COE",
+    "Xuất cảnh",
+    "Đang làm việc",
+    "Bỏ trốn",
+    "Về trước hạn",
+    "Hoàn thành hợp đồng",
+  ] as const;
+
+  // Fetch trainee counts for companies - CHỈ tính những học viên đã đậu phỏng vấn trở về sau
   useEffect(() => {
     const fetchTraineeCounts = async () => {
       const { data, error } = await supabase
         .from("trainees")
-        .select("receiving_company_id")
-        .not("receiving_company_id", "is", null);
+        .select("receiving_company_id, progression_stage")
+        .not("receiving_company_id", "is", null)
+        .in("progression_stage", [...PASSED_STAGES]);
 
       if (error) {
         console.error("Error fetching trainee counts:", error);
