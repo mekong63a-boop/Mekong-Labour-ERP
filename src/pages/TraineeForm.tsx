@@ -35,6 +35,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 
 // Local storage key for auto-save
 const TRAINEE_DRAFT_KEY = "trainee_form_draft";
+const TRAINEE_PHOTO_DRAFT_KEY = "trainee_photo_draft";
 
 // Options
 const TRAINEE_TYPES = ["Thực tập sinh", "Kỹ năng đặc định", "Kỹ sư", "Du học sinh", "Thực tập sinh số 3"];
@@ -161,6 +162,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   
   // Pending photo file for upload on save
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
+  // Photo preview URL (for restored drafts)
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   
   // History form states
   const [educationItems, setEducationItems] = useState<EducationItem[]>([]);
@@ -301,55 +304,92 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
 
   // Check for existing draft on mount (only for new trainees)
   useEffect(() => {
-    if (!isEditMode) {
-      const savedDraft = localStorage.getItem(TRAINEE_DRAFT_KEY);
-      if (savedDraft) {
-        try {
-          const draft = JSON.parse(savedDraft);
+    const restoreDraft = async () => {
+      if (!isEditMode) {
+        const savedDraft = localStorage.getItem(TRAINEE_DRAFT_KEY);
+        const savedPhoto = localStorage.getItem(TRAINEE_PHOTO_DRAFT_KEY);
+        
+        if (savedDraft) {
+          try {
+            const draft = JSON.parse(savedDraft);
 
-          const hasAnyValue = (obj: Record<string, unknown> | undefined) => {
-            if (!obj) return false;
-            return Object.values(obj).some((v) => {
-              if (v === null || v === undefined) return false;
-              if (typeof v === 'string') return v.trim().length > 0;
-              if (typeof v === 'number') return true;
-              if (typeof v === 'boolean') return v;
-              return Boolean(v);
-            });
-          };
+            const hasAnyValue = (obj: Record<string, unknown> | undefined) => {
+              if (!obj) return false;
+              return Object.values(obj).some((v) => {
+                if (v === null || v === undefined) return false;
+                if (typeof v === 'string') return v.trim().length > 0;
+                if (typeof v === 'number') return true;
+                if (typeof v === 'boolean') return v;
+                return Boolean(v);
+              });
+            };
 
-          const isMeaningfulDraft =
-            hasAnyValue(draft.formData) ||
-            (Array.isArray(draft.educationItems) && draft.educationItems.length > 0) ||
-            (Array.isArray(draft.workItems) && draft.workItems.length > 0) ||
-            (Array.isArray(draft.familyItems) && draft.familyItems.length > 0) ||
-            (Array.isArray(draft.japanRelativeItems) && draft.japanRelativeItems.length > 0) ||
-            hasAnyValue(draft.projectData) ||
-            typeof draft.activeTab === 'string';
+            const isMeaningfulDraft =
+              hasAnyValue(draft.formData) ||
+              (Array.isArray(draft.educationItems) && draft.educationItems.length > 0) ||
+              (Array.isArray(draft.workItems) && draft.workItems.length > 0) ||
+              (Array.isArray(draft.familyItems) && draft.familyItems.length > 0) ||
+              (Array.isArray(draft.japanRelativeItems) && draft.japanRelativeItems.length > 0) ||
+              hasAnyValue(draft.projectData) ||
+              typeof draft.activeTab === 'string' ||
+              !!savedPhoto;
 
-          if (isMeaningfulDraft) {
-            setHasDraft(true);
-            // Auto-restore draft
-            if (draft.formData) setFormData(draft.formData);
-            if (draft.educationItems) setEducationItems(draft.educationItems);
-            if (draft.workItems) setWorkItems(draft.workItems);
-            if (draft.familyItems) setFamilyItems(draft.familyItems);
-            if (draft.japanRelativeItems) setJapanRelativeItems(draft.japanRelativeItems);
-            if (draft.projectData) setProjectData(draft.projectData);
-            if (draft.activeTab) setActiveTab(draft.activeTab);
+            if (isMeaningfulDraft) {
+              setHasDraft(true);
+              // Auto-restore draft
+              if (draft.formData) setFormData(draft.formData);
+              if (draft.educationItems) setEducationItems(draft.educationItems);
+              if (draft.workItems) setWorkItems(draft.workItems);
+              if (draft.familyItems) setFamilyItems(draft.familyItems);
+              if (draft.japanRelativeItems) setJapanRelativeItems(draft.japanRelativeItems);
+              if (draft.projectData) setProjectData(draft.projectData);
+              if (draft.activeTab) setActiveTab(draft.activeTab);
 
-            toast({
-              title: "Đã khôi phục bản nháp",
-              description: "Dữ liệu nhập liệu trước đó đã được khôi phục.",
-            });
+              // Restore photo from base64
+              if (savedPhoto) {
+                setPhotoPreviewUrl(savedPhoto);
+                // Convert base64 back to File for upload on save
+                try {
+                  const response = await fetch(savedPhoto);
+                  const blob = await response.blob();
+                  const fileName = `draft_photo_${Date.now()}.jpg`;
+                  const file = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
+                  setPendingPhotoFile(file);
+                } catch (err) {
+                  console.warn('Could not restore photo file from draft:', err);
+                }
+              }
+
+              toast({
+                title: "Đã khôi phục bản nháp",
+                description: "Dữ liệu nhập liệu trước đó đã được khôi phục.",
+              });
+            }
+          } catch (e) {
+            console.error("Error parsing draft:", e);
+            localStorage.removeItem(TRAINEE_DRAFT_KEY);
+            localStorage.removeItem(TRAINEE_PHOTO_DRAFT_KEY);
           }
-        } catch (e) {
-          console.error("Error parsing draft:", e);
-          localStorage.removeItem(TRAINEE_DRAFT_KEY);
+        } else if (savedPhoto) {
+          // Only photo was saved
+          setPhotoPreviewUrl(savedPhoto);
+          setHasDraft(true);
+          // Convert to File
+          try {
+            const response = await fetch(savedPhoto);
+            const blob = await response.blob();
+            const fileName = `draft_photo_${Date.now()}.jpg`;
+            const file = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
+            setPendingPhotoFile(file);
+          } catch (err) {
+            console.warn('Could not restore photo file from draft:', err);
+          }
         }
       }
-    }
-    isInitialLoad.current = false;
+      isInitialLoad.current = false;
+    };
+
+    restoreDraft();
   }, [isEditMode]);
 
   // Helper function to save draft immediately
@@ -471,7 +511,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   // Clear draft after successful save
   const clearDraft = useCallback(() => {
     localStorage.removeItem(TRAINEE_DRAFT_KEY);
+    localStorage.removeItem(TRAINEE_PHOTO_DRAFT_KEY);
     setHasDraft(false);
+    setPhotoPreviewUrl(null);
   }, []);
 
   // Populate form with trainee data when editing
@@ -1146,10 +1188,24 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                     {/* Photo Upload + Trainee Code */}
                     <div className="flex-shrink-0 space-y-2">
                       <PhotoUpload
-                        currentPhotoUrl={formData.photo_url}
+                        currentPhotoUrl={photoPreviewUrl || formData.photo_url}
                         onPhotoChange={(url, file) => {
                           if (file && !isEditMode) {
                             setPendingPhotoFile(file);
+                            // Convert file to base64 and save to localStorage for draft restore
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              const base64 = reader.result as string;
+                              setPhotoPreviewUrl(base64);
+                              localStorage.setItem(TRAINEE_PHOTO_DRAFT_KEY, base64);
+                            };
+                            reader.readAsDataURL(file);
+                          } else if (url === null && file === null) {
+                            // Photo removed
+                            setPendingPhotoFile(null);
+                            setPhotoPreviewUrl(null);
+                            localStorage.removeItem(TRAINEE_PHOTO_DRAFT_KEY);
+                            updateField("photo_url", "");
                           } else {
                             updateField("photo_url", url || "");
                           }
