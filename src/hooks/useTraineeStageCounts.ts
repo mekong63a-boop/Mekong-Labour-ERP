@@ -1,24 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import { StageCounts } from '@/components/trainees/StageTabsGrid';
 
 type ProgressionStage = Database['public']['Enums']['progression_stage'];
 
-export interface StageCounts {
-  all: number;
-  'Chưa đậu': number;
-  'Đậu phỏng vấn': number;
-  'Nộp hồ sơ': number;
-  'OTIT': number;
-  'Nyukan': number;
-  'COE': number;
-  'Visa': number;
-  'Xuất cảnh': number;
-  'Đang làm việc': number;
-  'Bỏ trốn': number;
-  'Về trước hạn': number;
-  'Hoàn thành hợp đồng': number;
-}
+// =============================================================================
+// Hook đếm số lượng học viên theo progression_stage
+// SOURCE OF TRUTH: trainees.progression_stage (cho UI tabs)
+// =============================================================================
 
 const PROGRESSION_STAGES: ProgressionStage[] = [
   'Chưa đậu', 'Đậu phỏng vấn', 'Nộp hồ sơ', 'OTIT', 'Nyukan', 'COE', 'Visa',
