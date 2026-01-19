@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -68,7 +69,7 @@ const COLORS = [
   "hsl(var(--chart-5))",
 ];
 
-// KPI Card Component
+// KPI Card Component with click support
 function KPICard({
   title,
   value,
@@ -76,6 +77,8 @@ function KPICard({
   description,
   isLoading,
   variant = "default",
+  onClick,
+  clickable = false,
 }: {
   title: string;
   value: number | string;
@@ -83,6 +86,8 @@ function KPICard({
   description?: string;
   isLoading: boolean;
   variant?: "default" | "success" | "warning" | "danger" | "info";
+  onClick?: () => void;
+  clickable?: boolean;
 }) {
   const variantClasses = {
     default: "bg-card border",
@@ -101,7 +106,10 @@ function KPICard({
   };
 
   return (
-    <Card className={variantClasses[variant]}>
+    <Card 
+      className={`${variantClasses[variant]} ${clickable ? "cursor-pointer hover:shadow-md transition-shadow" : ""}`}
+      onClick={clickable ? onClick : undefined}
+    >
       <CardHeader className="flex flex-row items-center justify-between pb-2 pt-3 px-4">
         <CardTitle className="text-xs font-medium text-muted-foreground">
           {title}
@@ -154,11 +162,21 @@ function ChartCard({
 
 export default function TraineeDashboard() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
   
   // Filter states
   const [selectedYear, setSelectedYear] = useState<string>(currentYear.toString());
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
+
+  // Navigate to detail list with filter
+  const navigateToDetail = (filter: string) => {
+    const params = new URLSearchParams();
+    params.set("filter", filter);
+    params.set("year", selectedYear);
+    params.set("month", selectedMonth);
+    navigate(`/dashboard/trainees/detail?${params.toString()}`);
+  };
 
   // Fetch all trainees with needed fields
   const { data: allTrainees = [], isLoading: loadingTrainees, refetch } = useQuery({
@@ -244,20 +262,20 @@ export default function TraineeDashboard() {
 
     // For each trainee, calculate relevant metrics
     allTrainees.forEach((t) => {
-      // PHẦN 1: SỐ LIỆU ĐẦU VÀO - Lọc theo created_at
-      const createdDate = t.created_at ? new Date(t.created_at) : null;
-      const matchesCreatedFilter = createdDate && matchesDateFilter(t.created_at);
+      // PHẦN 1: SỐ LIỆU ĐẦU VÀO - Lọc theo registration_date (hoặc created_at nếu không có)
+      const registrationDateStr = t.registration_date || t.created_at;
+      const matchesRegistrationFilter = registrationDateStr && matchesDateFilter(registrationDateStr);
 
-      // Đăng ký mới: trainees created in filter period
-      if (matchesCreatedFilter) {
+      // Đăng ký mới: trainees registered in filter period (using actual registration_date)
+      if (matchesRegistrationFilter) {
         result.registered_new++;
       }
 
-      // Status-based metrics (these are current state, optionally filter by created_at)
-      // If no filter, show all; if filter, only show those created in that period
+      // Status-based metrics (these are current state, optionally filter by registration_date)
+      // If no filter, show all; if filter, only show those registered in that period
       const shouldCountForInput = selectedYear === "all" && selectedMonth === "all" 
         ? true 
-        : matchesCreatedFilter;
+        : matchesRegistrationFilter;
 
       if (shouldCountForInput) {
         // Chưa học: enrollment_status is null or "Chưa học"
@@ -409,12 +427,16 @@ export default function TraineeDashboard() {
             icon={CalendarDays}
             isLoading={loadingTrainees}
             variant="info"
+            clickable
+            onClick={() => navigateToDetail("registered_new")}
           />
           <KPICard
             title="Chưa học"
             value={kpis.not_studying}
             icon={BookOpen}
             isLoading={loadingTrainees}
+            clickable
+            onClick={() => navigateToDetail("not_studying")}
           />
           <KPICard
             title="Đang học"
@@ -422,6 +444,8 @@ export default function TraineeDashboard() {
             icon={GraduationCap}
             isLoading={loadingTrainees}
             variant="info"
+            clickable
+            onClick={() => navigateToDetail("studying")}
           />
           <KPICard
             title="Bảo lưu"
@@ -429,6 +453,8 @@ export default function TraineeDashboard() {
             icon={PauseCircle}
             isLoading={loadingTrainees}
             variant="warning"
+            clickable
+            onClick={() => navigateToDetail("reserved")}
           />
           <KPICard
             title="Hủy"
@@ -436,6 +462,8 @@ export default function TraineeDashboard() {
             icon={XCircle}
             isLoading={loadingTrainees}
             variant="danger"
+            clickable
+            onClick={() => navigateToDetail("cancelled")}
           />
           <KPICard
             title="Đậu phỏng vấn"
@@ -443,6 +471,8 @@ export default function TraineeDashboard() {
             icon={UserCheck}
             isLoading={loadingTrainees}
             variant="success"
+            clickable
+            onClick={() => navigateToDetail("passed_interview")}
           />
         </div>
       </div>
@@ -459,6 +489,8 @@ export default function TraineeDashboard() {
             icon={Building}
             isLoading={loadingTrainees}
             variant="success"
+            clickable
+            onClick={() => navigateToDetail("departed_tts")}
           />
           <KPICard
             title="TTS số 3"
@@ -466,6 +498,8 @@ export default function TraineeDashboard() {
             icon={Building}
             isLoading={loadingTrainees}
             variant="success"
+            clickable
+            onClick={() => navigateToDetail("departed_tts3")}
           />
           <KPICard
             title="Du học sinh"
@@ -473,6 +507,8 @@ export default function TraineeDashboard() {
             icon={GraduationCap}
             isLoading={loadingTrainees}
             variant="success"
+            clickable
+            onClick={() => navigateToDetail("departed_student")}
           />
           <KPICard
             title="Kỹ năng đặc định"
@@ -480,6 +516,8 @@ export default function TraineeDashboard() {
             icon={Building}
             isLoading={loadingTrainees}
             variant="success"
+            clickable
+            onClick={() => navigateToDetail("departed_knd")}
           />
           <KPICard
             title="Kỹ sư"
@@ -487,6 +525,8 @@ export default function TraineeDashboard() {
             icon={Building}
             isLoading={loadingTrainees}
             variant="success"
+            clickable
+            onClick={() => navigateToDetail("departed_engineer")}
           />
           <KPICard
             title="Tổng xuất cảnh"
@@ -494,6 +534,8 @@ export default function TraineeDashboard() {
             icon={Plane}
             isLoading={loadingTrainees}
             variant="success"
+            clickable
+            onClick={() => navigateToDetail("departed_total")}
           />
         </div>
       </div>
