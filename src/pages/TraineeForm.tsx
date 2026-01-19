@@ -583,6 +583,51 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         (traineeData as any).interview_pass_date = projectData.interview_date;
       }
 
+      const maybeLogInterviewHistory = async (targetTraineeId: string) => {
+        const toNull = (v?: string) => (v && v.trim() !== "" ? v : null);
+
+        const payload = {
+          interview_date: toNull(projectData.interview_date),
+          company_id: toNull(projectData.receiving_company_id),
+          union_id: toNull(projectData.union_id),
+          job_category_id:
+            toNull(projectData.job_category_id) ??
+            ((traineeData as any).job_category_id ?? null),
+          expected_entry_month: toNull(projectData.expected_entry_month),
+        };
+
+        const hasAny = Object.values(payload).some((v) => v !== null);
+        if (!hasAny) return;
+
+        const { data: latest, error: latestError } = await supabase
+          .from("interview_history")
+          .select("interview_date, company_id, union_id, job_category_id, expected_entry_month")
+          .eq("trainee_id", targetTraineeId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (latestError) throw latestError;
+
+        const isSameAsLatest =
+          !!latest &&
+          latest.interview_date === payload.interview_date &&
+          latest.company_id === payload.company_id &&
+          latest.union_id === payload.union_id &&
+          latest.job_category_id === payload.job_category_id &&
+          latest.expected_entry_month === payload.expected_entry_month;
+
+        if (isSameAsLatest) return;
+
+        const { error: insertError } = await supabase.from("interview_history").insert({
+          trainee_id: targetTraineeId,
+          ...payload,
+          result: "Chờ",
+        });
+
+        if (insertError) throw insertError;
+      };
+
       let newTraineeId: string | undefined;
 
       if (isEditMode && traineeId) {
@@ -590,14 +635,21 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
           id: traineeId,
           updates: traineeData,
         });
+
+        await maybeLogInterviewHistory(traineeId);
+
         toast({ title: "Cập nhật học viên thành công" });
       } else {
-        const { data, error } = await supabase.from("trainees").insert(traineeData).select("id").single();
+        const { data, error } = await supabase
+          .from("trainees")
+          .insert(traineeData)
+          .select("id")
+          .single();
         if (error) throw error;
         newTraineeId = data.id;
         toast({ title: "Thêm học viên thành công" });
       }
-      
+
       // Save history data for new trainees
       if (!isEditMode && newTraineeId) {
         // Save education history
@@ -671,17 +723,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         }
         
         // Save interview history if there's interview data
-        if (projectData.interview_date || projectData.receiving_company_id) {
-          await supabase.from("interview_history").insert({
-            trainee_id: newTraineeId,
-            interview_date: projectData.interview_date || null,
-            company_id: projectData.receiving_company_id || null,
-            union_id: projectData.union_id || null,
-            job_category_id: projectData.job_category_id || null,
-            expected_entry_month: projectData.expected_entry_month || null,
-            result: "Chờ",
-          });
-        }
+        await maybeLogInterviewHistory(newTraineeId);
+
       }
 
       navigate("/trainees");
