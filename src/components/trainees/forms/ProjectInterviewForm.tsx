@@ -69,7 +69,7 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
       const { data, error } = await supabase
         .from("job_categories")
         .select("id, name, name_japanese")
-        .eq("status", "Đang sử dụng")
+        .eq("status", "Hoạt động")
         .order("name");
       if (error) throw error;
       return data || [];
