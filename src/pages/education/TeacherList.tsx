@@ -29,6 +29,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { useTeachers, useCreateTeacher, Teacher } from "@/hooks/useEducation";
 import { Plus, Search, ArrowLeft, Mail, Phone, Pencil, Download } from "lucide-react";
+import { useCanAction } from "@/hooks/useMenuPermissions";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +55,9 @@ export default function TeacherList() {
     class_start_date: "",
     class_end_date: "",
   });
+
+  const { hasPermission: canCreate } = useCanAction("education", "create");
+  const { hasPermission: canUpdate } = useCanAction("education", "update");
 
   const filteredTeachers = teachers?.filter((t) =>
     t.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -198,74 +202,76 @@ export default function TeacherList() {
             <Download className="mr-2 h-4 w-4" />
             Xuất Excel
           </Button>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Thêm giáo viên
-              </Button>
-            </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Thêm giáo viên mới</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Mã giáo viên *</Label>
-                  <Input
-                    placeholder="GV001"
-                    value={formData.code}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Họ và tên *</Label>
-                  <Input
-                    placeholder="Nguyễn Văn A"
-                    value={formData.full_name}
-                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Số điện thoại</Label>
-                  <Input
-                    placeholder="0912345678"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label>Email</Label>
-                  <Input
-                    type="email"
-                    placeholder="email@example.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div>
-                <Label>Chuyên môn</Label>
-                <Input
-                  placeholder="Tiếng Nhật"
-                  value={formData.specialty}
-                  onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-4">
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Hủy
+          {canCreate && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Thêm giáo viên
                 </Button>
-                <Button onClick={handleCreate} disabled={createTeacher.isPending}>
-                  Thêm
-                </Button>
+              </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Thêm giáo viên mới</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Mã giáo viên *</Label>
+                    <Input
+                      placeholder="GV001"
+                      value={formData.code}
+                      onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Họ và tên *</Label>
+                    <Input
+                      placeholder="Nguyễn Văn A"
+                      value={formData.full_name}
+                      onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Số điện thoại</Label>
+                    <Input
+                      placeholder="0912345678"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      placeholder="email@example.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label>Chuyên môn</Label>
+                  <Input
+                    placeholder="Tiếng Nhật"
+                    value={formData.specialty}
+                    onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Hủy
+                  </Button>
+                  <Button onClick={handleCreate} disabled={createTeacher.isPending}>
+                    Thêm
+                  </Button>
+                </div>
               </div>
-            </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
 
@@ -349,14 +355,16 @@ export default function TeacherList() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openEditDialog(teacher)}
-                        title="Chỉnh sửa"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      {canUpdate && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEditDialog(teacher)}
+                          title="Chỉnh sửa"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

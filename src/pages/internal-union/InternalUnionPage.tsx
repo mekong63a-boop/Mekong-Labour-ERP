@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Plus, Search, Users, TrendingUp, TrendingDown, Wallet, Pencil, Trash2, Cake } from 'lucide-react';
+import { useCanAction } from '@/hooks/useMenuPermissions';
 import { format, differenceInDays, setYear, isAfter, isBefore } from 'date-fns';
 import {
   useUnionMembers,
@@ -99,7 +100,9 @@ const InternalUnionPage = () => {
   const deleteMember = useDeleteUnionMember();
   const deleteTransaction = useDeleteUnionTransaction();
 
-  // Member form state
+  const { hasPermission: canCreate } = useCanAction("internal-union", "create");
+  const { hasPermission: canUpdate } = useCanAction("internal-union", "update");
+  const { hasPermission: canDelete } = useCanAction("internal-union", "delete");
   const [memberForm, setMemberForm] = useState({
     member_code: '',
     full_name: '',
@@ -238,21 +241,25 @@ const InternalUnionPage = () => {
           <p className="text-muted-foreground">Quản lý thành viên và tài chính công đoàn</p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setTransactionDialogOpen(true)}
-            className="border-[#1B4D3E] text-[#1B4D3E] hover:bg-[#1B4D3E]/10"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm giao dịch
-          </Button>
-          <Button
-            onClick={() => setMemberDialogOpen(true)}
-            className="bg-[#1B4D3E] hover:bg-[#1B4D3E]/90"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm thành viên
-          </Button>
+          {canCreate && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setTransactionDialogOpen(true)}
+                className="border-[#1B4D3E] text-[#1B4D3E] hover:bg-[#1B4D3E]/10"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Thêm giao dịch
+              </Button>
+              <Button
+                onClick={() => setMemberDialogOpen(true)}
+                className="bg-[#1B4D3E] hover:bg-[#1B4D3E]/90"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Thêm thành viên
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -397,22 +404,26 @@ const InternalUnionPage = () => {
                         <TableCell>{getStatusBadge(member.status)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8"
-                              onClick={() => handleEditMember(member)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-red-500 hover:text-red-600"
-                              onClick={() => deleteMember.mutate(member.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {canUpdate && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={() => handleEditMember(member)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {canDelete && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-red-500 hover:text-red-600"
+                                onClick={() => deleteMember.mutate(member.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -478,14 +489,16 @@ const InternalUnionPage = () => {
                         <TableCell>{transaction.member?.full_name || '-'}</TableCell>
                         <TableCell>{transaction.description || '-'}</TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-500 hover:text-red-600"
-                            onClick={() => deleteTransaction.mutate(transaction.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          {canDelete && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-red-500 hover:text-red-600"
+                              onClick={() => deleteTransaction.mutate(transaction.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))

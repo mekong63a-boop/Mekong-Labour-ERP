@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Plus, Save, X, Pencil, Trash2, Download, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { useCanAction } from "@/hooks/useMenuPermissions";
 import * as XLSX from "xlsx";
 
 interface KatakanaName {
@@ -21,6 +22,9 @@ const KatakanaTab = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ vietnamese_name: "", katakana: "" });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { hasPermission: canCreate } = useCanAction("glossary", "create");
+  const { hasPermission: canUpdate } = useCanAction("glossary", "update");
+  const { hasPermission: canDelete } = useCanAction("glossary", "delete");
 
   const { data: names = [], isLoading } = useQuery({
     queryKey: ["katakana-names", search],
@@ -200,10 +204,12 @@ const KatakanaTab = () => {
             <Download className="h-4 w-4 mr-2" />
             Export Excel
           </Button>
-          <Button onClick={() => setShowAddForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm tên mới
-          </Button>
+          {canCreate && (
+            <Button onClick={() => setShowAddForm(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Thêm tên mới
+            </Button>
+          )}
         </div>
       </div>
 
