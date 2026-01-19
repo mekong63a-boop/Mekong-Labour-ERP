@@ -2730,6 +2730,7 @@ export type Database = {
       can_update: { Args: { _menu_key: string }; Returns: boolean }
       can_view: { Args: { _menu_key: string }; Returns: boolean }
       can_view_sensitive_data: { Args: { _user_id: string }; Returns: boolean }
+      can_view_trainee_pii: { Args: never; Returns: boolean }
       check_login_rate_limit: {
         Args: { _identifier: string; _ip_address?: string }
         Returns: Json
