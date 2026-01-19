@@ -497,6 +497,8 @@ export default function TraineeList() {
         );
       default:
         // Default columns for "Tất cả" and "Chưa đậu"
+        // Nếu trạng thái là "Chưa đậu" hoặc chưa có trạng thái thì ẩn công ty và nghiệp đoàn
+        const isNotPassed = !trainee.progression_stage || trainee.progression_stage === "Chưa đậu";
         return (
           <>
             {baseColumns}
@@ -505,8 +507,8 @@ export default function TraineeList() {
                 {trainee.progression_stage || "Chưa đậu"}
               </Badge>
             </TableCell>
-            <TableCell className="text-sm">{getCompanyName(trainee.receiving_company)}</TableCell>
-            <TableCell className="text-sm">{getUnionName(trainee.union)}</TableCell>
+            <TableCell className="text-sm">{isNotPassed ? "—" : getCompanyName(trainee.receiving_company)}</TableCell>
+            <TableCell className="text-sm">{isNotPassed ? "—" : getUnionName(trainee.union)}</TableCell>
             {actionColumn}
           </>
         );
