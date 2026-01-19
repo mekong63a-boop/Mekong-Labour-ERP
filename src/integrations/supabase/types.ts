@@ -2477,9 +2477,9 @@ export type Database = {
           birth_date?: string | null
           birthplace?: string | null
           blood_group?: string | null
-          cccd_date?: never
+          cccd_date?: string | null
           cccd_number?: never
-          cccd_place?: never
+          cccd_place?: string | null
           class_id?: string | null
           coe_date?: string | null
           contract_end_date?: string | null
@@ -2494,13 +2494,13 @@ export type Database = {
           early_return_date?: string | null
           early_return_reason?: string | null
           education_level?: string | null
-          email?: never
+          email?: string | null
           enrollment_status?: string | null
           entry_date?: string | null
           ethnicity?: string | null
           expected_entry_month?: string | null
           expected_return_date?: string | null
-          facebook?: never
+          facebook?: string | null
           full_name?: string | null
           furigana?: string | null
           gender?: string | null
@@ -2518,7 +2518,7 @@ export type Database = {
           otit_entry_date?: string | null
           parent_phone_1?: never
           parent_phone_2?: never
-          passport_date?: never
+          passport_date?: string | null
           passport_number?: never
           permanent_address?: string | null
           phone?: never
@@ -2545,16 +2545,16 @@ export type Database = {
           vision_left?: number | null
           vision_right?: number | null
           weight?: number | null
-          zalo?: never
+          zalo?: string | null
         }
         Update: {
           absconded_date?: string | null
           birth_date?: string | null
           birthplace?: string | null
           blood_group?: string | null
-          cccd_date?: never
+          cccd_date?: string | null
           cccd_number?: never
-          cccd_place?: never
+          cccd_place?: string | null
           class_id?: string | null
           coe_date?: string | null
           contract_end_date?: string | null
@@ -2569,13 +2569,13 @@ export type Database = {
           early_return_date?: string | null
           early_return_reason?: string | null
           education_level?: string | null
-          email?: never
+          email?: string | null
           enrollment_status?: string | null
           entry_date?: string | null
           ethnicity?: string | null
           expected_entry_month?: string | null
           expected_return_date?: string | null
-          facebook?: never
+          facebook?: string | null
           full_name?: string | null
           furigana?: string | null
           gender?: string | null
@@ -2593,7 +2593,7 @@ export type Database = {
           otit_entry_date?: string | null
           parent_phone_1?: never
           parent_phone_2?: never
-          passport_date?: never
+          passport_date?: string | null
           passport_number?: never
           permanent_address?: string | null
           phone?: never
@@ -2620,7 +2620,7 @@ export type Database = {
           vision_left?: number | null
           vision_right?: number | null
           weight?: number | null
-          zalo?: never
+          zalo?: string | null
         }
         Relationships: []
       }
