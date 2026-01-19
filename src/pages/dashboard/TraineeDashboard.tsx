@@ -18,6 +18,10 @@ import {
   Building,
   CalendarDays,
   Filter,
+  BookOpen,
+  PauseCircle,
+  XCircle,
+  RefreshCw,
 } from "lucide-react";
 import {
   BarChart,
@@ -46,7 +50,9 @@ import {
   useTraineePassedMonthly,
 } from "@/hooks/useDashboardTrainee";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 // Color palette for charts
 const COLORS = [
@@ -76,29 +82,38 @@ function KPICard({
   icon: React.ElementType;
   description?: string;
   isLoading: boolean;
-  variant?: "default" | "success" | "warning" | "danger";
+  variant?: "default" | "success" | "warning" | "danger" | "info";
 }) {
   const variantClasses = {
-    default: "bg-card",
-    success: "bg-green-50 border-green-200",
-    warning: "bg-amber-50 border-amber-200",
-    danger: "bg-red-50 border-red-200",
+    default: "bg-card border",
+    success: "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800",
+    warning: "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800",
+    danger: "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800",
+    info: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800",
+  };
+
+  const textColorClasses = {
+    default: "text-foreground",
+    success: "text-green-700 dark:text-green-400",
+    warning: "text-amber-700 dark:text-amber-400",
+    danger: "text-red-700 dark:text-red-400",
+    info: "text-blue-700 dark:text-blue-400",
   };
 
   return (
     <Card className={variantClasses[variant]}>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 pt-3 px-4">
+        <CardTitle className="text-xs font-medium text-muted-foreground">
           {title}
         </CardTitle>
         <Icon className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-4 pb-3">
         {isLoading ? (
-          <Skeleton className="h-8 w-20" />
+          <Skeleton className="h-8 w-16" />
         ) : (
           <>
-            <div className="text-2xl font-bold">{value}</div>
+            <div className={`text-2xl font-bold ${textColorClasses[variant]}`}>{value}</div>
             {description && (
               <p className="text-xs text-muted-foreground mt-1">{description}</p>
             )}
@@ -138,20 +153,20 @@ function ChartCard({
 }
 
 export default function TraineeDashboard() {
+  const queryClient = useQueryClient();
   const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
   
   // Filter states
-  const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [selectedYear, setSelectedYear] = useState<string>(currentYear.toString());
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
 
-  // Fetch all trainees with registration_date for filtering
-  const { data: allTrainees = [], isLoading: loadingTrainees } = useQuery({
+  // Fetch all trainees with needed fields
+  const { data: allTrainees = [], isLoading: loadingTrainees, refetch } = useQuery({
     queryKey: ["dashboard-trainees-raw"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trainees")
-        .select("id, registration_date, departure_date, interview_pass_date, trainee_type, progression_stage, simple_status, source, birthplace, gender");
+        .select("id, registration_date, created_at, departure_date, interview_pass_date, trainee_type, progression_stage, simple_status, enrollment_status, source, birthplace, gender");
       if (error) throw error;
       return data || [];
     },
@@ -161,16 +176,18 @@ export default function TraineeDashboard() {
   // Generate year options from data
   const yearOptions = useMemo(() => {
     const years = new Set<number>();
+    // Add current year always
+    years.add(currentYear);
     allTrainees.forEach((t) => {
-      if (t.registration_date) {
-        years.add(new Date(t.registration_date).getFullYear());
+      if (t.created_at) {
+        years.add(new Date(t.created_at).getFullYear());
       }
       if (t.departure_date) {
         years.add(new Date(t.departure_date).getFullYear());
       }
     });
     return Array.from(years).sort((a, b) => b - a);
-  }, [allTrainees]);
+  }, [allTrainees, currentYear]);
 
   // Month options
   const monthOptions = [
@@ -188,8 +205,8 @@ export default function TraineeDashboard() {
     { value: "12", label: "Tháng 12" },
   ];
 
-  // Helper function to check if trainee matches filter based on relevant date
-  const matchesFilter = (dateStr: string | null) => {
+  // Helper function to check if date matches filter
+  const matchesDateFilter = (dateStr: string | null) => {
     if (!dateStr) return false;
     const date = new Date(dateStr);
     const year = date.getFullYear();
@@ -201,80 +218,106 @@ export default function TraineeDashboard() {
     return true;
   };
 
-  // Filtered trainees based on registration_date (for total count)
-  const filteredByRegistration = useMemo(() => {
-    if (selectedYear === "all" && selectedMonth === "all") return allTrainees;
-    
-    return allTrainees.filter((t) => {
-      if (!t.registration_date) return false;
-      return matchesFilter(t.registration_date);
-    });
-  }, [allTrainees, selectedYear, selectedMonth]);
-
-  // Calculate filtered KPIs - each metric uses the appropriate date
-  // Quy ước:
-  // - Tổng học viên = tổng số dòng trong menu Học viên (không phụ thuộc bộ lọc)
-  // - Một số KPI có date riêng (VD: Đang ở Nhật / Xuất cảnh dùng departure_date)
-  const filteredKPIs = useMemo(() => {
+  // Calculate KPIs - Split into Input and Output metrics
+  const kpis = useMemo(() => {
     const result = {
-      total: allTrainees.length,
-      status_in_japan: 0,
-      status_studying: 0,
-      status_reserved: 0,
-      status_cancelled: 0,
-      stage_passed_interview: 0,
-      stage_not_passed: 0,
-      type_tts: 0,
-      type_knd: 0,
-      type_engineer: 0,
-      departed_count: 0,
+      // PHẦN 1: SỐ LIỆU ĐẦU VÀO (based on created_at/registration)
+      total: 0,
+      registered_new: 0,  // Đăng ký mới theo filter
+      not_studying: 0,    // Chưa học
+      studying: 0,        // Đang học
+      reserved: 0,        // Bảo lưu
+      cancelled: 0,       // Hủy
+      passed_interview: 0, // Đậu phỏng vấn
+      
+      // PHẦN 2: SỐ LIỆU ĐẦU RA (based on departure_date + trainee_type)
+      departed_tts: 0,    // Thực tập sinh xuất cảnh
+      departed_tts3: 0,   // Thực tập sinh số 3 xuất cảnh
+      departed_student: 0, // Du học sinh xuất cảnh
+      departed_knd: 0,    // Kỹ năng đặc định xuất cảnh
+      departed_engineer: 0, // Kỹ sư xuất cảnh
+      departed_total: 0,  // Tổng xuất cảnh
     };
 
-    // 1) Đang ở Nhật: lọc theo departure_date
+    // Calculate total trainees (no filter for total)
+    result.total = allTrainees.length;
+
+    // For each trainee, calculate relevant metrics
     allTrainees.forEach((t) => {
-      if (t.simple_status === "Đang ở Nhật") {
-        if (selectedYear === "all" && selectedMonth === "all") {
-          result.status_in_japan++;
-        } else if (t.departure_date && matchesFilter(t.departure_date)) {
-          result.status_in_japan++;
+      // PHẦN 1: SỐ LIỆU ĐẦU VÀO - Lọc theo created_at
+      const createdDate = t.created_at ? new Date(t.created_at) : null;
+      const matchesCreatedFilter = createdDate && matchesDateFilter(t.created_at);
+
+      // Đăng ký mới: trainees created in filter period
+      if (matchesCreatedFilter) {
+        result.registered_new++;
+      }
+
+      // Status-based metrics (these are current state, optionally filter by created_at)
+      // If no filter, show all; if filter, only show those created in that period
+      const shouldCountForInput = selectedYear === "all" && selectedMonth === "all" 
+        ? true 
+        : matchesCreatedFilter;
+
+      if (shouldCountForInput) {
+        // Chưa học: enrollment_status is null or "Chưa học"
+        if (!t.enrollment_status || t.enrollment_status === "Chưa học") {
+          result.not_studying++;
+        }
+        // Đang học
+        if (t.enrollment_status === "Đang học" || t.simple_status === "Đang học") {
+          result.studying++;
+        }
+        // Bảo lưu
+        if (t.enrollment_status === "Bảo lưu" || t.simple_status === "Bảo lưu") {
+          result.reserved++;
+        }
+        // Hủy
+        if (t.simple_status === "Hủy" || t.enrollment_status === "Đã hủy") {
+          result.cancelled++;
+        }
+        // Đậu phỏng vấn: has interview_pass_date or progression_stage indicates passed
+        if (t.interview_pass_date || (t.progression_stage && t.progression_stage !== "Chưa đậu")) {
+          result.passed_interview++;
         }
       }
-    });
 
-    // 2) Xuất cảnh: lọc theo departure_date
-    allTrainees.forEach((t) => {
+      // PHẦN 2: SỐ LIỆU ĐẦU RA - Lọc theo departure_date
       if (t.departure_date) {
-        if (selectedYear === "all" && selectedMonth === "all") {
-          result.departed_count++;
-        } else if (matchesFilter(t.departure_date)) {
-          result.departed_count++;
+        const matchesDepartureFilter = matchesDateFilter(t.departure_date);
+        const shouldCountDeparture = selectedYear === "all" && selectedMonth === "all"
+          ? true
+          : matchesDepartureFilter;
+
+        if (shouldCountDeparture) {
+          result.departed_total++;
+          
+          // Count by trainee_type
+          switch (t.trainee_type) {
+            case "Thực tập sinh":
+              result.departed_tts++;
+              break;
+            case "Thực tập sinh số 3":
+              result.departed_tts3++;
+              break;
+            case "Du học sinh":
+              result.departed_student++;
+              break;
+            case "Kỹ năng đặc định":
+              result.departed_knd++;
+              break;
+            case "Kỹ sư":
+              result.departed_engineer++;
+              break;
+          }
         }
       }
-    });
-
-    // 3) Các chỉ số còn lại: lọc theo registration_date
-    const baseForRegistrationKPIs =
-      selectedYear === "all" && selectedMonth === "all"
-        ? allTrainees
-        : filteredByRegistration;
-
-    baseForRegistrationKPIs.forEach((t) => {
-      if (t.simple_status === "Đang học") result.status_studying++;
-      if (t.simple_status === "Bảo lưu") result.status_reserved++;
-      if (t.simple_status === "Hủy") result.status_cancelled++;
-
-      if (t.progression_stage && t.progression_stage !== "Chưa đậu") result.stage_passed_interview++;
-      if (t.progression_stage === "Chưa đậu" || !t.progression_stage) result.stage_not_passed++;
-
-      if (t.trainee_type === "Thực tập sinh") result.type_tts++;
-      if (t.trainee_type === "Kỹ năng đặc định") result.type_knd++;
-      if (t.trainee_type === "Kỹ sư") result.type_engineer++;
     });
 
     return result;
-  }, [allTrainees, filteredByRegistration, selectedYear, selectedMonth]);
+  }, [allTrainees, selectedYear, selectedMonth]);
 
-  // Fetch all dashboard data (for charts)
+  // Fetch chart data (using existing hooks)
   const { data: stageData, isLoading: loadingStage } = useTraineeByStage();
   const { data: statusData, isLoading: loadingStatus } = useTraineeByStatus();
   const { data: typeData, isLoading: loadingType } = useTraineeByType();
@@ -287,6 +330,11 @@ export default function TraineeDashboard() {
 
   const isFiltering = selectedYear !== "all" || selectedMonth !== "all";
 
+  const handleRefresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["dashboard-trainees-raw"] });
+    toast.success("Đã làm mới dữ liệu");
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Title with Filters */}
@@ -297,14 +345,22 @@ export default function TraineeDashboard() {
             Tổng quan số liệu học viên
             {isFiltering && (
               <span className="ml-2 text-primary font-medium">
-                (Đang lọc: {selectedMonth !== "all" ? `Tháng ${selectedMonth}` : ""} 
-                {selectedMonth !== "all" && selectedYear !== "all" ? "/" : ""}
-                {selectedYear !== "all" ? selectedYear : ""})
+                (Đang lọc: {selectedYear !== "all" ? selectedYear : ""}
+                {selectedMonth !== "all" ? ` - Tháng ${selectedMonth}` : ""})
               </span>
             )}
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Làm mới dữ liệu
+          </Button>
           <Filter className="h-4 w-4 text-muted-foreground" />
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
             <SelectTrigger className="w-[130px]">
@@ -320,11 +376,11 @@ export default function TraineeDashboard() {
             </SelectContent>
           </Select>
           <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="w-[120px]">
+            <SelectTrigger className="w-[100px]">
               <SelectValue placeholder="Năm" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tất cả năm</SelectItem>
+              <SelectItem value="all">Tất cả</SelectItem>
               {yearOptions.map((y) => (
                 <SelectItem key={y} value={y.toString()}>
                   {y}
@@ -335,96 +391,111 @@ export default function TraineeDashboard() {
         </div>
       </div>
 
-      {/* KPI Cards Row 1 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        <KPICard
-          title="Tổng học viên"
-          value={filteredKPIs.total}
-          icon={Users}
-          isLoading={loadingTrainees}
-        />
-        <KPICard
-          title="Đang ở Nhật"
-          value={filteredKPIs.status_in_japan}
-          icon={Plane}
-          isLoading={loadingTrainees}
-          variant="success"
-        />
-        <KPICard
-          title="Đang học"
-          value={filteredKPIs.status_studying}
-          icon={GraduationCap}
-          isLoading={loadingTrainees}
-        />
-        <KPICard
-          title="Bảo lưu"
-          value={filteredKPIs.status_reserved}
-          icon={Users}
-          isLoading={loadingTrainees}
-          variant="warning"
-        />
-        <KPICard
-          title="Hủy"
-          value={filteredKPIs.status_cancelled}
-          icon={Users}
-          isLoading={loadingTrainees}
-          variant="danger"
-        />
-        <KPICard
-          title="Đậu phỏng vấn"
-          value={filteredKPIs.stage_passed_interview}
-          icon={UserCheck}
-          isLoading={loadingTrainees}
-          variant="success"
-        />
-        <KPICard
-          title="Chưa đậu"
-          value={filteredKPIs.stage_not_passed}
-          icon={UserX}
-          isLoading={loadingTrainees}
-          variant="warning"
-        />
-        <KPICard
-          title={isFiltering ? "Đăng ký theo lọc" : "Đăng ký tháng này"}
-          value={isFiltering ? filteredByRegistration.length : filteredByRegistration.length}
-          icon={CalendarDays}
-          isLoading={loadingTrainees}
-        />
+      {/* PHẦN 1: SỐ LIỆU ĐẦU VÀO */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          Phần I: Số liệu đầu vào
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+          <KPICard
+            title="Tổng học viên"
+            value={kpis.total}
+            icon={Users}
+            isLoading={loadingTrainees}
+          />
+          <KPICard
+            title="Đăng ký mới"
+            value={kpis.registered_new}
+            icon={CalendarDays}
+            isLoading={loadingTrainees}
+            variant="info"
+          />
+          <KPICard
+            title="Chưa học"
+            value={kpis.not_studying}
+            icon={BookOpen}
+            isLoading={loadingTrainees}
+          />
+          <KPICard
+            title="Đang học"
+            value={kpis.studying}
+            icon={GraduationCap}
+            isLoading={loadingTrainees}
+            variant="info"
+          />
+          <KPICard
+            title="Bảo lưu"
+            value={kpis.reserved}
+            icon={PauseCircle}
+            isLoading={loadingTrainees}
+            variant="warning"
+          />
+          <KPICard
+            title="Hủy"
+            value={kpis.cancelled}
+            icon={XCircle}
+            isLoading={loadingTrainees}
+            variant="danger"
+          />
+          <KPICard
+            title="Đậu phỏng vấn"
+            value={kpis.passed_interview}
+            icon={UserCheck}
+            isLoading={loadingTrainees}
+            variant="success"
+          />
+        </div>
       </div>
 
-      {/* KPI Cards Row 2 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        <KPICard
-          title="Thực tập sinh"
-          value={filteredKPIs.type_tts}
-          icon={Building}
-          isLoading={loadingTrainees}
-        />
-        <KPICard
-          title="Kỹ năng đặc định"
-          value={filteredKPIs.type_knd}
-          icon={Building}
-          isLoading={loadingTrainees}
-        />
-        <KPICard
-          title="Kỹ sư"
-          value={filteredKPIs.type_engineer}
-          icon={Building}
-          isLoading={loadingTrainees}
-        />
-        <KPICard
-          title={isFiltering ? "Xuất cảnh theo lọc" : "Xuất cảnh (tổng)"}
-          value={filteredKPIs.departed_count}
-          icon={TrendingUp}
-          isLoading={loadingTrainees}
-          variant="success"
-        />
-        <KPICard
-          title={isFiltering ? "Đăng ký theo lọc" : "Đăng ký (tổng)"}
-          value={filteredByRegistration.length}
-          icon={TrendingUp}
-          isLoading={loadingTrainees}
-        />
+      {/* PHẦN 2: SỐ LIỆU ĐẦU RA */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          Phần II: Số liệu đầu ra (Xuất cảnh theo diện)
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <KPICard
+            title="Thực tập sinh"
+            value={kpis.departed_tts}
+            icon={Building}
+            isLoading={loadingTrainees}
+            variant="success"
+          />
+          <KPICard
+            title="TTS số 3"
+            value={kpis.departed_tts3}
+            icon={Building}
+            isLoading={loadingTrainees}
+            variant="success"
+          />
+          <KPICard
+            title="Du học sinh"
+            value={kpis.departed_student}
+            icon={GraduationCap}
+            isLoading={loadingTrainees}
+            variant="success"
+          />
+          <KPICard
+            title="Kỹ năng đặc định"
+            value={kpis.departed_knd}
+            icon={Building}
+            isLoading={loadingTrainees}
+            variant="success"
+          />
+          <KPICard
+            title="Kỹ sư"
+            value={kpis.departed_engineer}
+            icon={Building}
+            isLoading={loadingTrainees}
+            variant="success"
+          />
+          <KPICard
+            title="Tổng xuất cảnh"
+            value={kpis.departed_total}
+            icon={Plane}
+            isLoading={loadingTrainees}
+            variant="success"
+          />
+        </div>
       </div>
 
       {/* Charts Row 1: Line Charts */}
@@ -460,7 +531,6 @@ export default function TraineeDashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={(() => {
-                  // Build a map from passedData keyed by month_label for reliable merge
                   const passedMap = new Map(
                     (passedData || []).map((p) => [p.month_label, p.passed_count])
                   );
