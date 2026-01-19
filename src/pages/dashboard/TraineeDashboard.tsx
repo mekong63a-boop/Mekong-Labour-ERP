@@ -322,9 +322,10 @@ export default function TraineeDashboard() {
         }
       }
 
-      // 6. Đậu phỏng vấn: Lọc theo interview_pass_date (KHÔNG PHẢI registration_date)
+      // 6. Đậu phỏng vấn: Lọc theo interview_pass_date, KHÔNG tính học viên đã xuất cảnh
       const hasPassedInterview = t.interview_pass_date || (t.progression_stage && !["Chưa đậu", "Tuyển dụng"].includes(t.progression_stage as string));
-      if (hasPassedInterview) {
+      const hasNotDeparted = !t.departure_date; // Chưa xuất cảnh
+      if (hasPassedInterview && hasNotDeparted) {
         const matchesInterviewDate = checkDateMatch(t.interview_pass_date);
         if (noFilter || matchesInterviewDate) {
           result.passed_interview++;
