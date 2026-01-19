@@ -34,21 +34,31 @@ export function useSystemRealtime() {
     
     const channel = supabase
       .channel(channelId)
-      // ========== TRAINEES (học viên - chỉ UPDATE) ==========
+      // ========== TRAINEES (học viên - INSERT/UPDATE/DELETE) ==========
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'trainees' },
+        { event: '*', schema: 'public', table: 'trainees' },
         (payload) => {
-          console.log('[Realtime] Trainee updated:', payload.new?.id || 'unknown');
+          console.log('[Realtime] Trainee changed:', payload.eventType);
           // Invalidate tất cả queries liên quan đến trainees
           queryClient.invalidateQueries({ queryKey: ["trainees"] });
           queryClient.invalidateQueries({ queryKey: ["trainee"] });
           queryClient.invalidateQueries({ queryKey: ["trainees-paginated"] });
           queryClient.invalidateQueries({ queryKey: ["trainee-stage-counts"] });
           queryClient.invalidateQueries({ queryKey: ["trainees-count"] });
-          // Invalidate dashboard vì có thể ảnh hưởng thống kê
-          queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-          queryClient.invalidateQueries({ queryKey: ["dashboard-kpis"] });
+
+          // Invalidate dashboard (đúng query keys đang dùng)
+          queryClient.invalidateQueries({ queryKey: ["dashboard-trainees-raw"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-kpis"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-stage"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-status"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-type"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-monthly"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-source"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-birthplace"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-gender"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-departures-monthly"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-passed-monthly"] });
         }
       )
       // ========== ATTENDANCE (điểm danh realtime) ==========
@@ -141,6 +151,22 @@ export function useManualRefresh() {
     queryClient.invalidateQueries({ queryKey: ["trainees-paginated"] });
     queryClient.invalidateQueries({ queryKey: ["trainee-stage-counts"] });
     queryClient.invalidateQueries({ queryKey: ["trainees-count"] });
+    queryClient.invalidateQueries({ queryKey: ["trainee"] });
+  };
+
+  const refreshDashboard = () => {
+    console.log('[ManualRefresh] Refreshing dashboard...');
+    queryClient.invalidateQueries({ queryKey: ["dashboard-trainees-raw"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-kpis"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-stage"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-status"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-type"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-monthly"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-source"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-birthplace"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-gender"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-departures-monthly"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-passed-monthly"] });
   };
 
   const refreshOrders = () => {
@@ -160,25 +186,33 @@ export function useManualRefresh() {
     queryClient.invalidateQueries({ queryKey: ["classes"] });
     queryClient.invalidateQueries({ queryKey: ["teachers"] });
     queryClient.invalidateQueries({ queryKey: ["class-students"] });
+    queryClient.invalidateQueries({ queryKey: ["attendance"] });
+    queryClient.invalidateQueries({ queryKey: ["test-scores"] });
   };
 
   const refreshAll = () => {
     console.log('[ManualRefresh] Refreshing all data...');
     refreshTrainees();
+    refreshDashboard();
     refreshOrders();
     refreshPartners();
     refreshEducation();
     queryClient.invalidateQueries({ queryKey: ["union-members"] });
     queryClient.invalidateQueries({ queryKey: ["union-transactions"] });
     queryClient.invalidateQueries({ queryKey: ["vocabulary"] });
+    queryClient.invalidateQueries({ queryKey: ["menus-full"] });
+    queryClient.invalidateQueries({ queryKey: ["user-menu-permissions-direct"] });
+    queryClient.invalidateQueries({ queryKey: ["user-access-version"] });
+    queryClient.invalidateQueries({ queryKey: ["is-primary-admin"] });
   };
 
   return {
     refreshTrainees,
+    refreshDashboard,
     refreshOrders,
     refreshPartners,
     refreshEducation,
-    refreshAll
+    refreshAll,
   };
 }
 

@@ -35,7 +35,6 @@ import {
   Legend,
 } from "recharts";
 import {
-  useTraineeKPIs,
   useTraineeByStage,
   useTraineeByStatus,
   useTraineeByType,
@@ -56,13 +55,11 @@ const COLORS = [
   "hsl(var(--chart-3))",
   "hsl(var(--chart-4))",
   "hsl(var(--chart-5))",
-  "#8884d8",
-  "#82ca9d",
-  "#ffc658",
-  "#ff7300",
-  "#00C49F",
-  "#FFBB28",
-  "#FF8042",
+  "hsl(var(--primary))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
 ];
 
 // KPI Card Component
@@ -215,11 +212,16 @@ export default function TraineeDashboard() {
   }, [allTrainees, selectedYear, selectedMonth]);
 
   // Calculate filtered KPIs - each metric uses the appropriate date
+  // Quy ước:
+  // - Tổng học viên = tổng số dòng trong menu Học viên (không phụ thuộc bộ lọc)
+  // - Một số KPI có date riêng (VD: Đang ở Nhật / Xuất cảnh dùng departure_date)
   const filteredKPIs = useMemo(() => {
     const result = {
-      total: 0,
+      total: allTrainees.length,
       status_in_japan: 0,
       status_studying: 0,
+      status_reserved: 0,
+      status_cancelled: 0,
       stage_passed_interview: 0,
       stage_not_passed: 0,
       type_tts: 0,
@@ -228,12 +230,8 @@ export default function TraineeDashboard() {
       departed_count: 0,
     };
 
-    // Đếm tổng theo ngày đăng ký
-    result.total = filteredByRegistration.length;
-
-    // Với bộ lọc, đếm "Đang ở Nhật" theo ngày xuất cảnh
+    // 1) Đang ở Nhật: lọc theo departure_date
     allTrainees.forEach((t) => {
-      // Đang ở Nhật: lọc theo departure_date (ngày xuất cảnh)
       if (t.simple_status === "Đang ở Nhật") {
         if (selectedYear === "all" && selectedMonth === "all") {
           result.status_in_japan++;
@@ -243,17 +241,7 @@ export default function TraineeDashboard() {
       }
     });
 
-    // Các chỉ số khác lọc theo registration_date
-    filteredByRegistration.forEach((t) => {
-      if (t.simple_status === "Đang học") result.status_studying++;
-      if (t.progression_stage && t.progression_stage !== "Chưa đậu") result.stage_passed_interview++;
-      if (t.progression_stage === "Chưa đậu" || !t.progression_stage) result.stage_not_passed++;
-      if (t.trainee_type === "Thực tập sinh") result.type_tts++;
-      if (t.trainee_type === "Kỹ năng đặc định") result.type_knd++;
-      if (t.trainee_type === "Kỹ sư") result.type_engineer++;
-    });
-    
-    // Xuất cảnh: lọc theo departure_date
+    // 2) Xuất cảnh: lọc theo departure_date
     allTrainees.forEach((t) => {
       if (t.departure_date) {
         if (selectedYear === "all" && selectedMonth === "all") {
@@ -264,11 +252,29 @@ export default function TraineeDashboard() {
       }
     });
 
+    // 3) Các chỉ số còn lại: lọc theo registration_date
+    const baseForRegistrationKPIs =
+      selectedYear === "all" && selectedMonth === "all"
+        ? allTrainees
+        : filteredByRegistration;
+
+    baseForRegistrationKPIs.forEach((t) => {
+      if (t.simple_status === "Đang học") result.status_studying++;
+      if (t.simple_status === "Bảo lưu") result.status_reserved++;
+      if (t.simple_status === "Hủy") result.status_cancelled++;
+
+      if (t.progression_stage && t.progression_stage !== "Chưa đậu") result.stage_passed_interview++;
+      if (t.progression_stage === "Chưa đậu" || !t.progression_stage) result.stage_not_passed++;
+
+      if (t.trainee_type === "Thực tập sinh") result.type_tts++;
+      if (t.trainee_type === "Kỹ năng đặc định") result.type_knd++;
+      if (t.trainee_type === "Kỹ sư") result.type_engineer++;
+    });
+
     return result;
   }, [allTrainees, filteredByRegistration, selectedYear, selectedMonth]);
 
-  // Fetch all dashboard data (for non-filtered charts)
-  const { data: kpis, isLoading: loadingKPIs } = useTraineeKPIs();
+  // Fetch all dashboard data (for charts)
   const { data: stageData, isLoading: loadingStage } = useTraineeByStage();
   const { data: statusData, isLoading: loadingStatus } = useTraineeByStatus();
   const { data: typeData, isLoading: loadingType } = useTraineeByType();
@@ -333,42 +339,56 @@ export default function TraineeDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         <KPICard
           title="Tổng học viên"
-          value={isFiltering ? filteredKPIs.total : (kpis?.total_trainees || 0)}
+          value={filteredKPIs.total}
           icon={Users}
-          isLoading={loadingKPIs || loadingTrainees}
+          isLoading={loadingTrainees}
         />
         <KPICard
           title="Đang ở Nhật"
-          value={isFiltering ? filteredKPIs.status_in_japan : (kpis?.status_in_japan || 0)}
+          value={filteredKPIs.status_in_japan}
           icon={Plane}
-          isLoading={loadingKPIs || loadingTrainees}
+          isLoading={loadingTrainees}
           variant="success"
         />
         <KPICard
           title="Đang học"
-          value={isFiltering ? filteredKPIs.status_studying : (kpis?.status_studying || 0)}
+          value={filteredKPIs.status_studying}
           icon={GraduationCap}
-          isLoading={loadingKPIs || loadingTrainees}
+          isLoading={loadingTrainees}
+        />
+        <KPICard
+          title="Bảo lưu"
+          value={filteredKPIs.status_reserved}
+          icon={Users}
+          isLoading={loadingTrainees}
+          variant="warning"
+        />
+        <KPICard
+          title="Hủy"
+          value={filteredKPIs.status_cancelled}
+          icon={Users}
+          isLoading={loadingTrainees}
+          variant="danger"
         />
         <KPICard
           title="Đậu phỏng vấn"
-          value={isFiltering ? filteredKPIs.stage_passed_interview : (kpis?.stage_passed_interview || 0)}
+          value={filteredKPIs.stage_passed_interview}
           icon={UserCheck}
-          isLoading={loadingKPIs || loadingTrainees}
+          isLoading={loadingTrainees}
           variant="success"
         />
         <KPICard
           title="Chưa đậu"
-          value={isFiltering ? filteredKPIs.stage_not_passed : (kpis?.stage_not_passed || 0)}
+          value={filteredKPIs.stage_not_passed}
           icon={UserX}
-          isLoading={loadingKPIs || loadingTrainees}
+          isLoading={loadingTrainees}
           variant="warning"
         />
         <KPICard
           title={isFiltering ? "Đăng ký theo lọc" : "Đăng ký tháng này"}
-          value={isFiltering ? filteredKPIs.total : (kpis?.registered_this_month || 0)}
+          value={isFiltering ? filteredByRegistration.length : filteredByRegistration.length}
           icon={CalendarDays}
-          isLoading={loadingKPIs || loadingTrainees}
+          isLoading={loadingTrainees}
         />
       </div>
 
@@ -376,34 +396,34 @@ export default function TraineeDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
         <KPICard
           title="Thực tập sinh"
-          value={isFiltering ? filteredKPIs.type_tts : (kpis?.type_tts || 0)}
+          value={filteredKPIs.type_tts}
           icon={Building}
-          isLoading={loadingKPIs || loadingTrainees}
+          isLoading={loadingTrainees}
         />
         <KPICard
           title="Kỹ năng đặc định"
-          value={isFiltering ? filteredKPIs.type_knd : (kpis?.type_knd || 0)}
+          value={filteredKPIs.type_knd}
           icon={Building}
-          isLoading={loadingKPIs || loadingTrainees}
+          isLoading={loadingTrainees}
         />
         <KPICard
           title="Kỹ sư"
-          value={isFiltering ? filteredKPIs.type_engineer : (kpis?.type_engineer || 0)}
+          value={filteredKPIs.type_engineer}
           icon={Building}
-          isLoading={loadingKPIs || loadingTrainees}
+          isLoading={loadingTrainees}
         />
         <KPICard
-          title={isFiltering ? "Xuất cảnh theo lọc" : "Xuất cảnh năm nay"}
-          value={isFiltering ? filteredKPIs.departed_count : (kpis?.departed_this_year || 0)}
+          title={isFiltering ? "Xuất cảnh theo lọc" : "Xuất cảnh (tổng)"}
+          value={filteredKPIs.departed_count}
           icon={TrendingUp}
-          isLoading={loadingKPIs || loadingTrainees}
+          isLoading={loadingTrainees}
           variant="success"
         />
         <KPICard
-          title={isFiltering ? "Đăng ký theo lọc" : "Đăng ký năm nay"}
-          value={isFiltering ? filteredKPIs.total : (kpis?.registered_this_year || 0)}
+          title={isFiltering ? "Đăng ký theo lọc" : "Đăng ký (tổng)"}
+          value={filteredByRegistration.length}
           icon={TrendingUp}
-          isLoading={loadingKPIs || loadingTrainees}
+          isLoading={loadingTrainees}
         />
       </div>
 
