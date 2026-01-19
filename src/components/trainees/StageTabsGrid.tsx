@@ -1,13 +1,35 @@
-import { StageCounts } from "@/hooks/useTraineeStageCounts";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+
+// =============================================================================
+// KHÓA CỨNG: Tên tab UI cho quản lý học viên
+// SOURCE OF TRUTH cho nghiệp vụ vận hành
+// KHÔNG ĐƯỢC sinh từ ENUM, KHÔNG ĐƯỢC map từ backend
+// =============================================================================
+
+export interface StageCounts {
+  all: number;
+  'Chưa đậu': number;
+  'Đậu phỏng vấn': number;
+  'Nộp hồ sơ': number;
+  'OTIT': number;
+  'Nyukan': number;
+  'COE': number;
+  'Visa': number;
+  'Xuất cảnh': number;
+  'Đang làm việc': number;
+  'Bỏ trốn': number;
+  'Về trước hạn': number;
+  'Hoàn thành hợp đồng': number;
+}
 
 interface StageTabConfig {
   value: string;
   label: string;
-  key: keyof StageCounts | null;
+  key: keyof StageCounts;
 }
 
+// HARDCODED TAB CONFIG - KHÔNG ĐƯỢC THAY ĐỔI
 export const STAGE_TABS: StageTabConfig[] = [
   { value: "all", label: "Tất cả", key: "all" },
   { value: "chua_dau", label: "Chưa đậu", key: "Chưa đậu" },
@@ -19,8 +41,15 @@ export const STAGE_TABS: StageTabConfig[] = [
   { value: "xuat_canh", label: "Xuất cảnh", key: "Xuất cảnh" },
   { value: "bo_tron", label: "Bỏ trốn", key: "Bỏ trốn" },
   { value: "ve_truoc", label: "Về trước hạn", key: "Về trước hạn" },
-  { value: "hoan_thanh", label: "Hoàn thành HĐ/ về nước", key: "Hoàn thành hợp đồng" },
+  { value: "hoan_thanh", label: "Hoàn thành HĐ / về nước", key: "Hoàn thành hợp đồng" },
 ];
+
+// Mapping 1 chiều: UI tab key → progression_stage value
+export function getProgressionStageFromTab(tabValue: string): string | null {
+  const tab = STAGE_TABS.find(t => t.value === tabValue);
+  if (!tab || tab.key === 'all') return null;
+  return tab.key;
+}
 
 interface StageTabsGridProps {
   activeTab: string;
@@ -38,7 +67,7 @@ export function StageTabsGrid({
   return (
     <div className="flex flex-wrap gap-1 p-1 bg-muted/30 rounded-lg border">
       {STAGE_TABS.map((tab) => {
-        const count = tab.key && stageCounts ? stageCounts[tab.key] : 0;
+        const count = stageCounts ? stageCounts[tab.key] : 0;
         const isActive = activeTab === tab.value;
         
         return (
