@@ -110,8 +110,15 @@ export function useUserRoleStandalone(): UseUserRoleResult {
   const isSeniorStaff = is_senior_staff;
   const canViewSensitiveData = isAdmin || isSeniorStaff;
 
-  // Business logic permissions - chỉ admin mới có quyền xóa
-  const canDelete = isAdmin;
+  /**
+   * @deprecated canDelete - KHÔNG SỬ DỤNG CHO UI RENDER
+   * Sử dụng useCanAction(menuKey, 'delete') từ useMenuPermissions thay thế.
+   * Property này chỉ giữ lại cho backward compatibility.
+   */
+  const canDelete = (() => {
+    console.warn('[DEPRECATED] useUserRole.canDelete is deprecated. Use useCanAction(menuKey, "delete") instead.');
+    return isAdmin;
+  })();
   const canManageUsers = isAdmin;
   const canAssignAdmins = isPrimaryAdmin; // Only primary admin can assign admin roles
 
@@ -197,8 +204,15 @@ export function useUserRole(): UseUserRoleResult {
   const isSeniorStaff = roleData.is_senior_staff || isSeniorStaffFromAuth;
   const canViewSensitiveData = isAdmin || isSeniorStaff;
 
-  // Business logic permissions - chỉ admin mới có quyền xóa
-  const canDelete = isAdmin;
+  /**
+   * @deprecated canDelete - KHÔNG SỬ DỤNG CHO UI RENDER
+   * Sử dụng useCanAction(menuKey, 'delete') từ useMenuPermissions thay thế.
+   * Property này chỉ giữ lại cho backward compatibility.
+   */
+  const canDelete = (() => {
+    console.warn('[DEPRECATED] useUserRole.canDelete is deprecated. Use useCanAction(menuKey, "delete") instead.');
+    return isAdmin;
+  })();
   const canManageUsers = isAdmin;
   const canAssignAdmins = isPrimaryAdmin;
 
