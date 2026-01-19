@@ -40,7 +40,7 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
     queryFn: async () => {
       const { data, error } = await supabase
         .from("companies")
-        .select("id, name, name_japanese")
+        .select("id, code, name, name_japanese")
         .eq("status", "Đang hợp tác")
         .order("name");
       if (error) throw error;
@@ -54,7 +54,7 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
     queryFn: async () => {
       const { data, error } = await supabase
         .from("unions")
-        .select("id, name, name_japanese")
+        .select("id, code, name, name_japanese")
         .eq("status", "Đang hợp tác")
         .order("name");
       if (error) throw error;
@@ -68,7 +68,7 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
     queryFn: async () => {
       const { data, error } = await supabase
         .from("job_categories")
-        .select("id, name, name_japanese")
+        .select("id, code, name, name_japanese")
         .eq("status", "Hoạt động")
         .order("name");
       if (error) throw error;
@@ -87,17 +87,17 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
 
   const companyOptions = companies.map((c) => ({
     value: c.id,
-    label: c.name_japanese ? `${c.name} (${c.name_japanese})` : c.name,
+    label: `${c.code} - ${c.name_japanese ? `${c.name} (${c.name_japanese})` : c.name}`,
   }));
 
   const unionOptions = unions.map((u) => ({
     value: u.id,
-    label: u.name_japanese ? `${u.name} (${u.name_japanese})` : u.name,
+    label: `${u.code} - ${u.name_japanese ? `${u.name} (${u.name_japanese})` : u.name}`,
   }));
 
   const jobCategoryOptions = jobCategories.map((j) => ({
     value: j.id,
-    label: j.name_japanese ? `${j.name} (${j.name_japanese})` : j.name,
+    label: `${j.code} - ${j.name_japanese ? `${j.name} (${j.name_japanese})` : j.name}`,
   }));
 
   return (
