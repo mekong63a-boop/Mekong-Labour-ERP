@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   useCompanies,
@@ -45,6 +45,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import CompanyTraineesModal from "./CompanyTraineesModal";
 
 type TabType = "companies" | "unions" | "job_categories";
 
@@ -57,6 +59,16 @@ export default function PartnerList() {
     id: null,
     name: "",
   });
+  
+  // State for trainee counts per company
+  const [traineeCounts, setTraineeCounts] = useState<Record<string, number>>({});
+  
+  // State for trainee modal
+  const [traineeModal, setTraineeModal] = useState<{ open: boolean; companyId: string; companyName: string }>({
+    open: false,
+    companyId: "",
+    companyName: "",
+  });
 
   // UI: ẩn/hiện nút theo quyền menu runtime
   const { hasPermission: canCreate } = useCanAction("partners", "create");
@@ -66,6 +78,35 @@ export default function PartnerList() {
   const { data: companies, isLoading: loadingCompanies, refetch: refetchCompanies } = useCompanies();
   const { data: unions, isLoading: loadingUnions, refetch: refetchUnions } = useUnions();
   const { data: jobCategories, isLoading: loadingJobs, refetch: refetchJobs } = useJobCategories();
+
+  // Fetch trainee counts for companies
+  useEffect(() => {
+    const fetchTraineeCounts = async () => {
+      const { data, error } = await supabase
+        .from("trainees")
+        .select("receiving_company_id")
+        .not("receiving_company_id", "is", null);
+
+      if (error) {
+        console.error("Error fetching trainee counts:", error);
+        return;
+      }
+
+      const counts: Record<string, number> = {};
+      data?.forEach((t) => {
+        if (t.receiving_company_id) {
+          counts[t.receiving_company_id] = (counts[t.receiving_company_id] || 0) + 1;
+        }
+      });
+      setTraineeCounts(counts);
+    };
+
+    fetchTraineeCounts();
+  }, [companies]);
+
+  const handleOpenTraineeModal = (companyId: string, companyName: string) => {
+    setTraineeModal({ open: true, companyId, companyName });
+  };
 
   const deleteCompany = useDeleteCompany();
   const deleteUnion = useDeleteUnion();
@@ -271,8 +312,12 @@ export default function PartnerList() {
                       <TableCell>{company.work_address || "-"}</TableCell>
                       <TableCell>{company.representative || "-"}</TableCell>
                       <TableCell className="text-center">
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                          0
+                        <Badge 
+                          variant="outline" 
+                          className="bg-blue-50 text-blue-700 border-blue-200 cursor-pointer hover:bg-blue-100"
+                          onClick={() => handleOpenTraineeModal(company.id, company.name_japanese || company.name)}
+                        >
+                          {traineeCounts[company.id] || 0}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -468,6 +513,14 @@ export default function PartnerList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Company Trainees Modal */}
+      <CompanyTraineesModal
+        open={traineeModal.open}
+        onOpenChange={(open) => setTraineeModal({ ...traineeModal, open })}
+        companyId={traineeModal.companyId}
+        companyName={traineeModal.companyName}
+      />
     </div>
   );
 }
