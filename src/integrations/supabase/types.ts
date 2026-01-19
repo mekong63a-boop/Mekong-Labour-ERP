@@ -1795,6 +1795,30 @@ export type Database = {
           },
         ]
       }
+      user_permissions: {
+        Row: {
+          created_at: string | null
+          granted_by: string | null
+          id: string
+          permission_code: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          granted_by?: string | null
+          id?: string
+          permission_code: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          granted_by?: string | null
+          id?: string
+          permission_code?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           assigned_at: string | null
@@ -2505,6 +2529,10 @@ export type Database = {
       has_any_role: { Args: { _user_id: string }; Returns: boolean }
       has_menu_permission: {
         Args: { _action?: string; _menu_key: string; _user_id: string }
+        Returns: boolean
+      }
+      has_permission: {
+        Args: { _permission_code: string; _user_id: string }
         Returns: boolean
       }
       has_role: {
