@@ -167,6 +167,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     receiving_company_id: "",
     union_id: "",
     job_category_id: "",
+    contract_term: "",
   });
 
   // Fetch referral sources from database
@@ -408,6 +409,21 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     }
   }, [isEditMode, japanRelativesData]);
 
+  // Load project data from trainee when editing
+  useEffect(() => {
+    if (isEditMode && trainee) {
+      setProjectData({
+        order_id: "",  // Order is not stored on trainee directly
+        interview_date: trainee.interview_pass_date || "",
+        expected_entry_month: trainee.expected_entry_month || "",
+        receiving_company_id: trainee.receiving_company_id || "",
+        union_id: trainee.union_id || "",
+        job_category_id: trainee.job_category_id || "",
+        contract_term: trainee.contract_term?.toString() || "",
+      });
+    }
+  }, [isEditMode, trainee]);
+
   const updateField = (field: keyof FormData, value: string) => {
     setFormData((prev) => {
       const newData = { ...prev, [field]: value };
@@ -559,6 +575,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       }
       if (projectData.expected_entry_month) {
         (traineeData as any).expected_entry_month = projectData.expected_entry_month;
+      }
+      if (projectData.contract_term) {
+        (traineeData as any).contract_term = parseInt(projectData.contract_term);
       }
 
       let newTraineeId: string | undefined;

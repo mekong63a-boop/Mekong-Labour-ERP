@@ -14,6 +14,7 @@ interface ProjectInterviewFormProps {
     receiving_company_id: string;
     union_id: string;
     job_category_id: string;
+    contract_term: string;
   };
   onChange: (data: any) => void;
 }
@@ -168,6 +169,24 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
               onValueChange={(v) => updateField("job_category_id", v)}
               placeholder="Chọn ngành nghề"
               emptyText="Không có ngành nghề"
+            />
+          </div>
+
+          {/* Row 3 - Contract Term */}
+          <div>
+            <Label className="text-xs text-muted-foreground">Thời hạn hợp đồng</Label>
+            <SearchableSelect
+              options={[
+                { value: "1", label: "1 năm" },
+                { value: "2", label: "2 năm" },
+                { value: "3", label: "3 năm" },
+                { value: "4", label: "4 năm" },
+                { value: "5", label: "5 năm" },
+              ]}
+              value={data.contract_term}
+              onValueChange={(v) => updateField("contract_term", v)}
+              placeholder="Chọn thời hạn"
+              emptyText="Không có thời hạn"
             />
           </div>
         </div>
