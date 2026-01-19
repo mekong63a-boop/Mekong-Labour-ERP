@@ -47,7 +47,7 @@ interface UseUserRoleResult {
  * Sử dụng react-query để cache và tránh re-fetch khi chuyển tab
  */
 export function useUserRoleStandalone(): UseUserRoleResult {
-  const [userId, setUserId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null | undefined>(undefined); // undefined = chưa init
   const initializedRef = useRef(false);
 
   // Lấy user ID một lần duy nhất khi mount
@@ -57,7 +57,7 @@ export function useUserRoleStandalone(): UseUserRoleResult {
     
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      setUserId(user?.id ?? null);
+      setUserId(user?.id ?? null); // null = không có user, string = có user
     };
     getUser();
 
@@ -73,7 +73,7 @@ export function useUserRoleStandalone(): UseUserRoleResult {
   }, []);
 
   // Sử dụng react-query với caching mạnh, không refetch khi focus
-  const { data: roleData, isLoading } = useQuery({
+  const { data: roleData, isLoading: roleLoading } = useQuery({
     queryKey: ['user-role-standalone', userId],
     queryFn: async (): Promise<UserRoleData> => {
       if (!userId) {
@@ -97,7 +97,7 @@ export function useUserRoleStandalone(): UseUserRoleResult {
         is_senior_staff: data?.is_senior_staff ?? false,
       };
     },
-    enabled: userId !== null,
+    enabled: userId !== undefined && userId !== null, // Chỉ query khi có userId thực
     staleTime: 10 * 60 * 1000, // 10 phút
     gcTime: 30 * 60 * 1000, // 30 phút
     refetchOnWindowFocus: false, // KHÔNG refetch khi chuyển tab
@@ -122,6 +122,10 @@ export function useUserRoleStandalone(): UseUserRoleResult {
   const canManageUsers = isAdmin;
   const canAssignAdmins = isPrimaryAdmin; // Only primary admin can assign admin roles
 
+  // isLoading: chỉ loading khi userId chưa được init (undefined) hoặc đang fetch role
+  // Nếu userId = null (không có user) thì không cần loading
+  const isLoading = userId === undefined || (userId !== null && roleLoading);
+
   return {
     role,
     isPrimaryAdmin,
@@ -129,8 +133,8 @@ export function useUserRoleStandalone(): UseUserRoleResult {
     isStaff,
     isSeniorStaff,
     canViewSensitiveData,
-    isLoading: isLoading || userId === null,
-    userId,
+    isLoading,
+    userId: userId ?? null,
     canDelete,
     canManageUsers,
     canAssignAdmins,
