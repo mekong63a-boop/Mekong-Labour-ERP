@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, Loader2, CloudOff, Cloud } from "lucide-react";
+import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -31,11 +31,8 @@ import { FamilyMembersForm, FamilyItem } from "@/components/trainees/forms/Famil
 import { JapanRelativesForm, JapanRelativeItem } from "@/components/trainees/forms/JapanRelativesForm";
 import { ProjectInterviewForm } from "@/components/trainees/forms/ProjectInterviewForm";
 import { useEducationHistory, useWorkHistory, useFamilyMembers, useJapanRelatives } from "@/hooks/useTraineeHistory";
-import { useDebounce } from "@/hooks/useDebounce";
 
-// Local storage key for auto-save
-const TRAINEE_DRAFT_KEY = "trainee_form_draft";
-const TRAINEE_PHOTO_DRAFT_KEY = "trainee_photo_draft";
+// Photo file states removed - no more draft system
 
 // Options
 const TRAINEE_TYPES = ["Thực tập sinh", "Kỹ năng đặc định", "Kỹ sư", "Du học sinh", "Thực tập sinh số 3"];
@@ -152,18 +149,11 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   const { isAdmin } = useUserRole();
   const { canViewUnmasked } = useDataMasking();
   
-  // Auto-save state
-  const [draftSaved, setDraftSaved] = useState(false);
-  const [hasDraft, setHasDraft] = useState(false);
-  const isInitialLoad = useRef(true);
-  
   // Chỉ admin mới được sửa trường nhạy cảm
   const canEditSensitiveFields = isAdmin;
   
   // Pending photo file for upload on save
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
-  // Photo preview URL (for restored drafts)
-  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   
   // History form states
   const [educationItems, setEducationItems] = useState<EducationItem[]>([]);
@@ -294,227 +284,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
 
   const [errors, setErrors] = useState<Partial<FormData>>({});
 
-  // Debounce form data for auto-save (wait 1 second after last change)
-  const debouncedFormData = useDebounce(formData, 1000);
-  const debouncedEducationItems = useDebounce(educationItems, 1000);
-  const debouncedWorkItems = useDebounce(workItems, 1000);
-  const debouncedFamilyItems = useDebounce(familyItems, 1000);
-  const debouncedJapanRelativeItems = useDebounce(japanRelativeItems, 1000);
-  const debouncedProjectData = useDebounce(projectData, 1000);
-
-  // Check for existing draft on mount (only for new trainees)
-  useEffect(() => {
-    const restoreDraft = async () => {
-      if (!isEditMode) {
-        const savedDraft = localStorage.getItem(TRAINEE_DRAFT_KEY);
-        const savedPhoto = localStorage.getItem(TRAINEE_PHOTO_DRAFT_KEY);
-        
-        if (savedDraft) {
-          try {
-            const draft = JSON.parse(savedDraft);
-
-            const hasAnyValue = (obj: Record<string, unknown> | undefined) => {
-              if (!obj) return false;
-              return Object.values(obj).some((v) => {
-                if (v === null || v === undefined) return false;
-                if (typeof v === 'string') return v.trim().length > 0;
-                if (typeof v === 'number') return true;
-                if (typeof v === 'boolean') return v;
-                return Boolean(v);
-              });
-            };
-
-            const isMeaningfulDraft =
-              hasAnyValue(draft.formData) ||
-              (Array.isArray(draft.educationItems) && draft.educationItems.length > 0) ||
-              (Array.isArray(draft.workItems) && draft.workItems.length > 0) ||
-              (Array.isArray(draft.familyItems) && draft.familyItems.length > 0) ||
-              (Array.isArray(draft.japanRelativeItems) && draft.japanRelativeItems.length > 0) ||
-              hasAnyValue(draft.projectData) ||
-              typeof draft.activeTab === 'string' ||
-              !!savedPhoto;
-
-            if (isMeaningfulDraft) {
-              setHasDraft(true);
-              // Auto-restore draft
-              if (draft.formData) setFormData(draft.formData);
-              if (draft.educationItems) setEducationItems(draft.educationItems);
-              if (draft.workItems) setWorkItems(draft.workItems);
-              if (draft.familyItems) setFamilyItems(draft.familyItems);
-              if (draft.japanRelativeItems) setJapanRelativeItems(draft.japanRelativeItems);
-              if (draft.projectData) setProjectData(draft.projectData);
-              if (draft.activeTab) setActiveTab(draft.activeTab);
-
-              // Restore photo from base64
-              if (savedPhoto) {
-                setPhotoPreviewUrl(savedPhoto);
-                // Convert base64 back to File for upload on save
-                try {
-                  const response = await fetch(savedPhoto);
-                  const blob = await response.blob();
-                  const fileName = `draft_photo_${Date.now()}.jpg`;
-                  const file = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
-                  setPendingPhotoFile(file);
-                } catch (err) {
-                  console.warn('Could not restore photo file from draft:', err);
-                }
-              }
-
-              toast({
-                title: "Đã khôi phục bản nháp",
-                description: "Dữ liệu nhập liệu trước đó đã được khôi phục.",
-              });
-            }
-          } catch (e) {
-            console.error("Error parsing draft:", e);
-            localStorage.removeItem(TRAINEE_DRAFT_KEY);
-            localStorage.removeItem(TRAINEE_PHOTO_DRAFT_KEY);
-          }
-        } else if (savedPhoto) {
-          // Only photo was saved
-          setPhotoPreviewUrl(savedPhoto);
-          setHasDraft(true);
-          // Convert to File
-          try {
-            const response = await fetch(savedPhoto);
-            const blob = await response.blob();
-            const fileName = `draft_photo_${Date.now()}.jpg`;
-            const file = new File([blob], fileName, { type: blob.type || 'image/jpeg' });
-            setPendingPhotoFile(file);
-          } catch (err) {
-            console.warn('Could not restore photo file from draft:', err);
-          }
-        }
-      }
-      isInitialLoad.current = false;
-    };
-
-    restoreDraft();
-  }, [isEditMode]);
-
-  // Helper function to save draft immediately
-  const saveDraftNow = useCallback(() => {
-    if (isEditMode) return false;
-
-    const hasAnyValue = (obj: Record<string, unknown>) => {
-      return Object.values(obj).some((v) => {
-        if (v === null || v === undefined) return false;
-        if (typeof v === 'string') return v.trim().length > 0;
-        if (typeof v === 'number') return true;
-        if (typeof v === 'boolean') return v;
-        return Boolean(v);
-      });
-    };
-
-    const shouldSave =
-      hasAnyValue(formData as unknown as Record<string, unknown>) ||
-      educationItems.length > 0 ||
-      workItems.length > 0 ||
-      familyItems.length > 0 ||
-      japanRelativeItems.length > 0 ||
-      hasAnyValue(projectData as unknown as Record<string, unknown>);
-
-    if (shouldSave) {
-      const draft = {
-        formData,
-        educationItems,
-        workItems,
-        familyItems,
-        japanRelativeItems,
-        projectData,
-        activeTab,
-        savedAt: new Date().toISOString(),
-      };
-      localStorage.setItem(TRAINEE_DRAFT_KEY, JSON.stringify(draft));
-      console.log('[AutoSave] Draft saved immediately');
-      return true;
-    }
-
-    return false;
-  }, [isEditMode, formData, educationItems, workItems, familyItems, japanRelativeItems, projectData, activeTab]);
-
-  // Save draft when user leaves the page or switches tab
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        saveDraftNow();
-      }
-    };
-
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (saveDraftNow()) {
-        // Show confirmation dialog if there's unsaved data
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [saveDraftNow]);
-
-  // Auto-save to localStorage when form data changes (only for new trainees)
-  useEffect(() => {
-    if (!isEditMode && !isInitialLoad.current) {
-      const hasAnyValue = (obj: Record<string, unknown>) => {
-        return Object.values(obj).some((v) => {
-          if (v === null || v === undefined) return false;
-          if (typeof v === 'string') return v.trim().length > 0;
-          if (typeof v === 'number') return true;
-          if (typeof v === 'boolean') return v;
-          return Boolean(v);
-        });
-      };
-
-      const shouldSave =
-        hasAnyValue(debouncedFormData as unknown as Record<string, unknown>) ||
-        (debouncedEducationItems?.length ?? 0) > 0 ||
-        (debouncedWorkItems?.length ?? 0) > 0 ||
-        (debouncedFamilyItems?.length ?? 0) > 0 ||
-        (debouncedJapanRelativeItems?.length ?? 0) > 0 ||
-        hasAnyValue(debouncedProjectData as unknown as Record<string, unknown>);
-
-      if (shouldSave) {
-        const draft = {
-          formData: debouncedFormData,
-          educationItems: debouncedEducationItems,
-          workItems: debouncedWorkItems,
-          familyItems: debouncedFamilyItems,
-          japanRelativeItems: debouncedJapanRelativeItems,
-          projectData: debouncedProjectData,
-          activeTab,
-          savedAt: new Date().toISOString(),
-        };
-        localStorage.setItem(TRAINEE_DRAFT_KEY, JSON.stringify(draft));
-        setDraftSaved(true);
-
-        // Reset indicator after 2 seconds
-        setTimeout(() => setDraftSaved(false), 2000);
-      }
-    }
-  }, [
-    isEditMode,
-    debouncedFormData,
-    debouncedEducationItems,
-    debouncedWorkItems,
-    debouncedFamilyItems,
-    debouncedJapanRelativeItems,
-    debouncedProjectData,
-    activeTab,
-  ]);
-
-  // Clear draft after successful save
-  const clearDraft = useCallback(() => {
-    localStorage.removeItem(TRAINEE_DRAFT_KEY);
-    localStorage.removeItem(TRAINEE_PHOTO_DRAFT_KEY);
-    setHasDraft(false);
-    setPhotoPreviewUrl(null);
-  }, []);
+  // No debounce needed - removed draft system
 
   // Populate form with trainee data when editing
   useEffect(() => {
@@ -994,9 +764,6 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
 
       }
 
-      // Clear draft after successful save
-      clearDraft();
-
       navigate("/trainees");
     } catch (error: any) {
       toast({
@@ -1044,113 +811,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
           <h1 className="text-xl font-semibold text-primary">
             Học viên: {formData.trainee_code || "Mới"} - {formData.full_name || "Chưa có tên"}
           </h1>
-          {/* Auto-save indicator */}
-          {!isEditMode && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              {draftSaved ? (
-                <>
-                  <Cloud className="h-3.5 w-3.5 text-green-500" />
-                  <span className="text-green-600">Đã lưu nháp</span>
-                </>
-              ) : hasDraft || formData.trainee_code || formData.full_name ? (
-                <>
-                  <CloudOff className="h-3.5 w-3.5" />
-                  <span>Tự động lưu nháp</span>
-                </>
-              ) : null}
-            </div>
-          )}
         </div>
         <div className="flex gap-2">
-          {/* Clear draft button */}
-          {!isEditMode && hasDraft && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                clearDraft();
-                // Reset form to initial state
-                setFormData({
-                  trainee_code: "",
-                  full_name: "",
-                  furigana: "",
-                  trainee_type: "",
-                  birth_date: "",
-                  birthplace: "",
-                  gender: "",
-                  marital_status: "",
-                  cccd_number: "",
-                  cccd_date: "",
-                  cccd_place: "",
-                  passport_number: "",
-                  passport_date: "",
-                  ethnicity: "",
-                  religion: "",
-                  policy_category: "",
-                  phone: "",
-                  source: "",
-                  education_level: "",
-                  temp_address: "",
-                  email: "",
-                  permanent_address: "",
-                  facebook: "",
-                  parent_phone_1: "",
-                  parent_phone_2: "",
-                  simple_status: "Đăng ký mới",
-                  progression_stage: "Chưa đậu",
-                  registration_date: format(new Date(), "yyyy-MM-dd"),
-                  height: "",
-                  vision_left: "",
-                  vision_right: "",
-                  dominant_hand: "",
-                  hobbies: "",
-                  weight: "",
-                  smoking: "",
-                  tattoo: "",
-                  tattoo_description: "",
-                  drinking: "",
-                  blood_group: "",
-                  health_status: "",
-                  notes: "",
-                  photo_url: "",
-                  entry_date: "",
-                  reserve_date: "",
-                  stop_date: "",
-                  cancel_date: "",
-                  interview_pass_date: "",
-                  document_submission_date: "",
-                  otit_entry_date: "",
-                  nyukan_entry_date: "",
-                  coe_date: "",
-                  departure_date: "",
-                  absconded_date: "",
-                  early_return_date: "",
-                  early_return_reason: "",
-                  return_date: "",
-                });
-                setEducationItems([]);
-                setWorkItems([]);
-                setFamilyItems([]);
-                setJapanRelativeItems([]);
-                setProjectData({
-                  order_id: "",
-                  interview_date: "",
-                  expected_entry_month: "",
-                  receiving_company_id: "",
-                  union_id: "",
-                  job_category_id: "",
-                  contract_term: "",
-                });
-                toast({
-                  title: "Đã xóa bản nháp",
-                  description: "Form đã được đặt lại về trạng thái ban đầu.",
-                });
-              }}
-              className="text-muted-foreground"
-            >
-              Xóa nháp
-            </Button>
-          )}
           <Button variant="outline" onClick={() => navigate("/trainees")}>
             Hủy bỏ
           </Button>
@@ -1188,23 +850,12 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                     {/* Photo Upload + Trainee Code */}
                     <div className="flex-shrink-0 space-y-2">
                       <PhotoUpload
-                        currentPhotoUrl={photoPreviewUrl || formData.photo_url}
+                        currentPhotoUrl={formData.photo_url}
                         onPhotoChange={(url, file) => {
                           if (file && !isEditMode) {
                             setPendingPhotoFile(file);
-                            // Convert file to base64 and save to localStorage for draft restore
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              const base64 = reader.result as string;
-                              setPhotoPreviewUrl(base64);
-                              localStorage.setItem(TRAINEE_PHOTO_DRAFT_KEY, base64);
-                            };
-                            reader.readAsDataURL(file);
                           } else if (url === null && file === null) {
-                            // Photo removed
                             setPendingPhotoFile(null);
-                            setPhotoPreviewUrl(null);
-                            localStorage.removeItem(TRAINEE_PHOTO_DRAFT_KEY);
                             updateField("photo_url", "");
                           } else {
                             updateField("photo_url", url || "");

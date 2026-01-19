@@ -1,5 +1,6 @@
 import { useAuth, AppRole } from "./useAuth";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -43,66 +44,68 @@ interface UseUserRoleResult {
 
 /**
  * Standalone hook that doesn't require AuthProvider context
+ * Sử dụng react-query để cache và tránh re-fetch khi chuyển tab
  */
 export function useUserRoleStandalone(): UseUserRoleResult {
-  const [roleData, setRoleData] = useState<UserRoleData>({
-    role: null,
-    is_primary_admin: false,
-    is_senior_staff: false,
-  });
-  const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const initializedRef = useRef(false);
 
+  // Lấy user ID một lần duy nhất khi mount
   useEffect(() => {
-    const fetchRole = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          setRoleData({ role: null, is_primary_admin: false, is_senior_staff: false });
-          setUserId(null);
-          setIsLoading(false);
-          return;
-        }
-
-        setUserId(user.id);
-
-        const { data, error } = await supabase
-          .from("user_roles")
-          .select("role, is_primary_admin, is_senior_staff")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error("Error fetching user role:", error);
-          setRoleData({ role: null, is_primary_admin: false, is_senior_staff: false });
-        } else if (data) {
-          setRoleData({
-            role: data.role as AppRole,
-            is_primary_admin: data.is_primary_admin || false,
-            is_senior_staff: data.is_senior_staff || false,
-          });
-        } else {
-          setRoleData({ role: null, is_primary_admin: false, is_senior_staff: false });
-        }
-      } catch (error) {
-        console.error("Error in useUserRole:", error);
-        setRoleData({ role: null, is_primary_admin: false, is_senior_staff: false });
-      } finally {
-        setIsLoading(false);
-      }
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+    
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id ?? null);
     };
+    getUser();
 
-    fetchRole();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      fetchRole();
+    // CHỈ listen auth change cho SIGN_OUT/SIGN_IN events thực sự
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Chỉ update khi có thay đổi user thực sự (login/logout)
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        setUserId(session?.user?.id ?? null);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const { role, is_primary_admin, is_senior_staff } = roleData;
+  // Sử dụng react-query với caching mạnh, không refetch khi focus
+  const { data: roleData, isLoading } = useQuery({
+    queryKey: ['user-role-standalone', userId],
+    queryFn: async (): Promise<UserRoleData> => {
+      if (!userId) {
+        return { role: null, is_primary_admin: false, is_senior_staff: false };
+      }
+
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role, is_primary_admin, is_senior_staff")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error fetching user role:", error);
+        return { role: null, is_primary_admin: false, is_senior_staff: false };
+      }
+
+      return {
+        role: (data?.role as AppRole) ?? null,
+        is_primary_admin: data?.is_primary_admin ?? false,
+        is_senior_staff: data?.is_senior_staff ?? false,
+      };
+    },
+    enabled: userId !== null,
+    staleTime: 10 * 60 * 1000, // 10 phút
+    gcTime: 30 * 60 * 1000, // 30 phút
+    refetchOnWindowFocus: false, // KHÔNG refetch khi chuyển tab
+    refetchOnMount: false, // KHÔNG refetch khi component mount lại
+    refetchOnReconnect: false,
+  });
+
+  const { role, is_primary_admin, is_senior_staff } = roleData ?? { role: null, is_primary_admin: false, is_senior_staff: false };
   
   const isPrimaryAdmin = role === "admin" && is_primary_admin;
   const isAdmin = role === "admin";
@@ -115,10 +118,7 @@ export function useUserRoleStandalone(): UseUserRoleResult {
    * Sử dụng useCanAction(menuKey, 'delete') từ useMenuPermissions thay thế.
    * Property này chỉ giữ lại cho backward compatibility.
    */
-  const canDelete = (() => {
-    console.warn('[DEPRECATED] useUserRole.canDelete is deprecated. Use useCanAction(menuKey, "delete") instead.');
-    return isAdmin;
-  })();
+  const canDelete = isAdmin;
   const canManageUsers = isAdmin;
   const canAssignAdmins = isPrimaryAdmin; // Only primary admin can assign admin roles
 
@@ -129,7 +129,7 @@ export function useUserRoleStandalone(): UseUserRoleResult {
     isStaff,
     isSeniorStaff,
     canViewSensitiveData,
-    isLoading,
+    isLoading: isLoading || userId === null,
     userId,
     canDelete,
     canManageUsers,
@@ -139,80 +139,64 @@ export function useUserRoleStandalone(): UseUserRoleResult {
 
 /**
  * Hook that uses the AuthProvider context
+ * Sử dụng react-query để cache và tránh re-fetch khi chuyển tab
  */
 export function useUserRole(): UseUserRoleResult {
-  const [roleData, setRoleData] = useState<UserRoleData>({
-    role: null,
-    is_primary_admin: false,
-    is_senior_staff: false,
-  });
-  const [extraLoading, setExtraLoading] = useState(true);
-  
   let user: any = null;
   let role: AppRole | null = null;
-  let isLoading = true;
+  let isAuthLoading = true;
   let isSeniorStaffFromAuth = false;
   
   try {
     const authResult = useAuth();
     user = authResult.user;
     role = authResult.role;
-    isLoading = authResult.isLoading;
+    isAuthLoading = authResult.isLoading;
     isSeniorStaffFromAuth = authResult.isSeniorStaff;
   } catch {
     // If not within AuthProvider, use standalone version
     return useUserRoleStandalone();
   }
 
-  useEffect(() => {
-    const fetchExtraRoleData = async () => {
+  // Sử dụng react-query với caching mạnh, không refetch khi focus
+  const { data: extraRoleData, isLoading: extraLoading } = useQuery({
+    queryKey: ['user-role-extra', user?.id],
+    queryFn: async (): Promise<{ is_primary_admin: boolean; is_senior_staff: boolean }> => {
       if (!user?.id) {
-        setRoleData({ role: null, is_primary_admin: false, is_senior_staff: false });
-        setExtraLoading(false);
-        return;
+        return { is_primary_admin: false, is_senior_staff: false };
       }
 
-      try {
-        const { data, error } = await supabase
-          .from("user_roles")
-          .select("is_primary_admin, is_senior_staff")
-          .eq("user_id", user.id)
-          .maybeSingle();
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("is_primary_admin, is_senior_staff")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-        if (error) {
-          console.error("Error fetching extra role data:", error);
-        } else if (data) {
-          setRoleData({
-            role,
-            is_primary_admin: data.is_primary_admin || false,
-            is_senior_staff: data.is_senior_staff || false,
-          });
-        }
-      } catch (error) {
-        console.error("Error in useUserRole extra fetch:", error);
-      } finally {
-        setExtraLoading(false);
+      if (error) {
+        console.error("Error fetching extra role data:", error);
+        return { is_primary_admin: false, is_senior_staff: false };
       }
-    };
 
-    fetchExtraRoleData();
-  }, [user?.id, role]);
+      return {
+        is_primary_admin: data?.is_primary_admin ?? false,
+        is_senior_staff: data?.is_senior_staff ?? false,
+      };
+    },
+    enabled: !!user?.id,
+    staleTime: 10 * 60 * 1000, // 10 phút
+    gcTime: 30 * 60 * 1000, // 30 phút
+    refetchOnWindowFocus: false, // KHÔNG refetch khi chuyển tab
+    refetchOnMount: false, // KHÔNG refetch khi component mount lại
+    refetchOnReconnect: false,
+  });
 
-  const isPrimaryAdmin = role === "admin" && roleData.is_primary_admin;
+  const isPrimaryAdmin = role === "admin" && (extraRoleData?.is_primary_admin ?? false);
   const isAdmin = role === "admin";
   const isStaff = role === "staff";
-  const isSeniorStaff = roleData.is_senior_staff || isSeniorStaffFromAuth;
+  const isSeniorStaff = (extraRoleData?.is_senior_staff ?? false) || isSeniorStaffFromAuth;
   const canViewSensitiveData = isAdmin || isSeniorStaff;
 
-  /**
-   * @deprecated canDelete - KHÔNG SỬ DỤNG CHO UI RENDER
-   * Sử dụng useCanAction(menuKey, 'delete') từ useMenuPermissions thay thế.
-   * Property này chỉ giữ lại cho backward compatibility.
-   */
-  const canDelete = (() => {
-    console.warn('[DEPRECATED] useUserRole.canDelete is deprecated. Use useCanAction(menuKey, "delete") instead.');
-    return isAdmin;
-  })();
+  const canDelete = isAdmin;
   const canManageUsers = isAdmin;
   const canAssignAdmins = isPrimaryAdmin;
 
@@ -223,7 +207,7 @@ export function useUserRole(): UseUserRoleResult {
     isStaff,
     isSeniorStaff,
     canViewSensitiveData,
-    isLoading: isLoading || extraLoading,
+    isLoading: isAuthLoading || extraLoading,
     userId: user?.id ?? null,
     canDelete,
     canManageUsers,
