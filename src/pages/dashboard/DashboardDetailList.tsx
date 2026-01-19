@@ -128,14 +128,20 @@ export default function DashboardDetailList() {
     };
 
     return trainees.filter((t) => {
-      // Check date filter first for input metrics (use registration_date)
-      const useRegistrationDate = ["registered_new", "not_studying", "studying", "reserved", "cancelled", "passed_interview"].includes(filter);
+      // Determine which date field to use for filtering
+      const useRegistrationDate = ["registered_new", "not_studying", "studying", "reserved", "cancelled"].includes(filter);
+      const useInterviewDate = filter === "passed_interview";
       const useDepartureDate = filter.startsWith("departed_");
       
+      // Apply date filter based on category
       if (useRegistrationDate && year && year !== "all") {
-        // Use registration_date for date filtering
         const regDate = t.registration_date || t.created_at;
         if (!matchesDateFilter(regDate)) return false;
+      }
+      
+      if (useInterviewDate && year && year !== "all") {
+        // Đậu phỏng vấn: lọc theo interview_pass_date
+        if (!matchesDateFilter(t.interview_pass_date)) return false;
       }
       
       if (useDepartureDate && year && year !== "all") {
@@ -155,7 +161,8 @@ export default function DashboardDetailList() {
         case "cancelled":
           return t.simple_status === "Hủy" || t.enrollment_status === "Đã hủy";
         case "passed_interview":
-          return t.interview_pass_date || (t.progression_stage && t.progression_stage !== "Chưa đậu");
+          // Phải có interview_pass_date HOẶC progression_stage cho thấy đã đậu (không phải Tuyển dụng)
+          return t.interview_pass_date || (t.progression_stage && !["Chưa đậu", "Tuyển dụng"].includes(t.progression_stage as string));
         case "departed_tts":
           return t.departure_date && t.trainee_type === "Thực tập sinh";
         case "departed_tts3":
