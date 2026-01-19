@@ -163,18 +163,21 @@ export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
             <div className="p-3 border rounded-lg text-center">
               <p className="text-xs text-muted-foreground">Đậu phỏng vấn</p>
               <p className="font-medium text-sm mt-1">
-                {/* Show interview pass date from trainee or from latest passed interview */}
-                {trainee.interview_pass_date 
-                  ? formatDate(trainee.interview_pass_date)
-                  : interviews && interviews.length > 0 && interviews.some((i: any) => 
-                      i.result?.toLowerCase() === "đậu" || i.result?.toLowerCase() === "passed"
-                    )
-                    ? formatDate(
-                        interviews.find((i: any) => 
+                {/* Chỉ hiển thị ngày đậu phỏng vấn nếu học viên THỰC SỰ đã đậu (không phải "Chưa đậu") */}
+                {trainee.progression_stage && trainee.progression_stage !== "Chưa đậu"
+                  ? (trainee.interview_pass_date 
+                      ? formatDate(trainee.interview_pass_date)
+                      : interviews && interviews.length > 0 && interviews.some((i: any) => 
                           i.result?.toLowerCase() === "đậu" || i.result?.toLowerCase() === "passed"
-                        )?.interview_date
-                      )
-                    : "—"
+                        )
+                        ? formatDate(
+                            interviews.find((i: any) => 
+                              i.result?.toLowerCase() === "đậu" || i.result?.toLowerCase() === "passed"
+                            )?.interview_date
+                          )
+                        : "—"
+                    )
+                  : "—"
                 }
               </p>
             </div>
