@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { markUserSessionInactive, upsertUserSession } from "@/hooks/useSessionHeartbeat";
 
 /**
  * Hệ thống CHỈ có 3 role:
@@ -94,6 +95,9 @@ export function useAuthState(): AuthContextType {
         setIsLoading(false);
         return;
       }
+
+      // Track online session immediately on SIGNED_IN / token refresh (fire-and-forget)
+      void upsertUserSession(nextSession.user.id);
 
       // Fetch role + admin-exists in parallel to reduce login/load latency
       const [roleData, adminExists] = await Promise.all([
@@ -202,6 +206,12 @@ export function useAuthState(): AuthContextType {
   };
 
   const signOut = async () => {
+    const currentUserId = user?.id;
+    if (currentUserId) {
+      // best-effort: mark offline immediately
+      void markUserSessionInactive(currentUserId);
+    }
+
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
