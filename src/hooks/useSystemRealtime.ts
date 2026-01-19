@@ -5,7 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 /**
  * OPTIMIZED REALTIME HOOK
  * 
- * CHỈ lắng nghe các bảng QUAN TRỌNG để tối ưu hiệu suất:
+ * Lắng nghe các bảng QUAN TRỌNG để tối ưu hiệu suất:
+ * - trainees: học viên (chỉ UPDATE để invalidate cache)
  * - attendance: điểm danh realtime
  * - user_roles: phân quyền user
  * - menus: cấu trúc menu
@@ -13,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
  * - department_menu_permissions: quyền menu theo phòng ban
  * - department_members: thành viên phòng ban
  * 
- * CÁC BẢNG LỚN (trainees, orders, companies, unions) 
+ * CÁC BẢNG LỚN KHÁC (orders, companies, unions) 
  * KHÔNG dùng realtime để tiết kiệm tài nguyên.
  * Thay vào đó sử dụng refetch thủ công khi cần.
  */
@@ -33,6 +34,23 @@ export function useSystemRealtime() {
     
     const channel = supabase
       .channel(channelId)
+      // ========== TRAINEES (học viên - chỉ UPDATE) ==========
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'trainees' },
+        (payload) => {
+          console.log('[Realtime] Trainee updated:', payload.new?.id || 'unknown');
+          // Invalidate tất cả queries liên quan đến trainees
+          queryClient.invalidateQueries({ queryKey: ["trainees"] });
+          queryClient.invalidateQueries({ queryKey: ["trainee"] });
+          queryClient.invalidateQueries({ queryKey: ["trainees-paginated"] });
+          queryClient.invalidateQueries({ queryKey: ["trainee-stage-counts"] });
+          queryClient.invalidateQueries({ queryKey: ["trainees-count"] });
+          // Invalidate dashboard vì có thể ảnh hưởng thống kê
+          queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-kpis"] });
+        }
+      )
       // ========== ATTENDANCE (điểm danh realtime) ==========
       .on(
         'postgres_changes',
