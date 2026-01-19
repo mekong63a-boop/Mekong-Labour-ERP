@@ -332,6 +332,51 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     isInitialLoad.current = false;
   }, [isEditMode]);
 
+  // Helper function to save draft immediately
+  const saveDraftNow = useCallback(() => {
+    if (!isEditMode && (formData.trainee_code || formData.full_name)) {
+      const draft = {
+        formData: formData,
+        educationItems: educationItems,
+        workItems: workItems,
+        familyItems: familyItems,
+        japanRelativeItems: japanRelativeItems,
+        projectData: projectData,
+        activeTab,
+        savedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(TRAINEE_DRAFT_KEY, JSON.stringify(draft));
+      console.log('[AutoSave] Draft saved immediately');
+      return true;
+    }
+    return false;
+  }, [isEditMode, formData, educationItems, workItems, familyItems, japanRelativeItems, projectData, activeTab]);
+
+  // Save draft when user leaves the page or switches tab
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        saveDraftNow();
+      }
+    };
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (saveDraftNow()) {
+        // Show confirmation dialog if there's unsaved data
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [saveDraftNow]);
+
   // Auto-save to localStorage when form data changes (only for new trainees)
   useEffect(() => {
     if (!isEditMode && !isInitialLoad.current) {
