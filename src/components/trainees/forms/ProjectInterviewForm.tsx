@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { FileText } from "lucide-react";
+import { FileText, Package } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { useEffect, useMemo } from "react";
 
 interface ProjectInterviewFormProps {
   data: {
@@ -20,15 +22,28 @@ interface ProjectInterviewFormProps {
 }
 
 export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormProps) {
-  // Fetch orders
+  // Fetch orders with full details
   const { data: orders = [] } = useQuery({
-    queryKey: ["orders-select"],
+    queryKey: ["orders-select-full"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, code")
-        .eq("status", "active")
-        .order("code");
+        .select(`
+          id, 
+          code, 
+          company_id, 
+          union_id, 
+          job_category_id, 
+          expected_interview_date, 
+          contract_term,
+          status,
+          quantity,
+          companies:company_id(id, name, name_japanese, code),
+          unions:union_id(id, name, name_japanese, code),
+          job_categories:job_category_id(id, name, name_japanese, code)
+        `)
+        .eq("status", "Đang tuyển")
+        .order("code", { ascending: false });
       if (error) throw error;
       return data || [];
     },
@@ -76,14 +91,85 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
     },
   });
 
+  // Get selected order details
+  const selectedOrder = useMemo(() => {
+    return orders.find((o: any) => o.id === data.order_id);
+  }, [orders, data.order_id]);
+
+  // Auto-fill fields when order is selected
+  useEffect(() => {
+    if (selectedOrder && data.order_id) {
+      const newData = { ...data };
+      let hasChanges = false;
+
+      // Auto-fill company if order has company_id
+      if (selectedOrder.company_id && !data.receiving_company_id) {
+        newData.receiving_company_id = selectedOrder.company_id;
+        hasChanges = true;
+      }
+
+      // Auto-fill union if order has union_id
+      if (selectedOrder.union_id && !data.union_id) {
+        newData.union_id = selectedOrder.union_id;
+        hasChanges = true;
+      }
+
+      // Auto-fill job category if order has job_category_id
+      if (selectedOrder.job_category_id && !data.job_category_id) {
+        newData.job_category_id = selectedOrder.job_category_id;
+        hasChanges = true;
+      }
+
+      // Auto-fill interview date from expected_interview_date
+      if (selectedOrder.expected_interview_date && !data.interview_date) {
+        newData.interview_date = selectedOrder.expected_interview_date;
+        hasChanges = true;
+      }
+
+      // Auto-fill contract term
+      if (selectedOrder.contract_term && !data.contract_term) {
+        newData.contract_term = selectedOrder.contract_term.toString();
+        hasChanges = true;
+      }
+
+      if (hasChanges) {
+        onChange(newData);
+      }
+    }
+  }, [selectedOrder, data.order_id]);
+
   const updateField = (field: string, value: string) => {
     onChange({ ...data, [field]: value });
   };
 
-  const orderOptions = orders.map((o) => ({
-    value: o.id,
-    label: o.code,
-  }));
+  // Handle order selection - force fill all fields from order
+  const handleOrderSelect = (orderId: string) => {
+    const order = orders.find((o: any) => o.id === orderId);
+    if (order) {
+      onChange({
+        ...data,
+        order_id: orderId,
+        receiving_company_id: order.company_id || data.receiving_company_id,
+        union_id: order.union_id || data.union_id,
+        job_category_id: order.job_category_id || data.job_category_id,
+        interview_date: order.expected_interview_date || data.interview_date,
+        contract_term: order.contract_term ? order.contract_term.toString() : data.contract_term,
+      });
+    } else {
+      updateField("order_id", orderId);
+    }
+  };
+
+  const orderOptions = orders.map((o: any) => {
+    const companyName = o.companies?.name || "Chưa có công ty";
+    const unionName = o.unions?.name || "";
+    const jobName = o.job_categories?.name || "";
+    const details = [companyName, unionName, jobName].filter(Boolean).join(" - ");
+    return {
+      value: o.id,
+      label: `${o.code}${details ? ` (${details})` : ""}`,
+    };
+  });
 
   const companyOptions = companies.map((c) => ({
     value: c.id,
@@ -110,17 +196,51 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Row 1 */}
-          <div>
-            <Label className="text-xs text-muted-foreground">Đơn tuyển</Label>
+          {/* Row 1 - Order Selection */}
+          <div className="md:col-span-3">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+              <Package className="h-3 w-3" />
+              Chọn đơn tuyển (tự động điền thông tin)
+            </Label>
             <SearchableSelect
               options={orderOptions}
               value={data.order_id}
-              onValueChange={(v) => updateField("order_id", v)}
-              placeholder="Chọn đơn tuyển"
-              emptyText="Không có đơn tuyển"
+              onValueChange={handleOrderSelect}
+              placeholder="Chọn đơn tuyển để tự động điền thông tin..."
+              emptyText="Không có đơn tuyển đang hoạt động"
             />
+            {selectedOrder && (
+              <div className="mt-2 p-2 bg-muted/50 rounded-md text-xs">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className="text-xs">
+                    Số lượng: {selectedOrder.quantity || 0}
+                  </Badge>
+                  {selectedOrder.companies?.name && (
+                    <Badge variant="secondary" className="text-xs">
+                      CT: {selectedOrder.companies.name}
+                    </Badge>
+                  )}
+                  {selectedOrder.unions?.name && (
+                    <Badge variant="secondary" className="text-xs">
+                      NĐ: {selectedOrder.unions.name}
+                    </Badge>
+                  )}
+                  {selectedOrder.job_categories?.name && (
+                    <Badge variant="secondary" className="text-xs">
+                      NN: {selectedOrder.job_categories.name}
+                    </Badge>
+                  )}
+                  {selectedOrder.expected_interview_date && (
+                    <Badge variant="secondary" className="text-xs">
+                      PV: {selectedOrder.expected_interview_date}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* Row 2 */}
           <div>
             <Label className="text-xs text-muted-foreground">Ngày phỏng vấn</Label>
             <Input
@@ -139,8 +259,25 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
               className={data.expected_entry_month ? "bg-white" : "bg-amber-50 border-amber-200"}
             />
           </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Thời hạn hợp đồng</Label>
+            <SearchableSelect
+              options={[
+                { value: "0.5", label: "6 tháng" },
+                { value: "1", label: "1 năm" },
+                { value: "2", label: "2 năm" },
+                { value: "3", label: "3 năm" },
+                { value: "4", label: "4 năm" },
+                { value: "5", label: "5 năm" },
+              ]}
+              value={data.contract_term}
+              onValueChange={(v) => updateField("contract_term", v)}
+              placeholder="Chọn thời hạn"
+              emptyText="Không có thời hạn"
+            />
+          </div>
 
-          {/* Row 2 */}
+          {/* Row 3 */}
           <div>
             <Label className="text-xs text-muted-foreground">Công ty tiếp nhận</Label>
             <SearchableSelect
@@ -169,25 +306,6 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
               onValueChange={(v) => updateField("job_category_id", v)}
               placeholder="Chọn ngành nghề"
               emptyText="Không có ngành nghề"
-            />
-          </div>
-
-          {/* Row 3 - Contract Term */}
-          <div>
-            <Label className="text-xs text-muted-foreground">Thời hạn hợp đồng</Label>
-            <SearchableSelect
-              options={[
-                { value: "0.5", label: "6 tháng" },
-                { value: "1", label: "1 năm" },
-                { value: "2", label: "2 năm" },
-                { value: "3", label: "3 năm" },
-                { value: "4", label: "4 năm" },
-                { value: "5", label: "5 năm" },
-              ]}
-              value={data.contract_term}
-              onValueChange={(v) => updateField("contract_term", v)}
-              placeholder="Chọn thời hạn"
-              emptyText="Không có thời hạn"
             />
           </div>
         </div>
