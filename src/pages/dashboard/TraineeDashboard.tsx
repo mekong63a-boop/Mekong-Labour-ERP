@@ -357,10 +357,11 @@ export default function TraineeDashboard() {
         }
       }
 
-      // 6. Đậu phỏng vấn: Lọc theo interview_pass_date, KHÔNG tính học viên đã xuất cảnh
-      const hasPassedInterview = t.interview_pass_date || (t.progression_stage && !["Chưa đậu", "Tuyển dụng"].includes(t.progression_stage as string));
+      // 6. Đậu phỏng vấn: Chỉ tính học viên có progression_stage từ "Đậu phỏng vấn" đến "COE", chưa xuất cảnh
+      const validPassedStages = ["Đậu phỏng vấn", "Nộp hồ sơ", "OTIT", "Nyukan", "COE"];
+      const isInValidStage = validPassedStages.includes(t.progression_stage as string);
       const hasNotDeparted = !t.departure_date; // Chưa xuất cảnh
-      if (hasPassedInterview && hasNotDeparted) {
+      if (isInValidStage && hasNotDeparted) {
         const matchesInterviewDate = checkDateMatch(t.interview_pass_date);
         if (noFilter || matchesInterviewDate) {
           result.passed_interview++;
