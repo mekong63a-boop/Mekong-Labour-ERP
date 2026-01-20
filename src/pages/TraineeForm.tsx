@@ -1141,12 +1141,18 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                       />
                     </div>
                     <div>
-                      <Label className="text-xs text-muted-foreground">Email / Zalo</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        Email / Zalo
+                        {!canEditSensitiveFields && isEditMode && formData.email && <span className="text-xs text-orange-500 ml-1">(bảo mật)</span>}
+                      </Label>
                       <Input
                         placeholder="email@example.com"
-                        value={formData.email}
+                        value={!canEditSensitiveFields && isEditMode && formData.email
+                          ? formData.email.replace(/(.{2})(.*)(@.*)/, "$1***$3")
+                          : formData.email}
                         onChange={(e) => updateField("email", e.target.value)}
                         className={getInputClass(formData.email)}
+                        disabled={!canEditSensitiveFields && isEditMode && !!formData.email}
                       />
                     </div>
                   </div>
@@ -1172,21 +1178,33 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   </div>
                   <div className="grid grid-cols-4 gap-3">
                     <div>
-                      <Label className="text-xs text-muted-foreground">SĐT Phụ huynh 1</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        SĐT Phụ huynh 1
+                        {!canEditSensitiveFields && isEditMode && formData.parent_phone_1 && <span className="text-xs text-orange-500 ml-1">(bảo mật)</span>}
+                      </Label>
                       <Input
                         placeholder="0901234567"
-                        value={formData.parent_phone_1}
+                        value={!canEditSensitiveFields && isEditMode && formData.parent_phone_1
+                          ? formData.parent_phone_1.replace(/(.{4})(.*)(.{3})/, "$1***$3")
+                          : formData.parent_phone_1}
                         onChange={(e) => updateField("parent_phone_1", e.target.value)}
                         className={getInputClass(formData.parent_phone_1)}
+                        disabled={!canEditSensitiveFields && isEditMode && !!formData.parent_phone_1}
                       />
                     </div>
                     <div>
-                      <Label className="text-xs text-muted-foreground">SĐT Phụ huynh 2</Label>
+                      <Label className="text-xs text-muted-foreground">
+                        SĐT Phụ huynh 2
+                        {!canEditSensitiveFields && isEditMode && formData.parent_phone_2 && <span className="text-xs text-orange-500 ml-1">(bảo mật)</span>}
+                      </Label>
                       <Input
                         placeholder="0901234567"
-                        value={formData.parent_phone_2}
+                        value={!canEditSensitiveFields && isEditMode && formData.parent_phone_2
+                          ? formData.parent_phone_2.replace(/(.{4})(.*)(.{3})/, "$1***$3")
+                          : formData.parent_phone_2}
                         onChange={(e) => updateField("parent_phone_2", e.target.value)}
                         className={getInputClass(formData.parent_phone_2)}
+                        disabled={!canEditSensitiveFields && isEditMode && !!formData.parent_phone_2}
                       />
                     </div>
                   </div>
