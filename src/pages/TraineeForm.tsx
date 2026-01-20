@@ -464,13 +464,40 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     updateField(field, value.toUpperCase());
   };
 
-  const validateForm = () => {
+  // Check if trainee_code already exists
+  const checkDuplicateCode = async (code: string): Promise<boolean> => {
+    // Skip check for edit mode with same code
+    if (isEditMode && trainee?.trainee_code === code) {
+      return false;
+    }
+    
+    const { data, error } = await supabase
+      .from("trainees")
+      .select("id, trainee_code")
+      .eq("trainee_code", code)
+      .maybeSingle();
+    
+    if (error) {
+      console.error("Error checking duplicate code:", error);
+      return false;
+    }
+    
+    return !!data;
+  };
+
+  const validateForm = async (): Promise<boolean> => {
     const newErrors: Partial<FormData> = {};
 
     if (!formData.trainee_code.trim()) {
       newErrors.trainee_code = "Bắt buộc";
     } else if (!/^\d{6}$/.test(formData.trainee_code)) {
       newErrors.trainee_code = "Mã phải gồm 6 số";
+    } else {
+      // Check for duplicate code
+      const isDuplicate = await checkDuplicateCode(formData.trainee_code);
+      if (isDuplicate) {
+        newErrors.trainee_code = "Mã học viên đã tồn tại trong hệ thống";
+      }
     }
     if (!formData.full_name.trim()) newErrors.full_name = "Bắt buộc";
     if (!formData.source.trim()) newErrors.source = "Bắt buộc";
@@ -540,11 +567,21 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   });
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
-      toast({
-        title: "Vui lòng điền đầy đủ các trường bắt buộc",
-        variant: "destructive",
-      });
+    const isValid = await validateForm();
+    if (!isValid) {
+      // Check if it's duplicate code error specifically
+      if (errors.trainee_code?.includes("đã tồn tại")) {
+        toast({
+          title: "Mã học viên đã tồn tại",
+          description: "Mã học viên này đã được sử dụng. Vui lòng nhập mã khác.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Vui lòng điền đầy đủ các trường bắt buộc",
+          variant: "destructive",
+        });
+      }
       return;
     }
 
