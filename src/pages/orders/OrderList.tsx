@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useOrders, useOrderStats, Order } from "@/hooks/useOrders";
+import { useOrderTraineeCounts } from "@/hooks/useOrderTrainees";
 import { OrderForm } from "./OrderForm";
+import { OrderTraineesModal } from "./OrderTraineesModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, RefreshCw, Search, FileText, Eye, Edit, Trash2 } from "lucide-react";
+import { Plus, RefreshCw, Search, FileText, Eye, Edit, Trash2, Users } from "lucide-react";
 import { format } from "date-fns";
 import { useCanAction } from "@/hooks/useMenuPermissions";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +33,7 @@ import {
 
 export default function OrderList() {
   const { data: orders, isLoading, refetch } = useOrders();
+  const { data: traineeCounts } = useOrderTraineeCounts();
   const stats = useOrderStats();
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -38,6 +41,8 @@ export default function OrderList() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [traineesModalOpen, setTraineesModalOpen] = useState(false);
+  const [orderForTrainees, setOrderForTrainees] = useState<Order | null>(null);
 
   // Kiểm tra quyền xóa
   const { hasPermission: canDelete } = useCanAction("orders", "delete");
@@ -57,6 +62,11 @@ export default function OrderList() {
   const handleEdit = (order: Order) => {
     setSelectedOrder(order);
     setFormOpen(true);
+  };
+
+  const handleViewTrainees = (order: Order) => {
+    setOrderForTrainees(order);
+    setTraineesModalOpen(true);
   };
 
   const handleDeleteClick = (order: Order) => {
@@ -198,7 +208,7 @@ export default function OrderList() {
                   <TableHead>Mã đơn hàng</TableHead>
                   <TableHead>Công ty</TableHead>
                   <TableHead>Ngành nghề</TableHead>
-                  <TableHead>Số lượng</TableHead>
+                  <TableHead>Ứng viên</TableHead>
                   <TableHead>Địa chỉ</TableHead>
                   <TableHead>Ngày PV</TableHead>
                   <TableHead>Tình trạng</TableHead>
@@ -206,14 +216,36 @@ export default function OrderList() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredOrders?.map((order) => (
+                {filteredOrders?.map((order) => {
+                  const traineeCount = traineeCounts?.[order.id] || 0;
+                  const quantity = order.quantity || 0;
+                  
+                  return (
                   <TableRow key={order.id}>
                     <TableCell className="font-medium text-primary">
                       {order.code}
                     </TableCell>
                     <TableCell>{order.company?.name || "-"}</TableCell>
                     <TableCell>{order.job_category?.name || "-"}</TableCell>
-                    <TableCell>{order.quantity || 1}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 gap-1.5 hover:bg-primary/10"
+                        onClick={() => handleViewTrainees(order)}
+                      >
+                        <Users className="h-3.5 w-3.5" />
+                        <span className={
+                          traineeCount >= quantity && quantity > 0
+                            ? "text-green-600 font-semibold"
+                            : traineeCount > 0
+                            ? "text-amber-600 font-semibold"
+                            : "text-muted-foreground"
+                        }>
+                          {traineeCount}/{quantity}
+                        </span>
+                      </Button>
+                    </TableCell>
                     <TableCell>{order.work_address || "-"}</TableCell>
                     <TableCell>
                       {order.expected_interview_date
@@ -258,7 +290,8 @@ export default function OrderList() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           )}
@@ -293,6 +326,13 @@ export default function OrderList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Trainees Modal */}
+      <OrderTraineesModal
+        open={traineesModalOpen}
+        onOpenChange={setTraineesModalOpen}
+        order={orderForTrainees}
+      />
     </div>
   );
 }
