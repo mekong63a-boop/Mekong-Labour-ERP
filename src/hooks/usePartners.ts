@@ -41,7 +41,7 @@ export function useCompanies() {
       const { data, error } = await supabase
         .from("companies")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("code", { ascending: false });
       if (error) throw error;
       return data as Company[];
     },
@@ -113,7 +113,7 @@ export function useUnions() {
       const { data, error } = await supabase
         .from("unions")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("code", { ascending: false });
       if (error) throw error;
       return data as Union[];
     },
@@ -181,7 +181,7 @@ export function useJobCategories() {
       const { data, error } = await supabase
         .from("job_categories")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("code", { ascending: false });
       if (error) throw error;
       return data as JobCategory[];
     },

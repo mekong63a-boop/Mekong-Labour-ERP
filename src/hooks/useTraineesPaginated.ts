@@ -191,8 +191,8 @@ export function useTraineesPaginated({
         query = query.or(`full_name.ilike.${searchTerm},trainee_code.ilike.${searchTerm},birthplace.ilike.${searchTerm}`);
       }
 
-      // Order by updated_at DESC
-      query = query.order('updated_at', { ascending: false, nullsFirst: false });
+      // Order by trainee_code DESC (largest code first)
+      query = query.order('trainee_code', { ascending: false, nullsFirst: false });
 
       // Apply pagination
       query = query.range(from, to);

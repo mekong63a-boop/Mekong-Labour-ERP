@@ -63,7 +63,7 @@ export function useOrders() {
           union:unions(name),
           job_category:job_categories(name)
         `)
-        .order("created_at", { ascending: false });
+        .order("code", { ascending: false });
 
       if (error) throw error;
       return data as Order[];

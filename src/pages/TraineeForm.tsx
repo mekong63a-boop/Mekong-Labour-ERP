@@ -581,7 +581,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         (traineeData as any).expected_entry_month = projectData.expected_entry_month;
       }
       if (projectData.contract_term) {
-        (traineeData as any).contract_term = parseInt(projectData.contract_term);
+        (traineeData as any).contract_term = parseFloat(projectData.contract_term);
       }
       if (projectData.interview_date) {
         (traineeData as any).interview_pass_date = projectData.interview_date;
