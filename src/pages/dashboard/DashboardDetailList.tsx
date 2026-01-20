@@ -88,6 +88,11 @@ const needsStatusColumn = (filter: FilterType): boolean => {
   return ["not_studying", "studying", "reserved", "cancelled", "passed_interview"].includes(filter);
 };
 
+// Check if filter needs class name column (đang học, bảo lưu, đậu phỏng vấn)
+const needsClassColumn = (filter: FilterType): boolean => {
+  return ["studying", "reserved", "passed_interview"].includes(filter);
+};
+
 export default function DashboardDetailList() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -100,6 +105,7 @@ export default function DashboardDetailList() {
   const showOutputColumns = filter && isOutputDataFilter(filter);
   const showSchoolColumn = filter && isStudentFilter(filter);
   const showStatusColumn = filter && needsStatusColumn(filter);
+  const showClassColumn = filter && needsClassColumn(filter);
 
   // Fetch trainees based on filter - include related data for output filters
   const { data: trainees = [], isLoading } = useQuery({
@@ -176,7 +182,7 @@ export default function DashboardDetailList() {
     enabled: !!showOutputColumns,
   });
 
-  // Fetch classes for students (school name)
+  // Fetch classes for students (school name) or class column (studying, reserved, passed_interview)
   const { data: classes = [] } = useQuery({
     queryKey: ["dashboard-classes"],
     queryFn: async () => {
@@ -186,7 +192,7 @@ export default function DashboardDetailList() {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!showSchoolColumn,
+    enabled: !!showSchoolColumn || !!showClassColumn,
   });
 
   // Create lookup maps
@@ -318,6 +324,8 @@ export default function DashboardDetailList() {
     }
     // Add status column for passed interview
     if (showStatusColumn) base += 1;
+    // Add class column for studying, reserved, passed_interview
+    if (showClassColumn) base += 1;
     return base;
   };
 
@@ -395,6 +403,9 @@ export default function DashboardDetailList() {
                   {showStatusColumn && (
                     <TableHead className="min-w-[100px]">Trạng thái</TableHead>
                   )}
+                  {showClassColumn && (
+                    <TableHead className="min-w-[120px]">Tên lớp</TableHead>
+                  )}
                   <TableHead className="w-20 text-center">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
@@ -458,6 +469,11 @@ export default function DashboardDetailList() {
                       {showStatusColumn && (
                         <TableCell className="text-sm">
                           {trainee.progression_stage || "Đậu phỏng vấn"}
+                        </TableCell>
+                      )}
+                      {showClassColumn && (
+                        <TableCell className="text-sm">
+                          {trainee.class_id ? classMap[trainee.class_id] || "Chưa nhập học" : "Chưa nhập học"}
                         </TableCell>
                       )}
                       <TableCell className="text-center">
