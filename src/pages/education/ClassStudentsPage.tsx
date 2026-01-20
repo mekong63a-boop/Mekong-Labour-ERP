@@ -33,13 +33,15 @@ import { format, parseISO } from "date-fns";
 
 // Test categories for filtering
 const TEST_CATEGORIES = [
-  { value: "all", label: "Tất cả" },
   { value: "Nhập môn", label: "Nhập môn" },
   { value: "Sơ cấp 1", label: "Sơ cấp 1" },
   { value: "Sơ cấp 2", label: "Sơ cấp 2" },
   { value: "N5", label: "N5" },
   { value: "N4", label: "N4" },
   { value: "N3", label: "N3" },
+  { value: "Nghe", label: "Nghe" },
+  { value: "Nghe sơ cấp 1", label: "Nghe SC1" },
+  { value: "Nghe sơ cấp 2", label: "Nghe SC2" },
 ];
 
 // Hook to get detailed students with birthplace
@@ -260,7 +262,7 @@ export default function ClassStudentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTrainee, setSelectedTrainee] = useState<any>(null);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
-  const [gradeCategory, setGradeCategory] = useState("all");
+  const [gradeCategory, setGradeCategory] = useState("Nhập môn");
   
   const { data: enrollmentHistory, isLoading: historyLoading } = useEnrollmentHistory(
     selectedTrainee?.id || ""

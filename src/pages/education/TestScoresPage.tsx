@@ -42,7 +42,7 @@ export default function TestScoresPage() {
   const [localScores, setLocalScores] = useState<Record<string, Record<string, number | null>>>({});
   const [hasChanges, setHasChanges] = useState(false);
 
-  const subjects = ["Nhập môn", "Sơ cấp 1", "Sơ cấp 2", "N5", "N4", "N3", "Nghe"];
+  const subjects = ["Nhập môn", "Sơ cấp 1", "Sơ cấp 2", "N5", "N4", "N3", "Nghe", "Nghe sơ cấp 1", "Nghe sơ cấp 2"];
 
   // Organize scores by trainee and lesson
   const scoreMatrix = useMemo(() => {
