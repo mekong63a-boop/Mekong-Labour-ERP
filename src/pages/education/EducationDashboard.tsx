@@ -1,24 +1,29 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useEducationStats } from "@/hooks/useEducation";
-import { GraduationCap, Users, BookOpen, Calendar, AlertCircle, Clock } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { GraduationCap, Users, AlertCircle, Clock, BookOpen, UserCheck, UserX } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
 import { useQuery } from "@tanstack/react-query";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-
-// Hook to get trainee gender stats for education
-// IMPORTANT: Only count trainees with VALID class_id (class must exist in classes table)
-function useTraineeGenderStats() {
+// Hook to get interview status stats for trainees in valid classes
+function useInterviewStats() {
   return useQuery({
-    queryKey: ["trainee-gender-stats"],
+    queryKey: ["education-interview-stats"],
     queryFn: async () => {
       // First, get all valid class IDs
       const { data: classesData, error: classesError } = await supabase
@@ -29,38 +34,32 @@ function useTraineeGenderStats() {
       
       const validClassIds = new Set(classesData?.map(c => c.id) || []);
       
-      // Then get all trainees
+      // Then get all trainees with class assignment
       const { data, error } = await supabase
         .from("trainees")
         .select("id, gender, class_id, progression_stage");
 
       if (error) throw error;
 
-      // Scope for Education dashboard: ONLY trainees assigned to an existing class
+      // Only trainees assigned to an existing class
       const traineesInValidClasses =
         data?.filter((t) => t.class_id && validClassIds.has(t.class_id)) || [];
 
-      // Currently studying (in a valid class)
-      const studying = traineesInValidClasses;
-      const studyingMale = studying.filter((t) => t.gender === "Nam").length;
-      const studyingFemale = studying.filter((t) => t.gender === "Nữ").length;
-
-      // Passed interview (within trainees already in valid classes)
+      // Passed interview (đậu phỏng vấn) - has a valid progression_stage
       const passed = traineesInValidClasses.filter(
-        (t) => t.progression_stage && t.progression_stage !== "Chưa đậu"
+        (t) => t.progression_stage !== null
       );
       const passedMale = passed.filter((t) => t.gender === "Nam").length;
       const passedFemale = passed.filter((t) => t.gender === "Nữ").length;
 
-      // Not passed interview (within trainees already in valid classes)
+      // Not passed interview (chưa đậu phỏng vấn) - no progression_stage
       const notPassed = traineesInValidClasses.filter(
-        (t) => !t.progression_stage || t.progression_stage === "Chưa đậu"
+        (t) => t.progression_stage === null
       );
       const notPassedMale = notPassed.filter((t) => t.gender === "Nam").length;
       const notPassedFemale = notPassed.filter((t) => t.gender === "Nữ").length;
 
       return {
-        studying: { male: studyingMale, female: studyingFemale, total: studying.length },
         passed: { male: passedMale, female: passedFemale, total: passed.length },
         notPassed: { male: notPassedMale, female: notPassedFemale, total: notPassed.length },
       };
@@ -105,41 +104,46 @@ export default function EducationDashboard() {
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const { data: stats, isLoading: statsLoading } = useEducationStats();
-  const { data: genderStats, isLoading: genderStatsLoading } = useTraineeGenderStats();
+  const { data: interviewStats, isLoading: interviewStatsLoading } = useInterviewStats();
   const { data: absentLate, isLoading: absentLateLoading } = useAbsentLateAttendance(selectedDate);
 
-  const chartData = [
-    {
-      name: "Đang học",
-      Nam: genderStats?.studying.male || 0,
-      Nữ: genderStats?.studying.female || 0,
-    },
-    {
-      name: "Đậu PV",
-      Nam: genderStats?.passed.male || 0,
-      Nữ: genderStats?.passed.female || 0,
-    },
-    {
-      name: "Chưa đậu PV",
-      Nam: genderStats?.notPassed.male || 0,
-      Nữ: genderStats?.notPassed.female || 0,
-    },
-  ];
+  // Interview stats table data
+  const interviewTableData = useMemo(() => {
+    if (!interviewStats) return [];
+    return [
+      {
+        label: "Chưa đậu PV",
+        male: interviewStats.notPassed.male,
+        female: interviewStats.notPassed.female,
+        total: interviewStats.notPassed.total,
+        icon: UserX,
+        color: "text-orange-600",
+      },
+      {
+        label: "Đã đậu PV",
+        male: interviewStats.passed.male,
+        female: interviewStats.passed.female,
+        total: interviewStats.passed.total,
+        icon: UserCheck,
+        color: "text-green-600",
+      },
+    ];
+  }, [interviewStats]);
 
   return (
     <div className="space-y-6">
-      {/* Header - Removed top navigation buttons */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-primary">Quản lý Đào tạo</h1>
           <p className="text-muted-foreground text-sm">
-            Tổng quan giáo viên, lớp học và điểm danh
+            Tổng quan giáo viên, lớp học và thống kê học viên
           </p>
         </div>
       </div>
 
-      {/* Stats Cards - Clickable to navigate */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats Cards - Only Teachers and Classes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card 
           className="cursor-pointer hover:border-primary transition-colors"
           onClick={() => navigate("/education/teachers")}
@@ -183,42 +187,68 @@ export default function EducationDashboard() {
             </p>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Lớp học hôm nay
-            </CardTitle>
-            <Calendar className="h-5 w-5 text-secondary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats?.activeClasses || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {format(new Date(), "EEEE, dd/MM", { locale: vi })}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Điểm danh
-            </CardTitle>
-            <BookOpen className="h-5 w-5 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <Button variant="outline" size="sm" className="w-full" asChild>
-              <Link to="/education/attendance">
-                Xem điểm danh
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
       </div>
 
-      {/* Two Column Layout: Absent/Late (Left) + Statistics (Right) */}
+      {/* Two Column Layout: Interview Stats (Left) + Absent/Late (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Left: Absent/Late List */}
+        {/* Left: Interview Status Statistics Table */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <UserCheck className="h-4 w-4 text-primary" />
+              Thống kê kết quả phỏng vấn
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {interviewStatsLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="w-32">Trạng thái</TableHead>
+                    <TableHead className="text-center text-blue-600">Nam</TableHead>
+                    <TableHead className="text-center text-pink-600">Nữ</TableHead>
+                    <TableHead className="text-center font-bold">Tổng</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {interviewTableData.map((row) => (
+                    <TableRow key={row.label}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <row.icon className={`h-4 w-4 ${row.color}`} />
+                          {row.label}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center text-blue-600 font-medium">{row.male}</TableCell>
+                      <TableCell className="text-center text-pink-600 font-medium">{row.female}</TableCell>
+                      <TableCell className="text-center font-bold">{row.total}</TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Total row */}
+                  <TableRow className="bg-muted/30 font-bold">
+                    <TableCell>Tổng cộng</TableCell>
+                    <TableCell className="text-center text-blue-600">
+                      {(interviewStats?.passed.male || 0) + (interviewStats?.notPassed.male || 0)}
+                    </TableCell>
+                    <TableCell className="text-center text-pink-600">
+                      {(interviewStats?.passed.female || 0) + (interviewStats?.notPassed.female || 0)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {(interviewStats?.passed.total || 0) + (interviewStats?.notPassed.total || 0)}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Right: Absent/Late List */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-base flex items-center gap-2">
@@ -284,41 +314,6 @@ export default function EducationDashboard() {
                   </div>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Right: Gender Statistics - Bar Chart */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Thống kê học viên theo giới tính</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {genderStatsLoading ? (
-              <Skeleton className="h-64 w-full" />
-            ) : (
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" tick={{ fontSize: 14, fontWeight: 600 }} />
-                  <YAxis />
-                  <Tooltip 
-                    formatter={(value: number, name: string) => [value, name]}
-                    labelStyle={{ fontWeight: 'bold' }}
-                  />
-                  <Legend />
-                  <Bar dataKey="Nam" fill="#3b82f6" name="Nam" radius={[4, 4, 0, 0]}>
-                    {chartData.map((_, index) => (
-                      <Cell key={`cell-male-${index}`} />
-                    ))}
-                  </Bar>
-                  <Bar dataKey="Nữ" fill="#ec4899" name="Nữ" radius={[4, 4, 0, 0]}>
-                    {chartData.map((_, index) => (
-                      <Cell key={`cell-female-${index}`} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
             )}
           </CardContent>
         </Card>

@@ -88,9 +88,9 @@ const needsStatusColumn = (filter: FilterType): boolean => {
   return ["not_studying", "studying", "reserved", "cancelled", "passed_interview"].includes(filter);
 };
 
-// Check if filter needs class name column (đang học, bảo lưu, đậu phỏng vấn)
+// Check if filter needs class name column (đang học, bảo lưu, đậu phỏng vấn, hủy)
 const needsClassColumn = (filter: FilterType): boolean => {
-  return ["studying", "reserved", "passed_interview"].includes(filter);
+  return ["studying", "reserved", "passed_interview", "cancelled"].includes(filter);
 };
 
 export default function DashboardDetailList() {
