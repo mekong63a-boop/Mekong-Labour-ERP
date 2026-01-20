@@ -73,6 +73,16 @@ const getDynamicColumn = (filter: FilterType): { label: string; field: string } 
   }
 };
 
+// Check if filter is for "Số liệu đầu ra" (Output Data)
+const isOutputDataFilter = (filter: FilterType): boolean => {
+  return filter.startsWith("departed_");
+};
+
+// Check if filter is for students
+const isStudentFilter = (filter: FilterType): boolean => {
+  return filter === "departed_student";
+};
+
 export default function DashboardDetailList() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -81,7 +91,11 @@ export default function DashboardDetailList() {
   const year = searchParams.get("year");
   const month = searchParams.get("month");
 
-  // Fetch trainees based on filter
+  // Determine if we need extra columns for output data
+  const showOutputColumns = filter && isOutputDataFilter(filter);
+  const showSchoolColumn = filter && isStudentFilter(filter);
+
+  // Fetch trainees based on filter - include related data for output filters
   const { data: trainees = [], isLoading } = useQuery({
     queryKey: ["dashboard-detail-list", filter, year, month],
     queryFn: async () => {
@@ -102,7 +116,11 @@ export default function DashboardDetailList() {
           progression_stage,
           simple_status,
           enrollment_status,
-          created_at
+          created_at,
+          receiving_company_id,
+          union_id,
+          job_category_id,
+          class_id
         `)
         .order("created_at", { ascending: false });
       
@@ -111,6 +129,83 @@ export default function DashboardDetailList() {
     },
     enabled: !!filter,
   });
+
+  // Fetch companies for output data
+  const { data: companies = [] } = useQuery({
+    queryKey: ["dashboard-companies"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("companies")
+        .select("id, name");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!showOutputColumns,
+  });
+
+  // Fetch unions for output data
+  const { data: unions = [] } = useQuery({
+    queryKey: ["dashboard-unions"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("unions")
+        .select("id, name");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!showOutputColumns,
+  });
+
+  // Fetch job categories for output data
+  const { data: jobCategories = [] } = useQuery({
+    queryKey: ["dashboard-job-categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("job_categories")
+        .select("id, name");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!showOutputColumns,
+  });
+
+  // Fetch classes for students (school name)
+  const { data: classes = [] } = useQuery({
+    queryKey: ["dashboard-classes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("classes")
+        .select("id, name");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!showSchoolColumn,
+  });
+
+  // Create lookup maps
+  const companyMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    companies.forEach(c => { map[c.id] = c.name; });
+    return map;
+  }, [companies]);
+
+  const unionMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    unions.forEach(u => { map[u.id] = u.name; });
+    return map;
+  }, [unions]);
+
+  const jobCategoryMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    jobCategories.forEach(j => { map[j.id] = j.name; });
+    return map;
+  }, [jobCategories]);
+
+  const classMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    classes.forEach(c => { map[c.id] = c.name; });
+    return map;
+  }, [classes]);
 
   // Filter trainees based on the filter type and date range
   const filteredTrainees = useMemo(() => {
@@ -202,6 +297,15 @@ export default function DashboardDetailList() {
 
   const dynamicColumn = filter ? getDynamicColumn(filter) : null;
 
+  // Calculate colspan for empty state
+  const getColspan = () => {
+    let base = 9; // Base columns
+    if (showOutputColumns) {
+      base += showSchoolColumn ? 1 : 3; // 1 for school (student), 3 for company/union/job
+    }
+    return base;
+  };
+
   if (!filter) {
     return (
       <div className="p-6">
@@ -256,13 +360,24 @@ export default function DashboardDetailList() {
                   <TableHead className="w-24">Ngày ĐK</TableHead>
                   <TableHead className="w-24">Ngày nhập học</TableHead>
                   <TableHead className="w-28">{dynamicColumn?.label || "—"}</TableHead>
+                  {/* Additional columns for output data */}
+                  {showOutputColumns && !showSchoolColumn && (
+                    <>
+                      <TableHead className="min-w-[120px]">Công ty</TableHead>
+                      <TableHead className="min-w-[120px]">Nghiệp đoàn</TableHead>
+                      <TableHead className="min-w-[100px]">Ngành nghề</TableHead>
+                    </>
+                  )}
+                  {showSchoolColumn && (
+                    <TableHead className="min-w-[120px]">Tên trường</TableHead>
+                  )}
                   <TableHead className="w-20 text-center">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredTrainees.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={getColspan()} className="text-center py-8 text-muted-foreground">
                       Không có dữ liệu
                     </TableCell>
                   </TableRow>
@@ -292,6 +407,25 @@ export default function DashboardDetailList() {
                         {dynamicColumn?.field === "enrollment_status" && (trainee.enrollment_status || "—")}
                         {dynamicColumn?.field === "simple_status" && (trainee.simple_status || "—")}
                       </TableCell>
+                      {/* Additional data for output data */}
+                      {showOutputColumns && !showSchoolColumn && (
+                        <>
+                          <TableCell className="text-sm">
+                            {trainee.receiving_company_id ? companyMap[trainee.receiving_company_id] || "—" : "—"}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {trainee.union_id ? unionMap[trainee.union_id] || "—" : "—"}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {trainee.job_category_id ? jobCategoryMap[trainee.job_category_id] || "—" : "—"}
+                          </TableCell>
+                        </>
+                      )}
+                      {showSchoolColumn && (
+                        <TableCell className="text-sm">
+                          {trainee.class_id ? classMap[trainee.class_id] || "—" : "—"}
+                        </TableCell>
+                      )}
                       <TableCell className="text-center">
                         <Button
                           variant="ghost"
