@@ -272,18 +272,32 @@ export function useDeleteClass() {
   });
 }
 
-// Available trainees (not in any class)
+// Available trainees (not in any class AND not departed)
+// CRITICAL: Học viên đã xuất cảnh KHÔNG được phép gán vào lớp học
+const DEPARTED_STAGES = [
+  "Xuất cảnh",
+  "Đang làm việc",
+  "Bỏ trốn",
+  "Về trước hạn",
+  "Hoàn thành hợp đồng",
+];
+
 export function useAvailableTrainees() {
   return useQuery({
     queryKey: ["available-trainees"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trainees")
-        .select("id, trainee_code, full_name, class_id")
+        .select("id, trainee_code, full_name, class_id, progression_stage, departure_date")
         .is("class_id", null)
+        .is("departure_date", null) // Loại bỏ học viên đã có ngày xuất cảnh
         .order("full_name");
       if (error) throw error;
-      return data;
+      
+      // Double-check: loại bỏ học viên có progression_stage là xuất cảnh/đã đi
+      return data?.filter(t => 
+        !t.progression_stage || !DEPARTED_STAGES.includes(t.progression_stage)
+      ) || [];
     },
   });
 }

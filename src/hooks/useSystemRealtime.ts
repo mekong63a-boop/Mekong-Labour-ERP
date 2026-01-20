@@ -59,6 +59,13 @@ export function useSystemRealtime() {
           queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-gender"] });
           queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-departures-monthly"] });
           queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-passed-monthly"] });
+          
+          // Invalidate education queries khi trainee thay đổi (class_id được gán/xóa)
+          queryClient.invalidateQueries({ queryKey: ["classes"] });
+          queryClient.invalidateQueries({ queryKey: ["class-students"] });
+          queryClient.invalidateQueries({ queryKey: ["class-students-detailed"] });
+          queryClient.invalidateQueries({ queryKey: ["available-trainees"] });
+          queryClient.invalidateQueries({ queryKey: ["interview-stats"] });
         }
       )
       // ========== ATTENDANCE (điểm danh realtime) ==========
@@ -210,8 +217,11 @@ export function useManualRefresh() {
     queryClient.invalidateQueries({ queryKey: ["classes"] });
     queryClient.invalidateQueries({ queryKey: ["teachers"] });
     queryClient.invalidateQueries({ queryKey: ["class-students"] });
+    queryClient.invalidateQueries({ queryKey: ["class-students-detailed"] });
+    queryClient.invalidateQueries({ queryKey: ["available-trainees"] });
     queryClient.invalidateQueries({ queryKey: ["attendance"] });
     queryClient.invalidateQueries({ queryKey: ["test-scores"] });
+    queryClient.invalidateQueries({ queryKey: ["interview-stats"] });
   };
 
   const refreshAll = () => {
