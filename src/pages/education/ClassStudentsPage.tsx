@@ -177,20 +177,24 @@ function calculateAttendanceRate(
 }
 
 // Get the most recent test score for a student, filtered by category
+// Format test_name: "Môn học - Bài X" (e.g., "Nhập môn - Bài 1", "Nghe sơ cấp 1 - Bài 5")
 function getLatestScore(
   testScores: any[] | undefined,
   traineeId: string,
-  category: string = "all"
-): { score: number; testName: string } | null {
+  category: string
+): { score: number; testName: string; lessonNumber: number } | null {
   if (!testScores || testScores.length === 0) return null;
   
   let studentScores = testScores.filter(s => s.trainee_id === traineeId && s.score !== null);
   
-  // Filter by category if specified
-  if (category && category !== "all") {
-    studentScores = studentScores.filter(s => 
-      s.test_name && s.test_name.startsWith(category)
-    );
+  // Filter by exact category match: "Category - Bài X"
+  // This prevents "Nghe" from matching "Nghe sơ cấp 1" or "Nghe sơ cấp 2"
+  if (category) {
+    studentScores = studentScores.filter(s => {
+      if (!s.test_name) return false;
+      // Must match exactly: "Category - Bài X"
+      return s.test_name.startsWith(`${category} - `);
+    });
   }
   
   if (studentScores.length === 0) return null;
@@ -201,44 +205,50 @@ function getLatestScore(
     return match ? parseInt(match[1], 10) : 0;
   };
   
-  // Sort by:
-  // 1. created_at descending (most recent first)
-  // 2. lesson number descending (higher lesson number = later in sequence)
+  // Sort by lesson number descending (higher lesson = more recent progress)
+  // Then by created_at for same lesson
   studentScores.sort((a, b) => {
-    const createdA = new Date(a.created_at).getTime();
-    const createdB = new Date(b.created_at).getTime();
-    
-    // If created_at differs by more than 1 minute, use that
-    if (Math.abs(createdA - createdB) > 60000) {
-      return createdB - createdA;
-    }
-    
-    // Otherwise, sort by lesson number (higher = more recent)
     const lessonA = getLessonNumber(a.test_name || "");
     const lessonB = getLessonNumber(b.test_name || "");
-    return lessonB - lessonA;
+    
+    // Primary sort: higher lesson number = more recent
+    if (lessonB !== lessonA) {
+      return lessonB - lessonA;
+    }
+    
+    // Secondary sort: more recent created_at
+    const createdA = new Date(a.created_at).getTime();
+    const createdB = new Date(b.created_at).getTime();
+    return createdB - createdA;
   });
   
   const latest = studentScores[0];
   return {
     score: latest.score,
     testName: latest.test_name,
+    lessonNumber: getLessonNumber(latest.test_name || ""),
   };
 }
 
 // Get grade based on score (0-100 scale: A=90-100, B=70-89, C=60-69, D=40-59, E=0-39)
 // Score is always on a 0-100 scale
-function getGrade(scoreData: { score: number; testName: string } | null): { label: string; color: string; testName?: string } {
+function getGrade(scoreData: { score: number; testName: string; lessonNumber: number } | null): { 
+  label: string; 
+  color: string; 
+  testName?: string;
+  lessonNumber?: number;
+  score?: number;
+} {
   if (scoreData === null) return { label: "—", color: "bg-muted text-muted-foreground" };
   
   // Score is directly on 0-100 scale, no need to calculate percentage
   const score = scoreData.score;
   
-  if (score >= 90) return { label: "A", color: "bg-green-100 text-green-700", testName: scoreData.testName };
-  if (score >= 70) return { label: "B", color: "bg-blue-100 text-blue-700", testName: scoreData.testName };
-  if (score >= 60) return { label: "C", color: "bg-yellow-100 text-yellow-700", testName: scoreData.testName };
-  if (score >= 40) return { label: "D", color: "bg-orange-100 text-orange-700", testName: scoreData.testName };
-  return { label: "E", color: "bg-red-100 text-red-700", testName: scoreData.testName };
+  if (score >= 90) return { label: "A", color: "bg-green-100 text-green-700", testName: scoreData.testName, lessonNumber: scoreData.lessonNumber, score };
+  if (score >= 70) return { label: "B", color: "bg-blue-100 text-blue-700", testName: scoreData.testName, lessonNumber: scoreData.lessonNumber, score };
+  if (score >= 60) return { label: "C", color: "bg-yellow-100 text-yellow-700", testName: scoreData.testName, lessonNumber: scoreData.lessonNumber, score };
+  if (score >= 40) return { label: "D", color: "bg-orange-100 text-orange-700", testName: scoreData.testName, lessonNumber: scoreData.lessonNumber, score };
+  return { label: "E", color: "bg-red-100 text-red-700", testName: scoreData.testName, lessonNumber: scoreData.lessonNumber, score };
 }
 
 // Get attendance badge
@@ -424,10 +434,10 @@ export default function ClassStudentsPage() {
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge 
-                        className={grade.color} 
-                        title={grade.testName || "Chưa có điểm"}
+                        className={`${grade.color} cursor-help`} 
+                        title={grade.testName ? `${grade.testName} - Điểm: ${grade.score}` : "Chưa có điểm"}
                       >
-                        {grade.label}
+                        {grade.lessonNumber ? `${grade.label}${grade.lessonNumber}` : grade.label}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
