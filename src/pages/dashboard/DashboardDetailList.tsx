@@ -56,9 +56,9 @@ const getDynamicColumn = (filter: FilterType): { label: string; field: string } 
     case "studying":
       return { label: "Ngày nhập học", field: "entry_date" };
     case "reserved":
-      return { label: "Trạng thái", field: "enrollment_status" };
+      return { label: "Ngày bảo lưu", field: "updated_at" };
     case "cancelled":
-      return { label: "Trạng thái", field: "simple_status" };
+      return { label: "Ngày hủy", field: "updated_at" };
     case "passed_interview":
       return { label: "Ngày đậu PV", field: "interview_pass_date" };
     case "departed_tts":
@@ -123,6 +123,7 @@ export default function DashboardDetailList() {
           simple_status,
           enrollment_status,
           created_at,
+          updated_at,
           receiving_company_id,
           union_id,
           job_category_id,
@@ -433,8 +434,7 @@ export default function DashboardDetailList() {
                         {dynamicColumn?.field === "entry_date" && formatDate(trainee.entry_date)}
                         {dynamicColumn?.field === "interview_pass_date" && formatDate(trainee.interview_pass_date)}
                         {dynamicColumn?.field === "departure_date" && formatDate(trainee.departure_date)}
-                        {dynamicColumn?.field === "enrollment_status" && (trainee.enrollment_status || "—")}
-                        {dynamicColumn?.field === "simple_status" && (trainee.simple_status || "—")}
+                        {dynamicColumn?.field === "updated_at" && formatDate(trainee.updated_at)}
                       </TableCell>
                       {/* Additional data for output data */}
                       {showOutputColumns && !showSchoolColumn && (
