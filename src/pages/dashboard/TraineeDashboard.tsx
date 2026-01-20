@@ -67,6 +67,43 @@ const COLORS = [
   "hsl(var(--chart-5))",
 ];
 
+// Custom label renderer - red for non-zero values, black for zero
+const renderCustomLabel = (props: any) => {
+  const { x, y, value } = props;
+  const isNonZero = value > 0;
+  return (
+    <text
+      x={x}
+      y={y}
+      dy={-8}
+      fill={isNonZero ? "#dc2626" : "#888888"}
+      fontSize={isNonZero ? 14 : 11}
+      fontWeight={isNonZero ? "bold" : "normal"}
+      textAnchor="middle"
+    >
+      {value}
+    </text>
+  );
+};
+
+// Custom label renderer for bar charts (position right)
+const renderBarLabel = (props: any) => {
+  const { x, y, width, value } = props;
+  const isNonZero = value > 0;
+  return (
+    <text
+      x={x + width + 5}
+      y={y + 12}
+      fill={isNonZero ? "#dc2626" : "#888888"}
+      fontSize={isNonZero ? 14 : 11}
+      fontWeight={isNonZero ? "bold" : "normal"}
+      textAnchor="start"
+    >
+      {value}
+    </text>
+  );
+};
+
 // KPI Card Component with click support
 function KPICard({
   title,
@@ -571,7 +608,7 @@ export default function TraineeDashboard() {
                   dot={{ fill: "hsl(var(--primary))" }}
                   name="Đăng ký"
                 >
-                  <LabelList dataKey="registrations" position="top" fontSize={14} fontWeight="bold" fill="#dc2626" />
+                  <LabelList dataKey="registrations" content={renderCustomLabel} />
                 </Line>
               </LineChart>
             </ResponsiveContainer>
@@ -609,7 +646,7 @@ export default function TraineeDashboard() {
                   strokeWidth={2}
                   name="Xuất cảnh"
                 >
-                  <LabelList dataKey="departures" position="top" fontSize={14} fontWeight="bold" fill="#dc2626" />
+                  <LabelList dataKey="departures" content={renderCustomLabel} />
                 </Line>
                 <Line
                   type="monotone"
@@ -618,7 +655,23 @@ export default function TraineeDashboard() {
                   strokeWidth={2}
                   name="Đậu PV"
                 >
-                  <LabelList dataKey="passed" position="bottom" fontSize={14} fontWeight="bold" fill="#dc2626" />
+                  <LabelList dataKey="passed" content={(props: any) => {
+                    const { x, y, value } = props;
+                    const isNonZero = value > 0;
+                    return (
+                      <text
+                        x={x}
+                        y={y}
+                        dy={18}
+                        fill={isNonZero ? "#dc2626" : "#888888"}
+                        fontSize={isNonZero ? 14 : 11}
+                        fontWeight={isNonZero ? "bold" : "normal"}
+                        textAnchor="middle"
+                      >
+                        {value}
+                      </text>
+                    );
+                  }} />
                 </Line>
               </LineChart>
             </ResponsiveContainer>
@@ -742,7 +795,7 @@ export default function TraineeDashboard() {
                 />
                 <Tooltip />
                 <Bar dataKey="count" fill="hsl(var(--primary))" name="Số lượng">
-                  <LabelList dataKey="count" position="right" fontSize={14} fontWeight="bold" fill="#dc2626" />
+                  <LabelList dataKey="count" content={renderBarLabel} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -767,7 +820,7 @@ export default function TraineeDashboard() {
                 />
                 <Tooltip />
                 <Bar dataKey="count" fill="hsl(var(--chart-2))" name="Số lượng">
-                  <LabelList dataKey="count" position="right" fontSize={14} fontWeight="bold" fill="#dc2626" />
+                  <LabelList dataKey="count" content={renderBarLabel} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
