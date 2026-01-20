@@ -263,9 +263,9 @@ export default function DashboardDetailList() {
         case "cancelled":
           return t.simple_status === "Hủy" || t.enrollment_status === "Đã hủy";
         case "passed_interview":
-          // Phải có interview_pass_date HOẶC progression_stage cho thấy đã đậu, VÀ chưa xuất cảnh
-          const hasPassed = t.interview_pass_date || (t.progression_stage && !["Chưa đậu", "Tuyển dụng"].includes(t.progression_stage as string));
-          return hasPassed && !t.departure_date; // Chưa xuất cảnh
+          // Chỉ lấy học viên có progression_stage từ "Đậu phỏng vấn" đến "COE" (chưa xuất cảnh)
+          const validStages = ["Đậu phỏng vấn", "Nộp hồ sơ", "OTIT", "Nyukan", "COE"];
+          return validStages.includes(t.progression_stage as string) && !t.departure_date;
         case "departed_tts":
           return t.departure_date && t.trainee_type === "Thực tập sinh";
         case "departed_tts3":
