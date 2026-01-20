@@ -31,6 +31,7 @@ import { FamilyMembersForm, FamilyItem } from "@/components/trainees/forms/Famil
 import { JapanRelativesForm, JapanRelativeItem } from "@/components/trainees/forms/JapanRelativesForm";
 import { ProjectInterviewForm } from "@/components/trainees/forms/ProjectInterviewForm";
 import { useEducationHistory, useWorkHistory, useFamilyMembers, useJapanRelatives } from "@/hooks/useTraineeHistory";
+import { useDuplicateCheck, getDuplicateErrorMessage } from "@/hooks/useDuplicateCheck";
 
 // Photo file states removed - no more draft system
 
@@ -283,6 +284,17 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   });
 
   const [errors, setErrors] = useState<Partial<FormData>>({});
+
+  // Real-time duplicate check for trainee code
+  const { isDuplicate: isCodeDuplicate, isChecking: isCheckingCode } = useDuplicateCheck(
+    formData.trainee_code,
+    {
+      table: 'trainees',
+      field: 'trainee_code',
+      currentId: traineeId,
+      enabled: formData.trainee_code.length === 6,
+    }
+  );
 
   // No debounce needed - removed draft system
 
@@ -913,9 +925,15 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                             updateField("trainee_code", value);
                           }}
                           maxLength={6}
-                          className={cn("w-24", getInputClass(formData.trainee_code, errors.trainee_code))}
+                          className={cn("w-24", getInputClass(formData.trainee_code, errors.trainee_code || (isCodeDuplicate ? "error" : undefined)))}
                         />
-                        {errors.trainee_code && (
+                        {isCheckingCode && (
+                          <span className="text-xs text-muted-foreground">Đang kiểm tra...</span>
+                        )}
+                        {isCodeDuplicate && !isCheckingCode && (
+                          <span className="text-xs text-destructive">{getDuplicateErrorMessage('trainees', 'trainee_code')}</span>
+                        )}
+                        {errors.trainee_code && !isCodeDuplicate && (
                           <span className="text-xs text-destructive">{errors.trainee_code}</span>
                         )}
                       </div>
