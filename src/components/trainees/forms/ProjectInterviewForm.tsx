@@ -34,7 +34,7 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
     },
   });
 
-  // Fetch companies
+  // Fetch companies - sorted by code descending (same as Partners)
   const { data: companies = [] } = useQuery({
     queryKey: ["companies-select"],
     queryFn: async () => {
@@ -42,13 +42,13 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
         .from("companies")
         .select("id, code, name, name_japanese")
         .eq("status", "Đang hợp tác")
-        .order("name");
+        .order("code", { ascending: false });
       if (error) throw error;
       return data || [];
     },
   });
 
-  // Fetch unions
+  // Fetch unions - sorted by code descending (same as Partners)
   const { data: unions = [] } = useQuery({
     queryKey: ["unions-select"],
     queryFn: async () => {
@@ -56,13 +56,13 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
         .from("unions")
         .select("id, code, name, name_japanese")
         .eq("status", "Đang hợp tác")
-        .order("name");
+        .order("code", { ascending: false });
       if (error) throw error;
       return data || [];
     },
   });
 
-  // Fetch job categories
+  // Fetch job categories - sorted by code descending (same as Partners)
   const { data: jobCategories = [] } = useQuery({
     queryKey: ["job-categories-select"],
     queryFn: async () => {
@@ -70,7 +70,7 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
         .from("job_categories")
         .select("id, code, name, name_japanese")
         .eq("status", "Hoạt động")
-        .order("name");
+        .order("code", { ascending: false });
       if (error) throw error;
       return data || [];
     },

@@ -299,9 +299,15 @@ export default function DashboardDetailList() {
 
   // Calculate colspan for empty state
   const getColspan = () => {
-    let base = 9; // Base columns
+    let base = 7; // Base columns: Mã HV, Họ tên, Ngày sinh, Giới tính, Quê quán, Dynamic, Thao tác
+    // Add Ngày ĐK if not Chưa học/Đang học
+    if (filter !== "not_studying" && filter !== "studying") base += 1;
+    // Add Ngày nhập học if not Đăng ký mới/Chưa học and dynamic is not entry_date
+    const dynField = filter ? getDynamicColumn(filter).field : null;
+    if (filter !== "registered_new" && filter !== "not_studying" && dynField !== "entry_date") base += 1;
+    // Add output columns
     if (showOutputColumns) {
-      base += showSchoolColumn ? 1 : 3; // 1 for school (student), 3 for company/union/job
+      base += showSchoolColumn ? 1 : 3;
     }
     return base;
   };
@@ -357,8 +363,14 @@ export default function DashboardDetailList() {
                   <TableHead className="w-24">Ngày sinh</TableHead>
                   <TableHead className="w-16">Giới tính</TableHead>
                   <TableHead className="min-w-[100px]">Quê quán</TableHead>
-                  <TableHead className="w-24">Ngày ĐK</TableHead>
-                  <TableHead className="w-24">Ngày nhập học</TableHead>
+                  {/* Chỉ hiển thị Ngày ĐK nếu không phải Chưa học/Đang học */}
+                  {filter !== "not_studying" && filter !== "studying" && (
+                    <TableHead className="w-24">Ngày ĐK</TableHead>
+                  )}
+                  {/* Chỉ hiển thị Ngày nhập học nếu không phải Đăng ký mới/Chưa học và dynamic không phải entry_date */}
+                  {filter !== "registered_new" && filter !== "not_studying" && dynamicColumn?.field !== "entry_date" && (
+                    <TableHead className="w-24">Ngày nhập học</TableHead>
+                  )}
                   <TableHead className="w-28">{dynamicColumn?.label || "—"}</TableHead>
                   {/* Additional columns for output data */}
                   {showOutputColumns && !showSchoolColumn && (
@@ -395,10 +407,16 @@ export default function DashboardDetailList() {
                         {trainee.gender || "—"}
                       </TableCell>
                       <TableCell className="text-sm">{getProvince(trainee.birthplace)}</TableCell>
-                      <TableCell className="text-sm">
-                        {formatDate(trainee.registration_date || trainee.created_at)}
-                      </TableCell>
-                      <TableCell className="text-sm">{formatDate(trainee.entry_date)}</TableCell>
+                      {/* Chỉ hiển thị Ngày ĐK nếu không phải Chưa học/Đang học */}
+                      {filter !== "not_studying" && filter !== "studying" && (
+                        <TableCell className="text-sm">
+                          {formatDate(trainee.registration_date || trainee.created_at)}
+                        </TableCell>
+                      )}
+                      {/* Chỉ hiển thị Ngày nhập học nếu không phải Đăng ký mới/Chưa học và dynamic không phải entry_date */}
+                      {filter !== "registered_new" && filter !== "not_studying" && dynamicColumn?.field !== "entry_date" && (
+                        <TableCell className="text-sm">{formatDate(trainee.entry_date)}</TableCell>
+                      )}
                       <TableCell className="text-sm">
                         {dynamicColumn?.field === "registration_date" && formatDate(trainee.registration_date)}
                         {dynamicColumn?.field === "entry_date" && formatDate(trainee.entry_date)}
