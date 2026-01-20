@@ -188,7 +188,9 @@ export default function CompanyTraineesModal({
                           : "-"}
                       </TableCell>
                       <TableCell>
-                        {trainee.contract_term ? `${trainee.contract_term} năm` : "-"}
+                        {trainee.contract_term 
+                          ? (trainee.contract_term === 0.5 ? "6 tháng" : `${trainee.contract_term} năm`) 
+                          : "-"}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
