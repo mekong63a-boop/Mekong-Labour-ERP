@@ -20,6 +20,16 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   useClass, 
@@ -27,9 +37,11 @@ import {
   useAttendance 
 } from "@/hooks/useEducation";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Search, History, BookOpen, Calendar } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Search, History, BookOpen, Calendar, Trash2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useToast } from "@/hooks/use-toast";
 
 // Test categories for filtering
 const TEST_CATEGORIES = [
@@ -262,8 +274,11 @@ function getAttendanceBadge(rate: number | null): { label: string; color: string
 export default function ClassStudentsPage() {
   const { classId } = useParams<{ classId: string }>();
   const { data: classData, isLoading: classLoading } = useClass(classId || "");
-  const { data: students, isLoading: studentsLoading } = useClassStudentsDetailed(classId || "");
+  const { data: students, isLoading: studentsLoading, refetch: refetchStudents } = useClassStudentsDetailed(classId || "");
   const { data: testScores } = useTestScores(classId || "");
+  const { isAdmin } = useUserRole();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // Get attendance for all time (last 6 months for performance)
   const currentMonth = format(new Date(), "yyyy-MM");
@@ -273,6 +288,8 @@ export default function ClassStudentsPage() {
   const [selectedTrainee, setSelectedTrainee] = useState<any>(null);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [gradeCategory, setGradeCategory] = useState("Nhập môn");
+  const [traineeToRemove, setTraineeToRemove] = useState<any>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
   
   const { data: enrollmentHistory, isLoading: historyLoading } = useEnrollmentHistory(
     selectedTrainee?.id || ""
@@ -280,6 +297,54 @@ export default function ClassStudentsPage() {
   const { data: learningDays, isLoading: learningDaysLoading } = useTotalLearningDays(
     selectedTrainee?.id || ""
   );
+
+  // Handle remove trainee from class (admin only)
+  const handleRemoveFromClass = async () => {
+    if (!traineeToRemove || !isAdmin) return;
+    
+    setIsRemoving(true);
+    try {
+      // Update trainee to remove from class
+      const { error: updateError } = await supabase
+        .from("trainees")
+        .update({ class_id: null })
+        .eq("id", traineeToRemove.id);
+      
+      if (updateError) throw updateError;
+      
+      // Log enrollment history
+      const { error: historyError } = await supabase
+        .from("enrollment_history")
+        .insert({
+          trainee_id: traineeToRemove.id,
+          action_type: "Rời lớp",
+          class_id: classId,
+          notes: "Học viên bị xóa khỏi lớp bởi Admin"
+        });
+      
+      if (historyError) console.error("Error logging history:", historyError);
+      
+      toast({
+        title: "Đã xóa học viên khỏi lớp",
+        description: `${traineeToRemove.full_name} đã được xóa khỏi lớp học.`,
+      });
+      
+      // Refresh data
+      refetchStudents();
+      queryClient.invalidateQueries({ queryKey: ["class-students"] });
+      queryClient.invalidateQueries({ queryKey: ["available-trainees"] });
+      
+    } catch (error: any) {
+      toast({
+        title: "Lỗi khi xóa học viên",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsRemoving(false);
+      setTraineeToRemove(null);
+    }
+  };
 
   const filteredStudents = useMemo(() => {
     if (!students) return [];
@@ -409,6 +474,7 @@ export default function ClassStudentsPage() {
                 <TableHead className="w-24 text-center">Sức học</TableHead>
                 <TableHead className="w-24 text-center">Chuyên cần</TableHead>
                 <TableHead className="w-20 text-center">Lịch sử</TableHead>
+                {isAdmin && <TableHead className="w-16 text-center">Xóa</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -455,6 +521,19 @@ export default function ClassStudentsPage() {
                         <History className="h-4 w-4" />
                       </Button>
                     </TableCell>
+                    {isAdmin && (
+                      <TableCell className="text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setTraineeToRemove(student)}
+                          title="Xóa học viên khỏi lớp"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })}
@@ -569,6 +648,30 @@ export default function ClassStudentsPage() {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      {/* Remove Trainee Confirmation Dialog */}
+      <AlertDialog open={!!traineeToRemove} onOpenChange={() => setTraineeToRemove(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa học viên khỏi lớp</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa học viên <strong>{traineeToRemove?.full_name}</strong> ({traineeToRemove?.trainee_code}) khỏi lớp học này?
+              <br /><br />
+              Hành động này sẽ được ghi vào lịch sử nhập học của học viên.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRemoving}>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRemoveFromClass}
+              disabled={isRemoving}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isRemoving ? "Đang xóa..." : "Xác nhận xóa"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
