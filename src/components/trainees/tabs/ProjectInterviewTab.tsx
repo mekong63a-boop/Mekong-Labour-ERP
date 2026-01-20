@@ -227,7 +227,11 @@ export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
           </div>
           <div>
             <Label className="text-muted-foreground text-xs">Thời hạn hợp đồng</Label>
-            <p className="font-medium">{trainee.contract_term ? `${trainee.contract_term} năm` : "—"}</p>
+            <p className="font-medium">
+              {trainee.contract_term 
+                ? (trainee.contract_term === 0.5 ? "6 tháng" : `${trainee.contract_term} năm`) 
+                : "—"}
+            </p>
           </div>
           <div>
             <Label className="text-muted-foreground text-xs">Ngày dự kiến về nước</Label>

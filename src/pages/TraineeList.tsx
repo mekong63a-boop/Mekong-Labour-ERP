@@ -134,6 +134,7 @@ export default function TraineeList() {
 
   const getContractTermLabel = (term: number | null) => {
     if (!term) return "—";
+    if (term === 0.5) return "6 tháng";
     return `${term} năm`;
   };
 

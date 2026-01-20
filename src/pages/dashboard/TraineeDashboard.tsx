@@ -571,7 +571,7 @@ export default function TraineeDashboard() {
                   dot={{ fill: "hsl(var(--primary))" }}
                   name="Đăng ký"
                 >
-                  <LabelList dataKey="registrations" position="top" fontSize={10} fill="hsl(var(--foreground))" />
+                  <LabelList dataKey="registrations" position="top" fontSize={14} fontWeight="bold" fill="#dc2626" />
                 </Line>
               </LineChart>
             </ResponsiveContainer>
@@ -609,7 +609,7 @@ export default function TraineeDashboard() {
                   strokeWidth={2}
                   name="Xuất cảnh"
                 >
-                  <LabelList dataKey="departures" position="top" fontSize={10} fill="hsl(var(--foreground))" />
+                  <LabelList dataKey="departures" position="top" fontSize={14} fontWeight="bold" fill="#dc2626" />
                 </Line>
                 <Line
                   type="monotone"
@@ -618,7 +618,7 @@ export default function TraineeDashboard() {
                   strokeWidth={2}
                   name="Đậu PV"
                 >
-                  <LabelList dataKey="passed" position="top" fontSize={10} fill="hsl(var(--foreground))" />
+                  <LabelList dataKey="passed" position="bottom" fontSize={14} fontWeight="bold" fill="#dc2626" />
                 </Line>
               </LineChart>
             </ResponsiveContainer>
@@ -742,7 +742,7 @@ export default function TraineeDashboard() {
                 />
                 <Tooltip />
                 <Bar dataKey="count" fill="hsl(var(--primary))" name="Số lượng">
-                  <LabelList dataKey="count" position="right" fontSize={10} fill="hsl(var(--foreground))" />
+                  <LabelList dataKey="count" position="right" fontSize={14} fontWeight="bold" fill="#dc2626" />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -767,7 +767,7 @@ export default function TraineeDashboard() {
                 />
                 <Tooltip />
                 <Bar dataKey="count" fill="hsl(var(--chart-2))" name="Số lượng">
-                  <LabelList dataKey="count" position="right" fontSize={10} fill="hsl(var(--foreground))" />
+                  <LabelList dataKey="count" position="right" fontSize={14} fontWeight="bold" fill="#dc2626" />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
