@@ -196,7 +196,7 @@ export default function EducationDashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <UserCheck className="h-4 w-4 text-primary" />
-              Thống kê kết quả phỏng vấn
+              Thống kê số liệu học viên đang học
             </CardTitle>
           </CardHeader>
           <CardContent>
