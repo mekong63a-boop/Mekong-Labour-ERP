@@ -68,6 +68,17 @@ export function useSystemRealtime() {
           queryClient.invalidateQueries({ queryKey: ["interview-stats"] });
         }
       )
+      // ========== INTERVIEW HISTORY (lịch sử phỏng vấn - ảnh hưởng đến đơn tuyển) ==========
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'interview_history' },
+        (payload) => {
+          console.log('[Realtime] Interview history changed:', payload.eventType);
+          queryClient.invalidateQueries({ queryKey: ["interview-history"] });
+          queryClient.invalidateQueries({ queryKey: ["order-trainee-counts"] });
+          queryClient.invalidateQueries({ queryKey: ["order-trainees"] });
+        }
+      )
       // ========== ATTENDANCE (điểm danh realtime) ==========
       .on(
         'postgres_changes',
@@ -203,6 +214,9 @@ export function useManualRefresh() {
   const refreshOrders = () => {
     console.log('[ManualRefresh] Refreshing orders...');
     queryClient.invalidateQueries({ queryKey: ["orders"] });
+    queryClient.invalidateQueries({ queryKey: ["order-trainee-counts"] });
+    queryClient.invalidateQueries({ queryKey: ["order-trainees"] });
+    queryClient.invalidateQueries({ queryKey: ["interview-history"] });
   };
 
   const refreshPartners = () => {
