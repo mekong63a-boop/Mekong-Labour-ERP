@@ -177,6 +177,7 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
             <Label className="text-xs text-muted-foreground">Thời hạn hợp đồng</Label>
             <SearchableSelect
               options={[
+                { value: "0.5", label: "6 tháng" },
                 { value: "1", label: "1 năm" },
                 { value: "2", label: "2 năm" },
                 { value: "3", label: "3 năm" },
