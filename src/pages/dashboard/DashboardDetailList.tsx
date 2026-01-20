@@ -83,6 +83,11 @@ const isStudentFilter = (filter: FilterType): boolean => {
   return filter === "departed_student";
 };
 
+// Check if filter is for passed interview (to show status column)
+const isPassedInterviewFilter = (filter: FilterType): boolean => {
+  return filter === "passed_interview";
+};
+
 export default function DashboardDetailList() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -94,6 +99,7 @@ export default function DashboardDetailList() {
   // Determine if we need extra columns for output data
   const showOutputColumns = filter && isOutputDataFilter(filter);
   const showSchoolColumn = filter && isStudentFilter(filter);
+  const showStatusColumn = filter && isPassedInterviewFilter(filter);
 
   // Fetch trainees based on filter - include related data for output filters
   const { data: trainees = [], isLoading } = useQuery({
@@ -309,6 +315,8 @@ export default function DashboardDetailList() {
     if (showOutputColumns) {
       base += showSchoolColumn ? 1 : 3;
     }
+    // Add status column for passed interview
+    if (showStatusColumn) base += 1;
     return base;
   };
 
@@ -383,6 +391,9 @@ export default function DashboardDetailList() {
                   {showSchoolColumn && (
                     <TableHead className="min-w-[120px]">Tên trường</TableHead>
                   )}
+                  {showStatusColumn && (
+                    <TableHead className="min-w-[100px]">Trạng thái</TableHead>
+                  )}
                   <TableHead className="w-20 text-center">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
@@ -442,6 +453,11 @@ export default function DashboardDetailList() {
                       {showSchoolColumn && (
                         <TableCell className="text-sm">
                           {trainee.class_id ? classMap[trainee.class_id] || "—" : "—"}
+                        </TableCell>
+                      )}
+                      {showStatusColumn && (
+                        <TableCell className="text-sm">
+                          {trainee.progression_stage || "Đậu phỏng vấn"}
                         </TableCell>
                       )}
                       <TableCell className="text-center">
