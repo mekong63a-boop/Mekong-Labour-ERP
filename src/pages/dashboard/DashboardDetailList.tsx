@@ -83,9 +83,9 @@ const isStudentFilter = (filter: FilterType): boolean => {
   return filter === "departed_student";
 };
 
-// Check if filter is for passed interview (to show status column)
-const isPassedInterviewFilter = (filter: FilterType): boolean => {
-  return filter === "passed_interview";
+// Check if filter needs status column (chưa học, đang học, bảo lưu, hủy, đậu phỏng vấn)
+const needsStatusColumn = (filter: FilterType): boolean => {
+  return ["not_studying", "studying", "reserved", "cancelled", "passed_interview"].includes(filter);
 };
 
 export default function DashboardDetailList() {
@@ -99,7 +99,7 @@ export default function DashboardDetailList() {
   // Determine if we need extra columns for output data
   const showOutputColumns = filter && isOutputDataFilter(filter);
   const showSchoolColumn = filter && isStudentFilter(filter);
-  const showStatusColumn = filter && isPassedInterviewFilter(filter);
+  const showStatusColumn = filter && needsStatusColumn(filter);
 
   // Fetch trainees based on filter - include related data for output filters
   const { data: trainees = [], isLoading } = useQuery({
