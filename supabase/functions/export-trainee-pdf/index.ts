@@ -392,26 +392,99 @@ serve(async (req) => {
       });
     };
     
-    // Draw multiline text with character-based word wrap and automatic page breaks
-    // Returns the new Y position after drawing all lines
-    // Max ~90 chars per line for A4 at font size 8 (full page width utilization)
+    // More accurate word wrapping using PDF font metrics (fills the line, avoids big right blank area)
+    // - Vietnamese/Latin: Roboto
+    // - CJK: Noto Sans JP
+    // Optimized for edge runtime: word-based wrapping; falls back to char-splitting for long tokens.
+    const wrapTextByWidth = (raw: string, maxWidth: number, size: number): string[] => {
+      const safe = sanitizeText(raw || "");
+      if (!safe) return [];
+
+      const paragraphs = safe.split(/\n/);
+      const out: string[] = [];
+
+      for (const para of paragraphs) {
+        if (!para.trim()) {
+          out.push("");
+          continue;
+        }
+
+        // Split by whitespace, but keep it word-based for performance.
+        const words = para.split(/\s+/).filter(Boolean);
+        let line = "";
+        let lineFont = getFont("", false);
+
+        const measure = (textToMeasure: string) => {
+          const f = getFont(textToMeasure, false);
+          // Note: for mixed scripts on a single line, this is an approximation.
+          // Our content is predominantly VN or predominantly JP.
+          return f.widthOfTextAtSize(textToMeasure, size);
+        };
+
+        const pushLine = () => {
+          if (line !== "") out.push(line);
+          line = "";
+        };
+
+        for (const word of words) {
+          const candidate = line ? `${line} ${word}` : word;
+          const candidateWidth = measure(candidate);
+
+          if (candidateWidth <= maxWidth) {
+            line = candidate;
+            lineFont = getFont(candidate, false);
+            continue;
+          }
+
+          // Current line is full, push it.
+          if (line) pushLine();
+
+          // If the word itself is too long, split it.
+          if (measure(word) > maxWidth) {
+            // CJK/no-space long tokens -> split by characters.
+            let chunk = "";
+            for (const ch of [...word]) {
+              const chunkCandidate = chunk + ch;
+              if (measure(chunkCandidate) <= maxWidth) {
+                chunk = chunkCandidate;
+              } else {
+                if (chunk) out.push(chunk);
+                chunk = ch;
+              }
+            }
+            if (chunk) {
+              out.push(chunk);
+              chunk = "";
+            }
+            line = "";
+            continue;
+          }
+
+          // Start a new line with this word.
+          line = word;
+          lineFont = getFont(line, false);
+        }
+
+        if (line) out.push(line);
+      }
+
+      return out;
+    };
+
+    // Draw multiline text with width-based word wrap + automatic page breaks
     const drawMultilineText = (text: string, x: number, startY: number, size = 8, indent = 0): number => {
       if (!text) return startY;
-      
-      // Sanitize text first
-      const safeText = sanitizeText(text);
-      // Approximate chars per line: ~90 for full width at size 8 (~5.5px per char)
-      // Reduce for indent
-      const maxChars = Math.floor((contentWidth - indent) / 5.5);
-      const lines = wrapTextSimple(safeText, maxChars);
+
+      const maxWidth = contentWidth - indent;
+      const lines = wrapTextByWidth(text, maxWidth, size);
       let currentY = startY;
-      
+
       for (const line of lines) {
         if (currentY < 50) {
           page = pdfDoc.addPage([595.28, 841.89]);
           currentY = height - margin;
         }
-        drawText(line, x, currentY, size, false);
+        drawText(line, x + indent, currentY, size, false);
         currentY -= lineHeight;
       }
       return currentY;
