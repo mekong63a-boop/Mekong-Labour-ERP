@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,10 +18,14 @@ import {
   AlertTriangle,
   Clock,
   Users,
+  FileDown,
+  Loader2,
 } from "lucide-react";
 import { TraineeProfile } from "../hooks/useTraineeProfile";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface TraineeProfileViewProps {
   profile: TraineeProfile;
@@ -57,6 +62,8 @@ const Section = ({ title, icon: Icon, children }: { title: string; icon: React.E
 );
 
 export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps) {
+  const [isExporting, setIsExporting] = useState(false);
+
   const stageLabels: Record<string, string> = {
     recruited: "Tuyển dụng",
     trained: "Đào tạo",
@@ -66,6 +73,52 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
     departed: "Đã xuất cảnh",
     post_departure: "Sau xuất cảnh",
     archived: "Lưu trữ",
+  };
+
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      if (!token) {
+        toast.error("Vui lòng đăng nhập lại");
+        return;
+      }
+
+      const response = await fetch(
+        `https://bcltzwpnhfpbfiuhfkxi.supabase.co/functions/v1/export-trainee-pdf?trainee_code=${encodeURIComponent(profile.trainee_code)}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjbHR6d3BuaGZwYmZpdWhma3hpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyOTU0NDQsImV4cCI6MjA4Mzg3MTQ0NH0.ktTKQxMCXGhXaaa5OkfDrx9I0-YPESh8Z4kHNBQkCJ4",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Lỗi xuất PDF");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `hoc-vien-${profile.trainee_code}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success("Đã tải PDF thành công");
+    } catch (error) {
+      console.error("Export PDF error:", error);
+      toast.error((error as Error).message || "Lỗi xuất PDF");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -98,9 +151,30 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
               </div>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportPDF}
+              disabled={isExporting}
+              className="gap-2"
+            >
+              {isExporting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Đang xuất...
+                </>
+              ) : (
+                <>
+                  <FileDown className="h-4 w-4" />
+                  Xuất PDF
+                </>
+              )}
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
 

@@ -1,0 +1,341 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const SUPABASE_URL = "https://bcltzwpnhfpbfiuhfkxi.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjbHR6d3BuaGZwYmZpdWhma3hpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyOTU0NDQsImV4cCI6MjA4Mzg3MTQ0NH0.ktTKQxMCXGhXaaa5OkfDrx9I0-YPESh8Z4kHNBQkCJ4";
+
+interface TraineeProfile {
+  id: string;
+  trainee_code: string;
+  full_name: string;
+  furigana: string | null;
+  birth_date: string | null;
+  gender: string | null;
+  trainee_type: string | null;
+  source: string | null;
+  phone: string | null;
+  zalo: string | null;
+  email: string | null;
+  cccd_number: string | null;
+  cccd_date: string | null;
+  passport_number: string | null;
+  passport_date: string | null;
+  permanent_address: string | null;
+  current_address: string | null;
+  birthplace: string | null;
+  entry_date: string | null;
+  interview_pass_date: string | null;
+  document_submission_date: string | null;
+  otit_entry_date: string | null;
+  nyukan_entry_date: string | null;
+  coe_date: string | null;
+  visa_date: string | null;
+  departure_date: string | null;
+  return_date: string | null;
+  expected_return_date: string | null;
+  progression_stage: string | null;
+  simple_status: string | null;
+  enrollment_status: string | null;
+  notes: string | null;
+  workflow: {
+    current_stage?: string;
+    sub_status?: string;
+    transitioned_at?: string;
+  };
+  company: {
+    id?: string;
+    code?: string;
+    name?: string;
+    name_japanese?: string;
+  };
+  union: {
+    id?: string;
+    code?: string;
+    name?: string;
+    name_japanese?: string;
+  };
+  job_category: {
+    id?: string;
+    code?: string;
+    name?: string;
+  };
+  class: {
+    id?: string;
+    code?: string;
+    name?: string;
+  };
+  interview_history: Array<{
+    interview_date: string;
+    result: string;
+    notes: string | null;
+    company_id: string;
+  }>;
+  can_view_pii: boolean;
+  error?: string;
+}
+
+const stageLabels: Record<string, string> = {
+  recruited: "Tuyển dụng",
+  trained: "Đào tạo",
+  dormitory: "Ký túc xá",
+  visa_processing: "Xử lý visa",
+  ready_to_depart: "Sẵn sàng xuất cảnh",
+  departed: "Đã xuất cảnh",
+  post_departure: "Sau xuất cảnh",
+  archived: "Lưu trữ",
+};
+
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return "—";
+  try {
+    const date = new Date(dateStr);
+    return `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1).toString().padStart(2, "0")}/${date.getFullYear()}`;
+  } catch {
+    return dateStr;
+  }
+}
+
+serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // Get trainee_code from query params
+    const url = new URL(req.url);
+    const traineeCode = url.searchParams.get("trainee_code");
+
+    if (!traineeCode) {
+      return new Response(
+        JSON.stringify({ error: "trainee_code is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Get auth token from header
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Authorization header required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create Supabase client with user's token
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    // Call RPC to get trainee profile (this handles permission checks internally)
+    const { data: profile, error: rpcError } = await supabase.rpc("get_trainee_full_profile", {
+      p_trainee_code: traineeCode,
+    });
+
+    if (rpcError) {
+      console.error("RPC error:", rpcError);
+      return new Response(
+        JSON.stringify({ error: rpcError.message }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const trainee = profile as TraineeProfile;
+
+    if (trainee.error) {
+      return new Response(
+        JSON.stringify({ error: trainee.error }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create PDF document
+    const pdfDoc = await PDFDocument.create();
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+    let page = pdfDoc.addPage([595.28, 841.89]); // A4 size
+    const { width, height } = page.getSize();
+    const margin = 50;
+    let y = height - margin;
+    const lineHeight = 18;
+    const sectionGap = 25;
+
+    const drawText = (text: string, x: number, yPos: number, size = 10, bold = false) => {
+      page.drawText(text, {
+        x,
+        y: yPos,
+        size,
+        font: bold ? fontBold : font,
+        color: rgb(0, 0, 0),
+      });
+    };
+
+    const drawSection = (title: string) => {
+      if (y < 100) {
+        page = pdfDoc.addPage([595.28, 841.89]);
+        y = height - margin;
+      }
+      y -= sectionGap;
+      drawText(title, margin, y, 12, true);
+      y -= 5;
+      page.drawLine({
+        start: { x: margin, y },
+        end: { x: width - margin, y },
+        thickness: 0.5,
+        color: rgb(0.7, 0.7, 0.7),
+      });
+      y -= lineHeight;
+    };
+
+    const drawRow = (label: string, value: string | null) => {
+      if (y < 50) {
+        page = pdfDoc.addPage([595.28, 841.89]);
+        y = height - margin;
+      }
+      drawText(label + ":", margin, y, 9, false);
+      drawText(value || "—", margin + 150, y, 9, false);
+      y -= lineHeight;
+    };
+
+    // Header
+    drawText("HO SO HOC VIEN", width / 2 - 60, y, 16, true);
+    y -= 10;
+    drawText("TRAINEE PROFILE", width / 2 - 50, y, 12, false);
+    y -= lineHeight * 2;
+
+    // Basic Info
+    drawSection("THONG TIN CO BAN");
+    drawRow("Ma hoc vien", trainee.trainee_code);
+    drawRow("Ho va ten", trainee.full_name);
+    drawRow("Phien am", trainee.furigana);
+    drawRow("Ngay sinh", formatDate(trainee.birth_date));
+    drawRow("Gioi tinh", trainee.gender);
+    drawRow("Loai hinh", trainee.trainee_type);
+    drawRow("Nguon tuyen", trainee.source);
+    drawRow("Noi sinh", trainee.birthplace);
+
+    // Contact Info
+    drawSection("THONG TIN LIEN HE");
+    drawRow("So dien thoai", trainee.phone);
+    drawRow("Zalo", trainee.zalo);
+    drawRow("Email", trainee.email);
+    if (!trainee.can_view_pii) {
+      y -= 5;
+      drawText("* Thong tin nhay cam da duoc an do quyen truy cap", margin, y, 8, false);
+      y -= lineHeight;
+    }
+
+    // Address
+    drawSection("DIA CHI");
+    drawRow("Dia chi thuong tru", trainee.permanent_address);
+    drawRow("Dia chi hien tai", trainee.current_address);
+
+    // Documents
+    drawSection("GIAY TO");
+    drawRow("So CCCD", trainee.cccd_number);
+    drawRow("Ngay cap CCCD", formatDate(trainee.cccd_date));
+    drawRow("So ho chieu", trainee.passport_number);
+    drawRow("Ngay cap HC", formatDate(trainee.passport_date));
+
+    // Company & Union
+    drawSection("CONG TY & NGHIEP DOAN");
+    drawRow("Cong ty tiep nhan", trainee.company?.name || null);
+    drawRow("Ten tieng Nhat (CT)", trainee.company?.name_japanese || null);
+    drawRow("Nghiep doan", trainee.union?.name || null);
+    drawRow("Ten tieng Nhat (ND)", trainee.union?.name_japanese || null);
+    drawRow("Nganh nghe", trainee.job_category?.name || null);
+
+    // Class
+    if (trainee.class?.id) {
+      drawSection("LOP HOC");
+      drawRow("Ma lop", trainee.class.code || null);
+      drawRow("Ten lop", trainee.class.name || null);
+      drawRow("Tinh trang hoc", trainee.enrollment_status);
+    }
+
+    // Timeline
+    drawSection("MOC THOI GIAN");
+    drawRow("Ngay dang ky", formatDate(trainee.entry_date));
+    drawRow("Ngay dau PV", formatDate(trainee.interview_pass_date));
+    drawRow("Nop ho so", formatDate(trainee.document_submission_date));
+    drawRow("Dang OTIT", formatDate(trainee.otit_entry_date));
+    drawRow("Dang Nyukan", formatDate(trainee.nyukan_entry_date));
+    drawRow("COE", formatDate(trainee.coe_date));
+    drawRow("Visa", formatDate(trainee.visa_date));
+    drawRow("Xuat canh", formatDate(trainee.departure_date));
+    drawRow("Ve nuoc", formatDate(trainee.return_date));
+    drawRow("Du kien ve", formatDate(trainee.expected_return_date));
+
+    // Workflow Status
+    if (trainee.workflow) {
+      drawSection("TRANG THAI QUY TRINH");
+      const stageLabel = stageLabels[trainee.workflow.current_stage || ""] || trainee.workflow.current_stage || "—";
+      drawRow("Giai doan hien tai", stageLabel);
+      drawRow("Trang thai phu", trainee.workflow.sub_status || null);
+      drawRow("Ngay chuyen", formatDate(trainee.workflow.transitioned_at || null));
+    }
+
+    // Interview History
+    if (trainee.interview_history && trainee.interview_history.length > 0) {
+      drawSection("LICH SU PHONG VAN");
+      for (const interview of trainee.interview_history) {
+        const resultText = interview.result === "passed" ? "Dau" : interview.result;
+        drawRow(formatDate(interview.interview_date), resultText);
+        if (interview.notes) {
+          y -= 3;
+          drawText("  " + interview.notes.substring(0, 80), margin + 20, y, 8, false);
+          y -= lineHeight - 5;
+        }
+      }
+    }
+
+    // Notes
+    if (trainee.notes) {
+      drawSection("GHI CHU CHUNG");
+      const noteLines = trainee.notes.match(/.{1,80}/g) || [trainee.notes];
+      for (const line of noteLines.slice(0, 5)) {
+        if (y < 50) {
+          page = pdfDoc.addPage([595.28, 841.89]);
+          y = height - margin;
+        }
+        drawText(line, margin, y, 9, false);
+        y -= lineHeight;
+      }
+    }
+
+    // Footer
+    y = 30;
+    const now = new Date();
+    const exportDate = `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1).toString().padStart(2, "0")}/${now.getFullYear()} ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+    drawText(`Xuat ngay: ${exportDate}`, margin, y, 8, false);
+    drawText("Mekong ERP System", width - margin - 100, y, 8, false);
+
+    // Generate PDF bytes
+    const pdfBytes = await pdfDoc.save();
+
+    // Return PDF as download
+    const filename = `hoc-vien-${trainee.trainee_code}.pdf`;
+
+    return new Response(new Uint8Array(pdfBytes).buffer, {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+      },
+    });
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    return new Response(
+      JSON.stringify({ error: "Failed to generate PDF: " + (error as Error).message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});

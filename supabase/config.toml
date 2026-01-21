@@ -7,4 +7,7 @@ verify_jwt = false
 [functions.weekly-backup]
 verify_jwt = false
 
+[functions.export-trainee-pdf]
+verify_jwt = false
+
 project_id = "bcltzwpnhfpbfiuhfkxi"
