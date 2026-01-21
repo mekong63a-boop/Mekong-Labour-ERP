@@ -309,7 +309,6 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
               <>
                 <Section title="Lớp học" icon={GraduationCap}>
                   <div className="grid grid-cols-2 gap-x-4">
-                    <InfoRow label="Mã lớp" value={profile.class.code || "—"} />
                     <InfoRow label="Tên lớp" value={profile.class.name || "—"} />
                     <InfoRow label="Tình trạng học" value={profile.enrollment_status} />
                   </div>
@@ -343,7 +342,7 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                             {profile.test_scores.slice(0, 10).map((score) => (
                               <TableRow key={score.id}>
                                 <TableCell className="text-xs py-1.5">{formatDate(score.test_date)}</TableCell>
-                                <TableCell className="text-xs py-1.5">{score.class_code || "—"}</TableCell>
+                                <TableCell className="text-xs py-1.5">{score.class_name || "—"}</TableCell>
                                 <TableCell className="text-xs py-1.5">{score.test_name}</TableCell>
                                 <TableCell className="text-xs py-1.5 text-right font-medium">
                                   {score.score !== null ? `${score.score}/${score.max_score}` : "—"}
@@ -382,7 +381,7 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                             {profile.attendance.slice(0, 10).map((att) => (
                               <TableRow key={att.id}>
                                 <TableCell className="text-xs py-1.5">{formatDate(att.date)}</TableCell>
-                                <TableCell className="text-xs py-1.5">{att.class_code || "—"}</TableCell>
+                                <TableCell className="text-xs py-1.5">{att.class_name || "—"}</TableCell>
                                 <TableCell className="text-xs py-1.5">
                                   <span className={`px-1.5 py-0.5 rounded text-xs ${getStatusColor(att.status)}`}>
                                     {getStatusLabel(att.status)}
@@ -417,7 +416,6 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                 <InfoRow label="Đăng OTIT" value={formatDate(profile.otit_entry_date)} />
                 <InfoRow label="Đăng Nyukan" value={formatDate(profile.nyukan_entry_date)} />
                 <InfoRow label="COE" value={formatDate(profile.coe_date)} />
-                <InfoRow label="Visa" value={formatDate(profile.visa_date)} />
                 <InfoRow label="Xuất cảnh" value={formatDate(profile.departure_date)} />
                 <InfoRow label="Về nước" value={formatDate(profile.return_date)} />
                 <InfoRow label="Dự kiến về" value={formatDate(profile.expected_return_date)} />
