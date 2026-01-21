@@ -2511,6 +2511,10 @@ export type Database = {
       }
       count_sub_admins: { Args: never; Returns: number }
       current_user_is_senior: { Args: never; Returns: boolean }
+      export_trainees_report: {
+        Args: { filters?: Json; selected_columns: Json }
+        Returns: Json
+      }
       get_department_counts: {
         Args: never
         Returns: {
