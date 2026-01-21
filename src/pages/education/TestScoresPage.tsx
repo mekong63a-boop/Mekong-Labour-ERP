@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -12,8 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useClass, useClassStudents, useTestScores, useBulkUpsertTestScores } from "@/hooks/useEducation";
-import { ArrowLeft, Save, RefreshCw, Users } from "lucide-react";
+import { ArrowLeft, Save, Users, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -30,6 +36,11 @@ function getScoreGrade(score: number | null): { label: string; color: string } {
   return { label: "E", color: "text-red-600 font-bold" };
 }
 
+interface ScoreData {
+  score: number | null;
+  evaluation: string | null;
+}
+
 export default function TestScoresPage() {
   const { classId } = useParams<{ classId: string }>();
   const { toast } = useToast();
@@ -39,18 +50,18 @@ export default function TestScoresPage() {
   const bulkUpsert = useBulkUpsertTestScores();
   
   const [selectedSubject, setSelectedSubject] = useState<string>("Nhập môn");
-  const [localScores, setLocalScores] = useState<Record<string, Record<string, number | null>>>({});
+  const [localScores, setLocalScores] = useState<Record<string, Record<string, ScoreData>>>({});
   const [hasChanges, setHasChanges] = useState(false);
 
   const subjects = ["Nhập môn", "Sơ cấp 1", "Sơ cấp 2", "N5", "N4", "N3", "Nghe", "Nghe sơ cấp 1", "Nghe sơ cấp 2"];
 
   // Organize scores by trainee and lesson
   const scoreMatrix = useMemo(() => {
-    const matrix: Record<string, Record<string, number | null>> = {};
+    const matrix: Record<string, Record<string, ScoreData>> = {};
     
     if (allScores) {
-      allScores.forEach((score: any) => {
-        const testName = score.test_name;
+      allScores.forEach((scoreItem: any) => {
+        const testName = scoreItem.test_name;
         // Parse test name to extract subject and lesson
         // Format expected: "Nhập môn - Bài 1" or just "Bài 1"
         const lessonMatch = testName.match(/Bài (\d+)/);
@@ -61,10 +72,13 @@ export default function TestScoresPage() {
             : selectedSubject;
           
           if (subject === selectedSubject) {
-            if (!matrix[score.trainee_id]) {
-              matrix[score.trainee_id] = {};
+            if (!matrix[scoreItem.trainee_id]) {
+              matrix[scoreItem.trainee_id] = {};
             }
-            matrix[score.trainee_id][lesson] = score.score;
+            matrix[scoreItem.trainee_id][lesson] = {
+              score: scoreItem.score,
+              evaluation: scoreItem.evaluation || null,
+            };
           }
         }
       });
@@ -75,14 +89,17 @@ export default function TestScoresPage() {
 
   // Merge with local changes
   const displayScores = useMemo(() => {
-    const merged: Record<string, Record<string, number | null>> = {};
+    const merged: Record<string, Record<string, ScoreData>> = {};
     
     students?.forEach(student => {
       merged[student.id] = {};
       LESSONS.forEach(lesson => {
         const localValue = localScores[student.id]?.[lesson];
         const dbValue = scoreMatrix[student.id]?.[lesson];
-        merged[student.id][lesson] = localValue !== undefined ? localValue : (dbValue ?? null);
+        merged[student.id][lesson] = {
+          score: localValue?.score !== undefined ? localValue.score : (dbValue?.score ?? null),
+          evaluation: localValue?.evaluation !== undefined ? localValue.evaluation : (dbValue?.evaluation ?? null),
+        };
       });
     });
     
@@ -95,7 +112,24 @@ export default function TestScoresPage() {
       ...prev,
       [traineeId]: {
         ...prev[traineeId],
-        [lesson]: numValue
+        [lesson]: {
+          score: numValue,
+          evaluation: prev[traineeId]?.[lesson]?.evaluation ?? displayScores[traineeId]?.[lesson]?.evaluation ?? null,
+        }
+      }
+    }));
+    setHasChanges(true);
+  };
+
+  const handleEvaluationChange = (traineeId: string, lesson: string, value: string) => {
+    setLocalScores(prev => ({
+      ...prev,
+      [traineeId]: {
+        ...prev[traineeId],
+        [lesson]: {
+          score: prev[traineeId]?.[lesson]?.score ?? displayScores[traineeId]?.[lesson]?.score ?? null,
+          evaluation: value || null,
+        }
       }
     }));
     setHasChanges(true);
@@ -107,7 +141,7 @@ export default function TestScoresPage() {
     if (!scores) return null;
     
     const validScores = LESSONS
-      .map(lesson => scores[lesson])
+      .map(lesson => scores[lesson]?.score)
       .filter((s): s is number => s !== null && s !== undefined);
     
     if (validScores.length === 0) return null;
@@ -121,15 +155,16 @@ export default function TestScoresPage() {
     const today = format(new Date(), "yyyy-MM-dd");
     
     Object.entries(localScores).forEach(([traineeId, lessons]) => {
-      Object.entries(lessons).forEach(([lesson, score]) => {
-        if (score !== undefined) {
+      Object.entries(lessons).forEach(([lesson, data]) => {
+        if (data.score !== undefined || data.evaluation !== undefined) {
           scoresToSave.push({
             class_id: classId,
             trainee_id: traineeId,
             test_name: `${selectedSubject} - ${lesson}`,
             test_date: today,
             max_score: 100,
-            score: score,
+            score: data.score,
+            evaluation: data.evaluation,
           });
         }
       });
@@ -167,7 +202,7 @@ export default function TestScoresPage() {
             <h1 className="text-xl font-bold text-primary">Điểm kiểm tra bài học</h1>
             {classData && (
               <p className="text-sm text-muted-foreground">
-                {classData.name} ({classData.code})
+                {classData.name}
               </p>
             )}
           </div>
@@ -228,7 +263,7 @@ export default function TestScoresPage() {
                 {LESSONS.map(lesson => (
                   <div 
                     key={lesson} 
-                    className="w-14 p-2 text-xs font-medium text-center text-primary border-r flex-shrink-0"
+                    className="w-16 p-2 text-xs font-medium text-center text-primary border-r flex-shrink-0"
                   >
                     {lesson}
                   </div>
@@ -248,27 +283,57 @@ export default function TestScoresPage() {
                     {student.full_name.toUpperCase()}
                   </div>
                   {LESSONS.map(lesson => {
-                    const score = displayScores[student.id]?.[lesson];
+                    const scoreData = displayScores[student.id]?.[lesson];
                     const hasLocalChange = localScores[student.id]?.[lesson] !== undefined;
+                    const hasEvaluation = scoreData?.evaluation;
                     
                     return (
-                      <div key={lesson} className="w-14 p-1 border-r flex-shrink-0 relative group">
-                        <Input
-                          type="number"
-                          min={0}
-                          max={100}
-                          step={1}
-                          value={score ?? ""}
-                          onChange={(e) => handleScoreChange(student.id, lesson, e.target.value)}
-                          className={`h-7 text-center text-sm p-1 ${
-                            hasLocalChange 
-                              ? "border-yellow-400 bg-yellow-50" 
-                              : "border-yellow-200 bg-yellow-50/50"
-                          }`}
-                        />
-                        {score !== null && (
-                          <span className={`absolute -top-1 -right-1 text-[10px] ${getScoreGrade(score).color}`}>
-                            {getScoreGrade(score).label}
+                      <div key={lesson} className="w-16 p-1 border-r flex-shrink-0 relative group">
+                        <div className="flex flex-col gap-0.5">
+                          <Input
+                            type="number"
+                            min={0}
+                            max={100}
+                            step={1}
+                            value={scoreData?.score ?? ""}
+                            onChange={(e) => handleScoreChange(student.id, lesson, e.target.value)}
+                            className={`h-6 text-center text-xs p-1 ${
+                              hasLocalChange 
+                                ? "border-yellow-400 bg-yellow-50" 
+                                : "border-yellow-200 bg-yellow-50/50"
+                            }`}
+                          />
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button
+                                className={`h-5 w-full text-[10px] rounded flex items-center justify-center gap-0.5 ${
+                                  hasEvaluation 
+                                    ? "bg-blue-100 text-blue-700 border border-blue-300" 
+                                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                                }`}
+                              >
+                                <MessageSquare className="h-2.5 w-2.5" />
+                                {hasEvaluation ? "Đã ĐG" : "ĐG"}
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-64 p-2" align="start">
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium">
+                                  Đánh giá - {lesson}
+                                </label>
+                                <Textarea
+                                  placeholder="Nhập đánh giá..."
+                                  value={scoreData?.evaluation || ""}
+                                  onChange={(e) => handleEvaluationChange(student.id, lesson, e.target.value)}
+                                  className="text-xs h-20 resize-none"
+                                />
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        {scoreData?.score !== null && (
+                          <span className={`absolute -top-1 -right-1 text-[10px] ${getScoreGrade(scoreData.score).color}`}>
+                            {getScoreGrade(scoreData.score).label}
                           </span>
                         )}
                       </div>

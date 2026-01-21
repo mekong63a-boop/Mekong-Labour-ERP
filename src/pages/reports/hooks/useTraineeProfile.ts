@@ -8,7 +8,6 @@ export interface AttendanceRecord {
   status: string;
   notes: string | null;
   class_id: string;
-  class_code: string | null;
   class_name: string | null;
 }
 
@@ -19,8 +18,8 @@ export interface TestScoreRecord {
   score: number | null;
   max_score: number;
   notes: string | null;
+  evaluation: string | null;
   class_id: string;
-  class_code: string | null;
   class_name: string | null;
 }
 

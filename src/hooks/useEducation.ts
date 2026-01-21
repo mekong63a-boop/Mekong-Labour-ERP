@@ -481,6 +481,7 @@ export function useBulkUpsertTestScores() {
       max_score: number;
       score: number | null;
       notes?: string;
+      evaluation?: string | null;
     }[]) => {
       // Process scores one by one with upsert to handle conflicts properly
       const results = [];
@@ -503,6 +504,7 @@ export function useBulkUpsertTestScores() {
               max_score: score.max_score,
               test_date: score.test_date,
               notes: score.notes,
+              evaluation: score.evaluation,
             })
             .eq("id", existing.id)
             .select()
