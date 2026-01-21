@@ -23,6 +23,62 @@ export interface TestScoreRecord {
   class_name: string | null;
 }
 
+export interface EducationHistoryRecord {
+  id: string;
+  school_name: string;
+  level: string | null;
+  major: string | null;
+  start_year: number | null;
+  end_year: number | null;
+}
+
+export interface WorkHistoryRecord {
+  id: string;
+  company_name: string;
+  position: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  responsibilities: string | null;
+}
+
+export interface FamilyMemberRecord {
+  id: string;
+  full_name: string;
+  relationship: string;
+  birth_year: number | null;
+  gender: string | null;
+  occupation: string | null;
+  location: string | null;
+  income: string | null;
+}
+
+export interface JapanRelativeRecord {
+  id: string;
+  full_name: string;
+  relationship: string | null;
+  age: number | null;
+  gender: string | null;
+  address_japan: string | null;
+  residence_status: string | null;
+}
+
+export interface InterviewHistoryRecord {
+  id: string;
+  interview_date: string;
+  result: string | null;
+  notes: string | null;
+  expected_entry_month: string | null;
+  company_id: string | null;
+  company_name: string | null;
+  company_name_japanese: string | null;
+  union_id: string | null;
+  union_name: string | null;
+  union_name_japanese: string | null;
+  job_category_id: string | null;
+  job_name: string | null;
+  job_name_japanese: string | null;
+}
+
 export interface TraineeProfile {
   id: string;
   trainee_code: string;
@@ -38,21 +94,51 @@ export interface TraineeProfile {
   phone: string | null;
   zalo: string | null;
   email: string | null;
+  facebook: string | null;
   parent_phone_1: string | null;
   parent_phone_2: string | null;
   cccd_number: string | null;
   cccd_date: string | null;
+  cccd_place: string | null;
   passport_number: string | null;
   passport_date: string | null;
   
   // Addresses
   permanent_address: string | null;
   current_address: string | null;
+  temp_address: string | null;
+  household_address: string | null;
   birthplace: string | null;
+  
+  // Personal details
+  ethnicity: string | null;
+  religion: string | null;
+  marital_status: string | null;
+  education_level: string | null;
+  current_situation: string | null;
+  policy_category: string | null;
+  
+  // Physical attributes
+  height: number | null;
+  weight: number | null;
+  blood_group: string | null;
+  vision_left: number | null;
+  vision_right: number | null;
+  dominant_hand: string | null;
+  
+  // Lifestyle
+  smoking: string | null;
+  drinking: string | null;
+  tattoo: boolean | null;
+  tattoo_description: string | null;
+  health_status: string | null;
+  hobbies: string | null;
   
   // Timeline dates
   entry_date: string | null;
+  registration_date: string | null;
   interview_pass_date: string | null;
+  interview_count: number | null;
   document_submission_date: string | null;
   otit_entry_date: string | null;
   nyukan_entry_date: string | null;
@@ -61,6 +147,12 @@ export interface TraineeProfile {
   departure_date: string | null;
   return_date: string | null;
   expected_return_date: string | null;
+  expected_entry_month: string | null;
+  contract_term: number | null;
+  contract_end_date: string | null;
+  absconded_date: string | null;
+  early_return_date: string | null;
+  early_return_reason: string | null;
   
   // Status
   progression_stage: string | null;
@@ -96,13 +188,10 @@ export interface TraineeProfile {
     id?: string;
     code?: string;
     name?: string;
+    level?: string;
+    status?: string;
   };
-  interview_history: Array<{
-    interview_date: string;
-    result: string;
-    notes: string | null;
-    company_id: string;
-  }>;
+  interview_history: InterviewHistoryRecord[];
   trainee_notes: Array<{
     id: string;
     note_type: string;
@@ -127,6 +216,10 @@ export interface TraineeProfile {
   }>;
   attendance: AttendanceRecord[];
   test_scores: TestScoreRecord[];
+  education_history: EducationHistoryRecord[];
+  work_history: WorkHistoryRecord[];
+  family_members: FamilyMemberRecord[];
+  japan_relatives: JapanRelativeRecord[];
   
   can_view_pii: boolean;
   error?: string;

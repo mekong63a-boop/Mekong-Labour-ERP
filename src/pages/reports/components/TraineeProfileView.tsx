@@ -30,6 +30,10 @@ import {
   Loader2,
   BookOpen,
   ClipboardCheck,
+  Heart,
+  Activity,
+  History,
+  Home,
 } from "lucide-react";
 import { TraineeProfile } from "../hooks/useTraineeProfile";
 import { format } from "date-fns";
@@ -239,7 +243,13 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                 <InfoRow label="Ngày sinh" value={formatDate(profile.birth_date)} icon={Calendar} />
                 <InfoRow label="Giới tính" value={profile.gender} />
                 <InfoRow label="Nơi sinh" value={profile.birthplace} icon={MapPin} />
-                <InfoRow label="Nguồn" value={profile.source} />
+                <InfoRow label="Dân tộc" value={profile.ethnicity} />
+                <InfoRow label="Tôn giáo" value={profile.religion} />
+                <InfoRow label="Tình trạng hôn nhân" value={profile.marital_status} />
+                <InfoRow label="Trình độ học vấn" value={profile.education_level} />
+                <InfoRow label="Tình trạng hiện tại" value={profile.current_situation} />
+                <InfoRow label="Diện chính sách" value={profile.policy_category} />
+                <InfoRow label="Nguồn tuyển" value={profile.source} />
               </div>
             </Section>
 
@@ -267,6 +277,8 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
             <Section title="Địa chỉ" icon={MapPin}>
               <InfoRow label="Địa chỉ thường trú" value={profile.permanent_address} />
               <InfoRow label="Địa chỉ hiện tại" value={profile.current_address} />
+              <InfoRow label="Địa chỉ tạm trú" value={profile.temp_address} />
+              <InfoRow label="Địa chỉ hộ khẩu" value={profile.household_address} />
             </Section>
 
             <Separator />
@@ -276,8 +288,28 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
               <div className="grid grid-cols-2 gap-x-4">
                 <InfoRow label="Số CCCD" value={profile.cccd_number} />
                 <InfoRow label="Ngày cấp CCCD" value={formatDate(profile.cccd_date)} />
+                <InfoRow label="Nơi cấp CCCD" value={profile.cccd_place} />
                 <InfoRow label="Số hộ chiếu" value={profile.passport_number} />
                 <InfoRow label="Ngày cấp HC" value={formatDate(profile.passport_date)} />
+              </div>
+            </Section>
+
+            <Separator />
+
+            {/* Physical & Health */}
+            <Section title="Thể chất & Sức khỏe" icon={Activity}>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4">
+                <InfoRow label="Chiều cao" value={profile.height ? `${profile.height} cm` : null} />
+                <InfoRow label="Cân nặng" value={profile.weight ? `${profile.weight} kg` : null} />
+                <InfoRow label="Nhóm máu" value={profile.blood_group} />
+                <InfoRow label="Thị lực trái" value={profile.vision_left?.toString()} />
+                <InfoRow label="Thị lực phải" value={profile.vision_right?.toString()} />
+                <InfoRow label="Tay thuận" value={profile.dominant_hand} />
+                <InfoRow label="Hút thuốc" value={profile.smoking} />
+                <InfoRow label="Uống rượu" value={profile.drinking} />
+                <InfoRow label="Xăm hình" value={profile.tattoo ? `Có${profile.tattoo_description ? `: ${profile.tattoo_description}` : ''}` : "Không"} />
+                <InfoRow label="Tình trạng sức khỏe" value={profile.health_status} />
+                <InfoRow label="Sở thích" value={profile.hobbies} />
               </div>
             </Section>
 
@@ -419,35 +451,175 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
             {/* Timeline */}
             <Section title="Mốc thời gian" icon={Clock}>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4">
-                <InfoRow label="Ngày đăng ký" value={formatDate(profile.entry_date)} />
+                <InfoRow label="Ngày đăng ký" value={formatDate(profile.registration_date || profile.entry_date)} />
+                <InfoRow label="Số lần PV" value={profile.interview_count?.toString()} />
                 <InfoRow label="Ngày đậu PV" value={formatDate(profile.interview_pass_date)} />
                 <InfoRow label="Nộp hồ sơ" value={formatDate(profile.document_submission_date)} />
                 <InfoRow label="Đăng OTIT" value={formatDate(profile.otit_entry_date)} />
                 <InfoRow label="Đăng Nyukan" value={formatDate(profile.nyukan_entry_date)} />
                 <InfoRow label="COE" value={formatDate(profile.coe_date)} />
+                <InfoRow label="Visa" value={formatDate(profile.visa_date)} />
                 <InfoRow label="Xuất cảnh" value={formatDate(profile.departure_date)} />
+                <InfoRow label="Thời hạn HĐ" value={profile.contract_term ? `${profile.contract_term} năm` : null} />
+                <InfoRow label="Kết thúc HĐ" value={formatDate(profile.contract_end_date)} />
+                <InfoRow label="Dự kiến nhập cảnh" value={profile.expected_entry_month} />
                 <InfoRow label="Về nước" value={formatDate(profile.return_date)} />
                 <InfoRow label="Dự kiến về" value={formatDate(profile.expected_return_date)} />
+                {profile.absconded_date && <InfoRow label="Ngày bỏ trốn" value={formatDate(profile.absconded_date)} />}
+                {profile.early_return_date && (
+                  <>
+                    <InfoRow label="Về trước hạn" value={formatDate(profile.early_return_date)} />
+                    <InfoRow label="Lý do về sớm" value={profile.early_return_reason} />
+                  </>
+                )}
               </div>
             </Section>
 
             <Separator />
 
+            {/* Education History */}
+            {profile.education_history && profile.education_history.length > 0 && (
+              <>
+                <Section title="Học vấn" icon={GraduationCap}>
+                  <div className="space-y-2">
+                    {profile.education_history.map((edu) => (
+                      <div key={edu.id} className="p-2 bg-muted/50 rounded text-sm">
+                        <p className="font-medium">{edu.school_name}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                          {edu.level && <Badge variant="outline" className="text-xs">{edu.level}</Badge>}
+                          {edu.major && <span>Chuyên ngành: {edu.major}</span>}
+                          {(edu.start_year || edu.end_year) && (
+                            <span>{edu.start_year || '?'} - {edu.end_year || 'nay'}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Section>
+                <Separator />
+              </>
+            )}
+
+            {/* Work History */}
+            {profile.work_history && profile.work_history.length > 0 && (
+              <>
+                <Section title="Kinh nghiệm làm việc" icon={Briefcase}>
+                  <div className="space-y-2">
+                    {profile.work_history.map((work) => (
+                      <div key={work.id} className="p-2 bg-muted/50 rounded text-sm">
+                        <p className="font-medium">{work.company_name}</p>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {work.position && <span>Vị trí: {work.position}</span>}
+                          {(work.start_date || work.end_date) && (
+                            <span className="ml-2">({formatDate(work.start_date)} - {formatDate(work.end_date) || 'nay'})</span>
+                          )}
+                        </div>
+                        {work.responsibilities && (
+                          <p className="text-xs text-muted-foreground mt-1">{work.responsibilities}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </Section>
+                <Separator />
+              </>
+            )}
+
+            {/* Family Members */}
+            {profile.family_members && profile.family_members.length > 0 && (
+              <>
+                <Section title="Thành viên gia đình" icon={Home}>
+                  <div className="rounded-md border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="text-xs py-2">Họ tên</TableHead>
+                          <TableHead className="text-xs py-2">Quan hệ</TableHead>
+                          <TableHead className="text-xs py-2">Năm sinh</TableHead>
+                          <TableHead className="text-xs py-2">Nghề nghiệp</TableHead>
+                          <TableHead className="text-xs py-2">Nơi ở</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {profile.family_members.map((member) => (
+                          <TableRow key={member.id}>
+                            <TableCell className="text-xs py-1.5">{member.full_name}</TableCell>
+                            <TableCell className="text-xs py-1.5">{member.relationship}</TableCell>
+                            <TableCell className="text-xs py-1.5">{member.birth_year || "—"}</TableCell>
+                            <TableCell className="text-xs py-1.5">{member.occupation || "—"}</TableCell>
+                            <TableCell className="text-xs py-1.5">{member.location || "—"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </Section>
+                <Separator />
+              </>
+            )}
+
+            {/* Japan Relatives */}
+            {profile.japan_relatives && profile.japan_relatives.length > 0 && (
+              <>
+                <Section title="Thân nhân tại Nhật" icon={Users}>
+                  <div className="rounded-md border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="text-xs py-2">Họ tên</TableHead>
+                          <TableHead className="text-xs py-2">Quan hệ</TableHead>
+                          <TableHead className="text-xs py-2">Tuổi</TableHead>
+                          <TableHead className="text-xs py-2">Địa chỉ tại Nhật</TableHead>
+                          <TableHead className="text-xs py-2">Tư cách lưu trú</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {profile.japan_relatives.map((rel) => (
+                          <TableRow key={rel.id}>
+                            <TableCell className="text-xs py-1.5">{rel.full_name}</TableCell>
+                            <TableCell className="text-xs py-1.5">{rel.relationship || "—"}</TableCell>
+                            <TableCell className="text-xs py-1.5">{rel.age || "—"}</TableCell>
+                            <TableCell className="text-xs py-1.5">{rel.address_japan || "—"}</TableCell>
+                            <TableCell className="text-xs py-1.5">{rel.residence_status || "—"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </Section>
+                <Separator />
+              </>
+            )}
+
             {/* Interview History */}
             {profile.interview_history && profile.interview_history.length > 0 && (
               <>
-                <Section title="Lịch sử phỏng vấn" icon={Users}>
+                <Section title="Lịch sử phỏng vấn" icon={History}>
                   <div className="space-y-2">
-                    {profile.interview_history.map((interview, idx) => (
-                      <div key={idx} className="p-2 bg-muted/50 rounded text-sm">
+                    {profile.interview_history.map((interview) => (
+                      <div key={interview.id} className="p-2 bg-muted/50 rounded text-sm">
                         <div className="flex items-center justify-between">
-                          <span>{formatDate(interview.interview_date)}</span>
-                          <Badge variant={interview.result === "passed" ? "default" : "secondary"}>
-                            {interview.result === "passed" ? "Đậu" : interview.result}
+                          <span className="font-medium">{formatDate(interview.interview_date)}</span>
+                          <Badge variant={interview.result === "Đậu" || interview.result === "passed" ? "default" : "secondary"}>
+                            {interview.result || "—"}
                           </Badge>
                         </div>
+                        <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                          {(interview.company_name || interview.company_name_japanese) && (
+                            <p>Công ty: {formatBilingual(interview.company_name_japanese, interview.company_name)}</p>
+                          )}
+                          {(interview.union_name || interview.union_name_japanese) && (
+                            <p>Nghiệp đoàn: {formatBilingual(interview.union_name_japanese, interview.union_name)}</p>
+                          )}
+                          {(interview.job_name || interview.job_name_japanese) && (
+                            <p>Ngành nghề: {formatBilingual(interview.job_name_japanese, interview.job_name)}</p>
+                          )}
+                          {interview.expected_entry_month && (
+                            <p>Dự kiến nhập cảnh: {interview.expected_entry_month}</p>
+                          )}
+                        </div>
                         {interview.notes && (
-                          <p className="text-xs text-muted-foreground mt-1">{interview.notes}</p>
+                          <p className="text-xs text-muted-foreground mt-1 italic">{interview.notes}</p>
                         )}
                       </div>
                     ))}
