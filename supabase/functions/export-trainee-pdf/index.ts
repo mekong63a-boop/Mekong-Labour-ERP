@@ -41,6 +41,7 @@ interface TraineeProfile {
   gender: string | null;
   trainee_type: string | null;
   source: string | null;
+  photo_url: string | null;
   phone: string | null;
   zalo: string | null;
   email: string | null;
@@ -245,6 +246,7 @@ serve(async (req) => {
     let y = height - margin;
     const lineHeight = 16;
     const sectionGap = 20;
+    const photoSize = 80;
 
     const drawText = (text: string, x: number, yPos: number, size = 9, bold = false) => {
       const safeText = (text || "").substring(0, 100); // Limit text length
@@ -284,9 +286,47 @@ serve(async (req) => {
       y -= lineHeight;
     };
 
-    // Header
-    drawText("HỒ SƠ HỌC VIÊN", width / 2 - 50, y, 14, true);
-    y -= lineHeight * 2;
+    // Draw photo if available (top-left corner)
+    if (trainee.photo_url) {
+      try {
+        const photoResponse = await fetch(trainee.photo_url);
+        if (photoResponse.ok) {
+          const photoBytes = await photoResponse.arrayBuffer();
+          const contentType = photoResponse.headers.get("content-type") || "";
+          let embeddedImage;
+          
+          if (contentType.includes("png")) {
+            embeddedImage = await pdfDoc.embedPng(photoBytes);
+          } else {
+            embeddedImage = await pdfDoc.embedJpg(photoBytes);
+          }
+          
+          page.drawImage(embeddedImage, {
+            x: margin,
+            y: y - photoSize,
+            width: photoSize,
+            height: photoSize,
+          });
+        }
+      } catch (photoError) {
+        console.error("Photo embed error:", photoError);
+      }
+    }
+
+    // Header with photo offset
+    const headerX = trainee.photo_url ? margin + photoSize + 15 : margin;
+    drawText("HỒ SƠ HỌC VIÊN", headerX, y, 14, true);
+    y -= lineHeight;
+    drawText(trainee.full_name, headerX, y, 12, true);
+    y -= lineHeight;
+    drawText(`Mã: ${trainee.trainee_code}`, headerX, y, 10, false);
+    
+    // Move y below photo area if photo exists
+    if (trainee.photo_url) {
+      y = height - margin - photoSize - 20;
+    } else {
+      y -= lineHeight * 2;
+    }
 
     // Basic Info
     drawSection("THÔNG TIN CƠ BẢN");

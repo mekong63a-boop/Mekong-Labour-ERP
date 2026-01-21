@@ -387,6 +387,110 @@ export type Database = {
           },
         ]
       }
+      dormitories: {
+        Row: {
+          address: string | null
+          capacity: number | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          capacity?: number | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          capacity?: number | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      dormitory_residents: {
+        Row: {
+          bed_number: string | null
+          check_in_date: string
+          check_out_date: string | null
+          created_at: string
+          dormitory_id: string
+          id: string
+          notes: string | null
+          room_number: string | null
+          status: string | null
+          trainee_id: string
+          updated_at: string
+        }
+        Insert: {
+          bed_number?: string | null
+          check_in_date?: string
+          check_out_date?: string | null
+          created_at?: string
+          dormitory_id: string
+          id?: string
+          notes?: string | null
+          room_number?: string | null
+          status?: string | null
+          trainee_id: string
+          updated_at?: string
+        }
+        Update: {
+          bed_number?: string | null
+          check_in_date?: string
+          check_out_date?: string | null
+          created_at?: string
+          dormitory_id?: string
+          id?: string
+          notes?: string | null
+          room_number?: string | null
+          status?: string | null
+          trainee_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dormitory_residents_dormitory_id_fkey"
+            columns: ["dormitory_id"]
+            isOneToOne: false
+            referencedRelation: "dormitories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dormitory_residents_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dormitory_residents_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_basic"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dormitory_residents_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_with_workflow"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       edit_permissions: {
         Row: {
           approved_at: string | null
