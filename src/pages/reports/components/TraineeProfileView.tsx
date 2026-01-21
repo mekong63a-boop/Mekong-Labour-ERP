@@ -326,26 +326,29 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
 
             <Separator />
 
-            {/* Company & Union - Bilingual display */}
-            <Section title="Công ty & Nghiệp đoàn" icon={Building2}>
-              <div className="grid grid-cols-1 gap-x-4">
-                <InfoRow 
-                  label="Công ty tiếp nhận" 
-                  value={formatBilingual(profile.company?.name_japanese, profile.company?.name)} 
-                />
-                <InfoRow 
-                  label="Nghiệp đoàn" 
-                  value={formatBilingual(profile.union?.name_japanese, profile.union?.name)} 
-                />
-                <InfoRow 
-                  label="Ngành nghề" 
-                  value={formatBilingual(profile.job_category?.name_japanese, profile.job_category?.name)} 
-                  icon={Briefcase} 
-                />
-              </div>
-            </Section>
-
-            <Separator />
+            {/* Company & Union - Bilingual display - Only show for trainees who passed interview */}
+            {profile.progression_stage && ![null, "", "Chưa đậu"].includes(profile.progression_stage) && (
+              <>
+                <Section title="Công ty & Nghiệp đoàn" icon={Building2}>
+                  <div className="grid grid-cols-1 gap-x-4">
+                    <InfoRow 
+                      label="Công ty tiếp nhận" 
+                      value={formatBilingual(profile.company?.name_japanese, profile.company?.name)} 
+                    />
+                    <InfoRow 
+                      label="Nghiệp đoàn" 
+                      value={formatBilingual(profile.union?.name_japanese, profile.union?.name)} 
+                    />
+                    <InfoRow 
+                      label="Ngành nghề" 
+                      value={formatBilingual(profile.job_category?.name_japanese, profile.job_category?.name)} 
+                      icon={Briefcase} 
+                    />
+                  </div>
+                </Section>
+                <Separator />
+              </>
+            )}
 
             {/* Class */}
             {profile.class?.id && (
