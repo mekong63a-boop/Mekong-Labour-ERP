@@ -1,3 +1,4 @@
+// Trainee Profile View Component
 import { useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
