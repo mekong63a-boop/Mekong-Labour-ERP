@@ -337,6 +337,45 @@ serve(async (req) => {
         : (bold ? fontBold : font);
     };
 
+    // Draw text with a specific font (no auto font selection)
+    const drawTextWithFont = (
+      text: string,
+      x: number,
+      yPos: number,
+      size: number,
+      fontToUse: any,
+      _bold: boolean
+    ) => {
+      const safeText = sanitizeText(text || "");
+      page.drawText(safeText, {
+        x,
+        y: yPos,
+        size,
+        font: fontToUse,
+        color: rgb(0, 0, 0),
+      });
+    };
+
+    // Draw bilingual string "JP (VN)" with mixed fonts to avoid VN squares
+    const drawBilingualValue = (value: string, x: number, yPos: number, size = 9, bold = false) => {
+      const safeValue = sanitizeText(value || "");
+      const match = safeValue.match(/^(.*)\s\((.*)\)$/);
+      if (!match) {
+        drawText(safeValue, x, yPos, size, bold);
+        return;
+      }
+
+      const jpPart = (match[1] || "").trimEnd();
+      const vnPart = match[2] || "";
+
+      const jpFont = containsCJK(jpPart) ? (bold ? fontJpBold : fontJp) : (bold ? fontBold : font);
+      const vnFont = bold ? fontBold : font;
+
+      drawTextWithFont(jpPart, x, yPos, size, jpFont, bold);
+      const jpWidth = jpFont.widthOfTextAtSize(sanitizeText(jpPart), size);
+      drawTextWithFont(` (${vnPart})`, x + jpWidth, yPos, size, vnFont, bold);
+    };
+
     // Draw text with automatic font selection based on CJK content
     // CRITICAL: Always use embedded fonts (Roboto or NotoSansJP) - NEVER StandardFonts
     const drawText = (text: string, x: number, yPos: number, size = 9, bold = false) => {
@@ -401,6 +440,16 @@ serve(async (req) => {
       }
       drawText(label + ":", margin, y, 9, false);
       drawText(value || "—", margin + 140, y, 9, false);
+      y -= lineHeight;
+    };
+
+    const drawRowBilingual = (label: string, value: string) => {
+      if (y < 50) {
+        page = pdfDoc.addPage([595.28, 841.89]);
+        y = height - margin;
+      }
+      drawText(label + ":", margin, y, 9, false);
+      drawBilingualValue(value || "—", margin + 140, y, 9, false);
       y -= lineHeight;
     };
 
@@ -484,9 +533,9 @@ serve(async (req) => {
 
     // Company & Union - Bilingual display
     drawSection("CÔNG TY & NGHIỆP ĐOÀN");
-    drawRow("Công ty tiếp nhận", formatBilingual(trainee.company?.name_japanese, trainee.company?.name));
-    drawRow("Nghiệp đoàn", formatBilingual(trainee.union?.name_japanese, trainee.union?.name));
-    drawRow("Ngành nghề", formatBilingual(trainee.job_category?.name_japanese, trainee.job_category?.name));
+    drawRowBilingual("Công ty tiếp nhận", formatBilingual(trainee.company?.name_japanese, trainee.company?.name));
+    drawRowBilingual("Nghiệp đoàn", formatBilingual(trainee.union?.name_japanese, trainee.union?.name));
+    drawRowBilingual("Ngành nghề", formatBilingual(trainee.job_category?.name_japanese, trainee.job_category?.name));
 
     // Class
     if (trainee.class?.id) {
@@ -590,21 +639,40 @@ serve(async (req) => {
         // Company (bilingual: Japanese + Vietnamese)
         if (interview.company_name || interview.company_name_japanese) {
           const companyDisplay = formatBilingual(interview.company_name_japanese, interview.company_name);
-          drawText(`   Công ty: ${companyDisplay}`, margin, y, 8, false);
+          const prefix = "   Công ty: ";
+          drawTextWithFont(prefix, margin, y, 8, font, false);
+          const prefixWidth = font.widthOfTextAtSize(sanitizeText(prefix), 8);
+          drawBilingualValue(companyDisplay, margin + prefixWidth, y, 8, false);
           y -= lineHeight;
         }
         
         // Union (bilingual)
         if (interview.union_name || interview.union_name_japanese) {
           const unionDisplay = formatBilingual(interview.union_name_japanese, interview.union_name);
-          drawText(`   Nghiệp đoàn: ${unionDisplay}`, margin, y, 8, false);
+          const prefix = "   Nghiệp đoàn: ";
+          drawTextWithFont(prefix, margin, y, 8, font, false);
+          const prefixWidth = font.widthOfTextAtSize(sanitizeText(prefix), 8);
+          drawBilingualValue(unionDisplay, margin + prefixWidth, y, 8, false);
           y -= lineHeight;
         }
         
         // Job category (bilingual)
         if (interview.job_category_name || interview.job_category_name_japanese) {
           const jobDisplay = formatBilingual(interview.job_category_name_japanese, interview.job_category_name);
-          drawText(`   Ngành nghề: ${jobDisplay}`, margin, y, 8, false);
+          const prefix = "   Ngành nghề: ";
+          drawTextWithFont(prefix, margin, y, 8, font, false);
+          const prefixWidth = font.widthOfTextAtSize(sanitizeText(prefix), 8);
+          drawBilingualValue(jobDisplay, margin + prefixWidth, y, 8, false);
+          y -= lineHeight;
+        }
+
+        // Expected entry month
+        // Must match TraineeProfileView: "Dự kiến nhập cảnh"
+        if ((interview as any).expected_entry_month) {
+          drawTextWithFont("   Dự kiến nhập cảnh: ", margin, y, 8, font, false);
+          const prefix = "   Dự kiến nhập cảnh: ";
+          const prefixWidth = font.widthOfTextAtSize(sanitizeText(prefix), 8);
+          drawTextWithFont((interview as any).expected_entry_month, margin + prefixWidth, y, 8, font, false);
           y -= lineHeight;
         }
         
