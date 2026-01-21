@@ -223,44 +223,35 @@ serve(async (req) => {
     const robotoRegularUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Me5WZLCzYlKw.ttf";
     const robotoBoldUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlvAx05IsDqlA.ttf";
     
-    // Noto Sans JP for Japanese support
-    const notoSansJpRegularUrl = "https://fonts.gstatic.com/s/notosansjp/v53/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFBEj75s.ttf";
-    const notoSansJpBoldUrl = "https://fonts.gstatic.com/s/notosansjp/v53/-F6pfjtqLzI2JPCgQBnw7HFQaioq1H1hj-sNFQ.ttf";
+    // Noto Sans JP for Japanese + Vietnamese support (weight 400 = Regular, 700 = Bold)
+    // Using raw.githubusercontent for reliable static font files
+    const notoSansJpRegularUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-400-normal.ttf";
+    const notoSansJpBoldUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-700-normal.ttf";
     
-    let font, fontBold, fontJp, fontJpBold;
-    try {
-      const [regularFontBytes, boldFontBytes, jpRegularBytes, jpBoldBytes] = await Promise.all([
-        fetch(robotoRegularUrl).then(res => {
-          if (!res.ok) throw new Error(`Failed to fetch regular font: ${res.status}`);
-          return res.arrayBuffer();
-        }),
-        fetch(robotoBoldUrl).then(res => {
-          if (!res.ok) throw new Error(`Failed to fetch bold font: ${res.status}`);
-          return res.arrayBuffer();
-        }),
-        fetch(notoSansJpRegularUrl).then(res => {
-          if (!res.ok) throw new Error(`Failed to fetch JP regular font: ${res.status}`);
-          return res.arrayBuffer();
-        }),
-        fetch(notoSansJpBoldUrl).then(res => {
-          if (!res.ok) throw new Error(`Failed to fetch JP bold font: ${res.status}`);
-          return res.arrayBuffer();
-        }),
-      ]);
-      
-      font = await pdfDoc.embedFont(regularFontBytes);
-      fontBold = await pdfDoc.embedFont(boldFontBytes);
-      fontJp = await pdfDoc.embedFont(jpRegularBytes);
-      fontJpBold = await pdfDoc.embedFont(jpBoldBytes);
-    } catch (fontError) {
-      console.error("Font loading error:", fontError);
-      // Fallback to standard fonts
-      const { StandardFonts } = await import("https://esm.sh/pdf-lib@1.17.1");
-      font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-      fontJp = font; // Fallback - Japanese may not display correctly
-      fontJpBold = fontBold;
-    }
+    // Load all fonts - NO FALLBACK to StandardFonts (they cannot encode Unicode)
+    const [regularFontBytes, boldFontBytes, jpRegularBytes, jpBoldBytes] = await Promise.all([
+      fetch(robotoRegularUrl).then(res => {
+        if (!res.ok) throw new Error(`Failed to fetch Roboto regular: ${res.status}`);
+        return res.arrayBuffer();
+      }),
+      fetch(robotoBoldUrl).then(res => {
+        if (!res.ok) throw new Error(`Failed to fetch Roboto bold: ${res.status}`);
+        return res.arrayBuffer();
+      }),
+      fetch(notoSansJpRegularUrl).then(res => {
+        if (!res.ok) throw new Error(`Failed to fetch NotoSansJP regular: ${res.status}`);
+        return res.arrayBuffer();
+      }),
+      fetch(notoSansJpBoldUrl).then(res => {
+        if (!res.ok) throw new Error(`Failed to fetch NotoSansJP bold: ${res.status}`);
+        return res.arrayBuffer();
+      }),
+    ]);
+    
+    const font = await pdfDoc.embedFont(regularFontBytes);
+    const fontBold = await pdfDoc.embedFont(boldFontBytes);
+    const fontJp = await pdfDoc.embedFont(jpRegularBytes);
+    const fontJpBold = await pdfDoc.embedFont(jpBoldBytes);
 
     let page = pdfDoc.addPage([595.28, 841.89]); // A4 size
     const { width, height } = page.getSize();
