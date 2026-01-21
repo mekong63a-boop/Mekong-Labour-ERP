@@ -212,9 +212,29 @@ function wrapTextSimple(text: string, maxChars: number): string[] {
 // Remove special characters that can't be encoded (emojis, special symbols)
 function sanitizeText(text: string): string {
   if (!text) return "";
-  // Remove emojis and other problematic Unicode characters outside standard ranges
-  // Keep: Latin, Vietnamese, Japanese (CJK), basic punctuation
-  return text.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]/gu, '');
+  // Remove ALL problematic Unicode outside Latin/Vietnamese/CJK
+  return text
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')  // All emoji blocks
+    .replace(/[\u{2600}-\u{27BF}]/gu, '')    // Misc symbols & dingbats
+    .replace(/[\u{FE00}-\u{FE0F}]/gu, '')    // Variation selectors
+    .replace(/[\u{E0000}-\u{E007F}]/gu, '')  // Tags block
+    .replace(/[\u{2300}-\u{23FF}]/gu, '')    // Misc technical symbols
+    .replace(/[\u{2B00}-\u{2BFF}]/gu, '');   // Misc symbols & arrows
+}
+
+// Fetch with timeout to prevent CPU hangs
+async function fetchWithTimeout(url: string, timeoutMs = 8000): Promise<ArrayBuffer> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
+    return res.arrayBuffer();
+  } catch (e) {
+    clearTimeout(timeoutId);
+    throw e;
+  }
 }
 
 serve(async (req) => {
@@ -282,28 +302,15 @@ serve(async (req) => {
     const robotoBoldUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlvAx05IsDqlA.ttf";
     
     // Noto Sans JP for Japanese + Vietnamese support (weight 400 = Regular, 700 = Bold)
-    // Using raw.githubusercontent for reliable static font files
     const notoSansJpRegularUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-400-normal.ttf";
     const notoSansJpBoldUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-700-normal.ttf";
     
-    // Load all fonts - NO FALLBACK to StandardFonts (they cannot encode Unicode)
+    // Load all fonts with timeout - NO FALLBACK to StandardFonts (they cannot encode Unicode)
     const [regularFontBytes, boldFontBytes, jpRegularBytes, jpBoldBytes] = await Promise.all([
-      fetch(robotoRegularUrl).then(res => {
-        if (!res.ok) throw new Error(`Failed to fetch Roboto regular: ${res.status}`);
-        return res.arrayBuffer();
-      }),
-      fetch(robotoBoldUrl).then(res => {
-        if (!res.ok) throw new Error(`Failed to fetch Roboto bold: ${res.status}`);
-        return res.arrayBuffer();
-      }),
-      fetch(notoSansJpRegularUrl).then(res => {
-        if (!res.ok) throw new Error(`Failed to fetch NotoSansJP regular: ${res.status}`);
-        return res.arrayBuffer();
-      }),
-      fetch(notoSansJpBoldUrl).then(res => {
-        if (!res.ok) throw new Error(`Failed to fetch NotoSansJP bold: ${res.status}`);
-        return res.arrayBuffer();
-      }),
+      fetchWithTimeout(robotoRegularUrl),
+      fetchWithTimeout(robotoBoldUrl),
+      fetchWithTimeout(notoSansJpRegularUrl),
+      fetchWithTimeout(notoSansJpBoldUrl),
     ]);
     
     const font = await pdfDoc.embedFont(regularFontBytes);
