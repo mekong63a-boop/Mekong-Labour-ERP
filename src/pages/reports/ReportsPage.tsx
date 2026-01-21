@@ -9,7 +9,7 @@ import { ReportPresetSelector } from "./components/ReportPresetSelector";
 import { ReportColumnSelector } from "./components/ReportColumnSelector";
 import { ReportFilterPanel } from "./components/ReportFilterPanel";
 import { TraineeSearchBox } from "./components/TraineeSearchBox";
-import { ProfileCard } from "./components/ProfileCard";
+import { TraineeProfileView } from "./components/TraineeProfileView";
 import { useExportReport } from "./hooks/useExportReport";
 import { useTraineeProfile } from "./hooks/useTraineeProfile";
 import { REPORT_PRESETS, ReportFilters, ReportPreset } from "./types";
@@ -91,7 +91,7 @@ export default function ReportsPage() {
 
           {/* Profile Result */}
           {profile && (
-            <ProfileCard profile={profile} onClose={clearProfile} />
+            <TraineeProfileView profile={profile} onClose={clearProfile} />
           )}
 
           {!profile && !isSearching && (
