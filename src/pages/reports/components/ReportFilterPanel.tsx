@@ -15,9 +15,6 @@ interface ReportFilterPanelProps {
   onFiltersChange: (filters: ReportFilters) => void;
 }
 
-const WORKFLOW_STAGES = Constants.trainee_workflow_stage;
-const TRAINEE_TYPES = Constants.trainee_type;
-
 export function ReportFilterPanel({ filters, onFiltersChange }: ReportFilterPanelProps) {
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
   const [unions, setUnions] = useState<{ id: string; name: string }[]>([]);
