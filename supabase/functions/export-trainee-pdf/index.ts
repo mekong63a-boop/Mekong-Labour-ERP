@@ -605,11 +605,17 @@ serve(async (req) => {
     drawRow("Số hộ chiếu", trainee.passport_number);
     drawRow("Ngày cấp HC", formatDate(trainee.passport_date));
 
-    // Company & Union - Bilingual display
-    drawSection("CÔNG TY & NGHIỆP ĐOÀN");
-    drawRowBilingual("Công ty tiếp nhận", formatBilingual(trainee.company?.name_japanese, trainee.company?.name));
-    drawRowBilingual("Nghiệp đoàn", formatBilingual(trainee.union?.name_japanese, trainee.union?.name));
-    drawRowBilingual("Ngành nghề", formatBilingual(trainee.job_category?.name_japanese, trainee.job_category?.name));
+    // Company & Union - Bilingual display - Only show for trainees who passed interview
+    const hasPassedInterview = trainee.progression_stage && 
+      trainee.progression_stage !== "Chưa đậu" && 
+      trainee.progression_stage !== "";
+    
+    if (hasPassedInterview) {
+      drawSection("CÔNG TY & NGHIỆP ĐOÀN");
+      drawRowBilingual("Công ty tiếp nhận", formatBilingual(trainee.company?.name_japanese, trainee.company?.name));
+      drawRowBilingual("Nghiệp đoàn", formatBilingual(trainee.union?.name_japanese, trainee.union?.name));
+      drawRowBilingual("Ngành nghề", formatBilingual(trainee.job_category?.name_japanese, trainee.job_category?.name));
+    }
 
     // Class
     if (trainee.class?.id) {
