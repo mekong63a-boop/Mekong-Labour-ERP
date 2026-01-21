@@ -793,10 +793,12 @@ serve(async (req) => {
       y = drawMultilineText(trainee.notes, margin, y, 8, 0);
     }
 
-    // Footer
+    // Footer - use Vietnam timezone (UTC+7)
     y = 30;
     const now = new Date();
-    const exportDate = `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1).toString().padStart(2, "0")}/${now.getFullYear()} ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+    // Convert to Vietnam time by adding 7 hours offset
+    const vnTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+    const exportDate = `${vnTime.getUTCDate().toString().padStart(2, "0")}/${(vnTime.getUTCMonth() + 1).toString().padStart(2, "0")}/${vnTime.getUTCFullYear()} ${vnTime.getUTCHours().toString().padStart(2, "0")}:${vnTime.getUTCMinutes().toString().padStart(2, "0")}`;
     drawText(`Xuất ngày: ${exportDate}`, margin, y, 7, false);
     drawText("Mekong ERP System", width - margin - 90, y, 7, false);
 
