@@ -157,10 +157,23 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
       }
 
       const blob = await response.blob();
+      
+      // Lấy tên file từ header Content-Disposition của server
+      const contentDisposition = response.headers.get("Content-Disposition");
+      let filename = `${profile.trainee_code} - ${profile.full_name}.pdf`;
+      
+      if (contentDisposition) {
+        // Parse RFC 5987 format: filename*=UTF-8''<encoded>
+        const match = contentDisposition.match(/filename\*=UTF-8''(.+)/);
+        if (match) {
+          filename = decodeURIComponent(match[1]);
+        }
+      }
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `hoc-vien-${profile.trainee_code}.pdf`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
