@@ -165,11 +165,11 @@ function containsCJK(text: string): boolean {
   return cjkPattern.test(text);
 }
 
-// Wrap text by pixel width - handles mixed Vietnamese/Japanese by splitting into segments
-function wrapTextByWidth(text: string, defaultFont: any, jpFont: any, fontSize: number, maxWidth: number): string[] {
+// Simple character-based text wrapping - optimized for CPU efficiency
+// Uses approximate character limits instead of expensive pixel calculations
+function wrapTextSimple(text: string, maxChars: number): string[] {
   if (!text) return [];
   
-  // Split by newlines first, then handle each paragraph
   const paragraphs = text.split(/\n/);
   const allLines: string[] = [];
   
@@ -184,32 +184,20 @@ function wrapTextByWidth(text: string, defaultFont: any, jpFont: any, fontSize: 
     
     for (const word of words) {
       const testLine = currentLine ? `${currentLine} ${word}` : word;
-      // Use appropriate font for width calculation based on content
-      const testFont = containsCJK(testLine) ? jpFont : defaultFont;
-      const testWidth = testFont.widthOfTextAtSize(testLine, fontSize);
       
-      if (testWidth <= maxWidth) {
+      if (testLine.length <= maxChars) {
         currentLine = testLine;
       } else {
         if (currentLine) allLines.push(currentLine);
         
-        // Check if single word exceeds maxWidth
-        const wordFont = containsCJK(word) ? jpFont : defaultFont;
-        const wordWidth = wordFont.widthOfTextAtSize(word, fontSize);
-        if (wordWidth > maxWidth) {
-          // Split long word character by character
-          let partial = "";
-          for (const char of word) {
-            const partialTest = partial + char;
-            const charFont = containsCJK(partialTest) ? jpFont : defaultFont;
-            if (charFont.widthOfTextAtSize(partialTest, fontSize) <= maxWidth) {
-              partial = partialTest;
-            } else {
-              if (partial) allLines.push(partial);
-              partial = char;
-            }
+        // Handle long words
+        if (word.length > maxChars) {
+          let remaining = word;
+          while (remaining.length > maxChars) {
+            allLines.push(remaining.substring(0, maxChars));
+            remaining = remaining.substring(maxChars);
           }
-          currentLine = partial;
+          currentLine = remaining;
         } else {
           currentLine = word;
         }
@@ -358,16 +346,17 @@ serve(async (req) => {
       });
     };
     
-    // Draw multiline text with pixel-based word wrap and automatic page breaks
+    // Draw multiline text with character-based word wrap and automatic page breaks
     // Returns the new Y position after drawing all lines
+    // Max ~70 chars per line for A4 at font size 8-9
     const drawMultilineText = (text: string, x: number, startY: number, size = 8, indent = 0): number => {
       if (!text) return startY;
       
       // Sanitize text first
       const safeText = sanitizeText(text);
-      const maxWidth = contentWidth - indent;
-      // Pass both fonts to handle mixed Vietnamese/Japanese content
-      const lines = wrapTextByWidth(safeText, font, fontJp, size, maxWidth);
+      // Approximate chars per line: 70 for full width, reduce for indent
+      const maxChars = Math.floor((contentWidth - indent) / 7);
+      const lines = wrapTextSimple(safeText, maxChars);
       let currentY = startY;
       
       for (const line of lines) {
