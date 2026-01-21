@@ -2545,6 +2545,10 @@ export type Database = {
           menu_key: string
         }[]
       }
+      get_trainee_full_profile: {
+        Args: { p_trainee_code: string }
+        Returns: Json
+      }
       get_trainee_workflow: {
         Args: { _trainee_id: string }
         Returns: {
