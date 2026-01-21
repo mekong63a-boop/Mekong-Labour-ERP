@@ -151,6 +151,14 @@ function formatBilingual(japanese: string | null | undefined, vietnamese: string
   return japanese || vietnamese || "—";
 }
 
+// Detect if text contains CJK (Japanese/Chinese/Korean) characters
+function containsCJK(text: string): boolean {
+  if (!text) return false;
+  // CJK Unified Ideographs, Hiragana, Katakana, CJK Symbols
+  const cjkPattern = /[\u3000-\u303F\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\uFF00-\uFFEF]/;
+  return cjkPattern.test(text);
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -215,9 +223,13 @@ serve(async (req) => {
     const robotoRegularUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Me5WZLCzYlKw.ttf";
     const robotoBoldUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlvAx05IsDqlA.ttf";
     
-    let font, fontBold;
+    // Noto Sans JP for Japanese support
+    const notoSansJpRegularUrl = "https://fonts.gstatic.com/s/notosansjp/v53/-F6jfjtqLzI2JPCgQBnw7HFyzSD-AsregP8VFBEj75s.ttf";
+    const notoSansJpBoldUrl = "https://fonts.gstatic.com/s/notosansjp/v53/-F6pfjtqLzI2JPCgQBnw7HFQaioq1H1hj-sNFQ.ttf";
+    
+    let font, fontBold, fontJp, fontJpBold;
     try {
-      const [regularFontBytes, boldFontBytes] = await Promise.all([
+      const [regularFontBytes, boldFontBytes, jpRegularBytes, jpBoldBytes] = await Promise.all([
         fetch(robotoRegularUrl).then(res => {
           if (!res.ok) throw new Error(`Failed to fetch regular font: ${res.status}`);
           return res.arrayBuffer();
@@ -226,16 +238,28 @@ serve(async (req) => {
           if (!res.ok) throw new Error(`Failed to fetch bold font: ${res.status}`);
           return res.arrayBuffer();
         }),
+        fetch(notoSansJpRegularUrl).then(res => {
+          if (!res.ok) throw new Error(`Failed to fetch JP regular font: ${res.status}`);
+          return res.arrayBuffer();
+        }),
+        fetch(notoSansJpBoldUrl).then(res => {
+          if (!res.ok) throw new Error(`Failed to fetch JP bold font: ${res.status}`);
+          return res.arrayBuffer();
+        }),
       ]);
       
       font = await pdfDoc.embedFont(regularFontBytes);
       fontBold = await pdfDoc.embedFont(boldFontBytes);
+      fontJp = await pdfDoc.embedFont(jpRegularBytes);
+      fontJpBold = await pdfDoc.embedFont(jpBoldBytes);
     } catch (fontError) {
       console.error("Font loading error:", fontError);
       // Fallback to standard fonts
       const { StandardFonts } = await import("https://esm.sh/pdf-lib@1.17.1");
       font = await pdfDoc.embedFont(StandardFonts.Helvetica);
       fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+      fontJp = font; // Fallback - Japanese may not display correctly
+      fontJpBold = fontBold;
     }
 
     let page = pdfDoc.addPage([595.28, 841.89]); // A4 size
@@ -246,13 +270,19 @@ serve(async (req) => {
     const sectionGap = 20;
     const photoSize = 80;
 
+    // Draw text with automatic font selection based on CJK content
     const drawText = (text: string, x: number, yPos: number, size = 9, bold = false) => {
       const safeText = (text || "").substring(0, 100); // Limit text length
+      const useJpFont = containsCJK(safeText);
+      const selectedFont = useJpFont 
+        ? (bold ? fontJpBold : fontJp) 
+        : (bold ? fontBold : font);
+      
       page.drawText(safeText, {
         x,
         y: yPos,
         size,
-        font: bold ? fontBold : font,
+        font: selectedFont,
         color: rgb(0, 0, 0),
       });
     };
