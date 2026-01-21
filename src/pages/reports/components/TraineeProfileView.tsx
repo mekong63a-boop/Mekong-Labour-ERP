@@ -1,15 +1,17 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { 
-  User, Phone, Mail, MapPin, Building2, Calendar, 
-  FileText, AlertTriangle, X, Printer
+  User, Phone, MapPin, Building2, Calendar, 
+  FileText, AlertTriangle, X, Download, Loader2
 } from "lucide-react";
 import { TraineeProfile } from "../hooks/useTraineeProfile";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 interface TraineeProfileViewProps {
   profile: TraineeProfile;
@@ -50,57 +52,52 @@ const getTypeLabel = (type: string | null | undefined): string => {
 
 export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps) {
   const printRef = useRef<HTMLDivElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
-  const handlePrint = () => {
-    const printContent = printRef.current;
-    if (!printContent) return;
+  const handleExportPDF = async () => {
+    const element = printRef.current;
+    if (!element) return;
 
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-      alert("Vui lòng cho phép popup để xuất PDF");
-      return;
+    setIsExporting(true);
+    
+    try {
+      // Hide buttons during capture
+      const buttonsToHide = element.querySelectorAll('.print\\:hidden');
+      buttonsToHide.forEach(el => (el as HTMLElement).style.visibility = 'hidden');
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      });
+
+      // Restore buttons
+      buttonsToHide.forEach(el => (el as HTMLElement).style.visibility = 'visible');
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 10;
+
+      pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+      pdf.save(`HoSo_${profile.trainee_code}_${profile.full_name}.pdf`);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      alert('Có lỗi khi xuất PDF. Vui lòng thử lại.');
+    } finally {
+      setIsExporting(false);
     }
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Hồ sơ học viên - ${profile.trainee_code}</title>
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; color: #333; }
-          .header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px; border-bottom: 2px solid #166534; padding-bottom: 15px; }
-          .name { font-size: 24px; font-weight: bold; color: #166534; }
-          .furigana { font-size: 14px; color: #666; margin-top: 4px; }
-          .badges { display: flex; gap: 8px; }
-          .badge { padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 500; }
-          .badge-green { background: #dcfce7; color: #166534; }
-          .badge-yellow { background: #fef3c7; color: #92400e; }
-          .section { margin-bottom: 20px; }
-          .section-title { font-size: 14px; font-weight: 600; color: #166534; margin-bottom: 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
-          .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-          .field { margin-bottom: 8px; }
-          .field-label { font-size: 12px; color: #666; }
-          .field-value { font-size: 14px; font-weight: 500; }
-          .timeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
-          .timeline-card { padding: 10px; border-radius: 6px; background: #f3f4f6; }
-          .timeline-card.highlight { background: #fef3c7; }
-          .timeline-label { font-size: 11px; color: #166534; margin-bottom: 4px; }
-          .timeline-value { font-size: 14px; font-weight: 600; }
-          @media print { body { padding: 10px; } }
-        </style>
-      </head>
-      <body>
-        ${printContent.innerHTML}
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 250);
   };
 
   return (
@@ -119,9 +116,18 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
               </div>
             </div>
             <div className="flex items-center gap-2 print:hidden">
-              <Button variant="outline" size="sm" onClick={handlePrint}>
-                <Printer className="h-4 w-4 mr-1" />
-                Xuất PDF
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={handleExportPDF}
+                disabled={isExporting}
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-1" />
+                )}
+                {isExporting ? "Đang xuất..." : "Xuất PDF"}
               </Button>
               <Button variant="ghost" size="icon" onClick={onClose}>
                 <X className="h-4 w-4" />
