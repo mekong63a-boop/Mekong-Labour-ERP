@@ -334,7 +334,6 @@ serve(async (req) => {
     // Class
     if (trainee.class?.id) {
       drawSection("LỚP HỌC");
-      drawRow("Mã lớp", trainee.class.code || null);
       drawRow("Tên lớp", trainee.class.name || null);
       drawRow("Tình trạng học", trainee.enrollment_status);
     }
@@ -356,7 +355,7 @@ serve(async (req) => {
           y = height - margin;
         }
         drawText(formatDate(score.test_date), margin, y, 8, false);
-        drawText(score.class_code || "—", margin + 80, y, 8, false);
+        drawText(score.class_name || "—", margin + 80, y, 8, false);
         drawText((score.test_name || "").substring(0, 25), margin + 140, y, 8, false);
         drawText(score.score !== null ? `${score.score}/${score.max_score}` : "—", margin + 320, y, 8, false);
         y -= lineHeight - 2;
@@ -385,7 +384,7 @@ serve(async (req) => {
           y = height - margin;
         }
         drawText(formatDate(att.date), margin, y, 8, false);
-        drawText(att.class_code || "—", margin + 80, y, 8, false);
+        drawText(att.class_name || "—", margin + 80, y, 8, false);
         drawText(statusLabels[att.status] || att.status, margin + 160, y, 8, false);
         drawText((att.notes || "—").substring(0, 30), margin + 240, y, 8, false);
         y -= lineHeight - 2;
@@ -405,7 +404,6 @@ serve(async (req) => {
     drawRow("Đăng OTIT", formatDate(trainee.otit_entry_date));
     drawRow("Đăng Nyukan", formatDate(trainee.nyukan_entry_date));
     drawRow("COE", formatDate(trainee.coe_date));
-    drawRow("Visa", formatDate(trainee.visa_date));
     drawRow("Xuất cảnh", formatDate(trainee.departure_date));
     drawRow("Về nước", formatDate(trainee.return_date));
     drawRow("Dự kiến về", formatDate(trainee.expected_return_date));

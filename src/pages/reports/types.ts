@@ -77,7 +77,6 @@ export const COLUMN_GROUPS: ReportColumnGroup[] = [
       { key: "otit_entry_date", label: "Ngày OTIT", group: "dates" },
       { key: "nyukan_entry_date", label: "Ngày Nyukan", group: "dates" },
       { key: "coe_date", label: "Ngày COE", group: "dates" },
-      { key: "visa_date", label: "Ngày Visa", group: "dates" },
       { key: "departure_date", label: "Ngày xuất cảnh", group: "dates" },
       { key: "return_date", label: "Ngày về nước", group: "dates" },
       { key: "expected_return_date", label: "Ngày dự kiến về", group: "dates" },
@@ -101,7 +100,6 @@ export const COLUMN_GROUPS: ReportColumnGroup[] = [
     name: "Lớp học",
     columns: [
       { key: "class_name", label: "Tên lớp", group: "class" },
-      { key: "class_code", label: "Mã lớp", group: "class" },
     ],
   },
   {
