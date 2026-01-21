@@ -19,7 +19,17 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,11 +44,12 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   useClass, 
   useTestScores, 
-  useAttendance 
+  useAttendance,
+  useClasses 
 } from "@/hooks/useEducation";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Search, History, BookOpen, Calendar, Trash2 } from "lucide-react";
+import { ArrowLeft, Search, History, BookOpen, Calendar, Trash2, ArrowRightLeft } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
@@ -89,9 +100,9 @@ function useEnrollmentHistory(traineeId: string) {
           class_id,
           from_class_id,
           to_class_id,
-          class:classes!enrollment_history_class_id_fkey(id, name, code),
-          from_class:classes!enrollment_history_from_class_id_fkey(id, name, code),
-          to_class:classes!enrollment_history_to_class_id_fkey(id, name, code)
+          class:classes!enrollment_history_class_id_fkey(id, name),
+          from_class:classes!enrollment_history_from_class_id_fkey(id, name),
+          to_class:classes!enrollment_history_to_class_id_fkey(id, name)
         `)
         .eq("trainee_id", traineeId)
         .order("action_date", { ascending: true });
@@ -274,6 +285,7 @@ function getAttendanceBadge(rate: number | null): { label: string; color: string
 export default function ClassStudentsPage() {
   const { classId } = useParams<{ classId: string }>();
   const { data: classData, isLoading: classLoading } = useClass(classId || "");
+  const { data: allClasses } = useClasses();
   const { data: students, isLoading: studentsLoading, refetch: refetchStudents } = useClassStudentsDetailed(classId || "");
   const { data: testScores } = useTestScores(classId || "");
   const { isAdmin } = useUserRole();
@@ -291,12 +303,25 @@ export default function ClassStudentsPage() {
   const [traineeToRemove, setTraineeToRemove] = useState<any>(null);
   const [isRemoving, setIsRemoving] = useState(false);
   
+  // Transfer class state
+  const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
+  const [traineeToTransfer, setTraineeToTransfer] = useState<any>(null);
+  const [targetClassId, setTargetClassId] = useState("");
+  const [transferNotes, setTransferNotes] = useState("");
+  const [isTransferring, setIsTransferring] = useState(false);
+  
   const { data: enrollmentHistory, isLoading: historyLoading } = useEnrollmentHistory(
     selectedTrainee?.id || ""
   );
   const { data: learningDays, isLoading: learningDaysLoading } = useTotalLearningDays(
     selectedTrainee?.id || ""
   );
+  
+  // Get available classes for transfer (exclude current class)
+  const availableClassesForTransfer = useMemo(() => {
+    if (!allClasses || !classId) return [];
+    return allClasses.filter(c => c.id !== classId && c.status === "Đang hoạt động");
+  }, [allClasses, classId]);
 
   // Handle remove trainee from class (admin only)
   const handleRemoveFromClass = async () => {
@@ -344,6 +369,68 @@ export default function ClassStudentsPage() {
       setIsRemoving(false);
       setTraineeToRemove(null);
     }
+  };
+
+  // Handle transfer trainee to another class
+  const handleTransferClass = async () => {
+    if (!traineeToTransfer || !targetClassId || !classId) return;
+    
+    setIsTransferring(true);
+    try {
+      const targetClass = availableClassesForTransfer.find(c => c.id === targetClassId);
+      
+      // 1. Update trainee to new class
+      const { error: updateError } = await supabase
+        .from("trainees")
+        .update({ class_id: targetClassId })
+        .eq("id", traineeToTransfer.id);
+      
+      if (updateError) throw updateError;
+      
+      // 2. Log enrollment history with full info (class name, teacher names)
+      const { error: historyError } = await supabase
+        .from("enrollment_history")
+        .insert({
+          trainee_id: traineeToTransfer.id,
+          action_type: "Chuyển lớp",
+          from_class_id: classId,
+          to_class_id: targetClassId,
+          notes: transferNotes || `Chuyển từ ${classData?.name} sang ${targetClass?.name}`
+        });
+      
+      if (historyError) console.error("Error logging history:", historyError);
+      
+      toast({
+        title: "Chuyển lớp thành công",
+        description: `${traineeToTransfer.full_name} đã được chuyển sang lớp ${targetClass?.name}.`,
+      });
+      
+      // Refresh data
+      refetchStudents();
+      queryClient.invalidateQueries({ queryKey: ["class-students"] });
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["enrollment-history"] });
+      
+    } catch (error: any) {
+      toast({
+        title: "Lỗi khi chuyển lớp",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsTransferring(false);
+      setIsTransferDialogOpen(false);
+      setTraineeToTransfer(null);
+      setTargetClassId("");
+      setTransferNotes("");
+    }
+  };
+
+  const openTransferDialog = (trainee: any) => {
+    setTraineeToTransfer(trainee);
+    setTargetClassId("");
+    setTransferNotes("");
+    setIsTransferDialogOpen(true);
   };
 
   const filteredStudents = useMemo(() => {
@@ -401,7 +488,7 @@ export default function ClassStudentsPage() {
             <h1 className="text-xl font-bold text-primary">Danh sách học viên</h1>
             {classData && (
               <p className="text-sm text-muted-foreground">
-                {classData.name} ({classData.code}) - {students?.length || 0} học viên
+                {classData.name} - {students?.length || 0} học viên
               </p>
             )}
           </div>
@@ -474,6 +561,7 @@ export default function ClassStudentsPage() {
                 <TableHead className="w-24 text-center">Sức học</TableHead>
                 <TableHead className="w-24 text-center">Chuyên cần</TableHead>
                 <TableHead className="w-20 text-center">Lịch sử</TableHead>
+                <TableHead className="w-24 text-center">Chuyển lớp</TableHead>
                 {isAdmin && <TableHead className="w-16 text-center">Xóa</TableHead>}
               </TableRow>
             </TableHeader>
@@ -519,6 +607,17 @@ export default function ClassStudentsPage() {
                         title="Xem lịch sử nhập học"
                       >
                         <History className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openTransferDialog(student)}
+                        title="Chuyển lớp"
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      >
+                        <ArrowRightLeft className="h-4 w-4" />
                       </Button>
                     </TableCell>
                     {isAdmin && (
@@ -672,6 +771,70 @@ export default function ClassStudentsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Transfer Class Dialog */}
+      <Dialog open={isTransferDialogOpen} onOpenChange={setIsTransferDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Chuyển lớp học viên</DialogTitle>
+            <DialogDescription>
+              {traineeToTransfer?.trainee_code} - {traineeToTransfer?.full_name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="bg-muted/50 rounded-lg p-3 text-sm">
+              <p className="text-muted-foreground">Lớp hiện tại:</p>
+              <p className="font-medium">{classData?.name}</p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Chuyển sang lớp *</Label>
+              <Select value={targetClassId} onValueChange={setTargetClassId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn lớp đích" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableClassesForTransfer.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>
+                      {cls.name} ({cls.current_students}/{cls.max_students || 50} học viên)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {availableClassesForTransfer.length === 0 && (
+                <p className="text-sm text-muted-foreground">Không có lớp nào khả dụng để chuyển</p>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Ghi chú (tùy chọn)</Label>
+              <Textarea
+                placeholder="Lý do chuyển lớp..."
+                value={transferNotes}
+                onChange={(e) => setTransferNotes(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsTransferDialogOpen(false)}
+              disabled={isTransferring}
+            >
+              Hủy
+            </Button>
+            <Button 
+              onClick={handleTransferClass}
+              disabled={isTransferring || !targetClassId}
+            >
+              {isTransferring ? "Đang chuyển..." : "Xác nhận chuyển"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
