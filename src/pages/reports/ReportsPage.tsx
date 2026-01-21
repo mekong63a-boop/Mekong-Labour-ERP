@@ -8,7 +8,7 @@ import { ReportPresetSelector } from "./components/ReportPresetSelector";
 import { ReportColumnSelector } from "./components/ReportColumnSelector";
 import { ReportFilterPanel } from "./components/ReportFilterPanel";
 import { TraineeSearchBox } from "./components/TraineeSearchBox";
-import { TraineeProfileView } from "./components/TraineeProfileView";
+// TraineeProfileView temporarily removed due to build issue
 import { useExportReport } from "./hooks/useExportReport";
 import { useTraineeProfile } from "./hooks/useTraineeProfile";
 import { REPORT_PRESETS, ReportFilters, ReportPreset } from "./types";
@@ -88,9 +88,12 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
-          {/* Profile Result */}
+          {/* Profile view temporarily disabled */}
           {profile && (
-            <TraineeProfileView profile={profile} onClose={clearProfile} />
+            <Card className="p-6">
+              <p className="font-semibold">Đã tìm thấy: {profile.full_name} ({profile.trainee_code})</p>
+              <Button variant="outline" size="sm" className="mt-2" onClick={clearProfile}>Đóng</Button>
+            </Card>
           )}
 
           {!profile && !isSearching && (
