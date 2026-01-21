@@ -7,7 +7,8 @@ import { Filter, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ReportFilters } from "../types";
 
-const WORKFLOW_STAGES = ["recruited", "trained", "dormitory", "visa_processing", "ready_to_depart", "departed", "post_departure", "archived"] as const;
+// SYSTEM RULE: Loại bỏ "recruited" và "visa_processing" khỏi danh sách
+const WORKFLOW_STAGES = ["trained", "dormitory", "ready_to_depart", "departed", "post_departure", "archived"] as const;
 const TRAINEE_TYPES = ["TTS", "Tokutei", "Kỹ_sư"] as const;
 
 const ALL_VALUE = "__all__";
@@ -58,11 +59,10 @@ export function ReportFilterPanel({ filters, onFiltersChange }: ReportFilterPane
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
+  // SYSTEM RULE: Loại bỏ "recruited/Tuyển dụng" và "visa_processing/visa"
   const stageLabels: Record<string, string> = {
-    recruited: "Mới tuyển dụng",
     trained: "Đang đào tạo",
     dormitory: "Chờ xuất cảnh",
-    visa_processing: "Đang xử lý visa",
     ready_to_depart: "Sẵn sàng xuất cảnh",
     departed: "Đã xuất cảnh",
     post_departure: "Đang ở Nhật",
