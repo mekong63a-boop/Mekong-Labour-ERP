@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
+import { PDFDocument, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -157,8 +158,21 @@ serve(async (req) => {
 
     // Create PDF document
     const pdfDoc = await PDFDocument.create();
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    
+    // Register fontkit for custom font embedding
+    pdfDoc.registerFontkit(fontkit);
+    
+    // Fetch and embed Roboto font (supports Vietnamese)
+    const robotoRegularUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Me5Q.ttf";
+    const robotoBoldUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlvAw.ttf";
+    
+    const [regularFontBytes, boldFontBytes] = await Promise.all([
+      fetch(robotoRegularUrl).then(res => res.arrayBuffer()),
+      fetch(robotoBoldUrl).then(res => res.arrayBuffer()),
+    ]);
+    
+    const font = await pdfDoc.embedFont(regularFontBytes);
+    const fontBold = await pdfDoc.embedFont(boldFontBytes);
 
     let page = pdfDoc.addPage([595.28, 841.89]); // A4 size
     const { width, height } = page.getSize();
@@ -168,7 +182,7 @@ serve(async (req) => {
     const sectionGap = 25;
 
     const drawText = (text: string, x: number, yPos: number, size = 10, bold = false) => {
-      page.drawText(text, {
+      page.drawText(text || "", {
         x,
         y: yPos,
         size,
