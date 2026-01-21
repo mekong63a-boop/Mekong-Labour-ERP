@@ -5,6 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   X,
   User,
   Phone,
@@ -20,6 +28,8 @@ import {
   Users,
   FileDown,
   Loader2,
+  BookOpen,
+  ClipboardCheck,
 } from "lucide-react";
 import { TraineeProfile } from "../hooks/useTraineeProfile";
 import { format } from "date-fns";
@@ -60,6 +70,48 @@ const Section = ({ title, icon: Icon, children }: { title: string; icon: React.E
     <div className="pl-6 space-y-1">{children}</div>
   </div>
 );
+
+// Format bilingual display: Japanese (Vietnamese) or just one if they're the same
+const formatBilingual = (japanese: string | null | undefined, vietnamese: string | null | undefined) => {
+  if (japanese && vietnamese && japanese !== vietnamese) {
+    return `${japanese} (${vietnamese})`;
+  }
+  return japanese || vietnamese || "—";
+};
+
+const getStatusColor = (status: string) => {
+  switch (status.toLowerCase()) {
+    case 'present':
+    case 'có mặt':
+      return 'bg-green-100 text-green-800';
+    case 'absent':
+    case 'vắng':
+      return 'bg-red-100 text-red-800';
+    case 'late':
+    case 'đi trễ':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'excused':
+    case 'nghỉ phép':
+      return 'bg-blue-100 text-blue-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const getStatusLabel = (status: string) => {
+  switch (status.toLowerCase()) {
+    case 'present':
+      return 'Có mặt';
+    case 'absent':
+      return 'Vắng';
+    case 'late':
+      return 'Đi trễ';
+    case 'excused':
+      return 'Nghỉ phép';
+    default:
+      return status;
+  }
+};
 
 export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps) {
   const [isExporting, setIsExporting] = useState(false);
@@ -199,6 +251,8 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                 <InfoRow label="Số điện thoại" value={profile.phone} icon={Phone} />
                 <InfoRow label="Zalo" value={profile.zalo} />
                 <InfoRow label="Email" value={profile.email} icon={Mail} />
+                <InfoRow label="SĐT phụ huynh 1" value={profile.parent_phone_1} icon={Phone} />
+                <InfoRow label="SĐT phụ huynh 2" value={profile.parent_phone_2} icon={Phone} />
               </div>
               {!profile.can_view_pii && (
                 <p className="text-xs text-amber-600 mt-2">
@@ -229,14 +283,22 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
 
             <Separator />
 
-            {/* Company & Union */}
+            {/* Company & Union - Bilingual display */}
             <Section title="Công ty & Nghiệp đoàn" icon={Building2}>
-              <div className="grid grid-cols-2 gap-x-4">
-                <InfoRow label="Công ty tiếp nhận" value={profile.company?.name || "—"} />
-                <InfoRow label="Tên tiếng Nhật" value={profile.company?.name_japanese || "—"} />
-                <InfoRow label="Nghiệp đoàn" value={profile.union?.name || "—"} />
-                <InfoRow label="Tên tiếng Nhật" value={profile.union?.name_japanese || "—"} />
-                <InfoRow label="Ngành nghề" value={profile.job_category?.name || "—"} icon={Briefcase} />
+              <div className="grid grid-cols-1 gap-x-4">
+                <InfoRow 
+                  label="Công ty tiếp nhận" 
+                  value={formatBilingual(profile.company?.name_japanese, profile.company?.name)} 
+                />
+                <InfoRow 
+                  label="Nghiệp đoàn" 
+                  value={formatBilingual(profile.union?.name_japanese, profile.union?.name)} 
+                />
+                <InfoRow 
+                  label="Ngành nghề" 
+                  value={formatBilingual(profile.job_category?.name_japanese, profile.job_category?.name)} 
+                  icon={Briefcase} 
+                />
               </div>
             </Section>
 
@@ -251,6 +313,96 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                     <InfoRow label="Tên lớp" value={profile.class.name || "—"} />
                     <InfoRow label="Tình trạng học" value={profile.enrollment_status} />
                   </div>
+                </Section>
+                <Separator />
+              </>
+            )}
+
+            {/* Training History - Attendance + Test Scores */}
+            {((profile.attendance && profile.attendance.length > 0) || (profile.test_scores && profile.test_scores.length > 0)) && (
+              <>
+                <Section title="Quá trình đào tạo" icon={BookOpen}>
+                  {/* Test Scores Table */}
+                  {profile.test_scores && profile.test_scores.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                        <ClipboardCheck className="h-3 w-3" />
+                        Điểm kiểm tra
+                      </h4>
+                      <div className="rounded-md border overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/50">
+                              <TableHead className="text-xs py-2">Ngày</TableHead>
+                              <TableHead className="text-xs py-2">Lớp</TableHead>
+                              <TableHead className="text-xs py-2">Bài kiểm tra</TableHead>
+                              <TableHead className="text-xs py-2 text-right">Điểm</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {profile.test_scores.slice(0, 10).map((score) => (
+                              <TableRow key={score.id}>
+                                <TableCell className="text-xs py-1.5">{formatDate(score.test_date)}</TableCell>
+                                <TableCell className="text-xs py-1.5">{score.class_code || "—"}</TableCell>
+                                <TableCell className="text-xs py-1.5">{score.test_name}</TableCell>
+                                <TableCell className="text-xs py-1.5 text-right font-medium">
+                                  {score.score !== null ? `${score.score}/${score.max_score}` : "—"}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      {profile.test_scores.length > 10 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Và {profile.test_scores.length - 10} kết quả khác...
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Attendance Table */}
+                  {profile.attendance && profile.attendance.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        Điểm danh gần đây
+                      </h4>
+                      <div className="rounded-md border overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/50">
+                              <TableHead className="text-xs py-2">Ngày</TableHead>
+                              <TableHead className="text-xs py-2">Lớp</TableHead>
+                              <TableHead className="text-xs py-2">Trạng thái</TableHead>
+                              <TableHead className="text-xs py-2">Ghi chú</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {profile.attendance.slice(0, 10).map((att) => (
+                              <TableRow key={att.id}>
+                                <TableCell className="text-xs py-1.5">{formatDate(att.date)}</TableCell>
+                                <TableCell className="text-xs py-1.5">{att.class_code || "—"}</TableCell>
+                                <TableCell className="text-xs py-1.5">
+                                  <span className={`px-1.5 py-0.5 rounded text-xs ${getStatusColor(att.status)}`}>
+                                    {getStatusLabel(att.status)}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-xs py-1.5 text-muted-foreground">
+                                  {att.notes || "—"}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      {profile.attendance.length > 10 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Và {profile.attendance.length - 10} buổi học khác...
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </Section>
                 <Separator />
               </>
@@ -315,10 +467,41 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
               </>
             )}
 
-            {/* Notes */}
+            {/* Reviews (from trainee_reviews table) */}
+            {profile.reviews && profile.reviews.length > 0 && (
+              <>
+                <Section title="Đánh giá" icon={FileText}>
+                  <div className="space-y-2">
+                    {profile.reviews.map((review) => (
+                      <div key={review.id} className={`p-2 rounded text-sm ${review.is_blacklisted ? 'bg-destructive/10 border border-destructive/20' : 'bg-muted/50'}`}>
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">{review.review_type}</Badge>
+                            {review.rating && (
+                              <span className="text-muted-foreground">Điểm: {review.rating}/10</span>
+                            )}
+                          </div>
+                          <span className="text-muted-foreground">{formatDate(review.created_at)}</span>
+                        </div>
+                        <p className="mt-1">{review.content}</p>
+                        {review.is_blacklisted && review.blacklist_reason && (
+                          <div className="mt-1 text-xs text-destructive">
+                            <AlertTriangle className="h-3 w-3 inline mr-1" />
+                            Blacklist: {review.blacklist_reason}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </Section>
+                <Separator />
+              </>
+            )}
+
+            {/* Notes - legacy trainee_notes */}
             {profile.trainee_notes && profile.trainee_notes.length > 0 && (
               <>
-                <Section title="Ghi chú" icon={FileText}>
+                <Section title="Ghi chú nghiệp vụ" icon={FileText}>
                   <div className="space-y-2">
                     {profile.trainee_notes.map((note) => (
                       <div key={note.id} className="p-2 bg-muted/50 rounded text-sm">

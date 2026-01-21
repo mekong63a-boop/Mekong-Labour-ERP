@@ -2,6 +2,28 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export interface AttendanceRecord {
+  id: string;
+  date: string;
+  status: string;
+  notes: string | null;
+  class_id: string;
+  class_code: string | null;
+  class_name: string | null;
+}
+
+export interface TestScoreRecord {
+  id: string;
+  test_name: string;
+  test_date: string;
+  score: number | null;
+  max_score: number;
+  notes: string | null;
+  class_id: string;
+  class_code: string | null;
+  class_name: string | null;
+}
+
 export interface TraineeProfile {
   id: string;
   trainee_code: string;
@@ -17,6 +39,8 @@ export interface TraineeProfile {
   phone: string | null;
   zalo: string | null;
   email: string | null;
+  parent_phone_1: string | null;
+  parent_phone_2: string | null;
   cccd_number: string | null;
   cccd_date: string | null;
   passport_number: string | null;
@@ -67,6 +91,7 @@ export interface TraineeProfile {
     id?: string;
     code?: string;
     name?: string;
+    name_japanese?: string;
   };
   class: {
     id?: string;
@@ -92,6 +117,17 @@ export interface TraineeProfile {
     violation_date: string;
     status: string;
   }>;
+  reviews: Array<{
+    id: string;
+    review_type: string;
+    content: string;
+    rating: number | null;
+    is_blacklisted: boolean;
+    blacklist_reason: string | null;
+    created_at: string;
+  }>;
+  attendance: AttendanceRecord[];
+  test_scores: TestScoreRecord[];
   
   can_view_pii: boolean;
   error?: string;

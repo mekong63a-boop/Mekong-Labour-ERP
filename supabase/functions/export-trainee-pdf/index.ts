@@ -11,6 +11,28 @@ const corsHeaders = {
 const SUPABASE_URL = "https://bcltzwpnhfpbfiuhfkxi.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjbHR6d3BuaGZwYmZpdWhma3hpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyOTU0NDQsImV4cCI6MjA4Mzg3MTQ0NH0.ktTKQxMCXGhXaaa5OkfDrx9I0-YPESh8Z4kHNBQkCJ4";
 
+interface AttendanceRecord {
+  id: string;
+  date: string;
+  status: string;
+  notes: string | null;
+  class_id: string;
+  class_code: string | null;
+  class_name: string | null;
+}
+
+interface TestScoreRecord {
+  id: string;
+  test_name: string;
+  test_date: string;
+  score: number | null;
+  max_score: number;
+  notes: string | null;
+  class_id: string;
+  class_code: string | null;
+  class_name: string | null;
+}
+
 interface TraineeProfile {
   id: string;
   trainee_code: string;
@@ -23,6 +45,8 @@ interface TraineeProfile {
   phone: string | null;
   zalo: string | null;
   email: string | null;
+  parent_phone_1: string | null;
+  parent_phone_2: string | null;
   cccd_number: string | null;
   cccd_date: string | null;
   passport_number: string | null;
@@ -78,6 +102,17 @@ interface TraineeProfile {
     notes: string | null;
     company_id: string;
   }>;
+  reviews: Array<{
+    id: string;
+    review_type: string;
+    content: string;
+    rating: number | null;
+    is_blacklisted: boolean;
+    blacklist_reason: string | null;
+    created_at: string;
+  }>;
+  attendance: AttendanceRecord[];
+  test_scores: TestScoreRecord[];
   can_view_pii: boolean;
   error?: string;
 }
@@ -93,6 +128,13 @@ const stageLabels: Record<string, string> = {
   archived: "Lưu trữ",
 };
 
+const statusLabels: Record<string, string> = {
+  present: "Có mặt",
+  absent: "Vắng",
+  late: "Đi trễ",
+  excused: "Nghỉ phép",
+};
+
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "—";
   try {
@@ -101,6 +143,14 @@ function formatDate(dateStr: string | null): string {
   } catch {
     return dateStr;
   }
+}
+
+// Format bilingual: Japanese (Vietnamese) or just one if same
+function formatBilingual(japanese: string | null | undefined, vietnamese: string | null | undefined): string {
+  if (japanese && vietnamese && japanese !== vietnamese) {
+    return `${japanese} (${vietnamese})`;
+  }
+  return japanese || vietnamese || "—";
 }
 
 serve(async (req) => {
@@ -163,13 +213,13 @@ serve(async (req) => {
     // Register fontkit for custom font embedding
     pdfDoc.registerFontkit(fontkit);
     
-    // Fetch and embed Roboto font (supports Vietnamese)
-    const robotoRegularUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Me5Q.ttf";
-    const robotoBoldUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlvAw.ttf";
+    // Fetch Noto Sans for Vietnamese/Japanese support
+    const notoSansUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/vietnamese-400-normal.ttf";
+    const notoSansBoldUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/vietnamese-700-normal.ttf";
     
     const [regularFontBytes, boldFontBytes] = await Promise.all([
-      fetch(robotoRegularUrl).then(res => res.arrayBuffer()),
-      fetch(robotoBoldUrl).then(res => res.arrayBuffer()),
+      fetch(notoSansUrl).then(res => res.arrayBuffer()),
+      fetch(notoSansBoldUrl).then(res => res.arrayBuffer()),
     ]);
     
     const font = await pdfDoc.embedFont(regularFontBytes);
@@ -179,11 +229,12 @@ serve(async (req) => {
     const { width, height } = page.getSize();
     const margin = 50;
     let y = height - margin;
-    const lineHeight = 18;
-    const sectionGap = 25;
+    const lineHeight = 16;
+    const sectionGap = 20;
 
-    const drawText = (text: string, x: number, yPos: number, size = 10, bold = false) => {
-      page.drawText(text || "", {
+    const drawText = (text: string, x: number, yPos: number, size = 9, bold = false) => {
+      const safeText = (text || "").substring(0, 100); // Limit text length
+      page.drawText(safeText, {
         x,
         y: yPos,
         size,
@@ -198,7 +249,7 @@ serve(async (req) => {
         y = height - margin;
       }
       y -= sectionGap;
-      drawText(title, margin, y, 12, true);
+      drawText(title, margin, y, 11, true);
       y -= 5;
       page.drawLine({
         start: { x: margin, y },
@@ -215,20 +266,19 @@ serve(async (req) => {
         y = height - margin;
       }
       drawText(label + ":", margin, y, 9, false);
-      drawText(value || "—", margin + 150, y, 9, false);
+      drawText(value || "—", margin + 140, y, 9, false);
       y -= lineHeight;
     };
 
     // Header
-    drawText("HỒ SƠ HỌC VIÊN", width / 2 - 60, y, 16, true);
-    y -= 10;
-    drawText("TRAINEE PROFILE", width / 2 - 50, y, 12, false);
+    drawText("HỒ SƠ HỌC VIÊN", width / 2 - 50, y, 14, true);
     y -= lineHeight * 2;
 
     // Basic Info
     drawSection("THÔNG TIN CƠ BẢN");
     drawRow("Mã học viên", trainee.trainee_code);
     drawRow("Họ và tên", trainee.full_name);
+    drawRow("Phiên âm", trainee.furigana);
     drawRow("Ngày sinh", formatDate(trainee.birth_date));
     drawRow("Giới tính", trainee.gender);
     drawRow("Loại hình", trainee.trainee_type);
@@ -240,8 +290,10 @@ serve(async (req) => {
     drawRow("Số điện thoại", trainee.phone);
     drawRow("Zalo", trainee.zalo);
     drawRow("Email", trainee.email);
+    drawRow("SĐT phụ huynh 1", trainee.parent_phone_1);
+    drawRow("SĐT phụ huynh 2", trainee.parent_phone_2);
     if (!trainee.can_view_pii) {
-      y -= 5;
+      y -= 3;
       drawText("* Thông tin nhạy cảm đã được ẩn do quyền truy cập", margin, y, 8, false);
       y -= lineHeight;
     }
@@ -258,35 +310,11 @@ serve(async (req) => {
     drawRow("Số hộ chiếu", trainee.passport_number);
     drawRow("Ngày cấp HC", formatDate(trainee.passport_date));
 
-    // Company & Union - show Japanese name (bilingual if Vietnamese exists)
+    // Company & Union - Bilingual display
     drawSection("CÔNG TY & NGHIỆP ĐOÀN");
-    
-    // Company: show Japanese name, add Vietnamese in parentheses if exists
-    let companyDisplay = trainee.company?.name_japanese || null;
-    if (companyDisplay && trainee.company?.name && trainee.company.name !== companyDisplay) {
-      companyDisplay = `${trainee.company.name_japanese} (${trainee.company.name})`;
-    } else if (!companyDisplay) {
-      companyDisplay = trainee.company?.name || null;
-    }
-    drawRow("Công ty tiếp nhận", companyDisplay);
-    
-    // Union: show Japanese name, add Vietnamese in parentheses if exists
-    let unionDisplay = trainee.union?.name_japanese || null;
-    if (unionDisplay && trainee.union?.name && trainee.union.name !== unionDisplay) {
-      unionDisplay = `${trainee.union.name_japanese} (${trainee.union.name})`;
-    } else if (!unionDisplay) {
-      unionDisplay = trainee.union?.name || null;
-    }
-    drawRow("Nghiệp đoàn", unionDisplay);
-    
-    // Job category: show Japanese name, add Vietnamese in parentheses if exists
-    let jobDisplay = trainee.job_category?.name_japanese || null;
-    if (jobDisplay && trainee.job_category?.name && trainee.job_category.name !== jobDisplay) {
-      jobDisplay = `${trainee.job_category.name_japanese} (${trainee.job_category.name})`;
-    } else if (!jobDisplay) {
-      jobDisplay = trainee.job_category?.name || null;
-    }
-    drawRow("Ngành nghề", jobDisplay);
+    drawRow("Công ty tiếp nhận", formatBilingual(trainee.company?.name_japanese, trainee.company?.name));
+    drawRow("Nghiệp đoàn", formatBilingual(trainee.union?.name_japanese, trainee.union?.name));
+    drawRow("Ngành nghề", formatBilingual(trainee.job_category?.name_japanese, trainee.job_category?.name));
 
     // Class
     if (trainee.class?.id) {
@@ -294,6 +322,64 @@ serve(async (req) => {
       drawRow("Mã lớp", trainee.class.code || null);
       drawRow("Tên lớp", trainee.class.name || null);
       drawRow("Tình trạng học", trainee.enrollment_status);
+    }
+
+    // Training History - Test Scores
+    if (trainee.test_scores && trainee.test_scores.length > 0) {
+      drawSection("ĐIỂM KIỂM TRA");
+      
+      // Table header
+      drawText("Ngày", margin, y, 8, true);
+      drawText("Lớp", margin + 80, y, 8, true);
+      drawText("Bài kiểm tra", margin + 140, y, 8, true);
+      drawText("Điểm", margin + 320, y, 8, true);
+      y -= lineHeight;
+
+      for (const score of trainee.test_scores.slice(0, 8)) {
+        if (y < 50) {
+          page = pdfDoc.addPage([595.28, 841.89]);
+          y = height - margin;
+        }
+        drawText(formatDate(score.test_date), margin, y, 8, false);
+        drawText(score.class_code || "—", margin + 80, y, 8, false);
+        drawText((score.test_name || "").substring(0, 25), margin + 140, y, 8, false);
+        drawText(score.score !== null ? `${score.score}/${score.max_score}` : "—", margin + 320, y, 8, false);
+        y -= lineHeight - 2;
+      }
+      
+      if (trainee.test_scores.length > 8) {
+        drawText(`... và ${trainee.test_scores.length - 8} kết quả khác`, margin, y, 7, false);
+        y -= lineHeight;
+      }
+    }
+
+    // Training History - Attendance
+    if (trainee.attendance && trainee.attendance.length > 0) {
+      drawSection("ĐIỂM DANH");
+      
+      // Table header
+      drawText("Ngày", margin, y, 8, true);
+      drawText("Lớp", margin + 80, y, 8, true);
+      drawText("Trạng thái", margin + 160, y, 8, true);
+      drawText("Ghi chú", margin + 240, y, 8, true);
+      y -= lineHeight;
+
+      for (const att of trainee.attendance.slice(0, 10)) {
+        if (y < 50) {
+          page = pdfDoc.addPage([595.28, 841.89]);
+          y = height - margin;
+        }
+        drawText(formatDate(att.date), margin, y, 8, false);
+        drawText(att.class_code || "—", margin + 80, y, 8, false);
+        drawText(statusLabels[att.status] || att.status, margin + 160, y, 8, false);
+        drawText((att.notes || "—").substring(0, 30), margin + 240, y, 8, false);
+        y -= lineHeight - 2;
+      }
+      
+      if (trainee.attendance.length > 10) {
+        drawText(`... và ${trainee.attendance.length - 10} buổi học khác`, margin, y, 7, false);
+        y -= lineHeight;
+      }
     }
 
     // Timeline
@@ -325,9 +411,29 @@ serve(async (req) => {
         const resultText = interview.result === "passed" ? "Đậu" : interview.result;
         drawRow(formatDate(interview.interview_date), resultText);
         if (interview.notes) {
-          y -= 3;
-          drawText("  " + interview.notes.substring(0, 80), margin + 20, y, 8, false);
-          y -= lineHeight - 5;
+          y -= 2;
+          drawText("  " + interview.notes.substring(0, 70), margin + 20, y, 7, false);
+          y -= lineHeight - 4;
+        }
+      }
+    }
+
+    // Reviews
+    if (trainee.reviews && trainee.reviews.length > 0) {
+      drawSection("ĐÁNH GIÁ");
+      for (const review of trainee.reviews.slice(0, 5)) {
+        if (y < 60) {
+          page = pdfDoc.addPage([595.28, 841.89]);
+          y = height - margin;
+        }
+        const header = `[${review.review_type}] ${formatDate(review.created_at)}${review.rating ? ` - Điểm: ${review.rating}/10` : ''}`;
+        drawText(header, margin, y, 8, true);
+        y -= lineHeight - 2;
+        drawText(review.content.substring(0, 100), margin, y, 8, false);
+        y -= lineHeight;
+        if (review.is_blacklisted && review.blacklist_reason) {
+          drawText(`⚠ Blacklist: ${review.blacklist_reason.substring(0, 60)}`, margin, y, 7, false);
+          y -= lineHeight;
         }
       }
     }
@@ -341,7 +447,7 @@ serve(async (req) => {
           page = pdfDoc.addPage([595.28, 841.89]);
           y = height - margin;
         }
-        drawText(line, margin, y, 9, false);
+        drawText(line, margin, y, 8, false);
         y -= lineHeight;
       }
     }
@@ -350,8 +456,8 @@ serve(async (req) => {
     y = 30;
     const now = new Date();
     const exportDate = `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1).toString().padStart(2, "0")}/${now.getFullYear()} ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-    drawText(`Xuất ngày: ${exportDate}`, margin, y, 8, false);
-    drawText("Mekong ERP System", width - margin - 100, y, 8, false);
+    drawText(`Xuất ngày: ${exportDate}`, margin, y, 7, false);
+    drawText("Mekong ERP System", width - margin - 90, y, 7, false);
 
     // Generate PDF bytes
     const pdfBytes = await pdfDoc.save();
