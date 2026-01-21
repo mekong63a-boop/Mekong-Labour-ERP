@@ -61,6 +61,7 @@ interface UserSession {
   created_at: string;
   email?: string;
   full_name?: string;
+  role_label?: string;
 }
 
 interface AuditLog {
@@ -149,18 +150,40 @@ export default function SystemMonitorContent() {
       if (error) throw error;
 
       const userIds = [...new Set(sessions?.map(s => s.user_id) || [])];
+      
+      // Fetch profiles
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, email, full_name")
         .in("user_id", userIds);
 
-      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      // Fetch user roles
+      const { data: userRoles } = await supabase
+        .from("user_roles")
+        .select("user_id, role, is_senior_staff")
+        .in("user_id", userIds);
 
-      return (sessions || []).map(session => ({
-        ...session,
-        email: profileMap.get(session.user_id)?.email || "Unknown",
-        full_name: profileMap.get(session.user_id)?.full_name || "",
-      })) as UserSession[];
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      const roleMap = new Map(userRoles?.map(r => [r.user_id, r]) || []);
+
+      return (sessions || []).map(session => {
+        const roleData = roleMap.get(session.user_id);
+        let roleLabel = "";
+        if (roleData?.role === "admin") {
+          roleLabel = "Admin";
+        } else if (roleData?.role === "staff" && roleData?.is_senior_staff) {
+          roleLabel = "Nhân viên cấp cao";
+        } else if (roleData?.role === "staff") {
+          roleLabel = "Nhân viên";
+        }
+        
+        return {
+          ...session,
+          email: profileMap.get(session.user_id)?.email || "Unknown",
+          full_name: profileMap.get(session.user_id)?.full_name || "",
+          role_label: roleLabel,
+        };
+      }) as UserSession[];
     },
     refetchInterval: 30000,
     enabled: canAccess,
@@ -394,7 +417,22 @@ export default function SystemMonitorContent() {
                               {user.full_name || user.email?.split("@")[0]}
                             </div>
                           </TableCell>
-                          <TableCell>{user.email}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <span>{user.email}</span>
+                              {user.role_label && (
+                                <Badge variant="outline" className={
+                                  user.role_label === "Admin" 
+                                    ? "bg-red-50 text-red-700 border-red-200" 
+                                    : user.role_label === "Nhân viên cấp cao"
+                                    ? "bg-purple-50 text-purple-700 border-purple-200"
+                                    : "bg-gray-50 text-gray-700 border-gray-200"
+                                }>
+                                  {user.role_label}
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell className="text-sm">
                             {getBrowserName(user.user_agent)}
                           </TableCell>
