@@ -1118,6 +1118,7 @@ export type Database = {
         Row: {
           class_id: string
           created_at: string
+          evaluation: string | null
           id: string
           max_score: number
           notes: string | null
@@ -1130,6 +1131,7 @@ export type Database = {
         Insert: {
           class_id: string
           created_at?: string
+          evaluation?: string | null
           id?: string
           max_score?: number
           notes?: string | null
@@ -1142,6 +1144,7 @@ export type Database = {
         Update: {
           class_id?: string
           created_at?: string
+          evaluation?: string | null
           id?: string
           max_score?: number
           notes?: string | null

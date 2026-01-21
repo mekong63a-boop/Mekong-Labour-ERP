@@ -335,7 +335,7 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                               <TableHead className="text-xs py-2">Ngày</TableHead>
                               <TableHead className="text-xs py-2">Lớp</TableHead>
                               <TableHead className="text-xs py-2">Bài kiểm tra</TableHead>
-                              <TableHead className="text-xs py-2 text-right">Điểm</TableHead>
+                              <TableHead className="text-xs py-2">Đánh giá</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -344,8 +344,8 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                                 <TableCell className="text-xs py-1.5">{formatDate(score.test_date)}</TableCell>
                                 <TableCell className="text-xs py-1.5">{score.class_name || "—"}</TableCell>
                                 <TableCell className="text-xs py-1.5">{score.test_name}</TableCell>
-                                <TableCell className="text-xs py-1.5 text-right font-medium">
-                                  {score.score !== null ? `${score.score}/${score.max_score}` : "—"}
+                                <TableCell className="text-xs py-1.5 font-medium">
+                                  {score.evaluation || (score.score !== null ? `${score.score}/${score.max_score}` : "—")}
                                 </TableCell>
                               </TableRow>
                             ))}
@@ -360,12 +360,14 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                     </div>
                   )}
 
-                  {/* Attendance Table */}
-                  {profile.attendance && profile.attendance.length > 0 && (
+                  {/* Attendance Table - Only show late/absent */}
+                  {profile.attendance && profile.attendance.filter(att => 
+                    att.status.toLowerCase() !== 'present' && att.status.toLowerCase() !== 'có mặt'
+                  ).length > 0 && (
                     <div>
                       <h4 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        Điểm danh gần đây
+                        Điểm danh (Đi trễ / Nghỉ)
                       </h4>
                       <div className="rounded-md border overflow-hidden">
                         <Table>
@@ -378,7 +380,10 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {profile.attendance.slice(0, 10).map((att) => (
+                            {profile.attendance
+                              .filter(att => att.status.toLowerCase() !== 'present' && att.status.toLowerCase() !== 'có mặt')
+                              .slice(0, 10)
+                              .map((att) => (
                               <TableRow key={att.id}>
                                 <TableCell className="text-xs py-1.5">{formatDate(att.date)}</TableCell>
                                 <TableCell className="text-xs py-1.5">{att.class_name || "—"}</TableCell>
@@ -395,9 +400,13 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                           </TableBody>
                         </Table>
                       </div>
-                      {profile.attendance.length > 10 && (
+                      {profile.attendance.filter(att => 
+                        att.status.toLowerCase() !== 'present' && att.status.toLowerCase() !== 'có mặt'
+                      ).length > 10 && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          Và {profile.attendance.length - 10} buổi học khác...
+                          Và {profile.attendance.filter(att => 
+                            att.status.toLowerCase() !== 'present' && att.status.toLowerCase() !== 'có mặt'
+                          ).length - 10} buổi khác...
                         </p>
                       )}
                     </div>

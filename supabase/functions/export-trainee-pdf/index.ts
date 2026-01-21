@@ -27,6 +27,7 @@ interface TestScoreRecord {
   score: number | null;
   max_score: number;
   notes: string | null;
+  evaluation: string | null;
   class_id: string;
   class_name: string | null;
 }
@@ -344,7 +345,7 @@ serve(async (req) => {
       drawText("Ngày", margin, y, 8, true);
       drawText("Lớp", margin + 80, y, 8, true);
       drawText("Bài kiểm tra", margin + 140, y, 8, true);
-      drawText("Điểm", margin + 320, y, 8, true);
+      drawText("Đánh giá", margin + 320, y, 8, true);
       y -= lineHeight;
 
       for (const score of trainee.test_scores.slice(0, 8)) {
@@ -355,7 +356,8 @@ serve(async (req) => {
         drawText(formatDate(score.test_date), margin, y, 8, false);
         drawText(score.class_name || "—", margin + 80, y, 8, false);
         drawText((score.test_name || "").substring(0, 25), margin + 140, y, 8, false);
-        drawText(score.score !== null ? `${score.score}/${score.max_score}` : "—", margin + 320, y, 8, false);
+        const evalText = score.evaluation || (score.score !== null ? `${score.score}/${score.max_score}` : "—");
+        drawText(evalText, margin + 320, y, 8, false);
         y -= lineHeight - 2;
       }
       
@@ -365,9 +367,13 @@ serve(async (req) => {
       }
     }
 
-    // Training History - Attendance
-    if (trainee.attendance && trainee.attendance.length > 0) {
-      drawSection("ĐIỂM DANH");
+    // Training History - Attendance (only late/absent)
+    const filteredAttendance = trainee.attendance?.filter(att => 
+      att.status.toLowerCase() !== 'present' && att.status.toLowerCase() !== 'có mặt'
+    ) || [];
+    
+    if (filteredAttendance.length > 0) {
+      drawSection("ĐIỂM DANH (ĐI TRỄ / NGHỈ)");
       
       // Table header
       drawText("Ngày", margin, y, 8, true);
@@ -376,7 +382,7 @@ serve(async (req) => {
       drawText("Ghi chú", margin + 240, y, 8, true);
       y -= lineHeight;
 
-      for (const att of trainee.attendance.slice(0, 10)) {
+      for (const att of filteredAttendance.slice(0, 10)) {
         if (y < 50) {
           page = pdfDoc.addPage([595.28, 841.89]);
           y = height - margin;
@@ -388,8 +394,8 @@ serve(async (req) => {
         y -= lineHeight - 2;
       }
       
-      if (trainee.attendance.length > 10) {
-        drawText(`... và ${trainee.attendance.length - 10} buổi học khác`, margin, y, 7, false);
+      if (filteredAttendance.length > 10) {
+        drawText(`... và ${filteredAttendance.length - 10} buổi khác`, margin, y, 7, false);
         y -= lineHeight;
       }
     }
@@ -442,11 +448,11 @@ serve(async (req) => {
       }
     }
 
-    // Notes
+    // Notes - show all content without limit
     if (trainee.notes) {
       drawSection("GHI CHÚ CHUNG");
       const noteLines = trainee.notes.match(/.{1,80}/g) || [trainee.notes];
-      for (const line of noteLines.slice(0, 5)) {
+      for (const line of noteLines) {
         if (y < 50) {
           page = pdfDoc.addPage([595.28, 841.89]);
           y = height - margin;
