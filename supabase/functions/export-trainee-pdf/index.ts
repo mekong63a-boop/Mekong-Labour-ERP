@@ -165,8 +165,8 @@ function containsCJK(text: string): boolean {
   return cjkPattern.test(text);
 }
 
-// Wrap text by pixel width using font.widthOfTextAtSize for accurate A4 fit
-function wrapTextByWidth(text: string, font: any, fontSize: number, maxWidth: number): string[] {
+// Wrap text by pixel width - handles mixed Vietnamese/Japanese by splitting into segments
+function wrapTextByWidth(text: string, defaultFont: any, jpFont: any, fontSize: number, maxWidth: number): string[] {
   if (!text) return [];
   
   // Split by newlines first, then handle each paragraph
@@ -184,7 +184,9 @@ function wrapTextByWidth(text: string, font: any, fontSize: number, maxWidth: nu
     
     for (const word of words) {
       const testLine = currentLine ? `${currentLine} ${word}` : word;
-      const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+      // Use appropriate font for width calculation based on content
+      const testFont = containsCJK(testLine) ? jpFont : defaultFont;
+      const testWidth = testFont.widthOfTextAtSize(testLine, fontSize);
       
       if (testWidth <= maxWidth) {
         currentLine = testLine;
@@ -192,13 +194,15 @@ function wrapTextByWidth(text: string, font: any, fontSize: number, maxWidth: nu
         if (currentLine) allLines.push(currentLine);
         
         // Check if single word exceeds maxWidth
-        const wordWidth = font.widthOfTextAtSize(word, fontSize);
+        const wordFont = containsCJK(word) ? jpFont : defaultFont;
+        const wordWidth = wordFont.widthOfTextAtSize(word, fontSize);
         if (wordWidth > maxWidth) {
           // Split long word character by character
           let partial = "";
           for (const char of word) {
             const partialTest = partial + char;
-            if (font.widthOfTextAtSize(partialTest, fontSize) <= maxWidth) {
+            const charFont = containsCJK(partialTest) ? jpFont : defaultFont;
+            if (charFont.widthOfTextAtSize(partialTest, fontSize) <= maxWidth) {
               partial = partialTest;
             } else {
               if (partial) allLines.push(partial);
@@ -215,6 +219,14 @@ function wrapTextByWidth(text: string, font: any, fontSize: number, maxWidth: nu
   }
   
   return allLines;
+}
+
+// Remove special characters that can't be encoded (emojis, special symbols)
+function sanitizeText(text: string): string {
+  if (!text) return "";
+  // Remove emojis and other problematic Unicode characters outside standard ranges
+  // Keep: Latin, Vietnamese, Japanese (CJK), basic punctuation
+  return text.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]/gu, '');
 }
 
 serve(async (req) => {
@@ -333,7 +345,8 @@ serve(async (req) => {
     // Draw text with automatic font selection based on CJK content
     // CRITICAL: Always use embedded fonts (Roboto or NotoSansJP) - NEVER StandardFonts
     const drawText = (text: string, x: number, yPos: number, size = 9, bold = false) => {
-      const safeText = text || "";
+      // Sanitize text to remove problematic characters (emojis, special symbols)
+      const safeText = sanitizeText(text || "");
       const selectedFont = getFont(safeText, bold);
       
       page.drawText(safeText, {
@@ -350,9 +363,11 @@ serve(async (req) => {
     const drawMultilineText = (text: string, x: number, startY: number, size = 8, indent = 0): number => {
       if (!text) return startY;
       
-      const selectedFont = getFont(text, false);
+      // Sanitize text first
+      const safeText = sanitizeText(text);
       const maxWidth = contentWidth - indent;
-      const lines = wrapTextByWidth(text, selectedFont, size, maxWidth);
+      // Pass both fonts to handle mixed Vietnamese/Japanese content
+      const lines = wrapTextByWidth(safeText, font, fontJp, size, maxWidth);
       let currentY = startY;
       
       for (const line of lines) {
@@ -573,7 +588,7 @@ serve(async (req) => {
         const resultText = interview.result === "passed" ? "Đậu" : 
                            interview.result === "failed" ? "Không đậu" : 
                            interview.result || "—";
-        drawText(`📅 ${formatDate(interview.interview_date)} - ${resultText}`, margin, y, 9, true);
+        drawText(`${formatDate(interview.interview_date)} - ${resultText}`, margin, y, 9, true);
         y -= lineHeight;
         
         // Company (bilingual: Japanese + Vietnamese)
@@ -643,15 +658,20 @@ serve(async (req) => {
     // Generate PDF bytes
     const pdfBytes = await pdfDoc.save();
 
-    // Return PDF as download
-    const filename = `hoc-vien-${trainee.trainee_code}.pdf`;
+    // Filename format: <MA_HOC_VIEN> - <HO_VA_TEN>.pdf
+    // Remove special characters from filename but keep Vietnamese diacritics
+    const safeFullName = trainee.full_name.replace(/[\\/:*?"<>|]/g, '');
+    const filename = `${trainee.trainee_code} - ${safeFullName}.pdf`;
+    
+    // Encode filename for Content-Disposition header (RFC 5987)
+    const encodedFilename = encodeURIComponent(filename);
 
     return new Response(new Uint8Array(pdfBytes).buffer, {
       status: 200,
       headers: {
         ...corsHeaders,
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Content-Disposition": `attachment; filename*=UTF-8''${encodedFilename}`,
       },
     });
   } catch (error) {
