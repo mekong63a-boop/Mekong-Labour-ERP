@@ -352,7 +352,7 @@ export function useAvailableTrainees() {
       let query = supabase
         .from("trainees")
         .select("id, trainee_code, full_name, photo_url, phone")
-        .in("progression_stage", ["dormitory", "trained", "recruited"])
+        .in("progression_stage", ["Đậu phỏng vấn", "Nộp hồ sơ", "OTIT", "Nyukan", "COE"])
         .order("full_name", { ascending: true });
 
       const { data, error } = await query;
