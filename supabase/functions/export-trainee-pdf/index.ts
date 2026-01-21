@@ -394,14 +394,15 @@ serve(async (req) => {
     
     // Draw multiline text with character-based word wrap and automatic page breaks
     // Returns the new Y position after drawing all lines
-    // Max ~70 chars per line for A4 at font size 8-9
+    // Max ~90 chars per line for A4 at font size 8 (full page width utilization)
     const drawMultilineText = (text: string, x: number, startY: number, size = 8, indent = 0): number => {
       if (!text) return startY;
       
       // Sanitize text first
       const safeText = sanitizeText(text);
-      // Approximate chars per line: 70 for full width, reduce for indent
-      const maxChars = Math.floor((contentWidth - indent) / 7);
+      // Approximate chars per line: ~90 for full width at size 8 (~5.5px per char)
+      // Reduce for indent
+      const maxChars = Math.floor((contentWidth - indent) / 5.5);
       const lines = wrapTextSimple(safeText, maxChars);
       let currentY = startY;
       
@@ -629,10 +630,11 @@ serve(async (req) => {
           y = height - margin;
         }
         
-        // Interview date and result (Đậu/Không đậu)
-        const resultText = interview.result === "passed" ? "Đậu" : 
-                           interview.result === "failed" ? "Không đậu" : 
-                           interview.result || "—";
+        // Interview date and result (Đậu/Chưa đậu) - "Chờ kết quả" maps to "Chưa đậu"
+        let resultText = interview.result || "—";
+        if (interview.result === "passed") resultText = "Đậu";
+        else if (interview.result === "failed") resultText = "Không đậu";
+        else if (interview.result === "Chờ kết quả" || interview.result === "Chờ") resultText = "Chưa đậu";
         drawText(`${formatDate(interview.interview_date)} - ${resultText}`, margin, y, 9, true);
         y -= lineHeight;
         

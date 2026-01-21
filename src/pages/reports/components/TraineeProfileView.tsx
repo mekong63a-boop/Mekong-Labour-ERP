@@ -600,7 +600,7 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                         <div className="flex items-center justify-between">
                           <span className="font-medium">{formatDate(interview.interview_date)}</span>
                           <Badge variant={interview.result === "Đậu" || interview.result === "passed" ? "default" : "secondary"}>
-                            {interview.result || "—"}
+                            {interview.result === "Chờ kết quả" || interview.result === "Chờ" ? "Chưa đậu" : (interview.result || "—")}
                           </Badge>
                         </div>
                         <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
