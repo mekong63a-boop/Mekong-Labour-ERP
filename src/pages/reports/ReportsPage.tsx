@@ -1,3 +1,4 @@
+// ReportsPage - Tra cứu hồ sơ và xuất báo cáo
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { ReportPresetSelector } from "./components/ReportPresetSelector";
 import { ReportColumnSelector } from "./components/ReportColumnSelector";
 import { ReportFilterPanel } from "./components/ReportFilterPanel";
 import { TraineeSearchBox } from "./components/TraineeSearchBox";
-import { TraineeProfileView } from "./components/TraineeProfileView";
+import { ProfileCard } from "./components/ProfileCard";
 import { useExportReport } from "./hooks/useExportReport";
 import { useTraineeProfile } from "./hooks/useTraineeProfile";
 import { REPORT_PRESETS, ReportFilters, ReportPreset } from "./types";
@@ -90,7 +91,7 @@ export default function ReportsPage() {
 
           {/* Profile Result */}
           {profile && (
-            <TraineeProfileView profile={profile} onClose={clearProfile} />
+            <ProfileCard profile={profile} onClose={clearProfile} />
           )}
 
           {!profile && !isSearching && (
