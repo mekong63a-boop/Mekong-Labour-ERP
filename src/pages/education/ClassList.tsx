@@ -142,18 +142,8 @@ export default function ClassList() {
   const { data: testScores } = useTestScores(selectedClass?.id || "");
 
   const filteredClasses = classes?.filter((c) =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.code.toLowerCase().includes(searchQuery.toLowerCase())
+    c.name.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
-
-  // Generate class code automatically
-  const generateClassCode = () => {
-    const now = new Date();
-    const year = now.getFullYear().toString().slice(-2);
-    const month = (now.getMonth() + 1).toString().padStart(2, "0");
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
-    return `LOP${year}${month}${random}`;
-  };
 
   const handleCreate = async () => {
     if (!formData.name) {
@@ -164,7 +154,7 @@ export default function ClassList() {
     try {
       await createClass.mutateAsync({
         ...formData,
-        code: generateClassCode(),
+        code: formData.name, // Sử dụng tên lớp làm code
         start_date: formData.start_date || null,
         expected_end_date: formData.expected_end_date || null,
       });
@@ -493,7 +483,7 @@ export default function ClassList() {
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Tìm theo tên hoặc mã lớp..."
+            placeholder="Tìm theo tên lớp..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -518,7 +508,6 @@ export default function ClassList() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="w-24">Mã lớp</TableHead>
                   <TableHead>Tên lớp</TableHead>
                   <TableHead>Cấp độ</TableHead>
                   <TableHead>Giáo viên</TableHead>
@@ -536,7 +525,6 @@ export default function ClassList() {
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => handleAction("view_students", cls)}
                   >
-                    <TableCell className="font-mono text-sm">{cls.code}</TableCell>
                     <TableCell className="font-medium">{cls.name}</TableCell>
                     <TableCell>
                       <Badge variant="outline">{cls.level || "N5"}</Badge>

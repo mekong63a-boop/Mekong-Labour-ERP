@@ -17,7 +17,6 @@ interface AttendanceRecord {
   status: string;
   notes: string | null;
   class_id: string;
-  class_code: string | null;
   class_name: string | null;
 }
 
@@ -29,7 +28,6 @@ interface TestScoreRecord {
   max_score: number;
   notes: string | null;
   class_id: string;
-  class_code: string | null;
   class_name: string | null;
 }
 

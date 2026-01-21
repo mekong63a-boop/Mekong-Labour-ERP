@@ -568,7 +568,7 @@ export default function AttendanceCalendar() {
             >
               <h3 className="font-semibold text-lg">{cls.name}</h3>
               <p className="text-sm text-muted-foreground">
-                Mã lớp: {cls.code} • Cấp độ: {cls.level || "N5"}
+                Cấp độ: {cls.level || "N5"}
               </p>
             </div>
           ))}
@@ -590,7 +590,7 @@ export default function AttendanceCalendar() {
           <div>
             <h1 className="text-2xl font-bold text-primary">Điểm danh</h1>
             <p className="text-primary/80 text-sm">
-              {classInfo?.name} ({classInfo?.code})
+              {classInfo?.name}
             </p>
           </div>
         </div>
