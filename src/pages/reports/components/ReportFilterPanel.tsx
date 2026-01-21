@@ -10,6 +10,8 @@ import { ReportFilters } from "../types";
 const WORKFLOW_STAGES = ["recruited", "trained", "dormitory", "visa_processing", "ready_to_depart", "departed", "post_departure", "archived"] as const;
 const TRAINEE_TYPES = ["TTS", "Tokutei", "Kỹ_sư"] as const;
 
+const ALL_VALUE = "__all__";
+
 interface ReportFilterPanelProps {
   filters: ReportFilters;
   onFiltersChange: (filters: ReportFilters) => void;
@@ -38,11 +40,18 @@ export function ReportFilterPanel({ filters, onFiltersChange }: ReportFilterPane
   }, []);
 
   const updateFilter = (key: keyof ReportFilters, value: string) => {
-    onFiltersChange({ ...filters, [key]: value });
+    // Convert __all__ back to empty string for the filter
+    const actualValue = value === ALL_VALUE ? "" : value;
+    onFiltersChange({ ...filters, [key]: actualValue });
   };
 
   const resetFilters = () => {
     onFiltersChange({});
+  };
+
+  // Helper to convert empty/undefined to ALL_VALUE for Select
+  const getSelectValue = (value: string | undefined) => {
+    return value || ALL_VALUE;
   };
 
   const currentYear = new Date().getFullYear();
@@ -83,12 +92,12 @@ export function ReportFilterPanel({ filters, onFiltersChange }: ReportFilterPane
         {/* Time filters */}
         <div className="space-y-2">
           <Label>Năm tạo</Label>
-          <Select value={filters.year || ""} onValueChange={(v) => updateFilter("year", v)}>
+          <Select value={getSelectValue(filters.year)} onValueChange={(v) => updateFilter("year", v)}>
             <SelectTrigger>
               <SelectValue placeholder="Tất cả năm" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tất cả năm</SelectItem>
+              <SelectItem value={ALL_VALUE}>Tất cả năm</SelectItem>
               {years.map((year) => (
                 <SelectItem key={year} value={year.toString()}>
                   {year}
@@ -100,12 +109,12 @@ export function ReportFilterPanel({ filters, onFiltersChange }: ReportFilterPane
 
         <div className="space-y-2">
           <Label>Tháng tạo</Label>
-          <Select value={filters.month || ""} onValueChange={(v) => updateFilter("month", v)}>
+          <Select value={getSelectValue(filters.month)} onValueChange={(v) => updateFilter("month", v)}>
             <SelectTrigger>
               <SelectValue placeholder="Tất cả tháng" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tất cả tháng</SelectItem>
+              <SelectItem value={ALL_VALUE}>Tất cả tháng</SelectItem>
               {months.map((month) => (
                 <SelectItem key={month} value={month.toString()}>
                   Tháng {month}
@@ -118,12 +127,12 @@ export function ReportFilterPanel({ filters, onFiltersChange }: ReportFilterPane
         {/* Stage filter */}
         <div className="space-y-2">
           <Label>Giai đoạn</Label>
-          <Select value={filters.current_stage || ""} onValueChange={(v) => updateFilter("current_stage", v)}>
+          <Select value={getSelectValue(filters.current_stage)} onValueChange={(v) => updateFilter("current_stage", v)}>
             <SelectTrigger>
               <SelectValue placeholder="Tất cả giai đoạn" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tất cả giai đoạn</SelectItem>
+              <SelectItem value={ALL_VALUE}>Tất cả giai đoạn</SelectItem>
               {WORKFLOW_STAGES.map((stage) => (
                 <SelectItem key={stage} value={stage}>
                   {stageLabels[stage] || stage}
@@ -136,12 +145,12 @@ export function ReportFilterPanel({ filters, onFiltersChange }: ReportFilterPane
         {/* Trainee type filter */}
         <div className="space-y-2">
           <Label>Loại chương trình</Label>
-          <Select value={filters.trainee_type || ""} onValueChange={(v) => updateFilter("trainee_type", v)}>
+          <Select value={getSelectValue(filters.trainee_type)} onValueChange={(v) => updateFilter("trainee_type", v)}>
             <SelectTrigger>
               <SelectValue placeholder="Tất cả loại" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tất cả loại</SelectItem>
+              <SelectItem value={ALL_VALUE}>Tất cả loại</SelectItem>
               {TRAINEE_TYPES.map((type) => (
                 <SelectItem key={type} value={type}>
                   {typeLabels[type] || type}
@@ -154,12 +163,12 @@ export function ReportFilterPanel({ filters, onFiltersChange }: ReportFilterPane
         {/* Gender filter */}
         <div className="space-y-2">
           <Label>Giới tính</Label>
-          <Select value={filters.gender || ""} onValueChange={(v) => updateFilter("gender", v)}>
+          <Select value={getSelectValue(filters.gender)} onValueChange={(v) => updateFilter("gender", v)}>
             <SelectTrigger>
               <SelectValue placeholder="Tất cả" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tất cả</SelectItem>
+              <SelectItem value={ALL_VALUE}>Tất cả</SelectItem>
               <SelectItem value="Nam">Nam</SelectItem>
               <SelectItem value="Nữ">Nữ</SelectItem>
             </SelectContent>
@@ -169,12 +178,12 @@ export function ReportFilterPanel({ filters, onFiltersChange }: ReportFilterPane
         {/* Company filter */}
         <div className="space-y-2">
           <Label>Công ty tiếp nhận</Label>
-          <Select value={filters.company_id || ""} onValueChange={(v) => updateFilter("company_id", v)}>
+          <Select value={getSelectValue(filters.company_id)} onValueChange={(v) => updateFilter("company_id", v)}>
             <SelectTrigger>
               <SelectValue placeholder="Tất cả công ty" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tất cả công ty</SelectItem>
+              <SelectItem value={ALL_VALUE}>Tất cả công ty</SelectItem>
               {companies.map((company) => (
                 <SelectItem key={company.id} value={company.id}>
                   {company.name}
@@ -187,12 +196,12 @@ export function ReportFilterPanel({ filters, onFiltersChange }: ReportFilterPane
         {/* Union filter */}
         <div className="space-y-2">
           <Label>Nghiệp đoàn</Label>
-          <Select value={filters.union_id || ""} onValueChange={(v) => updateFilter("union_id", v)}>
+          <Select value={getSelectValue(filters.union_id)} onValueChange={(v) => updateFilter("union_id", v)}>
             <SelectTrigger>
               <SelectValue placeholder="Tất cả nghiệp đoàn" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tất cả nghiệp đoàn</SelectItem>
+              <SelectItem value={ALL_VALUE}>Tất cả nghiệp đoàn</SelectItem>
               {unions.map((union) => (
                 <SelectItem key={union.id} value={union.id}>
                   {union.name}
@@ -205,12 +214,12 @@ export function ReportFilterPanel({ filters, onFiltersChange }: ReportFilterPane
         {/* Job category filter */}
         <div className="space-y-2">
           <Label>Ngành nghề</Label>
-          <Select value={filters.job_category_id || ""} onValueChange={(v) => updateFilter("job_category_id", v)}>
+          <Select value={getSelectValue(filters.job_category_id)} onValueChange={(v) => updateFilter("job_category_id", v)}>
             <SelectTrigger>
               <SelectValue placeholder="Tất cả ngành" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tất cả ngành</SelectItem>
+              <SelectItem value={ALL_VALUE}>Tất cả ngành</SelectItem>
               {jobCategories.map((jc) => (
                 <SelectItem key={jc.id} value={jc.id}>
                   {jc.name}
