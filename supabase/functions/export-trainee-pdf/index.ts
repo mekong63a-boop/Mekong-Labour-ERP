@@ -213,17 +213,32 @@ serve(async (req) => {
     // Register fontkit for custom font embedding
     pdfDoc.registerFontkit(fontkit);
     
-    // Fetch Noto Sans for Vietnamese/Japanese support
-    const notoSansUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/vietnamese-400-normal.ttf";
-    const notoSansBoldUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/vietnamese-700-normal.ttf";
+    // Fetch Roboto for Vietnamese support (more reliable CDN)
+    const robotoRegularUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Me5WZLCzYlKw.ttf";
+    const robotoBoldUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlvAx05IsDqlA.ttf";
     
-    const [regularFontBytes, boldFontBytes] = await Promise.all([
-      fetch(notoSansUrl).then(res => res.arrayBuffer()),
-      fetch(notoSansBoldUrl).then(res => res.arrayBuffer()),
-    ]);
-    
-    const font = await pdfDoc.embedFont(regularFontBytes);
-    const fontBold = await pdfDoc.embedFont(boldFontBytes);
+    let font, fontBold;
+    try {
+      const [regularFontBytes, boldFontBytes] = await Promise.all([
+        fetch(robotoRegularUrl).then(res => {
+          if (!res.ok) throw new Error(`Failed to fetch regular font: ${res.status}`);
+          return res.arrayBuffer();
+        }),
+        fetch(robotoBoldUrl).then(res => {
+          if (!res.ok) throw new Error(`Failed to fetch bold font: ${res.status}`);
+          return res.arrayBuffer();
+        }),
+      ]);
+      
+      font = await pdfDoc.embedFont(regularFontBytes);
+      fontBold = await pdfDoc.embedFont(boldFontBytes);
+    } catch (fontError) {
+      console.error("Font loading error:", fontError);
+      // Fallback to standard fonts
+      const { StandardFonts } = await import("https://esm.sh/pdf-lib@1.17.1");
+      font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    }
 
     let page = pdfDoc.addPage([595.28, 841.89]); // A4 size
     const { width, height } = page.getSize();
@@ -395,14 +410,7 @@ serve(async (req) => {
     drawRow("Về nước", formatDate(trainee.return_date));
     drawRow("Dự kiến về", formatDate(trainee.expected_return_date));
 
-    // Workflow Status
-    if (trainee.workflow) {
-      drawSection("TRẠNG THÁI QUY TRÌNH");
-      const stageLabel = stageLabels[trainee.workflow.current_stage || ""] || trainee.workflow.current_stage || "—";
-      drawRow("Giai đoạn hiện tại", stageLabel);
-      drawRow("Trạng thái phụ", trainee.workflow.sub_status || null);
-      drawRow("Ngày chuyển", formatDate(trainee.workflow.transitioned_at || null));
-    }
+    // Workflow Status section removed per user request
 
     // Interview History
     if (trainee.interview_history && trainee.interview_history.length > 0) {

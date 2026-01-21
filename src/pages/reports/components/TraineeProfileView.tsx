@@ -426,23 +426,6 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
 
             <Separator />
 
-            {/* Workflow Status */}
-            {profile.workflow && (
-              <>
-                <Section title="Trạng thái quy trình" icon={Clock}>
-                  <div className="grid grid-cols-2 gap-x-4">
-                    <InfoRow 
-                      label="Giai đoạn hiện tại" 
-                      value={stageLabels[profile.workflow.current_stage || ""] || profile.workflow.current_stage || "—"} 
-                    />
-                    <InfoRow label="Trạng thái phụ" value={profile.workflow.sub_status || "—"} />
-                    <InfoRow label="Ngày chuyển" value={formatDate(profile.workflow.transitioned_at || null)} />
-                  </div>
-                </Section>
-                <Separator />
-              </>
-            )}
-
             {/* Interview History */}
             {profile.interview_history && profile.interview_history.length > 0 && (
               <>
