@@ -321,12 +321,12 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
             {((profile.attendance && profile.attendance.length > 0) || (profile.test_scores && profile.test_scores.length > 0)) && (
               <>
                 <Section title="Quá trình đào tạo" icon={BookOpen}>
-                  {/* Test Scores Table */}
+                  {/* Test Scores Table - Only show evaluation, not scores */}
                   {profile.test_scores && profile.test_scores.length > 0 && (
                     <div className="mb-4">
                       <h4 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
                         <ClipboardCheck className="h-3 w-3" />
-                        Điểm kiểm tra
+                        Đánh giá
                       </h4>
                       <div className="rounded-md border overflow-hidden">
                         <Table>
@@ -345,7 +345,7 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                                 <TableCell className="text-xs py-1.5">{score.class_name || "—"}</TableCell>
                                 <TableCell className="text-xs py-1.5">{score.test_name}</TableCell>
                                 <TableCell className="text-xs py-1.5 font-medium">
-                                  {score.evaluation || (score.score !== null ? `${score.score}/${score.max_score}` : "—")}
+                                  {score.evaluation || "—"}
                                 </TableCell>
                               </TableRow>
                             ))}

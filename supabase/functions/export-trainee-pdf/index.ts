@@ -337,9 +337,9 @@ serve(async (req) => {
       drawRow("Tình trạng học", trainee.enrollment_status);
     }
 
-    // Training History - Test Scores
+    // Training History - Test Scores (only show evaluation, not scores)
     if (trainee.test_scores && trainee.test_scores.length > 0) {
-      drawSection("ĐIỂM KIỂM TRA");
+      drawSection("ĐÁNH GIÁ");
       
       // Table header
       drawText("Ngày", margin, y, 8, true);
@@ -356,7 +356,8 @@ serve(async (req) => {
         drawText(formatDate(score.test_date), margin, y, 8, false);
         drawText(score.class_name || "—", margin + 80, y, 8, false);
         drawText((score.test_name || "").substring(0, 25), margin + 140, y, 8, false);
-        const evalText = score.evaluation || (score.score !== null ? `${score.score}/${score.max_score}` : "—");
+        // Only show evaluation, not scores
+        const evalText = score.evaluation || "—";
         drawText(evalText, margin + 320, y, 8, false);
         y -= lineHeight - 2;
       }

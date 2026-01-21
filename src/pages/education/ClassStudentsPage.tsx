@@ -84,7 +84,7 @@ function useClassStudentsDetailed(classId: string) {
   });
 }
 
-// Hook to get enrollment history for a trainee with teacher info
+// Hook to get enrollment history for a trainee with teacher info, test scores and attendance
 function useEnrollmentHistory(traineeId: string) {
   return useQuery({
     queryKey: ["enrollment-history", traineeId],
@@ -108,7 +108,7 @@ function useEnrollmentHistory(traineeId: string) {
         .order("action_date", { ascending: true });
       if (historyError) throw historyError;
 
-      // Get all unique class IDs to fetch teachers
+      // Get all unique class IDs to fetch teachers, test scores and attendance
       const classIds = new Set<string>();
       historyData?.forEach(h => {
         if (h.class_id) classIds.add(h.class_id);
@@ -137,12 +137,68 @@ function useEnrollmentHistory(traineeId: string) {
         });
       }
 
-      // Merge teacher info into history
+      // Fetch test scores for this trainee grouped by class
+      const { data: testScoresData } = await supabase
+        .from("test_scores")
+        .select("id, test_name, test_date, score, max_score, evaluation, class_id")
+        .eq("trainee_id", traineeId)
+        .order("test_date", { ascending: false });
+      
+      const testScoresByClass: Record<string, any[]> = {};
+      testScoresData?.forEach(score => {
+        if (!testScoresByClass[score.class_id]) {
+          testScoresByClass[score.class_id] = [];
+        }
+        testScoresByClass[score.class_id].push(score);
+      });
+
+      // Fetch attendance for this trainee grouped by class (only late/absent)
+      const { data: attendanceData } = await supabase
+        .from("attendance")
+        .select("id, date, status, notes, class_id")
+        .eq("trainee_id", traineeId)
+        .not("status", "eq", "present")
+        .order("date", { ascending: false });
+      
+      const attendanceByClass: Record<string, any[]> = {};
+      const attendanceStatsByClass: Record<string, { total: number; present: number; late: number; absent: number }> = {};
+      attendanceData?.forEach(att => {
+        if (!attendanceByClass[att.class_id]) {
+          attendanceByClass[att.class_id] = [];
+        }
+        attendanceByClass[att.class_id].push(att);
+      });
+      
+      // Also get attendance stats (count all including present)
+      const { data: allAttendanceData } = await supabase
+        .from("attendance")
+        .select("class_id, status")
+        .eq("trainee_id", traineeId);
+      
+      allAttendanceData?.forEach(att => {
+        if (!attendanceStatsByClass[att.class_id]) {
+          attendanceStatsByClass[att.class_id] = { total: 0, present: 0, late: 0, absent: 0 };
+        }
+        attendanceStatsByClass[att.class_id].total++;
+        if (att.status === "present") attendanceStatsByClass[att.class_id].present++;
+        else if (att.status === "late") attendanceStatsByClass[att.class_id].late++;
+        else attendanceStatsByClass[att.class_id].absent++;
+      });
+
+      // Merge teacher info, test scores and attendance into history
       return historyData?.map(h => ({
         ...h,
         class_teachers: h.class_id ? teacherMap[h.class_id] || [] : [],
         from_class_teachers: h.from_class_id ? teacherMap[h.from_class_id] || [] : [],
         to_class_teachers: h.to_class_id ? teacherMap[h.to_class_id] || [] : [],
+        // Add test scores and attendance for from_class (when transferring)
+        from_class_test_scores: h.from_class_id ? testScoresByClass[h.from_class_id] || [] : [],
+        from_class_attendance: h.from_class_id ? attendanceByClass[h.from_class_id] || [] : [],
+        from_class_attendance_stats: h.from_class_id ? attendanceStatsByClass[h.from_class_id] : null,
+        // Add for class_id (when entering/leaving)
+        class_test_scores: h.class_id ? testScoresByClass[h.class_id] || [] : [],
+        class_attendance: h.class_id ? attendanceByClass[h.class_id] || [] : [],
+        class_attendance_stats: h.class_id ? attendanceStatsByClass[h.class_id] : null,
       }));
     },
     enabled: !!traineeId,
@@ -643,9 +699,9 @@ export default function ClassStudentsPage() {
 
       {/* Enrollment History Dialog */}
       <Dialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh]">
+        <DialogContent className="max-w-4xl max-h-[85vh]">
           <DialogHeader>
-            <DialogTitle>Lịch sử nhập học</DialogTitle>
+            <DialogTitle>Lịch sử học tập chi tiết</DialogTitle>
             <DialogDescription>
               {selectedTrainee?.trainee_code} - {selectedTrainee?.full_name}
             </DialogDescription>
@@ -675,7 +731,7 @@ export default function ClassStudentsPage() {
             </div>
           )}
 
-          <ScrollArea className="h-[350px]">
+          <ScrollArea className="h-[500px]">
             {historyLoading || learningDaysLoading ? (
               <div className="space-y-2 p-4">
                 <Skeleton className="h-12 w-full" />
@@ -690,58 +746,145 @@ export default function ClassStudentsPage() {
                 {/* Timeline line */}
                 <div className="absolute left-2 top-3 bottom-3 w-0.5 bg-border" />
                 
-                {enrollmentHistory.map((history, index) => (
-                  <div key={history.id} className="relative pb-6">
-                    {/* Timeline dot */}
-                    <div className={`absolute -left-4 w-3 h-3 rounded-full border-2 border-background ${
-                      index === enrollmentHistory.length - 1 ? "bg-primary" : "bg-muted-foreground"
-                    }`} />
-                    
-                    <div className="ml-4 bg-muted/30 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-1">
-                        <Badge variant="outline" className="font-medium">
-                          {history.action_type}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDate(history.action_date)}
-                        </span>
-                      </div>
+                {enrollmentHistory.map((history, index) => {
+                  // Determine which class data to show (from_class for transfers, class for other actions)
+                  const classTestScores = history.from_class_id 
+                    ? history.from_class_test_scores 
+                    : history.class_test_scores;
+                  const classAttendance = history.from_class_id 
+                    ? history.from_class_attendance 
+                    : history.class_attendance;
+                  const classAttendanceStats = history.from_class_id 
+                    ? history.from_class_attendance_stats 
+                    : history.class_attendance_stats;
+                  
+                  return (
+                    <div key={history.id} className="relative pb-6">
+                      {/* Timeline dot */}
+                      <div className={`absolute -left-4 w-3 h-3 rounded-full border-2 border-background ${
+                        index === enrollmentHistory.length - 1 ? "bg-primary" : "bg-muted-foreground"
+                      }`} />
                       
-                      {/* Transfer between classes */}
-                      {history.from_class && history.to_class && (
-                        <div className="text-sm space-y-1">
-                          <p className="text-muted-foreground">
-                            <span className="font-medium">{(history.from_class as any)?.name}</span>
-                            {history.from_class_teachers && history.from_class_teachers.length > 0 && (
-                              <span className="text-xs"> (GV: {history.from_class_teachers.join(", ")})</span>
-                            )}
-                          </p>
-                          <p className="text-primary">→</p>
-                          <p className="text-muted-foreground">
-                            <span className="font-medium">{(history.to_class as any)?.name}</span>
-                            {history.to_class_teachers && history.to_class_teachers.length > 0 && (
-                              <span className="text-xs"> (GV: {history.to_class_teachers.join(", ")})</span>
-                            )}
-                          </p>
+                      <div className="ml-4 bg-muted/30 rounded-lg p-3 space-y-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <Badge variant="outline" className="font-medium">
+                            {history.action_type}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDate(history.action_date)}
+                          </span>
                         </div>
-                      )}
-                      
-                      {/* Single class entry */}
-                      {history.class && !history.from_class && (
-                        <p className="text-sm text-muted-foreground">
-                          Lớp: <span className="font-medium">{(history.class as any)?.name}</span>
-                          {history.class_teachers && history.class_teachers.length > 0 && (
-                            <span className="text-xs ml-1">(GV: {history.class_teachers.join(", ")})</span>
-                          )}
-                        </p>
-                      )}
-                      
-                      {history.notes && (
-                        <p className="text-sm mt-2 italic text-muted-foreground">{history.notes}</p>
-                      )}
+                        
+                        {/* Transfer between classes */}
+                        {history.from_class && history.to_class && (
+                          <div className="text-sm space-y-1">
+                            <p className="text-muted-foreground">
+                              <span className="font-medium">{(history.from_class as any)?.name}</span>
+                              {history.from_class_teachers && history.from_class_teachers.length > 0 && (
+                                <span className="text-xs"> (GV: {history.from_class_teachers.join(", ")})</span>
+                              )}
+                            </p>
+                            <p className="text-primary">→</p>
+                            <p className="text-muted-foreground">
+                              <span className="font-medium">{(history.to_class as any)?.name}</span>
+                              {history.to_class_teachers && history.to_class_teachers.length > 0 && (
+                                <span className="text-xs"> (GV: {history.to_class_teachers.join(", ")})</span>
+                              )}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {/* Single class entry */}
+                        {history.class && !history.from_class && (
+                          <p className="text-sm text-muted-foreground">
+                            Lớp: <span className="font-medium">{(history.class as any)?.name}</span>
+                            {history.class_teachers && history.class_teachers.length > 0 && (
+                              <span className="text-xs ml-1">(GV: {history.class_teachers.join(", ")})</span>
+                            )}
+                          </p>
+                        )}
+
+                        {/* Attendance Stats for this class */}
+                        {classAttendanceStats && classAttendanceStats.total > 0 && (
+                          <div className="bg-background/50 rounded p-2 text-xs">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Calendar className="h-3 w-3 text-muted-foreground" />
+                              <span className="font-medium">Điểm danh:</span>
+                              <span className="text-green-600">{classAttendanceStats.present + classAttendanceStats.late} có mặt</span>
+                              {classAttendanceStats.late > 0 && (
+                                <span className="text-yellow-600">({classAttendanceStats.late} trễ)</span>
+                              )}
+                              {classAttendanceStats.absent > 0 && (
+                                <span className="text-red-600">{classAttendanceStats.absent} vắng</span>
+                              )}
+                              <span className="text-muted-foreground">/ {classAttendanceStats.total} buổi</span>
+                            </div>
+                            
+                            {/* Show late/absent details */}
+                            {classAttendance && classAttendance.length > 0 && (
+                              <div className="mt-2 space-y-1 pl-5">
+                                {classAttendance.slice(0, 5).map((att: any) => (
+                                  <div key={att.id} className="flex items-center gap-2 text-xs">
+                                    <span>{formatDate(att.date)}</span>
+                                    <Badge 
+                                      variant="outline" 
+                                      className={att.status === "late" ? "bg-yellow-50 text-yellow-700 border-yellow-200" : "bg-red-50 text-red-700 border-red-200"}
+                                    >
+                                      {att.status === "late" ? "Đi trễ" : "Vắng"}
+                                    </Badge>
+                                    {att.notes && <span className="text-muted-foreground italic">{att.notes}</span>}
+                                  </div>
+                                ))}
+                                {classAttendance.length > 5 && (
+                                  <span className="text-muted-foreground italic">
+                                    và {classAttendance.length - 5} buổi khác...
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Test Scores for this class */}
+                        {classTestScores && classTestScores.length > 0 && (
+                          <div className="bg-background/50 rounded p-2 text-xs">
+                            <div className="flex items-center gap-2 mb-2">
+                              <BookOpen className="h-3 w-3 text-muted-foreground" />
+                              <span className="font-medium">Điểm kiểm tra & Đánh giá:</span>
+                            </div>
+                            <div className="space-y-1 pl-5">
+                              {classTestScores.slice(0, 8).map((score: any) => (
+                                <div key={score.id} className="flex items-center justify-between gap-2 text-xs border-b border-border/50 pb-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground">{formatDate(score.test_date)}</span>
+                                    <span className="font-medium">{score.test_name}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-xs">
+                                      {score.score !== null ? `${score.score}/${score.max_score}` : "—"}
+                                    </Badge>
+                                    {score.evaluation && (
+                                      <span className="text-primary font-medium">{score.evaluation}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                              {classTestScores.length > 8 && (
+                                <span className="text-muted-foreground italic">
+                                  và {classTestScores.length - 8} bài khác...
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {history.notes && (
+                          <p className="text-sm italic text-muted-foreground border-t pt-2">{history.notes}</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </ScrollArea>
