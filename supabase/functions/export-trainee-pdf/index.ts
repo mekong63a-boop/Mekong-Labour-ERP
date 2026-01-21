@@ -159,6 +159,35 @@ function containsCJK(text: string): boolean {
   return cjkPattern.test(text);
 }
 
+// Word wrap text to fit within maxWidth (in characters) - respects word boundaries
+function wrapText(text: string, maxChars: number): string[] {
+  if (!text) return [];
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let currentLine = "";
+  
+  for (const word of words) {
+    if (currentLine.length + word.length + 1 <= maxChars) {
+      currentLine = currentLine ? `${currentLine} ${word}` : word;
+    } else {
+      if (currentLine) lines.push(currentLine);
+      // If single word is longer than maxChars, split it
+      if (word.length > maxChars) {
+        let remaining = word;
+        while (remaining.length > maxChars) {
+          lines.push(remaining.substring(0, maxChars));
+          remaining = remaining.substring(maxChars);
+        }
+        currentLine = remaining;
+      } else {
+        currentLine = word;
+      }
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+  return lines;
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -262,9 +291,11 @@ serve(async (req) => {
     const photoSize = 80;
 
     // Draw text with automatic font selection based on CJK content
-    const drawText = (text: string, x: number, yPos: number, size = 9, bold = false) => {
-      const safeText = (text || "").substring(0, 100); // Limit text length
+    // CRITICAL: Always use embedded fonts (Roboto or NotoSansJP) - NEVER StandardFonts
+    const drawText = (text: string, x: number, yPos: number, size = 9, bold = false, noLimit = false) => {
+      const safeText = noLimit ? (text || "") : (text || "").substring(0, 100);
       const useJpFont = containsCJK(safeText);
+      // ALWAYS use embedded fonts - Roboto for Latin/Vietnamese, NotoSansJP for CJK
       const selectedFont = useJpFont 
         ? (bold ? fontJpBold : fontJp) 
         : (bold ? fontBold : font);
@@ -273,9 +304,27 @@ serve(async (req) => {
         x,
         y: yPos,
         size,
-        font: selectedFont,
+        font: selectedFont, // REQUIRED - prevents WinAnsi fallback
         color: rgb(0, 0, 0),
       });
+    };
+    
+    // Draw multiline text with word wrap and automatic page breaks
+    // Returns the new Y position after drawing all lines
+    const drawMultilineText = (text: string, x: number, startY: number, size = 8, maxChars = 80): number => {
+      if (!text) return startY;
+      const lines = wrapText(text, maxChars);
+      let currentY = startY;
+      
+      for (const line of lines) {
+        if (currentY < 50) {
+          page = pdfDoc.addPage([595.28, 841.89]);
+          currentY = height - margin;
+        }
+        drawText(line, x, currentY, size, false, true);
+        currentY -= lineHeight;
+      }
+      return currentY;
     };
 
     const drawSection = (title: string) => {
@@ -472,52 +521,48 @@ serve(async (req) => {
 
     // Workflow Status section removed per user request
 
-    // Interview History
+    // Interview History - FULL CONTENT (no truncation)
     if (trainee.interview_history && trainee.interview_history.length > 0) {
       drawSection("LỊCH SỬ PHỎNG VẤN");
       for (const interview of trainee.interview_history) {
+        if (y < 80) {
+          page = pdfDoc.addPage([595.28, 841.89]);
+          y = height - margin;
+        }
         const resultText = interview.result === "passed" ? "Đậu" : interview.result;
         drawRow(formatDate(interview.interview_date), resultText);
         if (interview.notes) {
           y -= 2;
-          drawText("  " + interview.notes.substring(0, 70), margin + 20, y, 7, false);
-          y -= lineHeight - 4;
+          // Full content with word wrap and page breaks
+          y = drawMultilineText("  " + interview.notes, margin + 20, y, 7, 75);
         }
       }
     }
 
-    // Reviews
+    // Reviews - FULL CONTENT (no truncation)
     if (trainee.reviews && trainee.reviews.length > 0) {
-      drawSection("ĐÁNH GIÁ");
-      for (const review of trainee.reviews.slice(0, 5)) {
-        if (y < 60) {
+      drawSection("NHẬN XÉT");
+      for (const review of trainee.reviews) {
+        if (y < 80) {
           page = pdfDoc.addPage([595.28, 841.89]);
           y = height - margin;
         }
         const header = `[${review.review_type}] ${formatDate(review.created_at)}${review.rating ? ` - Điểm: ${review.rating}/10` : ''}`;
-        drawText(header, margin, y, 8, true);
+        drawText(header, margin, y, 8, true, true);
         y -= lineHeight - 2;
-        drawText(review.content.substring(0, 100), margin, y, 8, false);
-        y -= lineHeight;
+        // Full content with word wrap and page breaks
+        y = drawMultilineText(review.content, margin, y, 8, 80);
         if (review.is_blacklisted && review.blacklist_reason) {
-          drawText(`⚠ Blacklist: ${review.blacklist_reason.substring(0, 60)}`, margin, y, 7, false);
-          y -= lineHeight;
+          y = drawMultilineText(`⚠ Blacklist: ${review.blacklist_reason}`, margin, y, 7, 75);
         }
       }
     }
 
-    // Notes - show all content without limit
+    // Notes - FULL CONTENT with proper word wrap (no character-based splitting)
     if (trainee.notes) {
       drawSection("GHI CHÚ CHUNG");
-      const noteLines = trainee.notes.match(/.{1,80}/g) || [trainee.notes];
-      for (const line of noteLines) {
-        if (y < 50) {
-          page = pdfDoc.addPage([595.28, 841.89]);
-          y = height - margin;
-        }
-        drawText(line, margin, y, 8, false);
-        y -= lineHeight;
-      }
+      // Use word wrap function for proper line breaks
+      y = drawMultilineText(trainee.notes, margin, y, 8, 80);
     }
 
     // Footer
