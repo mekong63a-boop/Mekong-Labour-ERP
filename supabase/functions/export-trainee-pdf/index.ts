@@ -65,6 +65,7 @@ interface TraineeProfile {
     id?: string;
     code?: string;
     name?: string;
+    name_japanese?: string;
   };
   class: {
     id?: string;
@@ -219,88 +220,109 @@ serve(async (req) => {
     };
 
     // Header
-    drawText("HO SO HOC VIEN", width / 2 - 60, y, 16, true);
+    drawText("HỒ SƠ HỌC VIÊN", width / 2 - 60, y, 16, true);
     y -= 10;
     drawText("TRAINEE PROFILE", width / 2 - 50, y, 12, false);
     y -= lineHeight * 2;
 
     // Basic Info
-    drawSection("THONG TIN CO BAN");
-    drawRow("Ma hoc vien", trainee.trainee_code);
-    drawRow("Ho va ten", trainee.full_name);
-    drawRow("Phien am", trainee.furigana);
-    drawRow("Ngay sinh", formatDate(trainee.birth_date));
-    drawRow("Gioi tinh", trainee.gender);
-    drawRow("Loai hinh", trainee.trainee_type);
-    drawRow("Nguon tuyen", trainee.source);
-    drawRow("Noi sinh", trainee.birthplace);
+    drawSection("THÔNG TIN CƠ BẢN");
+    drawRow("Mã học viên", trainee.trainee_code);
+    drawRow("Họ và tên", trainee.full_name);
+    drawRow("Ngày sinh", formatDate(trainee.birth_date));
+    drawRow("Giới tính", trainee.gender);
+    drawRow("Loại hình", trainee.trainee_type);
+    drawRow("Nguồn tuyển", trainee.source);
+    drawRow("Nơi sinh", trainee.birthplace);
 
     // Contact Info
-    drawSection("THONG TIN LIEN HE");
-    drawRow("So dien thoai", trainee.phone);
+    drawSection("THÔNG TIN LIÊN HỆ");
+    drawRow("Số điện thoại", trainee.phone);
     drawRow("Zalo", trainee.zalo);
     drawRow("Email", trainee.email);
     if (!trainee.can_view_pii) {
       y -= 5;
-      drawText("* Thong tin nhay cam da duoc an do quyen truy cap", margin, y, 8, false);
+      drawText("* Thông tin nhạy cảm đã được ẩn do quyền truy cập", margin, y, 8, false);
       y -= lineHeight;
     }
 
     // Address
-    drawSection("DIA CHI");
-    drawRow("Dia chi thuong tru", trainee.permanent_address);
-    drawRow("Dia chi hien tai", trainee.current_address);
+    drawSection("ĐỊA CHỈ");
+    drawRow("Địa chỉ thường trú", trainee.permanent_address);
+    drawRow("Địa chỉ hiện tại", trainee.current_address);
 
     // Documents
-    drawSection("GIAY TO");
-    drawRow("So CCCD", trainee.cccd_number);
-    drawRow("Ngay cap CCCD", formatDate(trainee.cccd_date));
-    drawRow("So ho chieu", trainee.passport_number);
-    drawRow("Ngay cap HC", formatDate(trainee.passport_date));
+    drawSection("GIẤY TỜ");
+    drawRow("Số CCCD", trainee.cccd_number);
+    drawRow("Ngày cấp CCCD", formatDate(trainee.cccd_date));
+    drawRow("Số hộ chiếu", trainee.passport_number);
+    drawRow("Ngày cấp HC", formatDate(trainee.passport_date));
 
-    // Company & Union
-    drawSection("CONG TY & NGHIEP DOAN");
-    drawRow("Cong ty tiep nhan", trainee.company?.name || null);
-    drawRow("Ten tieng Nhat (CT)", trainee.company?.name_japanese || null);
-    drawRow("Nghiep doan", trainee.union?.name || null);
-    drawRow("Ten tieng Nhat (ND)", trainee.union?.name_japanese || null);
-    drawRow("Nganh nghe", trainee.job_category?.name || null);
+    // Company & Union - show Japanese name (bilingual if Vietnamese exists)
+    drawSection("CÔNG TY & NGHIỆP ĐOÀN");
+    
+    // Company: show Japanese name, add Vietnamese in parentheses if exists
+    let companyDisplay = trainee.company?.name_japanese || null;
+    if (companyDisplay && trainee.company?.name && trainee.company.name !== companyDisplay) {
+      companyDisplay = `${trainee.company.name_japanese} (${trainee.company.name})`;
+    } else if (!companyDisplay) {
+      companyDisplay = trainee.company?.name || null;
+    }
+    drawRow("Công ty tiếp nhận", companyDisplay);
+    
+    // Union: show Japanese name, add Vietnamese in parentheses if exists
+    let unionDisplay = trainee.union?.name_japanese || null;
+    if (unionDisplay && trainee.union?.name && trainee.union.name !== unionDisplay) {
+      unionDisplay = `${trainee.union.name_japanese} (${trainee.union.name})`;
+    } else if (!unionDisplay) {
+      unionDisplay = trainee.union?.name || null;
+    }
+    drawRow("Nghiệp đoàn", unionDisplay);
+    
+    // Job category: show Japanese name, add Vietnamese in parentheses if exists
+    let jobDisplay = trainee.job_category?.name_japanese || null;
+    if (jobDisplay && trainee.job_category?.name && trainee.job_category.name !== jobDisplay) {
+      jobDisplay = `${trainee.job_category.name_japanese} (${trainee.job_category.name})`;
+    } else if (!jobDisplay) {
+      jobDisplay = trainee.job_category?.name || null;
+    }
+    drawRow("Ngành nghề", jobDisplay);
 
     // Class
     if (trainee.class?.id) {
-      drawSection("LOP HOC");
-      drawRow("Ma lop", trainee.class.code || null);
-      drawRow("Ten lop", trainee.class.name || null);
-      drawRow("Tinh trang hoc", trainee.enrollment_status);
+      drawSection("LỚP HỌC");
+      drawRow("Mã lớp", trainee.class.code || null);
+      drawRow("Tên lớp", trainee.class.name || null);
+      drawRow("Tình trạng học", trainee.enrollment_status);
     }
 
     // Timeline
-    drawSection("MOC THOI GIAN");
-    drawRow("Ngay dang ky", formatDate(trainee.entry_date));
-    drawRow("Ngay dau PV", formatDate(trainee.interview_pass_date));
-    drawRow("Nop ho so", formatDate(trainee.document_submission_date));
-    drawRow("Dang OTIT", formatDate(trainee.otit_entry_date));
-    drawRow("Dang Nyukan", formatDate(trainee.nyukan_entry_date));
+    drawSection("MỐC THỜI GIAN");
+    drawRow("Ngày đăng ký", formatDate(trainee.entry_date));
+    drawRow("Ngày đậu PV", formatDate(trainee.interview_pass_date));
+    drawRow("Nộp hồ sơ", formatDate(trainee.document_submission_date));
+    drawRow("Đăng OTIT", formatDate(trainee.otit_entry_date));
+    drawRow("Đăng Nyukan", formatDate(trainee.nyukan_entry_date));
     drawRow("COE", formatDate(trainee.coe_date));
     drawRow("Visa", formatDate(trainee.visa_date));
-    drawRow("Xuat canh", formatDate(trainee.departure_date));
-    drawRow("Ve nuoc", formatDate(trainee.return_date));
-    drawRow("Du kien ve", formatDate(trainee.expected_return_date));
+    drawRow("Xuất cảnh", formatDate(trainee.departure_date));
+    drawRow("Về nước", formatDate(trainee.return_date));
+    drawRow("Dự kiến về", formatDate(trainee.expected_return_date));
 
     // Workflow Status
     if (trainee.workflow) {
-      drawSection("TRANG THAI QUY TRINH");
+      drawSection("TRẠNG THÁI QUY TRÌNH");
       const stageLabel = stageLabels[trainee.workflow.current_stage || ""] || trainee.workflow.current_stage || "—";
-      drawRow("Giai doan hien tai", stageLabel);
-      drawRow("Trang thai phu", trainee.workflow.sub_status || null);
-      drawRow("Ngay chuyen", formatDate(trainee.workflow.transitioned_at || null));
+      drawRow("Giai đoạn hiện tại", stageLabel);
+      drawRow("Trạng thái phụ", trainee.workflow.sub_status || null);
+      drawRow("Ngày chuyển", formatDate(trainee.workflow.transitioned_at || null));
     }
 
     // Interview History
     if (trainee.interview_history && trainee.interview_history.length > 0) {
-      drawSection("LICH SU PHONG VAN");
+      drawSection("LỊCH SỬ PHỎNG VẤN");
       for (const interview of trainee.interview_history) {
-        const resultText = interview.result === "passed" ? "Dau" : interview.result;
+        const resultText = interview.result === "passed" ? "Đậu" : interview.result;
         drawRow(formatDate(interview.interview_date), resultText);
         if (interview.notes) {
           y -= 3;
@@ -312,7 +334,7 @@ serve(async (req) => {
 
     // Notes
     if (trainee.notes) {
-      drawSection("GHI CHU CHUNG");
+      drawSection("GHI CHÚ CHUNG");
       const noteLines = trainee.notes.match(/.{1,80}/g) || [trainee.notes];
       for (const line of noteLines.slice(0, 5)) {
         if (y < 50) {
@@ -328,7 +350,7 @@ serve(async (req) => {
     y = 30;
     const now = new Date();
     const exportDate = `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1).toString().padStart(2, "0")}/${now.getFullYear()} ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-    drawText(`Xuat ngay: ${exportDate}`, margin, y, 8, false);
+    drawText(`Xuất ngày: ${exportDate}`, margin, y, 8, false);
     drawText("Mekong ERP System", width - margin - 100, y, 8, false);
 
     // Generate PDF bytes
