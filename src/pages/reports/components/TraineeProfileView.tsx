@@ -121,10 +121,8 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
   const [isExporting, setIsExporting] = useState(false);
 
   const stageLabels: Record<string, string> = {
-    recruited: "Tuyển dụng",
     trained: "Đào tạo",
     dormitory: "Ký túc xá",
-    visa_processing: "Xử lý visa",
     ready_to_depart: "Sẵn sàng xuất cảnh",
     departed: "Đã xuất cảnh",
     post_departure: "Sau xuất cảnh",
@@ -448,30 +446,18 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
               </>
             )}
 
-            {/* Timeline */}
+            {/* Timeline - Chỉ các mục được phép theo SYSTEM RULE */}
             <Section title="Mốc thời gian" icon={Clock}>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4">
                 <InfoRow label="Ngày đăng ký" value={formatDate(profile.registration_date || profile.entry_date)} />
                 <InfoRow label="Số lần PV" value={profile.interview_count?.toString()} />
                 <InfoRow label="Ngày đậu PV" value={formatDate(profile.interview_pass_date)} />
-                <InfoRow label="Nộp hồ sơ" value={formatDate(profile.document_submission_date)} />
-                <InfoRow label="Đăng OTIT" value={formatDate(profile.otit_entry_date)} />
-                <InfoRow label="Đăng Nyukan" value={formatDate(profile.nyukan_entry_date)} />
-                <InfoRow label="COE" value={formatDate(profile.coe_date)} />
-                <InfoRow label="Visa" value={formatDate(profile.visa_date)} />
-                <InfoRow label="Xuất cảnh" value={formatDate(profile.departure_date)} />
-                <InfoRow label="Thời hạn HĐ" value={profile.contract_term ? `${profile.contract_term} năm` : null} />
-                <InfoRow label="Kết thúc HĐ" value={formatDate(profile.contract_end_date)} />
+                <InfoRow label="Ngày nộp hồ sơ" value={formatDate(profile.document_submission_date)} />
+                <InfoRow label="Nộp OTIT" value={formatDate(profile.otit_entry_date)} />
+                <InfoRow label="Nộp Nyukan" value={formatDate(profile.nyukan_entry_date)} />
+                <InfoRow label="Có COE" value={formatDate(profile.coe_date)} />
+                <InfoRow label="Ngày xuất cảnh" value={formatDate(profile.departure_date)} />
                 <InfoRow label="Dự kiến nhập cảnh" value={profile.expected_entry_month} />
-                <InfoRow label="Về nước" value={formatDate(profile.return_date)} />
-                <InfoRow label="Dự kiến về" value={formatDate(profile.expected_return_date)} />
-                {profile.absconded_date && <InfoRow label="Ngày bỏ trốn" value={formatDate(profile.absconded_date)} />}
-                {profile.early_return_date && (
-                  <>
-                    <InfoRow label="Về trước hạn" value={formatDate(profile.early_return_date)} />
-                    <InfoRow label="Lý do về sớm" value={profile.early_return_reason} />
-                  </>
-                )}
               </div>
             </Section>
 

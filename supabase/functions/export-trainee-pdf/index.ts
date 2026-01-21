@@ -118,10 +118,8 @@ interface TraineeProfile {
 }
 
 const stageLabels: Record<string, string> = {
-  recruited: "Tuyển dụng",
   trained: "Đào tạo",
   dormitory: "Ký túc xá",
-  visa_processing: "Xử lý visa",
   ready_to_depart: "Sẵn sàng xuất cảnh",
   departed: "Đã xuất cảnh",
   post_departure: "Sau xuất cảnh",
@@ -441,17 +439,15 @@ serve(async (req) => {
       }
     }
 
-    // Timeline
+    // Timeline - Chỉ các mục được phép theo SYSTEM RULE
     drawSection("MỐC THỜI GIAN");
     drawRow("Ngày đăng ký", formatDate(trainee.entry_date));
     drawRow("Ngày đậu PV", formatDate(trainee.interview_pass_date));
-    drawRow("Nộp hồ sơ", formatDate(trainee.document_submission_date));
-    drawRow("Đăng OTIT", formatDate(trainee.otit_entry_date));
-    drawRow("Đăng Nyukan", formatDate(trainee.nyukan_entry_date));
-    drawRow("COE", formatDate(trainee.coe_date));
-    drawRow("Xuất cảnh", formatDate(trainee.departure_date));
-    drawRow("Về nước", formatDate(trainee.return_date));
-    drawRow("Dự kiến về", formatDate(trainee.expected_return_date));
+    drawRow("Ngày nộp hồ sơ", formatDate(trainee.document_submission_date));
+    drawRow("Nộp OTIT", formatDate(trainee.otit_entry_date));
+    drawRow("Nộp Nyukan", formatDate(trainee.nyukan_entry_date));
+    drawRow("Có COE", formatDate(trainee.coe_date));
+    drawRow("Ngày xuất cảnh", formatDate(trainee.departure_date));
 
     // Workflow Status section removed per user request
 
