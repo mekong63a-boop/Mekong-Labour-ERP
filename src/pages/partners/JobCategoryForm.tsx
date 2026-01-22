@@ -68,6 +68,17 @@ export default function JobCategoryForm() {
     }
   );
 
+  // Real-time duplicate check for Japanese name
+  const { isDuplicate: isNameJpDuplicate, isChecking: isCheckingNameJp } = useDuplicateCheck(
+    formData.name_japanese,
+    {
+      table: 'job_categories',
+      field: 'name_japanese',
+      currentId: id,
+      enabled: formData.name_japanese.length >= 2,
+    }
+  );
+
   useEffect(() => {
     if (isEdit && jobCategories) {
       const job = jobCategories.find((j) => j.id === id);
@@ -105,6 +116,14 @@ export default function JobCategoryForm() {
       });
       return;
     }
+    if (isNameJpDuplicate) {
+      toast({
+        title: "Tên tiếng Nhật đã tồn tại",
+        description: "Vui lòng nhập tên khác.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (isEdit && id) {
       await updateJobCategory.mutateAsync({ id, data: formData });
@@ -115,6 +134,7 @@ export default function JobCategoryForm() {
   };
 
   const isSubmitting = createJobCategory.isPending || updateJobCategory.isPending;
+  const hasDuplicates = isCodeDuplicate || isNameDuplicate || isNameJpDuplicate;
 
   return (
     <div className="p-6 space-y-6">
@@ -139,7 +159,7 @@ export default function JobCategoryForm() {
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || isCodeDuplicate || isNameDuplicate}
+            disabled={isSubmitting || hasDuplicates}
             className="bg-primary/80 hover:bg-primary"
           >
             <Save className="h-4 w-4 mr-2" />
