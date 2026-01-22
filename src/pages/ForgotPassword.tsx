@@ -15,12 +15,22 @@ export default function ForgotPassword() {
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
 
+  // Production URL cố định để tránh lỗi khi gửi email từ localhost
+  const getRedirectUrl = () => {
+    // Nếu đang ở production hoặc preview, dùng URL hiện tại
+    if (window.location.hostname.includes('lovable.app')) {
+      return `${window.location.origin}/reset-password`;
+    }
+    // Nếu đang ở localhost, redirect về production URL
+    return 'https://erpmekong.lovable.app/reset-password';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: getRedirectUrl(),
     });
 
     if (error) {
