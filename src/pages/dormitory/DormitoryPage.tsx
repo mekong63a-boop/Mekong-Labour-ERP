@@ -76,8 +76,11 @@ import {
 } from "@/hooks/useDormitory";
 import { format } from "date-fns";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useCanAccessMenu } from "@/hooks/useMenuPermissions";
 
 export default function DormitoryPage() {
+  // Permission check for dormitory menu
+  const { canCreate, canUpdate, canDelete } = useCanAccessMenu("dormitory");
   const [activeTab, setActiveTab] = useState("manage");
   const [selectedDormitory, setSelectedDormitory] = useState<string | null>(null);
   const [isAddDormOpen, setIsAddDormOpen] = useState(false);
@@ -411,16 +414,16 @@ export default function DormitoryPage() {
           </Card>
         </TabsContent>
 
-        {/* Tab Quản lý */}
         <TabsContent value="manage" className="mt-6">
           <div className="flex justify-end mb-4">
-            <Dialog open={isAddDormOpen} onOpenChange={setIsAddDormOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Thêm KTX mới
-                </Button>
-              </DialogTrigger>
+            {canCreate && (
+              <Dialog open={isAddDormOpen} onOpenChange={setIsAddDormOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Thêm KTX mới
+                  </Button>
+                </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Thêm Ký túc xá mới</DialogTitle>
@@ -478,6 +481,7 @@ export default function DormitoryPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            )}
           </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -531,47 +535,51 @@ export default function DormitoryPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1 ml-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditDialog(dorm);
-                          }}
-                        >
-                          <Edit className="h-3.5 w-3.5" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-destructive hover:text-destructive"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Xóa KTX?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Bạn có chắc muốn xóa KTX "{dorm.name}"? Tất cả dữ liệu học viên
-                                trong KTX này cũng sẽ bị xóa.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Hủy</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteDormitory(dorm.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        {canUpdate && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditDialog(dorm);
+                            }}
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-destructive hover:text-destructive"
+                                onClick={(e) => e.stopPropagation()}
                               >
-                                Xóa
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Xóa KTX?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Bạn có chắc muốn xóa KTX "{dorm.name}"? Tất cả dữ liệu học viên
+                                  trong KTX này cũng sẽ bị xóa.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteDormitory(dorm.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Xóa
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -597,93 +605,96 @@ export default function DormitoryPage() {
             </div>
             {selectedDormitory && (
               <div className="flex gap-2">
-                <Dialog open={isTransferOpen} onOpenChange={setIsTransferOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" variant="outline" className="gap-2">
-                      <ArrowRightLeft className="h-4 w-4" />
-                      Chuyển KTX
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Chuyển học viên từ KTX khác</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <Label>Chọn học viên muốn chuyển *</Label>
-                        <Select
-                          value={selectedTransferResident?.id || ""}
-                          onValueChange={(val) => {
-                            const resident = transferableTrainees?.find((r) => r.id === val);
-                            setSelectedTransferResident(resident || null);
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Chọn học viên..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {transferableTrainees?.map((r) => (
-                              <SelectItem key={r.id} value={r.id}>
-                                {r.trainee?.trainee_code} - {r.trainee?.full_name} ({r.dormitory?.name})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {transferableTrainees?.length === 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            Không có học viên ở KTX khác để chuyển
-                          </p>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Lý do chuyển KTX *</Label>
-                        <Textarea
-                          placeholder="VD: Chuyển do yêu cầu đổi phòng, gần lớp học..."
-                          value={transferReason}
-                          onChange={(e) => setTransferReason(e.target.value)}
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Số phòng mới</Label>
-                          <Input
-                            placeholder="VD: P101"
-                            value={transferRoom}
-                            onChange={(e) => setTransferRoom(e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Số giường mới</Label>
-                          <Input
-                            placeholder="VD: G1"
-                            value={transferBed}
-                            onChange={(e) => setTransferBed(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsTransferOpen(false)}>
-                        Hủy
-                      </Button>
-                      <Button
-                        onClick={handleTransfer}
-                        disabled={!selectedTransferResident || !transferReason.trim() || transferResident.isPending}
-                      >
-                        {transferResident.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                {canUpdate && (
+                  <Dialog open={isTransferOpen} onOpenChange={setIsTransferOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="outline" className="gap-2">
+                        <ArrowRightLeft className="h-4 w-4" />
                         Chuyển KTX
                       </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Chuyển học viên từ KTX khác</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label>Chọn học viên muốn chuyển *</Label>
+                          <Select
+                            value={selectedTransferResident?.id || ""}
+                            onValueChange={(val) => {
+                              const resident = transferableTrainees?.find((r) => r.id === val);
+                              setSelectedTransferResident(resident || null);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Chọn học viên..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {transferableTrainees?.map((r) => (
+                                <SelectItem key={r.id} value={r.id}>
+                                  {r.trainee?.trainee_code} - {r.trainee?.full_name} ({r.dormitory?.name})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {transferableTrainees?.length === 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              Không có học viên ở KTX khác để chuyển
+                            </p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Lý do chuyển KTX *</Label>
+                          <Textarea
+                            placeholder="VD: Chuyển do yêu cầu đổi phòng, gần lớp học..."
+                            value={transferReason}
+                            onChange={(e) => setTransferReason(e.target.value)}
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Số phòng mới</Label>
+                            <Input
+                              placeholder="VD: P101"
+                              value={transferRoom}
+                              onChange={(e) => setTransferRoom(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Số giường mới</Label>
+                            <Input
+                              placeholder="VD: G1"
+                              value={transferBed}
+                              onChange={(e) => setTransferBed(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsTransferOpen(false)}>
+                          Hủy
+                        </Button>
+                        <Button
+                          onClick={handleTransfer}
+                          disabled={!selectedTransferResident || !transferReason.trim() || transferResident.isPending}
+                        >
+                          {transferResident.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                          Chuyển KTX
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                )}
 
-                <Dialog open={isAddResidentOpen} onOpenChange={setIsAddResidentOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" className="gap-2">
-                      <UserPlus className="h-4 w-4" />
-                      Thêm học viên
-                    </Button>
-                  </DialogTrigger>
+                {canCreate && (
+                  <Dialog open={isAddResidentOpen} onOpenChange={setIsAddResidentOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="gap-2">
+                        <UserPlus className="h-4 w-4" />
+                        Thêm học viên
+                      </Button>
+                    </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Thêm học viên vào KTX</DialogTitle>
@@ -753,6 +764,7 @@ export default function DormitoryPage() {
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
+                )}
               </div>
             )}
           </CardHeader>
@@ -834,7 +846,7 @@ export default function DormitoryPage() {
                             >
                               <History className="h-3.5 w-3.5" />
                             </Button>
-                            {res.status === "Đang ở" && (
+                            {res.status === "Đang ở" && canUpdate && (
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -845,34 +857,36 @@ export default function DormitoryPage() {
                                 <LogOut className="h-3.5 w-3.5" />
                               </Button>
                             )}
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-destructive hover:text-destructive"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Xóa học viên khỏi KTX?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Bạn có chắc muốn xóa học viên này khỏi danh sách KTX?
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Hủy</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleRemoveResident(res.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            {canDelete && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-destructive hover:text-destructive"
                                   >
-                                    Xóa
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Xóa học viên khỏi KTX?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Bạn có chắc muốn xóa học viên này khỏi danh sách KTX? Lịch sử sẽ bị xóa hoàn toàn.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Hủy</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleRemoveResident(res.id)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Xóa
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
