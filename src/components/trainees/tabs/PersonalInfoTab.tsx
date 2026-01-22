@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Trainee } from "@/types/trainee";
 import { useDataMasking } from "@/hooks/useSecureData";
 import { format } from "date-fns";
-import { User, Phone, Mail, MapPin, Heart, Ruler, Scale, Droplets } from "lucide-react";
+import { User, Phone, Mail, MapPin, Heart, Ruler, Scale, Droplets, QrCode, Shirt } from "lucide-react";
 
 interface PersonalInfoTabProps {
   trainee: Trainee;
@@ -129,6 +129,19 @@ export function PersonalInfoTab({ trainee }: PersonalInfoTabProps) {
             <Label className="text-muted-foreground text-xs">SĐT Phụ huynh 2</Label>
             <p>{maskPhone(trainee.parent_phone_2)}</p>
           </div>
+          {(trainee as any).line_qr_url && (
+            <div className="col-span-2">
+              <Label className="text-muted-foreground text-xs flex items-center gap-1">
+                <QrCode className="h-3 w-3" />
+                Line QR
+              </Label>
+              <img 
+                src={(trainee as any).line_qr_url} 
+                alt="Line QR Code" 
+                className="w-16 h-16 object-cover rounded border mt-1"
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -209,6 +222,28 @@ export function PersonalInfoTab({ trainee }: PersonalInfoTabProps) {
           <div className="col-span-2">
             <Label className="text-muted-foreground text-xs">Tình trạng sức khỏe</Label>
             <p>{trainee.health_status || "—"}</p>
+          </div>
+          
+          {/* Clothing Sizes */}
+          <div className="col-span-6 border-t pt-4 mt-2">
+            <div className="flex items-center gap-2 mb-3">
+              <Shirt className="h-4 w-4 text-muted-foreground" />
+              <Label className="font-medium">Số đo</Label>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label className="text-muted-foreground text-xs">Size quần</Label>
+                <p>{(trainee as any).pants_size || "—"}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-xs">Size áo</Label>
+                <p>{(trainee as any).shirt_size || "—"}</p>
+              </div>
+              <div>
+                <Label className="text-muted-foreground text-xs">Size giày</Label>
+                <p>{(trainee as any).shoe_size || "—"}</p>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

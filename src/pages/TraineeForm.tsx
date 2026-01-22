@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { PhotoUpload, uploadPhoto } from "@/components/trainees/PhotoUpload";
+import { LineQRUpload, uploadLineQR } from "@/components/trainees/LineQRUpload";
 import { useTrainee, useUpdateTrainee } from "@/hooks/useTrainees";
 import { useKatakanaConverter } from "@/hooks/useKatakanaConverter";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -111,6 +112,10 @@ interface FormData {
   health_status: string;
   notes: string;
   photo_url: string;
+  line_qr_url: string;
+  pants_size: string;
+  shirt_size: string;
+  shoe_size: string;
   // Status-related dates
   entry_date: string;
   reserve_date: string;
@@ -155,6 +160,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   
   // Pending photo file for upload on save
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
+  const [pendingLineQRFile, setPendingLineQRFile] = useState<File | null>(null);
   
   // History form states
   const [educationItems, setEducationItems] = useState<EducationItem[]>([]);
@@ -265,6 +271,10 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     health_status: "",
     notes: "",
     photo_url: "",
+    line_qr_url: "",
+    pants_size: "",
+    shirt_size: "",
+    shoe_size: "",
     // Status-related dates
     entry_date: "",
     reserve_date: "",
@@ -344,6 +354,10 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         health_status: trainee.health_status || "",
         notes: trainee.notes || "",
         photo_url: trainee.photo_url || "",
+        line_qr_url: (trainee as any).line_qr_url || "",
+        pants_size: (trainee as any).pants_size || "",
+        shirt_size: (trainee as any).shirt_size || "",
+        shoe_size: (trainee as any).shoe_size || "",
         // Status-related dates
         entry_date: trainee.entry_date || "",
         reserve_date: "",
@@ -564,6 +578,10 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     health_status: formData.health_status || null,
     notes: formData.notes || null,
     photo_url: formData.photo_url || null,
+    line_qr_url: formData.line_qr_url || null,
+    pants_size: formData.pants_size || null,
+    shirt_size: formData.shirt_size || null,
+    shoe_size: formData.shoe_size || null,
     // Progression stage dates
     interview_pass_date: formData.interview_pass_date || null,
     document_submission_date: formData.document_submission_date || null,
@@ -610,6 +628,21 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
           console.error("Photo upload error:", error);
           toast({
             title: "Lỗi khi tải ảnh",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+      }
+      
+      // Upload pending Line QR if exists (only for new trainees)
+      if (!isEditMode && pendingLineQRFile) {
+        try {
+          const qrUrl = await uploadLineQR(pendingLineQRFile, formData.trainee_code);
+          traineeData = { ...traineeData, line_qr_url: qrUrl };
+        } catch (error: any) {
+          console.error("Line QR upload error:", error);
+          toast({
+            title: "Lỗi khi tải ảnh QR Line",
             description: error.message,
             variant: "destructive",
           });
@@ -1262,6 +1295,26 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                         disabled={!canEditSensitiveFields && isEditMode && !!formData.parent_phone_2}
                       />
                     </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs text-muted-foreground">Line QR</Label>
+                      <div className="mt-1">
+                        <LineQRUpload
+                          currentQRUrl={formData.line_qr_url}
+                          onQRChange={(url, file) => {
+                            if (file && !isEditMode) {
+                              setPendingLineQRFile(file);
+                            } else if (url === null && file === null) {
+                              setPendingLineQRFile(null);
+                              updateField("line_qr_url", "");
+                            } else {
+                              updateField("line_qr_url", url || "");
+                            }
+                          }}
+                          traineeCode={formData.trainee_code}
+                          previewOnly={!isEditMode}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -1423,6 +1476,37 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                         value={formData.health_status}
                         onChange={(e) => updateField("health_status", e.target.value)}
                         className={getInputClass(formData.health_status)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Measurements - Số đo */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Size quần</Label>
+                      <Input
+                        placeholder="VD: 28, M, L..."
+                        value={formData.pants_size}
+                        onChange={(e) => updateField("pants_size", e.target.value)}
+                        className={getInputClass(formData.pants_size)}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Size áo</Label>
+                      <Input
+                        placeholder="VD: S, M, L, XL..."
+                        value={formData.shirt_size}
+                        onChange={(e) => updateField("shirt_size", e.target.value)}
+                        className={getInputClass(formData.shirt_size)}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Size giày</Label>
+                      <Input
+                        placeholder="VD: 40, 41, 42..."
+                        value={formData.shoe_size}
+                        onChange={(e) => updateField("shoe_size", e.target.value)}
+                        className={getInputClass(formData.shoe_size)}
                       />
                     </div>
                   </div>
