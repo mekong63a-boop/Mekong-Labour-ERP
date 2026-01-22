@@ -731,6 +731,57 @@ export type Database = {
           },
         ]
       }
+      handbook_entries: {
+        Row: {
+          category: string | null
+          content: string | null
+          cost_info: string | null
+          created_at: string
+          created_by: string | null
+          document_urls: string[] | null
+          id: string
+          image_urls: string[] | null
+          is_published: boolean | null
+          order_index: number | null
+          support_policy: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          content?: string | null
+          cost_info?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_urls?: string[] | null
+          id?: string
+          image_urls?: string[] | null
+          is_published?: boolean | null
+          order_index?: number | null
+          support_policy?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          content?: string | null
+          cost_info?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_urls?: string[] | null
+          id?: string
+          image_urls?: string[] | null
+          is_published?: boolean | null
+          order_index?: number | null
+          support_policy?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       interview_history: {
         Row: {
           company_id: string | null
