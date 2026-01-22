@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,42 +6,116 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Mail, ArrowLeft, CheckCircle } from "lucide-react";
+import { Loader2, Mail, ArrowLeft, CheckCircle, Clock } from "lucide-react";
 import mekongLogo from "@/assets/mekong-logo.png";
+
+// Cooldown time in seconds between email requests
+const COOLDOWN_SECONDS = 60;
+const STORAGE_KEY = "password_reset_last_sent";
 
 export default function ForgotPassword() {
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
   // Luôn trỏ về domain publish để tránh email bị trỏ nhầm (localhost/preview)
   const RESET_REDIRECT_URL = "https://erpmekong.lovable.app/reset-password";
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Check cooldown on mount and restore state
+  useEffect(() => {
+    const lastSent = localStorage.getItem(STORAGE_KEY);
+    if (lastSent) {
+      const elapsed = Math.floor((Date.now() - parseInt(lastSent)) / 1000);
+      if (elapsed < COOLDOWN_SECONDS) {
+        setCooldownRemaining(COOLDOWN_SECONDS - elapsed);
+      }
+    }
+  }, []);
+
+  // Countdown timer
+  useEffect(() => {
+    if (cooldownRemaining <= 0) return;
+    
+    const timer = setInterval(() => {
+      setCooldownRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [cooldownRemaining]);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent double submission
+    if (isLoading || cooldownRemaining > 0) return;
+    
     setIsLoading(true);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: RESET_REDIRECT_URL,
-    });
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: RESET_REDIRECT_URL,
+      });
 
-    if (error) {
+      if (error) {
+        // Handle rate limit error specifically
+        if (error.message.includes("rate limit") || error.status === 429) {
+          toast({
+            title: "Quá nhiều yêu cầu",
+            description: "Vui lòng đợi ít nhất 1 phút trước khi thử lại. Supabase giới hạn số email gửi đi.",
+            variant: "destructive",
+          });
+          // Set longer cooldown for rate limit
+          setCooldownRemaining(COOLDOWN_SECONDS);
+          localStorage.setItem(STORAGE_KEY, Date.now().toString());
+        } else {
+          toast({
+            title: "Lỗi",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+      } else {
+        setEmailSent(true);
+        setCooldownRemaining(COOLDOWN_SECONDS);
+        localStorage.setItem(STORAGE_KEY, Date.now().toString());
+        toast({
+          title: "Đã gửi email",
+          description: "Vui lòng kiểm tra hộp thư để đặt lại mật khẩu",
+        });
+      }
+    } catch (err) {
+      console.error("Password reset error:", err);
       toast({
         title: "Lỗi",
-        description: error.message,
+        description: "Đã xảy ra lỗi. Vui lòng thử lại sau.",
         variant: "destructive",
       });
-    } else {
-      setEmailSent(true);
-      toast({
-        title: "Đã gửi email",
-        description: "Vui lòng kiểm tra hộp thư để đặt lại mật khẩu",
-      });
+    } finally {
+      setIsLoading(false);
     }
+  }, [email, isLoading, cooldownRemaining, toast]);
 
-    setIsLoading(false);
-  };
+  const handleResendEmail = useCallback(() => {
+    if (cooldownRemaining > 0) {
+      toast({
+        title: "Vui lòng chờ",
+        description: `Bạn có thể gửi lại sau ${cooldownRemaining} giây`,
+        variant: "destructive",
+      });
+      return;
+    }
+    setEmailSent(false);
+  }, [cooldownRemaining, toast]);
+
+  const isButtonDisabled = isLoading || cooldownRemaining > 0;
 
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
@@ -120,12 +194,26 @@ export default function ForgotPassword() {
             <CardContent className="relative pb-8 px-8">
               {emailSent ? (
                 <div className="space-y-4">
+                  {cooldownRemaining > 0 && (
+                    <div className="flex items-center justify-center gap-2 text-amber-400 text-sm bg-amber-500/10 py-2 rounded-lg">
+                      <Clock className="h-4 w-4" />
+                      <span>Có thể gửi lại sau {cooldownRemaining} giây</span>
+                    </div>
+                  )}
                   <Button
-                    onClick={() => setEmailSent(false)}
+                    onClick={handleResendEmail}
                     variant="outline"
-                    className="w-full h-12 bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-xl"
+                    disabled={cooldownRemaining > 0}
+                    className="w-full h-12 bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Gửi lại email
+                    {cooldownRemaining > 0 ? (
+                      <>
+                        <Clock className="mr-2 h-4 w-4" />
+                        Chờ {cooldownRemaining}s
+                      </>
+                    ) : (
+                      "Gửi lại email"
+                    )}
                   </Button>
                   <Link to="/login">
                     <Button className="w-full h-12 bg-gradient-to-r from-[hsl(152,50%,40%)] to-[hsl(160,45%,35%)] hover:from-[hsl(152,50%,45%)] hover:to-[hsl(160,45%,40%)] text-white font-bold rounded-xl shadow-lg border-0">
@@ -148,16 +236,28 @@ export default function ForgotPassword() {
                       className="h-12 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-[hsl(152,50%,50%)] focus:ring-2 focus:ring-[hsl(152,50%,50%)]/20 rounded-xl transition-all duration-300"
                     />
                   </div>
+
+                  {cooldownRemaining > 0 && (
+                    <div className="flex items-center justify-center gap-2 text-amber-400 text-sm bg-amber-500/10 py-2 rounded-lg">
+                      <Clock className="h-4 w-4" />
+                      <span>Vui lòng chờ {cooldownRemaining} giây trước khi gửi lại</span>
+                    </div>
+                  )}
                   
                   <Button 
                     type="submit" 
-                    className="w-full h-12 bg-gradient-to-r from-[hsl(152,50%,40%)] to-[hsl(160,45%,35%)] hover:from-[hsl(152,50%,45%)] hover:to-[hsl(160,45%,40%)] text-white font-bold rounded-xl shadow-lg shadow-[hsl(152,50%,30%)]/30 hover:shadow-[hsl(152,50%,30%)]/50 transition-all duration-300 border-0"
-                    disabled={isLoading}
+                    className="w-full h-12 bg-gradient-to-r from-[hsl(152,50%,40%)] to-[hsl(160,45%,35%)] hover:from-[hsl(152,50%,45%)] hover:to-[hsl(160,45%,40%)] text-white font-bold rounded-xl shadow-lg shadow-[hsl(152,50%,30%)]/30 hover:shadow-[hsl(152,50%,30%)]/50 transition-all duration-300 border-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isButtonDisabled}
                   >
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                         Đang gửi...
+                      </>
+                    ) : cooldownRemaining > 0 ? (
+                      <>
+                        <Clock className="mr-2 h-5 w-5" />
+                        Chờ {cooldownRemaining}s
                       </>
                     ) : (
                       <>
