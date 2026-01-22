@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,12 +14,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import { Plus, Search, BookOpen, FileText, DollarSign, Heart, Pencil, Trash2, Image, ExternalLink, Users, GraduationCap, FileCheck, Plane } from 'lucide-react';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Plus, Search, BookOpen, FileText, DollarSign, Heart, Pencil, Trash2, Image, ExternalLink, Users, GraduationCap, FileCheck, Plane, ChevronRight, Check } from 'lucide-react';
 import { useCanAction } from '@/hooks/useMenuPermissions';
 import {
   useHandbookEntries,
@@ -29,18 +30,15 @@ import {
 } from '@/hooks/useHandbook';
 import { HandbookEntryDialog } from '@/components/handbook/HandbookEntryDialog';
 
-// Phase configuration with colors, icons, and sub-items based on real XKLĐ Japan process
+// Phase configuration with semantic colors
 const PHASES = [
   {
     id: 'phase-1',
     category: 'Giai đoạn I - Tiếp cận và tư vấn',
-    title: 'GIAI ĐOẠN I',
-    subtitle: 'TIẾP CẬN VÀ TƯ VẤN ỨNG VIÊN',
+    numeral: 'I',
+    title: 'Tiếp cận và tư vấn',
     icon: Users,
-    bgColor: 'bg-blue-500',
-    borderColor: 'border-blue-500',
-    textColor: 'text-blue-600',
-    lightBg: 'bg-blue-50 dark:bg-blue-950/30',
+    color: 'blue',
     subItems: [
       'Hình thức tiếp cận Online và Offline',
       'Tư vấn chương trình (TTS, KND, Kỹ sư, Du học)',
@@ -50,13 +48,10 @@ const PHASES = [
   {
     id: 'phase-2',
     category: 'Giai đoạn II - Đào tạo và phỏng vấn',
-    title: 'GIAI ĐOẠN II',
-    subtitle: 'ĐÀO TẠO VÀ PHỎNG VẤN',
+    numeral: 'II',
+    title: 'Đào tạo và phỏng vấn',
     icon: GraduationCap,
-    bgColor: 'bg-green-500',
-    borderColor: 'border-green-500',
-    textColor: 'text-green-600',
-    lightBg: 'bg-green-50 dark:bg-green-950/30',
+    color: 'green',
     subItems: [
       'Đăng ký nhập học tại trung tâm',
       'Đào tạo tác phong, kỷ luật Nhật Bản',
@@ -69,13 +64,10 @@ const PHASES = [
   {
     id: 'phase-3',
     category: 'Giai đoạn III - Thủ tục pháp lý',
-    title: 'GIAI ĐOẠN III',
-    subtitle: 'HOÀN THIỆN THỦ TỤC PHÁP LÝ',
+    numeral: 'III',
+    title: 'Thủ tục pháp lý',
     icon: FileCheck,
-    bgColor: 'bg-orange-500',
-    borderColor: 'border-orange-500',
-    textColor: 'text-orange-600',
-    lightBg: 'bg-orange-50 dark:bg-orange-950/30',
+    color: 'orange',
     subItems: [
       'Đào tạo ngoại ngữ chuyên ngành (N5/N4)',
       'Làm hồ sơ xin COE (Giấy chứng nhận tư cách lưu trú)',
@@ -86,19 +78,51 @@ const PHASES = [
   {
     id: 'phase-4',
     category: 'Giai đoạn IV - Xuất cảnh và hoàn thành',
-    title: 'GIAI ĐOẠN IV',
-    subtitle: 'XUẤT CẢNH VÀ HOÀN THÀNH HỢP ĐỒNG',
+    numeral: 'IV',
+    title: 'Xuất cảnh và hoàn thành',
     icon: Plane,
-    bgColor: 'bg-red-500',
-    borderColor: 'border-red-500',
-    textColor: 'text-red-600',
-    lightBg: 'bg-red-50 dark:bg-red-950/30',
+    color: 'red',
     subItems: [
       'Xuất cảnh sang Nhật làm việc',
       'Hết hợp đồng: Gia hạn/Chuyển diện Tokutei hoặc Về nước',
     ],
   },
 ];
+
+// Color utility functions
+const getColorClasses = (color: string) => {
+  const colorMap: Record<string, { bg: string; border: string; text: string; light: string; ring: string }> = {
+    blue: {
+      bg: 'bg-blue-500',
+      border: 'border-blue-500',
+      text: 'text-blue-600 dark:text-blue-400',
+      light: 'bg-blue-50 dark:bg-blue-950/40',
+      ring: 'ring-blue-500/20',
+    },
+    green: {
+      bg: 'bg-green-500',
+      border: 'border-green-500',
+      text: 'text-green-600 dark:text-green-400',
+      light: 'bg-green-50 dark:bg-green-950/40',
+      ring: 'ring-green-500/20',
+    },
+    orange: {
+      bg: 'bg-orange-500',
+      border: 'border-orange-500',
+      text: 'text-orange-600 dark:text-orange-400',
+      light: 'bg-orange-50 dark:bg-orange-950/40',
+      ring: 'ring-orange-500/20',
+    },
+    red: {
+      bg: 'bg-red-500',
+      border: 'border-red-500',
+      text: 'text-red-600 dark:text-red-400',
+      light: 'bg-red-50 dark:bg-red-950/40',
+      ring: 'ring-red-500/20',
+    },
+  };
+  return colorMap[color] || colorMap.blue;
+};
 
 export default function HandbookPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -107,6 +131,8 @@ export default function HandbookPage() {
   const [editingEntry, setEditingEntry] = useState<HandbookEntry | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<HandbookEntry | null>(null);
+  const [detailEntry, setDetailEntry] = useState<HandbookEntry | null>(null);
+  const [detailPhaseColor, setDetailPhaseColor] = useState<string>('blue');
 
   const { data: entries = [], isLoading } = useHandbookEntries(debouncedSearch);
   const createEntry = useCreateHandbookEntry();
@@ -133,7 +159,7 @@ export default function HandbookPage() {
     );
   };
 
-  // Get entries not matching any phase (for "Khác" category)
+  // Get entries not matching any phase
   const getOtherEntries = () => {
     const phaseKeywords = PHASES.map(p => p.category.toLowerCase().split(' - ')[1] || '');
     return entries.filter(entry => {
@@ -157,6 +183,7 @@ export default function HandbookPage() {
       await deleteEntry.mutateAsync(entryToDelete.id);
       setDeleteDialogOpen(false);
       setEntryToDelete(null);
+      setDetailEntry(null);
     }
   };
 
@@ -176,266 +203,165 @@ export default function HandbookPage() {
     }
   };
 
+  const openDetail = (entry: HandbookEntry, color: string) => {
+    setDetailEntry(entry);
+    setDetailPhaseColor(color);
+  };
+
   const getFileName = (url: string) => {
     const parts = url.split('/');
     const name = parts[parts.length - 1];
     return decodeURIComponent(name.replace(/^\d+_/, '')).substring(0, 40);
   };
 
-  const renderEntryContent = (entry: HandbookEntry) => (
-    <div className="space-y-6">
-      {/* Main Content */}
-      {entry.content && (
-        <div className="prose prose-sm max-w-none">
-          <div className="whitespace-pre-wrap text-muted-foreground leading-relaxed">
-            {entry.content}
-          </div>
-        </div>
-      )}
+  const otherEntries = getOtherEntries();
 
-      {/* Info Grid */}
-      <div className="grid md:grid-cols-2 gap-4">
-        {/* Cost Info */}
-        {entry.cost_info && (
-          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
-            <div className="flex items-center gap-2 font-semibold text-blue-800 dark:text-blue-300 mb-2">
-              <DollarSign className="h-5 w-5" />
-              Chi phí tham gia
-            </div>
-            <div className="text-sm text-blue-700 dark:text-blue-400 whitespace-pre-wrap">
-              {entry.cost_info}
-            </div>
-          </div>
-        )}
-
-        {/* Support Policy */}
-        {entry.support_policy && (
-          <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 rounded-lg p-4">
-            <div className="flex items-center gap-2 font-semibold text-green-800 dark:text-green-300 mb-2">
-              <Heart className="h-5 w-5" />
-              Chính sách hỗ trợ
-            </div>
-            <div className="text-sm text-green-700 dark:text-green-400 whitespace-pre-wrap">
-              {entry.support_policy}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Images Gallery */}
-      {entry.image_urls && entry.image_urls.length > 0 && (
-        <div>
-          <h4 className="font-medium mb-3 flex items-center gap-2">
-            <Image className="h-4 w-4" />
-            Hình ảnh minh họa
-          </h4>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {entry.image_urls.map((url, idx) => (
-              <a 
-                key={idx} 
-                href={url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="group relative aspect-square rounded-lg overflow-hidden border bg-muted"
-              >
-                <img
-                  src={url}
-                  alt={`Hình ${idx + 1}`}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                  <ExternalLink className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Documents */}
-      {entry.document_urls && entry.document_urls.length > 0 && (
-        <div>
-          <h4 className="font-medium mb-3 flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Giấy tờ pháp lý & Tài liệu
-          </h4>
-          <div className="grid sm:grid-cols-2 gap-2">
-            {entry.document_urls.map((url, idx) => (
-              <a
-                key={idx}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3 bg-muted/50 border rounded-lg hover:bg-muted transition-colors group"
-              >
-                <div className="bg-primary/10 text-primary rounded p-2">
-                  <FileText className="h-5 w-5" />
-                </div>
-                <span className="flex-1 text-sm font-medium truncate">
-                  {getFileName(url)}
-                </span>
-                <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderPhaseSection = (phase: typeof PHASES[0], phaseEntries: HandbookEntry[]) => {
-    const PhaseIcon = phase.icon;
+  // Detail Dialog Content
+  const renderDetailContent = (entry: HandbookEntry) => {
+    const colors = getColorClasses(detailPhaseColor);
     
     return (
-      <div key={phase.id} className={`border-l-4 ${phase.borderColor} bg-card rounded-xl overflow-hidden shadow-sm`}>
-        {/* Phase Header */}
-        <div className={`${phase.bgColor} text-white px-6 py-4`}>
-          <div className="flex items-center gap-4">
-            <div className="bg-white/20 rounded-full p-3">
-              <PhaseIcon className="h-6 w-6" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold">{phase.title}</h2>
-              <p className="text-white/90 text-sm">{phase.subtitle}</p>
-            </div>
-            <div className="ml-auto bg-white/20 rounded-full px-3 py-1 text-sm font-medium">
-              {phaseEntries.length} mục
+      <div className="space-y-6">
+        {/* Main Content */}
+        {entry.content && (
+          <div className="prose prose-sm max-w-none">
+            <div className="whitespace-pre-wrap text-muted-foreground leading-relaxed">
+              {entry.content}
             </div>
           </div>
+        )}
+
+        {/* Info Grid */}
+        <div className="grid md:grid-cols-2 gap-4">
+          {entry.cost_info && (
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="flex items-center gap-2 font-semibold text-blue-700 dark:text-blue-300 mb-2">
+                <DollarSign className="h-5 w-5" />
+                Chi phí tham gia
+              </div>
+              <div className="text-sm text-blue-600 dark:text-blue-400 whitespace-pre-wrap">
+                {entry.cost_info}
+              </div>
+            </div>
+          )}
+
+          {entry.support_policy && (
+            <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <div className="flex items-center gap-2 font-semibold text-green-700 dark:text-green-300 mb-2">
+                <Heart className="h-5 w-5" />
+                Chính sách hỗ trợ
+              </div>
+              <div className="text-sm text-green-600 dark:text-green-400 whitespace-pre-wrap">
+                {entry.support_policy}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Phase Content */}
-        {phaseEntries.length === 0 ? (
-          <div className="p-6">
-            <p className="text-sm text-muted-foreground mb-4 text-center">Chưa có nội dung cho giai đoạn này</p>
-            
-            {/* Show expected sub-items as guide */}
-            {phase.subItems && phase.subItems.length > 0 && (
-              <div className="mb-4">
-                <p className="text-xs text-muted-foreground mb-2 font-medium">Các mục cần thêm:</p>
-                <ul className="space-y-1.5">
-                  {phase.subItems.map((item, idx) => (
-                    <li key={idx} className={`flex items-center gap-2 text-sm ${phase.textColor}`}>
-                      <span className={`${phase.bgColor}/20 ${phase.textColor} rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium`}>
-                        {idx + 1}
-                      </span>
-                      <span className="text-foreground/70">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {canCreate && (
-              <div className="text-center">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setDialogOpen(true)}
+        {/* Images Gallery */}
+        {entry.image_urls && entry.image_urls.length > 0 && (
+          <div>
+            <h4 className="font-medium mb-3 flex items-center gap-2">
+              <Image className="h-4 w-4" />
+              Hình ảnh minh họa
+            </h4>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {entry.image_urls.map((url, idx) => (
+                <a 
+                  key={idx} 
+                  href={url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="group relative aspect-video rounded-lg overflow-hidden border bg-muted"
                 >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Thêm nội dung
-                </Button>
-              </div>
-            )}
+                  <img
+                    src={url}
+                    alt={`Hình ${idx + 1}`}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                    <ExternalLink className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </a>
+              ))}
+            </div>
           </div>
-        ) : (
-          <Accordion type="multiple" className="divide-y">
-            {phaseEntries.map((entry, index) => (
-              <AccordionItem key={entry.id} value={entry.id} className="border-0">
-                <div className="flex items-center">
-                  <AccordionTrigger className="flex-1 px-6 py-4 hover:no-underline hover:bg-muted/30">
-                    <div className="flex items-center gap-3 text-left">
-                      <span className={`${phase.bgColor} text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-medium`}>
-                        {index + 1}
-                      </span>
-                      <span className="font-medium">{entry.title}</span>
-                      {entry.tags && entry.tags.length > 0 && (
-                        <div className="hidden sm:flex gap-1">
-                          {entry.tags.slice(0, 2).map((tag) => (
-                            <span key={tag} className={`${phase.lightBg} ${phase.textColor} text-xs px-2 py-0.5 rounded`}>
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </AccordionTrigger>
-                  {(canUpdate || canDelete) && (
-                    <div className="flex gap-1 pr-4">
-                      {canUpdate && (
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(entry)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {canDelete && (
-                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(entry)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <AccordionContent className="px-6 pb-6">
-                  {renderEntryContent(entry)}
-                </AccordionContent>
-              </AccordionItem>
+        )}
+
+        {/* Documents */}
+        {entry.document_urls && entry.document_urls.length > 0 && (
+          <div>
+            <h4 className="font-medium mb-3 flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Tài liệu đính kèm
+            </h4>
+            <div className="grid gap-2">
+              {entry.document_urls.map((url, idx) => (
+                <a
+                  key={idx}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-3 bg-muted/50 border rounded-lg hover:bg-muted transition-colors group"
+                >
+                  <div className={`${colors.light} ${colors.text} rounded p-2`}>
+                    <FileText className="h-5 w-5" />
+                  </div>
+                  <span className="flex-1 text-sm font-medium truncate">
+                    {getFileName(url)}
+                  </span>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Tags */}
+        {entry.tags && entry.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 pt-2 border-t">
+            {entry.tags.map((tag) => (
+              <span key={tag} className={`${colors.light} ${colors.text} text-xs px-2.5 py-1 rounded-full`}>
+                {tag}
+              </span>
             ))}
-          </Accordion>
+          </div>
         )}
       </div>
     );
   };
 
-  const otherEntries = getOtherEntries();
-
   return (
     <div className="min-h-screen">
-      {/* Hero Section - Mekong Style */}
-      <div className="relative bg-gradient-to-br from-green-600 via-green-500 to-emerald-400 text-white py-12 px-6 -mx-6 -mt-6 mb-8 overflow-hidden">
-        {/* Light beam effects */}
+      {/* Hero Section */}
+      <div className="relative bg-gradient-to-br from-green-600 via-green-500 to-emerald-400 text-white py-10 px-6 -mx-6 -mt-6 mb-8 overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-1/2 -right-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
           <div className="absolute -bottom-1/2 -left-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
-          <div className="absolute top-0 left-1/2 w-px h-full bg-gradient-to-b from-white/20 via-white/5 to-transparent"></div>
         </div>
 
         <div className="relative max-w-4xl mx-auto text-center">
-          {/* Flags */}
-          <div className="flex justify-center items-center gap-4 mb-6">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🇻🇳</span>
-              <span className="text-white/80">Việt Nam</span>
-            </div>
+          <div className="flex justify-center items-center gap-4 mb-4">
+            <span className="text-2xl">🇻🇳</span>
             <div className="w-8 h-0.5 bg-white/40"></div>
-            <div className="flex items-center gap-2">
-              <span className="text-white/80">日本</span>
-              <span className="text-2xl">🇯🇵</span>
-            </div>
+            <span className="text-2xl">🇯🇵</span>
           </div>
 
-          {/* Main Title */}
-          <h1 className="text-2xl md:text-4xl font-bold mb-4 leading-tight">
-            Chào Mừng Đối Tác!
-            <br />
-            <span className="text-yellow-300">Cùng Mekong Kiến Tạo Tương Lai</span>
-            <br />
-            Cho Lao Động Việt
+          <h1 className="text-2xl md:text-3xl font-bold mb-3">
+            Cẩm Nang Tư Vấn XKLĐ Nhật Bản
           </h1>
           
-          <p className="text-lg text-white/90 mb-6 max-w-2xl mx-auto">
-            Cẩm nang tư vấn dành cho cộng tác viên - Hướng dẫn chi tiết quy trình tuyển dụng, 
-            đào tạo và xuất cảnh lao động sang Nhật Bản
+          <p className="text-white/90 mb-6 max-w-xl mx-auto">
+            Hướng dẫn chi tiết quy trình từ tuyển dụng đến xuất cảnh
           </p>
           
-          {/* Search Box */}
-          <div className="max-w-xl mx-auto relative">
+          <div className="max-w-md mx-auto relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Tìm kiếm nội dung, quy trình, chính sách..."
+              placeholder="Tìm kiếm nội dung..."
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
-              className="pl-12 h-12 text-foreground bg-background border-0 shadow-lg"
+              className="pl-12 h-11 text-foreground bg-background border-0 shadow-lg"
             />
           </div>
         </div>
@@ -444,21 +370,27 @@ export default function HandbookPage() {
       {/* Admin Actions */}
       {canCreate && (
         <div className="flex justify-end mb-6">
-          <Button onClick={() => setDialogOpen(true)} size="lg">
-            <Plus className="h-5 w-5 mr-2" />
-            Thêm nội dung mới
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Thêm nội dung
           </Button>
         </div>
       )}
 
       {/* Content */}
       {isLoading ? (
-        <div className="space-y-4">
+        <div className="space-y-8">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="border rounded-lg p-6">
-              <Skeleton className="h-16 w-full mb-4" />
-              <Skeleton className="h-4 w-full mb-2" />
-              <Skeleton className="h-4 w-2/3" />
+            <div key={i} className="flex gap-4">
+              <Skeleton className="h-12 w-12 rounded-full shrink-0" />
+              <div className="flex-1">
+                <Skeleton className="h-6 w-48 mb-4" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Skeleton className="h-24 rounded-lg" />
+                  <Skeleton className="h-24 rounded-lg" />
+                  <Skeleton className="h-24 rounded-lg" />
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -467,11 +399,11 @@ export default function HandbookPage() {
           <BookOpen className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-xl font-medium mb-2">Chưa có nội dung</h3>
           <p className="text-muted-foreground mb-6">
-            Bắt đầu thêm nội dung quy trình tuyển dụng cho từng giai đoạn
+            Bắt đầu thêm nội dung cho từng giai đoạn
           </p>
           {canCreate && (
-            <Button onClick={() => setDialogOpen(true)} size="lg">
-              <Plus className="h-5 w-5 mr-2" />
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
               Thêm mục đầu tiên
             </Button>
           )}
@@ -480,68 +412,199 @@ export default function HandbookPage() {
         <div className="bg-card border rounded-xl py-16 text-center">
           <Search className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-xl font-medium mb-2">Không tìm thấy kết quả</h3>
-          <p className="text-muted-foreground">
-            Thử tìm kiếm với từ khóa khác
-          </p>
+          <p className="text-muted-foreground">Thử tìm với từ khóa khác</p>
         </div>
       ) : (
-        <div className="space-y-6">
-          {/* 4 Phases */}
-          {PHASES.map((phase) => {
-            const phaseEntries = getEntriesByPhase(phase.category);
-            return renderPhaseSection(phase, phaseEntries);
-          })}
+        <div className="relative">
+          {/* Timeline Line */}
+          <div className="absolute left-6 top-6 bottom-6 w-0.5 bg-border hidden md:block" />
 
-          {/* Other entries not matching any phase */}
-          {otherEntries.length > 0 && (
-            <div className="bg-card border rounded-xl overflow-hidden shadow-sm">
-              <div className="bg-muted/50 px-6 py-4 border-b">
-                <h2 className="text-xl font-semibold text-foreground flex items-center gap-3">
-                  <span className="bg-gray-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm">
-                    {otherEntries.length}
-                  </span>
-                  Nội dung khác
-                </h2>
-              </div>
-              <Accordion type="multiple" className="divide-y">
-                {otherEntries.map((entry) => (
-                  <AccordionItem key={entry.id} value={entry.id} className="border-0">
-                    <div className="flex items-center">
-                      <AccordionTrigger className="flex-1 px-6 py-4 hover:no-underline hover:bg-muted/30">
-                        <div className="flex items-center gap-3 text-left">
-                          <span className="font-medium text-lg">{entry.title}</span>
-                          {entry.category && (
-                            <span className="bg-muted text-muted-foreground text-xs px-2 py-0.5 rounded">
-                              {entry.category}
-                            </span>
-                          )}
-                        </div>
-                      </AccordionTrigger>
-                      {(canUpdate || canDelete) && (
-                        <div className="flex gap-1 pr-4">
-                          {canUpdate && (
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(entry)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {canDelete && (
-                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(entry)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      )}
+          {/* Phases */}
+          <div className="space-y-8">
+            {PHASES.map((phase, phaseIndex) => {
+              const phaseEntries = getEntriesByPhase(phase.category);
+              const colors = getColorClasses(phase.color);
+              const PhaseIcon = phase.icon;
+              const isLast = phaseIndex === PHASES.length - 1;
+
+              return (
+                <div key={phase.id} className="relative flex gap-4 md:gap-6">
+                  {/* Timeline Marker */}
+                  <div className="hidden md:flex flex-col items-center z-10">
+                    <div className={`w-12 h-12 rounded-full ${colors.bg} text-white flex items-center justify-center font-bold text-lg shadow-lg ring-4 ring-background`}>
+                      {phase.numeral}
                     </div>
-                    <AccordionContent className="px-6 pb-6">
-                      {renderEntryContent(entry)}
-                    </AccordionContent>
-                  </AccordionItem>
+                    {!isLast && (
+                      <div className={`w-0.5 flex-1 ${colors.bg} opacity-30 mt-2`} />
+                    )}
+                  </div>
+
+                  {/* Phase Content */}
+                  <div className="flex-1 min-w-0">
+                    {/* Phase Header */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={`md:hidden w-10 h-10 rounded-full ${colors.bg} text-white flex items-center justify-center font-bold shadow`}>
+                        {phase.numeral}
+                      </div>
+                      <div className="flex-1">
+                        <h2 className={`text-lg font-bold ${colors.text}`}>
+                          Giai đoạn {phase.numeral}: {phase.title}
+                        </h2>
+                        <p className="text-sm text-muted-foreground">
+                          {phaseEntries.length} nội dung
+                        </p>
+                      </div>
+                      <PhaseIcon className={`h-6 w-6 ${colors.text} opacity-60`} />
+                    </div>
+
+                    {/* Cards Grid */}
+                    {phaseEntries.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {phaseEntries.map((entry) => (
+                          <Card
+                            key={entry.id}
+                            className={`group cursor-pointer transition-all hover:shadow-md hover:ring-2 ${colors.ring} border-l-4 ${colors.border}`}
+                            onClick={() => openDetail(entry, phase.color)}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between gap-2">
+                                <h3 className="font-medium text-sm leading-tight line-clamp-2 group-hover:text-foreground">
+                                  {entry.title}
+                                </h3>
+                                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                              </div>
+                              
+                              {/* Quick indicators */}
+                              <div className="flex items-center gap-2 mt-3 text-muted-foreground">
+                                {entry.cost_info && (
+                                  <span title="Có thông tin chi phí"><DollarSign className="h-3.5 w-3.5" /></span>
+                                )}
+                                {entry.support_policy && (
+                                  <span title="Có chính sách hỗ trợ"><Heart className="h-3.5 w-3.5" /></span>
+                                )}
+                                {entry.image_urls && entry.image_urls.length > 0 && (
+                                  <span title="Có hình ảnh"><Image className="h-3.5 w-3.5" /></span>
+                                )}
+                                {entry.document_urls && entry.document_urls.length > 0 && (
+                                  <span title="Có tài liệu"><FileText className="h-3.5 w-3.5" /></span>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      /* Empty state with sub-items guide */
+                      <Card className={`border-dashed ${colors.border} border-2`}>
+                        <CardContent className="p-4">
+                          <p className="text-sm text-muted-foreground mb-3">Các mục cần thêm:</p>
+                          <ul className="space-y-2">
+                            {phase.subItems.map((item, idx) => (
+                              <li key={idx} className="flex items-center gap-2 text-sm">
+                                <div className={`w-5 h-5 rounded-full ${colors.light} ${colors.text} flex items-center justify-center text-xs font-medium`}>
+                                  {idx + 1}
+                                </div>
+                                <span className="text-foreground/70">{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          {canCreate && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="mt-4"
+                              onClick={() => setDialogOpen(true)}
+                            >
+                              <Plus className="h-4 w-4 mr-1" />
+                              Thêm nội dung
+                            </Button>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Other entries */}
+          {otherEntries.length > 0 && (
+            <div className="mt-10 pt-8 border-t">
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-muted-foreground" />
+                Nội dung khác
+                <span className="text-sm font-normal text-muted-foreground">({otherEntries.length})</span>
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {otherEntries.map((entry) => (
+                  <Card
+                    key={entry.id}
+                    className="group cursor-pointer transition-all hover:shadow-md"
+                    onClick={() => openDetail(entry, 'blue')}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-medium text-sm leading-tight line-clamp-2">
+                          {entry.title}
+                        </h3>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      </div>
+                      {entry.category && (
+                        <span className="inline-block mt-2 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                          {entry.category}
+                        </span>
+                      )}
+                    </CardContent>
+                  </Card>
                 ))}
-              </Accordion>
+              </div>
             </div>
           )}
         </div>
       )}
+
+      {/* Detail Dialog */}
+      <Dialog open={!!detailEntry} onOpenChange={(open) => !open && setDetailEntry(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          {detailEntry && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <DialogTitle className="text-xl">{detailEntry.title}</DialogTitle>
+                  {(canUpdate || canDelete) && (
+                    <div className="flex gap-1">
+                      {canUpdate && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => {
+                            handleEdit(detailEntry);
+                            setDetailEntry(null);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canDelete && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-destructive"
+                          onClick={() => handleDelete(detailEntry)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </DialogHeader>
+              {renderDetailContent(detailEntry)}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Entry Dialog */}
       <HandbookEntryDialog
