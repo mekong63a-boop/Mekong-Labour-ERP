@@ -13,6 +13,7 @@ interface UseDuplicateCheckOptions {
   field: string;
   currentId?: string; // For edit mode - exclude current record
   enabled?: boolean;
+  caseInsensitive?: boolean; // Force case-insensitive check
 }
 
 /**
@@ -24,7 +25,7 @@ export function useDuplicateCheck(
   value: string,
   options: UseDuplicateCheckOptions
 ): DuplicateCheckResult {
-  const { table, field, currentId, enabled = true } = options;
+  const { table, field, currentId, enabled = true, caseInsensitive = false } = options;
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,8 +50,11 @@ export function useDuplicateCheck(
       let data: { id: string }[] | null = null;
       let dbError: any = null;
 
-      if (field === 'name') {
-        // Case-insensitive comparison for name
+      // Use case-insensitive for name fields or when explicitly requested
+      const useCaseInsensitive = field === 'name' || field === 'name_japanese' || caseInsensitive;
+      
+      if (useCaseInsensitive) {
+        // Case-insensitive comparison
         const result = await supabase
           .from(table)
           .select('id')
@@ -113,14 +117,17 @@ export function getDuplicateErrorMessage(table: string, field: string): string {
     companies: {
       code: 'Mã công ty đã tồn tại',
       name: 'Tên công ty đã tồn tại',
+      name_japanese: 'Tên tiếng Nhật đã tồn tại',
     },
     unions: {
       code: 'Mã nghiệp đoàn đã tồn tại',
       name: 'Tên nghiệp đoàn đã tồn tại',
+      name_japanese: 'Tên tiếng Nhật đã tồn tại',
     },
     job_categories: {
       code: 'Mã ngành nghề đã tồn tại',
       name: 'Tên ngành nghề đã tồn tại',
+      name_japanese: 'Tên tiếng Nhật đã tồn tại',
     },
     referral_sources: {
       name: 'Nguồn giới thiệu đã tồn tại',

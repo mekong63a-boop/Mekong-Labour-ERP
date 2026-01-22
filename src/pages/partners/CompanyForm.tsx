@@ -66,6 +66,17 @@ export default function CompanyForm() {
     }
   );
 
+  // Real-time duplicate check for Japanese name
+  const { isDuplicate: isNameJpDuplicate, isChecking: isCheckingNameJp } = useDuplicateCheck(
+    formData.name_japanese,
+    {
+      table: 'companies',
+      field: 'name_japanese',
+      currentId: id,
+      enabled: formData.name_japanese.length >= 2,
+    }
+  );
+
   useEffect(() => {
     if (isEdit && companies) {
       const company = companies.find((c) => c.id === id);
@@ -109,6 +120,14 @@ export default function CompanyForm() {
       });
       return;
     }
+    if (isNameJpDuplicate) {
+      toast({
+        title: "Tên tiếng Nhật đã tồn tại",
+        description: "Vui lòng nhập tên khác.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (isEdit && id) {
       await updateCompany.mutateAsync({ id, data: formData });
@@ -119,6 +138,7 @@ export default function CompanyForm() {
   };
 
   const isSubmitting = createCompany.isPending || updateCompany.isPending;
+  const hasDuplicates = isCodeDuplicate || isNameDuplicate || isNameJpDuplicate;
 
   return (
     <div className="p-6 space-y-6">
@@ -142,7 +162,7 @@ export default function CompanyForm() {
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || isCodeDuplicate || isNameDuplicate}
+            disabled={isSubmitting || hasDuplicates}
             className="bg-primary hover:bg-primary/90"
           >
             <Save className="h-4 w-4 mr-2" />

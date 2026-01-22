@@ -64,6 +64,17 @@ export default function UnionForm() {
     }
   );
 
+  // Real-time duplicate check for Japanese name
+  const { isDuplicate: isNameJpDuplicate, isChecking: isCheckingNameJp } = useDuplicateCheck(
+    formData.name_japanese,
+    {
+      table: 'unions',
+      field: 'name_japanese',
+      currentId: id,
+      enabled: formData.name_japanese.length >= 2,
+    }
+  );
+
   useEffect(() => {
     if (isEdit && unions) {
       const union = unions.find((u) => u.id === id);
@@ -105,6 +116,14 @@ export default function UnionForm() {
       });
       return;
     }
+    if (isNameJpDuplicate) {
+      toast({
+        title: "Tên tiếng Nhật đã tồn tại",
+        description: "Vui lòng nhập tên khác.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (isEdit && id) {
       await updateUnion.mutateAsync({ id, data: formData });
@@ -115,6 +134,7 @@ export default function UnionForm() {
   };
 
   const isSubmitting = createUnion.isPending || updateUnion.isPending;
+  const hasDuplicates = isCodeDuplicate || isNameDuplicate || isNameJpDuplicate;
 
   return (
     <div className="p-6 space-y-6">
@@ -139,7 +159,7 @@ export default function UnionForm() {
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || isCodeDuplicate || isNameDuplicate}
+            disabled={isSubmitting || hasDuplicates}
             className="bg-primary/80 hover:bg-primary"
           >
             <Save className="h-4 w-4 mr-2" />
