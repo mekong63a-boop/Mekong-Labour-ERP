@@ -13,5 +13,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    // Đảm bảo Supabase tự đọc token/session từ link reset mật khẩu
+    // (access_token/refresh_token hoặc code) và phát event PASSWORD_RECOVERY.
+    detectSessionInUrl: true,
   }
 });
