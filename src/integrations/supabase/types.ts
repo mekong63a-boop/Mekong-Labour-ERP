@@ -427,11 +427,13 @@ export type Database = {
           check_out_date: string | null
           created_at: string
           dormitory_id: string
+          from_dormitory_id: string | null
           id: string
           notes: string | null
           room_number: string | null
           status: string | null
           trainee_id: string
+          transfer_reason: string | null
           updated_at: string
         }
         Insert: {
@@ -440,11 +442,13 @@ export type Database = {
           check_out_date?: string | null
           created_at?: string
           dormitory_id: string
+          from_dormitory_id?: string | null
           id?: string
           notes?: string | null
           room_number?: string | null
           status?: string | null
           trainee_id: string
+          transfer_reason?: string | null
           updated_at?: string
         }
         Update: {
@@ -453,17 +457,26 @@ export type Database = {
           check_out_date?: string | null
           created_at?: string
           dormitory_id?: string
+          from_dormitory_id?: string | null
           id?: string
           notes?: string | null
           room_number?: string | null
           status?: string | null
           trainee_id?: string
+          transfer_reason?: string | null
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "dormitory_residents_dormitory_id_fkey"
             columns: ["dormitory_id"]
+            isOneToOne: false
+            referencedRelation: "dormitories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dormitory_residents_from_dormitory_id_fkey"
+            columns: ["from_dormitory_id"]
             isOneToOne: false
             referencedRelation: "dormitories"
             referencedColumns: ["id"]

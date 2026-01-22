@@ -51,6 +51,9 @@ import {
   Loader2,
   Home,
   User,
+  ArrowRightLeft,
+  History,
+  ArrowRight,
 } from "lucide-react";
 import {
   useDormitoriesWithCount,
@@ -62,7 +65,11 @@ import {
   useCheckOutResident,
   useRemoveResident,
   useAvailableTrainees,
+  useTraineesInOtherDormitories,
+  useTransferResident,
+  useTraineeDormitoryHistory,
   Dormitory,
+  DormitoryResident,
 } from "@/hooks/useDormitory";
 import { format } from "date-fns";
 
@@ -71,6 +78,10 @@ export default function DormitoryPage() {
   const [isAddDormOpen, setIsAddDormOpen] = useState(false);
   const [isEditDormOpen, setIsEditDormOpen] = useState(false);
   const [isAddResidentOpen, setIsAddResidentOpen] = useState(false);
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [historyTraineeId, setHistoryTraineeId] = useState<string | null>(null);
+  const [historyTraineeName, setHistoryTraineeName] = useState<string>("");
   const [editingDorm, setEditingDorm] = useState<Dormitory | null>(null);
 
   // Form states
@@ -85,10 +96,18 @@ export default function DormitoryPage() {
   const [bedNumber, setBedNumber] = useState("");
   const [residentNotes, setResidentNotes] = useState("");
 
+  // Transfer form
+  const [selectedTransferResident, setSelectedTransferResident] = useState<DormitoryResident | null>(null);
+  const [transferReason, setTransferReason] = useState("");
+  const [transferRoom, setTransferRoom] = useState("");
+  const [transferBed, setTransferBed] = useState("");
+
   // Queries
   const { data: dormitories, isLoading: isLoadingDorms } = useDormitoriesWithCount();
   const { data: residents, isLoading: isLoadingResidents } = useDormitoryResidents(selectedDormitory);
   const { data: availableTrainees } = useAvailableTrainees();
+  const { data: transferableTrainees } = useTraineesInOtherDormitories(selectedDormitory);
+  const { data: traineeHistory, isLoading: isLoadingHistory } = useTraineeDormitoryHistory(historyTraineeId);
 
   // Mutations
   const createDormitory = useCreateDormitory();
@@ -97,6 +116,7 @@ export default function DormitoryPage() {
   const addResident = useAddResident();
   const checkOutResident = useCheckOutResident();
   const removeResident = useRemoveResident();
+  const transferResident = useTransferResident();
 
   const handleAddDormitory = async () => {
     if (!newDormName.trim()) return;
@@ -160,6 +180,29 @@ export default function DormitoryPage() {
     await removeResident.mutateAsync(residentId);
   };
 
+  const handleTransfer = async () => {
+    if (!selectedDormitory || !selectedTransferResident || !transferReason.trim()) return;
+
+    await transferResident.mutateAsync({
+      currentResidentId: selectedTransferResident.id,
+      traineeId: selectedTransferResident.trainee_id,
+      fromDormitoryId: selectedTransferResident.dormitory_id,
+      toDormitoryId: selectedDormitory,
+      roomNumber: transferRoom.trim() || undefined,
+      bedNumber: transferBed.trim() || undefined,
+      transferReason: transferReason.trim(),
+    });
+
+    setIsTransferOpen(false);
+    resetTransferForm();
+  };
+
+  const openHistory = (traineeId: string, traineeName: string) => {
+    setHistoryTraineeId(traineeId);
+    setHistoryTraineeName(traineeName);
+    setIsHistoryOpen(true);
+  };
+
   const resetDormForm = () => {
     setNewDormName("");
     setNewDormAddress("");
@@ -174,6 +217,13 @@ export default function DormitoryPage() {
     setResidentNotes("");
   };
 
+  const resetTransferForm = () => {
+    setSelectedTransferResident(null);
+    setTransferReason("");
+    setTransferRoom("");
+    setTransferBed("");
+  };
+
   const openEditDialog = (dorm: Dormitory) => {
     setEditingDorm(dorm);
     setNewDormName(dorm.name);
@@ -184,6 +234,19 @@ export default function DormitoryPage() {
   };
 
   const selectedDormData = dormitories?.find((d) => d.id === selectedDormitory);
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "Đang ở":
+        return <Badge variant="default">{status}</Badge>;
+      case "Đã rời":
+        return <Badge variant="secondary">{status}</Badge>;
+      case "Đã chuyển":
+        return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">{status}</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -380,82 +443,164 @@ export default function DormitoryPage() {
               )}
             </div>
             {selectedDormitory && (
-              <Dialog open={isAddResidentOpen} onOpenChange={setIsAddResidentOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="gap-2">
-                    <UserPlus className="h-4 w-4" />
-                    Thêm học viên
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Thêm học viên vào KTX</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label>Chọn học viên *</Label>
-                      <Select value={selectedTrainee} onValueChange={setSelectedTrainee}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Chọn học viên..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableTrainees?.map((t) => (
-                            <SelectItem key={t.id} value={t.id}>
-                              {t.trainee_code} - {t.full_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {availableTrainees?.length === 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          Không có học viên khả dụng (đã ở KTX hoặc không ở giai đoạn phù hợp)
-                        </p>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="room">Số phòng</Label>
-                        <Input
-                          id="room"
-                          placeholder="VD: P101"
-                          value={roomNumber}
-                          onChange={(e) => setRoomNumber(e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="bed">Số giường</Label>
-                        <Input
-                          id="bed"
-                          placeholder="VD: G1"
-                          value={bedNumber}
-                          onChange={(e) => setBedNumber(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="resNotes">Ghi chú</Label>
-                      <Textarea
-                        id="resNotes"
-                        placeholder="Ghi chú thêm..."
-                        value={residentNotes}
-                        onChange={(e) => setResidentNotes(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsAddResidentOpen(false)}>
-                      Hủy
+              <div className="flex gap-2">
+                <Dialog open={isTransferOpen} onOpenChange={setIsTransferOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="gap-2">
+                      <ArrowRightLeft className="h-4 w-4" />
+                      Chuyển KTX
                     </Button>
-                    <Button
-                      onClick={handleAddResident}
-                      disabled={!selectedTrainee || addResident.isPending}
-                    >
-                      {addResident.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Chuyển học viên từ KTX khác</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Chọn học viên muốn chuyển *</Label>
+                        <Select
+                          value={selectedTransferResident?.id || ""}
+                          onValueChange={(val) => {
+                            const resident = transferableTrainees?.find((r) => r.id === val);
+                            setSelectedTransferResident(resident || null);
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Chọn học viên..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {transferableTrainees?.map((r) => (
+                              <SelectItem key={r.id} value={r.id}>
+                                {r.trainee?.trainee_code} - {r.trainee?.full_name} ({r.dormitory?.name})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {transferableTrainees?.length === 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            Không có học viên ở KTX khác để chuyển
+                          </p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Lý do chuyển KTX *</Label>
+                        <Textarea
+                          placeholder="VD: Chuyển do yêu cầu đổi phòng, gần lớp học..."
+                          value={transferReason}
+                          onChange={(e) => setTransferReason(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Số phòng mới</Label>
+                          <Input
+                            placeholder="VD: P101"
+                            value={transferRoom}
+                            onChange={(e) => setTransferRoom(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Số giường mới</Label>
+                          <Input
+                            placeholder="VD: G1"
+                            value={transferBed}
+                            onChange={(e) => setTransferBed(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsTransferOpen(false)}>
+                        Hủy
+                      </Button>
+                      <Button
+                        onClick={handleTransfer}
+                        disabled={!selectedTransferResident || !transferReason.trim() || transferResident.isPending}
+                      >
+                        {transferResident.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                        Chuyển KTX
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={isAddResidentOpen} onOpenChange={setIsAddResidentOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="gap-2">
+                      <UserPlus className="h-4 w-4" />
                       Thêm học viên
                     </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Thêm học viên vào KTX</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Chọn học viên *</Label>
+                        <Select value={selectedTrainee} onValueChange={setSelectedTrainee}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Chọn học viên..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableTrainees?.map((t) => (
+                              <SelectItem key={t.id} value={t.id}>
+                                {t.trainee_code} - {t.full_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {availableTrainees?.length === 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            Không có học viên khả dụng (đã ở KTX hoặc không ở giai đoạn phù hợp)
+                          </p>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="room">Số phòng</Label>
+                          <Input
+                            id="room"
+                            placeholder="VD: P101"
+                            value={roomNumber}
+                            onChange={(e) => setRoomNumber(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="bed">Số giường</Label>
+                          <Input
+                            id="bed"
+                            placeholder="VD: G1"
+                            value={bedNumber}
+                            onChange={(e) => setBedNumber(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="resNotes">Ghi chú</Label>
+                        <Textarea
+                          id="resNotes"
+                          placeholder="Ghi chú thêm..."
+                          value={residentNotes}
+                          onChange={(e) => setResidentNotes(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsAddResidentOpen(false)}>
+                        Hủy
+                      </Button>
+                      <Button
+                        onClick={handleAddResident}
+                        disabled={!selectedTrainee || addResident.isPending}
+                      >
+                        {addResident.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                        Thêm học viên
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
             )}
           </CardHeader>
           <CardContent>
@@ -518,14 +663,24 @@ export default function DormitoryPage() {
                           {format(new Date(res.check_in_date), "dd/MM/yyyy")}
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            variant={res.status === "Đang ở" ? "default" : "secondary"}
-                          >
-                            {res.status}
-                          </Badge>
+                          {getStatusBadge(res.status)}
+                          {res.from_dormitory && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Từ: {res.from_dormitory.name}
+                            </p>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              title="Xem lịch sử KTX"
+                              onClick={() => openHistory(res.trainee_id, res.trainee?.full_name || "")}
+                            >
+                              <History className="h-3.5 w-3.5" />
+                            </Button>
                             {res.status === "Đang ở" && (
                               <Button
                                 variant="ghost"
@@ -630,6 +785,85 @@ export default function DormitoryPage() {
               Lưu thay đổi
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* History Dialog */}
+      <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Lịch sử KTX - {historyTraineeName}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            {isLoadingHistory ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : traineeHistory?.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">Chưa có lịch sử KTX</p>
+            ) : (
+              <div className="space-y-4">
+                {traineeHistory?.map((record, index) => (
+                  <div
+                    key={record.id}
+                    className={`relative pl-6 pb-4 ${
+                      index < (traineeHistory?.length || 0) - 1 ? "border-l-2 border-muted" : ""
+                    }`}
+                  >
+                    <div
+                      className={`absolute left-0 top-0 w-3 h-3 rounded-full -translate-x-1.5 ${
+                        record.status === "Đang ở"
+                          ? "bg-green-500"
+                          : record.status === "Đã chuyển"
+                          ? "bg-amber-500"
+                          : "bg-muted-foreground"
+                      }`}
+                    />
+                    <div className="bg-muted/50 rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="font-medium flex items-center gap-2">
+                            {record.dormitory?.name}
+                            {getStatusBadge(record.status)}
+                          </h4>
+                          {record.from_dormitory && (
+                            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                              <ArrowRight className="h-3 w-3" />
+                              Chuyển từ: {record.from_dormitory.name}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right text-sm text-muted-foreground">
+                          <p>Phòng: {record.room_number || "—"}</p>
+                          <p>Giường: {record.bed_number || "—"}</p>
+                        </div>
+                      </div>
+                      <div className="text-sm space-y-1">
+                        <p>
+                          <span className="text-muted-foreground">Ngày vào:</span>{" "}
+                          {format(new Date(record.check_in_date), "dd/MM/yyyy")}
+                        </p>
+                        {record.check_out_date && (
+                          <p>
+                            <span className="text-muted-foreground">Ngày ra:</span>{" "}
+                            {format(new Date(record.check_out_date), "dd/MM/yyyy")}
+                          </p>
+                        )}
+                        {record.transfer_reason && (
+                          <p className="mt-2 text-muted-foreground italic">
+                            Lý do: {record.transfer_reason}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
