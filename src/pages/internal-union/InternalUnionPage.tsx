@@ -60,23 +60,39 @@ const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
 };
 
-// Helper function to calculate days until birthday
+// Helper function to calculate days until birthday - using local dates to avoid timezone issues
 const getDaysUntilBirthday = (birthDate: string | null): number => {
   if (!birthDate) return 999; // No birthday = sort to end
   
-  const today = new Date();
-  const birth = new Date(birthDate);
-  let nextBirthday = setYear(birth, today.getFullYear());
+  // Parse dates as local dates without time component
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const todayParts = todayStr.split('-').map(Number);
+  const birthParts = birthDate.split('-').map(Number);
+  
+  // Create birthday for this year (using month and day from birth_date)
+  const thisYearBirthday = new Date(todayParts[0], birthParts[1] - 1, birthParts[2]);
+  const today = new Date(todayParts[0], todayParts[1] - 1, todayParts[2]);
+  
+  // Calculate difference in days
+  let diffMs = thisYearBirthday.getTime() - today.getTime();
   
   // If birthday has passed this year, get next year's birthday
-  if (isBefore(nextBirthday, today)) {
-    nextBirthday = setYear(birth, today.getFullYear() + 1);
+  if (diffMs < 0) {
+    const nextYearBirthday = new Date(todayParts[0] + 1, birthParts[1] - 1, birthParts[2]);
+    diffMs = nextYearBirthday.getTime() - today.getTime();
   }
   
-  return differenceInDays(nextBirthday, today);
+  return Math.round(diffMs / (1000 * 60 * 60 * 24));
 };
 
-// Check if birthday is upcoming (within 30 days)
+// Check if birthday is today
+const isBirthdayToday = (birthDate: string | null): boolean => {
+  if (!birthDate) return false;
+  return getDaysUntilBirthday(birthDate) === 0;
+};
+
+// Check if birthday is upcoming (within 30 days) or today
 const isUpcomingBirthday = (birthDate: string | null): boolean => {
   if (!birthDate) return false;
   const days = getDaysUntilBirthday(birthDate);
@@ -380,12 +396,17 @@ const InternalUnionPage = () => {
                     </TableRow>
                   ) : (
                     filteredMembers.map((member) => (
-                      <TableRow key={member.id} className={isUpcomingBirthday(member.birth_date) ? 'bg-yellow-50' : ''}>
+                      <TableRow key={member.id} className={isBirthdayToday(member.birth_date) ? 'bg-pink-100' : isUpcomingBirthday(member.birth_date) ? 'bg-yellow-50' : ''}>
                         <TableCell className="font-medium">{member.member_code}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             {member.full_name}
-                            {isUpcomingBirthday(member.birth_date) && (
+                            {isBirthdayToday(member.birth_date) ? (
+                              <Badge className="bg-pink-500 text-white hover:bg-pink-500 flex items-center gap-1 animate-pulse">
+                                <Cake className="h-3 w-3" />
+                                🎂 Hôm nay!
+                              </Badge>
+                            ) : isUpcomingBirthday(member.birth_date) && (
                               <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 flex items-center gap-1">
                                 <Cake className="h-3 w-3" />
                                 {getDaysUntilBirthday(member.birth_date)} ngày
