@@ -18,6 +18,7 @@ interface UseDuplicateCheckOptions {
 /**
  * Hook to check for duplicate values in a database table
  * Triggers check with debounce for performance
+ * Uses case-insensitive comparison for name fields
  */
 export function useDuplicateCheck(
   value: string,
@@ -41,16 +42,34 @@ export function useDuplicateCheck(
     setError(null);
 
     try {
-      // Use raw query to avoid TypeScript deep instantiation issues
-      let queryStr = `id`;
-      const filters: Record<string, string> = {};
-      filters[field] = debouncedValue.trim();
+      const trimmedValue = debouncedValue.trim();
 
-      const { data, error: dbError } = await supabase
-        .from(table)
-        .select('id')
-        .match(filters)
-        .limit(1);
+      // Build query based on field type
+      // Use ilike for case-insensitive comparison on name fields
+      let data: { id: string }[] | null = null;
+      let dbError: any = null;
+
+      if (field === 'name') {
+        // Case-insensitive comparison for name
+        const result = await supabase
+          .from(table)
+          .select('id')
+          .ilike(field, trimmedValue)
+          .limit(5);
+        data = result.data;
+        dbError = result.error;
+      } else {
+        // Exact match for code fields using filter
+        const filters: Record<string, string> = {};
+        filters[field] = trimmedValue;
+        const result = await supabase
+          .from(table)
+          .select('id')
+          .match(filters)
+          .limit(5);
+        data = result.data;
+        dbError = result.error;
+      }
 
       if (dbError) {
         console.error('Duplicate check error:', dbError);
@@ -61,7 +80,7 @@ export function useDuplicateCheck(
       // Check if result exists and isn't the current record
       if (data && data.length > 0) {
         if (currentId) {
-          setIsDuplicate(data.some((item: { id: string }) => item.id !== currentId));
+          setIsDuplicate(data.some((item) => item.id !== currentId));
         } else {
           setIsDuplicate(true);
         }
