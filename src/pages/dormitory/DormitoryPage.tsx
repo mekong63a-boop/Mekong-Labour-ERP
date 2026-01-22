@@ -39,6 +39,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Building2,
   Plus,
@@ -54,6 +55,7 @@ import {
   ArrowRightLeft,
   History,
   ArrowRight,
+  Search,
 } from "lucide-react";
 import {
   useDormitoriesWithCount,
@@ -68,12 +70,15 @@ import {
   useTraineesInOtherDormitories,
   useTransferResident,
   useTraineeDormitoryHistory,
+  useSearchTraineeDormitory,
   Dormitory,
   DormitoryResident,
 } from "@/hooks/useDormitory";
 import { format } from "date-fns";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export default function DormitoryPage() {
+  const [activeTab, setActiveTab] = useState("manage");
   const [selectedDormitory, setSelectedDormitory] = useState<string | null>(null);
   const [isAddDormOpen, setIsAddDormOpen] = useState(false);
   const [isEditDormOpen, setIsEditDormOpen] = useState(false);
@@ -83,6 +88,10 @@ export default function DormitoryPage() {
   const [historyTraineeId, setHistoryTraineeId] = useState<string | null>(null);
   const [historyTraineeName, setHistoryTraineeName] = useState<string>("");
   const [editingDorm, setEditingDorm] = useState<Dormitory | null>(null);
+
+  // Search state
+  const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 300);
 
   // Form states
   const [newDormName, setNewDormName] = useState("");
@@ -108,6 +117,7 @@ export default function DormitoryPage() {
   const { data: availableTrainees } = useAvailableTrainees();
   const { data: transferableTrainees } = useTraineesInOtherDormitories(selectedDormitory);
   const { data: traineeHistory, isLoading: isLoadingHistory } = useTraineeDormitoryHistory(historyTraineeId);
+  const { data: searchResults, isLoading: isSearching } = useSearchTraineeDormitory(debouncedSearch);
 
   // Mutations
   const createDormitory = useCreateDormitory();
@@ -260,72 +270,215 @@ export default function DormitoryPage() {
             Quản lý ký túc xá và học viên ở KTX
           </p>
         </div>
-
-        <Dialog open={isAddDormOpen} onOpenChange={setIsAddDormOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Thêm KTX mới
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Thêm Ký túc xá mới</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Tên KTX *</Label>
-                <Input
-                  id="name"
-                  placeholder="VD: KTX Số 1"
-                  value={newDormName}
-                  onChange={(e) => setNewDormName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">Địa chỉ</Label>
-                <Input
-                  id="address"
-                  placeholder="Nhập địa chỉ..."
-                  value={newDormAddress}
-                  onChange={(e) => setNewDormAddress(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="capacity">Sức chứa tối đa</Label>
-                <Input
-                  id="capacity"
-                  type="number"
-                  placeholder="20"
-                  value={newDormCapacity}
-                  onChange={(e) => setNewDormCapacity(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="notes">Ghi chú</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Ghi chú thêm..."
-                  value={newDormNotes}
-                  onChange={(e) => setNewDormNotes(e.target.value)}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddDormOpen(false)}>
-                Hủy
-              </Button>
-              <Button
-                onClick={handleAddDormitory}
-                disabled={!newDormName.trim() || createDormitory.isPending}
-              >
-                {createDormitory.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                Thêm KTX
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </header>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="manage" className="gap-2">
+            <Home className="h-4 w-4" />
+            Quản lý KTX
+          </TabsTrigger>
+          <TabsTrigger value="search" className="gap-2">
+            <Search className="h-4 w-4" />
+            Tra cứu học viên
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Tab Tra cứu */}
+        <TabsContent value="search" className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Search className="h-4 w-4" />
+                Tra cứu học viên theo KTX
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Nhập tên hoặc mã học viên để tìm kiếm..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {isSearching && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              )}
+
+              {!isSearching && debouncedSearch.length >= 2 && searchResults?.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Không tìm thấy học viên nào</p>
+                </div>
+              )}
+
+              {!isSearching && searchResults && searchResults.length > 0 && (
+                <div className="space-y-4">
+                  {searchResults.map((result) => (
+                    <div
+                      key={result.trainee.id}
+                      className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-start gap-4">
+                        {result.trainee.photo_url ? (
+                          <img
+                            src={result.trainee.photo_url}
+                            alt=""
+                            className="h-12 w-12 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                            <User className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <h3 className="font-medium">{result.trainee.full_name}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {result.trainee.trainee_code}
+                                {result.trainee.phone && ` • ${result.trainee.phone}`}
+                              </p>
+                            </div>
+                            {result.currentDormitory ? (
+                              <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                                <Home className="h-3 w-3 mr-1" />
+                                Đang ở: {result.currentDormitory.name}
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary">Không ở KTX</Badge>
+                            )}
+                          </div>
+
+                          {result.currentRecord && (
+                            <div className="text-sm text-muted-foreground mb-2">
+                              Phòng: {result.currentRecord.room_number || "—"} | 
+                              Giường: {result.currentRecord.bed_number || "—"} | 
+                              Vào ngày: {format(new Date(result.currentRecord.check_in_date), "dd/MM/yyyy")}
+                            </div>
+                          )}
+
+                          {/* Lịch sử KTX */}
+                          {result.history.length > 0 && (
+                            <div className="mt-3 pt-3 border-t">
+                              <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                                <History className="h-3 w-3" />
+                                Lịch sử KTX ({result.history.length} bản ghi)
+                              </p>
+                              <div className="space-y-2">
+                                {result.history.map((record) => (
+                                  <div
+                                    key={record.id}
+                                    className="text-sm flex items-center gap-2 bg-muted/50 rounded px-2 py-1"
+                                  >
+                                    {getStatusBadge(record.status)}
+                                    <span className="font-medium">{record.dormitory?.name}</span>
+                                    <span className="text-muted-foreground">
+                                      ({format(new Date(record.check_in_date), "dd/MM/yyyy")}
+                                      {record.check_out_date && (
+                                        <> → {format(new Date(record.check_out_date), "dd/MM/yyyy")}</>
+                                      )})
+                                    </span>
+                                    {record.from_dormitory && (
+                                      <span className="text-xs text-muted-foreground">
+                                        (từ {record.from_dormitory.name})
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {debouncedSearch.length < 2 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Nhập ít nhất 2 ký tự để tìm kiếm</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab Quản lý */}
+        <TabsContent value="manage" className="mt-6">
+          <div className="flex justify-end mb-4">
+            <Dialog open={isAddDormOpen} onOpenChange={setIsAddDormOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Thêm KTX mới
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Thêm Ký túc xá mới</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Tên KTX *</Label>
+                    <Input
+                      id="name"
+                      placeholder="VD: KTX Số 1"
+                      value={newDormName}
+                      onChange={(e) => setNewDormName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Địa chỉ</Label>
+                    <Input
+                      id="address"
+                      placeholder="Nhập địa chỉ..."
+                      value={newDormAddress}
+                      onChange={(e) => setNewDormAddress(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="capacity">Sức chứa tối đa</Label>
+                    <Input
+                      id="capacity"
+                      type="number"
+                      placeholder="20"
+                      value={newDormCapacity}
+                      onChange={(e) => setNewDormCapacity(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Ghi chú</Label>
+                    <Textarea
+                      id="notes"
+                      placeholder="Ghi chú thêm..."
+                      value={newDormNotes}
+                      onChange={(e) => setNewDormNotes(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsAddDormOpen(false)}>
+                    Hủy
+                  </Button>
+                  <Button
+                    onClick={handleAddDormitory}
+                    disabled={!newDormName.trim() || createDormitory.isPending}
+                  >
+                    {createDormitory.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    Thêm KTX
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Dormitory List */}
@@ -731,6 +884,8 @@ export default function DormitoryPage() {
           </CardContent>
         </Card>
       </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Edit Dormitory Dialog */}
       <Dialog open={isEditDormOpen} onOpenChange={setIsEditDormOpen}>
