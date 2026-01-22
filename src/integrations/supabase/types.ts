@@ -1540,10 +1540,12 @@ export type Database = {
           interview_count: number | null
           interview_pass_date: string | null
           job_category_id: string | null
+          line_qr_url: string | null
           marital_status: string | null
           notes: string | null
           nyukan_entry_date: string | null
           otit_entry_date: string | null
+          pants_size: string | null
           parent_phone_1: string | null
           parent_phone_2: string | null
           passport_date: string | null
@@ -1559,6 +1561,8 @@ export type Database = {
           registration_date: string | null
           religion: string | null
           return_date: string | null
+          shirt_size: string | null
+          shoe_size: string | null
           simple_status: Database["public"]["Enums"]["simple_status"] | null
           smoking: string | null
           source: string | null
@@ -1615,10 +1619,12 @@ export type Database = {
           interview_count?: number | null
           interview_pass_date?: string | null
           job_category_id?: string | null
+          line_qr_url?: string | null
           marital_status?: string | null
           notes?: string | null
           nyukan_entry_date?: string | null
           otit_entry_date?: string | null
+          pants_size?: string | null
           parent_phone_1?: string | null
           parent_phone_2?: string | null
           passport_date?: string | null
@@ -1634,6 +1640,8 @@ export type Database = {
           registration_date?: string | null
           religion?: string | null
           return_date?: string | null
+          shirt_size?: string | null
+          shoe_size?: string | null
           simple_status?: Database["public"]["Enums"]["simple_status"] | null
           smoking?: string | null
           source?: string | null
@@ -1690,10 +1698,12 @@ export type Database = {
           interview_count?: number | null
           interview_pass_date?: string | null
           job_category_id?: string | null
+          line_qr_url?: string | null
           marital_status?: string | null
           notes?: string | null
           nyukan_entry_date?: string | null
           otit_entry_date?: string | null
+          pants_size?: string | null
           parent_phone_1?: string | null
           parent_phone_2?: string | null
           passport_date?: string | null
@@ -1709,6 +1719,8 @@ export type Database = {
           registration_date?: string | null
           religion?: string | null
           return_date?: string | null
+          shirt_size?: string | null
+          shoe_size?: string | null
           simple_status?: Database["public"]["Enums"]["simple_status"] | null
           smoking?: string | null
           source?: string | null
