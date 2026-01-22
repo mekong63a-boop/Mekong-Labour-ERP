@@ -22,8 +22,8 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Search, Download, Building2, FileText, Users, Plane } from "lucide-react";
-import * as XLSX from "xlsx";
+import { Search, Building2, FileText, Users, Plane } from "lucide-react";
+
 import { toast } from "sonner";
 
 interface CompanyWithTrainees {
@@ -144,34 +144,6 @@ export default function LegalPage() {
   const totalDeparted = companies.reduce((sum, c) => sum + c.departed, 0);
   const totalAll = companies.reduce((sum, c) => sum + c.total_passed, 0);
 
-  // Export to Excel
-  const handleExportExcel = () => {
-    if (filteredCompanies.length === 0) {
-      toast.error("Không có dữ liệu để xuất");
-      return;
-    }
-
-    const exportData = filteredCompanies.map(company => ({
-      "Mã công ty": company.code,
-      "Tên công ty": company.name,
-      "Tên tiếng Nhật": company.name_japanese || "",
-      "Địa chỉ": company.work_address || company.address || "",
-      "Ngày PV gần nhất": company.last_interview_date 
-        ? format(new Date(company.last_interview_date), "dd/MM/yyyy", { locale: vi })
-        : "",
-      "Đang làm hồ sơ": company.doing_paperwork,
-      "Đã xuất cảnh": company.departed,
-      "Tổng đậu": company.total_passed,
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Tình trạng hồ sơ");
-    
-    const fileName = `tinh-trang-ho-so_${format(new Date(), "ddMMyyyy")}.xlsx`;
-    XLSX.writeFile(wb, fileName);
-    toast.success(`Đã xuất ${filteredCompanies.length} công ty`);
-  };
 
   return (
     <div className="space-y-6">
@@ -256,10 +228,6 @@ export default function LegalPage() {
                 </SelectContent>
               </Select>
               
-              <Button variant="outline" size="sm" onClick={handleExportExcel}>
-                <Download className="h-4 w-4 mr-2" />
-                Xuất Excel
-              </Button>
             </div>
           </div>
         </CardHeader>

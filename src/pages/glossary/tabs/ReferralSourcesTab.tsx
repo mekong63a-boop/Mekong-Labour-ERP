@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Save, X, Pencil, Trash2, Download, Upload } from "lucide-react";
+import { Search, Plus, Save, X, Pencil, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useCanAction } from "@/hooks/useMenuPermissions";
 import * as XLSX from "xlsx";
@@ -114,19 +114,6 @@ const ReferralSourcesTab = () => {
     }
   };
 
-  // Export to Excel
-  const handleExport = () => {
-    const exportData = sources.map((s, index) => ({
-      "STT": index + 1,
-      "Tên nguồn": s.name,
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Nguồn giới thiệu");
-    XLSX.writeFile(wb, `nguon_gioi_thieu_${new Date().toISOString().split('T')[0]}.xlsx`);
-    toast.success("Xuất Excel thành công");
-  };
 
   // Import from Excel
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -195,10 +182,6 @@ const ReferralSourcesTab = () => {
           <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
             <Upload className="h-4 w-4 mr-2" />
             Import Excel
-          </Button>
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Export Excel
           </Button>
           {canCreate && (
             <Button onClick={() => setShowAddForm(true)}>

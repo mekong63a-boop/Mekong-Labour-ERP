@@ -21,10 +21,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Search, RefreshCw, Download, BarChart3 } from "lucide-react";
+import { Users, Search, RefreshCw, BarChart3 } from "lucide-react";
 import { format, parseISO, addYears } from "date-fns";
 import { cn } from "@/lib/utils";
-import * as XLSX from "xlsx";
+
 import {
   BarChart,
   Bar,
@@ -219,47 +219,6 @@ export default function PostDeparturePage() {
     return Object.values(yearStats).sort((a, b) => a.year.localeCompare(b.year));
   }, [trainees]);
 
-  // Export to Excel
-  const handleExportExcel = () => {
-    if (!filteredTrainees || filteredTrainees.length === 0) return;
-
-    const exportData = filteredTrainees.map((t, index) => ({
-      "STT": index + 1,
-      "Mã HV": t.trainee_code,
-      "Họ và tên": t.full_name,
-      "Công ty": (t.receiving_company as any)?.name_japanese 
-        ? `${(t.receiving_company as any).name_japanese} (${(t.receiving_company as any).name})`
-        : (t.receiving_company as any)?.name || "",
-      "Tình trạng": t.progression_stage,
-      "Ngày xuất cảnh": formatDate(t.departure_date),
-      "Ngày hết hạn HĐ": t.contract_end_date 
-        ? formatDate(t.contract_end_date)
-        : calculateContractEndDate(t.departure_date, t.contract_term),
-      "Ngày về nước": getReturnDate(t),
-      "Ghi chú": t.notes || "",
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "TTS Sau Xuất Cảnh");
-
-    // Auto-size columns
-    const colWidths = [
-      { wch: 5 },  // STT
-      { wch: 12 }, // Mã HV
-      { wch: 25 }, // Họ và tên
-      { wch: 40 }, // Công ty
-      { wch: 18 }, // Tình trạng
-      { wch: 15 }, // Ngày xuất cảnh
-      { wch: 15 }, // Ngày hết hạn HĐ
-      { wch: 15 }, // Ngày về nước
-      { wch: 30 }, // Ghi chú
-    ];
-    ws["!cols"] = colWidths;
-
-    const fileName = `TTS_Sau_Xuat_Canh_${format(new Date(), "yyyyMMdd_HHmmss")}.xlsx`;
-    XLSX.writeFile(wb, fileName);
-  };
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "-";
@@ -326,15 +285,6 @@ export default function PostDeparturePage() {
           >
             <BarChart3 className="h-4 w-4 mr-2" />
             {showChart ? "Ẩn biểu đồ" : "Hiện biểu đồ"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportExcel}
-            disabled={filteredTrainees.length === 0}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Xuất Excel
           </Button>
         </div>
       </div>

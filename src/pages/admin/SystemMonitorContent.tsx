@@ -35,7 +35,7 @@ import {
   Eye,
   CheckCircle,
   XCircle,
-  Download,
+  
   Calendar,
   LogIn,
   LogOut,
@@ -48,7 +48,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import * as XLSX from "xlsx";
+
 import { toast } from "sonner";
 
 interface UserSession {
@@ -288,34 +288,6 @@ export default function SystemMonitorContent() {
     return ACTION_LABELS[action] || { label: action, icon: Activity, color: "bg-gray-100 text-gray-800" };
   };
 
-  // Export to Excel
-  const handleExportExcel = () => {
-    if (auditLogs.length === 0) {
-      toast.error("Không có dữ liệu để xuất");
-      return;
-    }
-
-    const exportData = auditLogs.map(log => ({
-      "Thời gian": format(new Date(log.created_at), "dd/MM/yyyy HH:mm:ss", { locale: vi }),
-      "Người dùng": log.full_name || log.email,
-      "Email": log.email,
-      "Hành động": ACTION_LABELS[log.action]?.label || log.action,
-      "Bảng dữ liệu": TABLE_LABELS[log.table_name] || log.table_name,
-      "Mô tả": log.description,
-      "ID bản ghi": log.record_id || "",
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Lịch sử thao tác");
-    
-    const fromStr = dateFrom ? format(dateFrom, "ddMMyyyy") : "";
-    const toStr = dateTo ? format(dateTo, "ddMMyyyy") : "";
-    const fileName = `lich-su-thao-tac_${fromStr}-${toStr}.xlsx`;
-    
-    XLSX.writeFile(wb, fileName);
-    toast.success(`Đã xuất ${auditLogs.length} bản ghi`);
-  };
 
   return (
     <div className="space-y-6">
@@ -467,10 +439,6 @@ export default function SystemMonitorContent() {
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">Lịch sử thay đổi</CardTitle>
-                  <Button variant="outline" size="sm" onClick={handleExportExcel}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Xuất Excel
-                  </Button>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {/* Date Range */}

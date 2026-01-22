@@ -68,7 +68,7 @@ import {
 } from "@/hooks/useEducation";
 import { TestScoresDialog } from "@/components/education/TestScoresDialog";
 import { ReviewsDialog } from "@/components/education/ReviewsDialog";
-import { exportClassData } from "@/components/education/ExportClassData";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { 
@@ -80,7 +80,7 @@ import {
   MoreHorizontal,
   ClipboardCheck,
   MessageSquare,
-  Download,
+  
   UserPlus,
   GraduationCap,
   Pencil,
@@ -325,17 +325,6 @@ export default function ClassList() {
       case "review":
         setIsReviewsDialogOpen(true);
         break;
-      case "export":
-        exportClassData(
-          classData.id, 
-          classData.name, 
-          classStudents || [], 
-          classTeachers || [], 
-          attendance || [], 
-          testScores || []
-        );
-        toast({ title: "Xuất dữ liệu thành công" });
-        break;
       case "view_students":
         navigate(`/education/classes/${classData.id}/students`);
         break;
@@ -572,10 +561,6 @@ export default function ClassList() {
                           <DropdownMenuItem onClick={() => handleAction("review", cls)}>
                             <MessageSquare className="mr-2 h-4 w-4" />
                             Nhận xét/Blacklist
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAction("export", cls)}>
-                            <Download className="mr-2 h-4 w-4" />
-                            Xuất dữ liệu
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => openAssignTraineeDialog(cls)}>
