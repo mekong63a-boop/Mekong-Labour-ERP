@@ -139,6 +139,56 @@ export function useTraineeDormitoryHistory(traineeId: string | null) {
   });
 }
 
+// Hook to search trainees and their dormitory status
+export function useSearchTraineeDormitory(searchTerm: string) {
+  return useQuery({
+    queryKey: ["search-trainee-dormitory", searchTerm],
+    queryFn: async () => {
+      if (!searchTerm || searchTerm.length < 2) return [];
+
+      // Search trainees by name or code
+      const { data: trainees, error: traineeError } = await supabase
+        .from("trainees")
+        .select("id, trainee_code, full_name, photo_url, phone")
+        .or(`full_name.ilike.%${searchTerm}%,trainee_code.ilike.%${searchTerm}%`)
+        .limit(20);
+
+      if (traineeError) throw traineeError;
+      if (!trainees || trainees.length === 0) return [];
+
+      const traineeIds = trainees.map((t) => t.id);
+
+      // Get all dormitory records for these trainees
+      const { data: residents, error: resError } = await supabase
+        .from("dormitory_residents")
+        .select(`
+          *,
+          dormitory:dormitories!dormitory_residents_dormitory_id_fkey(id, name, address),
+          from_dormitory:dormitories!dormitory_residents_from_dormitory_id_fkey(id, name)
+        `)
+        .in("trainee_id", traineeIds)
+        .order("check_in_date", { ascending: false });
+
+      if (resError) throw resError;
+
+      // Group by trainee
+      const result = trainees.map((trainee) => {
+        const traineeRecords = (residents || []).filter((r) => r.trainee_id === trainee.id);
+        const currentDorm = traineeRecords.find((r) => r.status === "Đang ở");
+        return {
+          trainee,
+          currentDormitory: currentDorm?.dormitory || null,
+          currentRecord: currentDorm || null,
+          history: traineeRecords,
+        };
+      });
+
+      return result;
+    },
+    enabled: searchTerm.length >= 2,
+  });
+}
+
 // Hook to create a new dormitory
 export function useCreateDormitory() {
   const queryClient = useQueryClient();
