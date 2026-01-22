@@ -23,6 +23,8 @@ export interface DormitoryResident {
   bed_number: string | null;
   status: string;
   notes: string | null;
+  transfer_reason: string | null;
+  from_dormitory_id: string | null;
   created_at: string;
   updated_at: string;
   // Joined fields
@@ -35,6 +37,7 @@ export interface DormitoryResident {
     class_id: string | null;
   };
   dormitory?: Dormitory;
+  from_dormitory?: Dormitory;
 }
 
 // Hook to get all dormitories
@@ -99,7 +102,8 @@ export function useDormitoryResidents(dormitoryId: string | null) {
         .from("dormitory_residents")
         .select(`
           *,
-          trainee:trainees(id, trainee_code, full_name, photo_url, phone, class_id)
+          trainee:trainees(id, trainee_code, full_name, photo_url, phone, class_id),
+          from_dormitory:dormitories!dormitory_residents_from_dormitory_id_fkey(id, name)
         `)
         .eq("dormitory_id", dormitoryId)
         .order("room_number", { ascending: true });
@@ -108,6 +112,30 @@ export function useDormitoryResidents(dormitoryId: string | null) {
       return data as DormitoryResident[];
     },
     enabled: !!dormitoryId,
+  });
+}
+
+// Hook to get all dormitory history for a trainee
+export function useTraineeDormitoryHistory(traineeId: string | null) {
+  return useQuery({
+    queryKey: ["trainee-dormitory-history", traineeId],
+    queryFn: async () => {
+      if (!traineeId) return [];
+
+      const { data, error } = await supabase
+        .from("dormitory_residents")
+        .select(`
+          *,
+          dormitory:dormitories!dormitory_residents_dormitory_id_fkey(id, name, address),
+          from_dormitory:dormitories!dormitory_residents_from_dormitory_id_fkey(id, name)
+        `)
+        .eq("trainee_id", traineeId)
+        .order("check_in_date", { ascending: false });
+
+      if (error) throw error;
+      return data as DormitoryResident[];
+    },
+    enabled: !!traineeId,
   });
 }
 
@@ -282,15 +310,18 @@ export function useCheckOutResident() {
     mutationFn: async ({
       id,
       check_out_date,
+      transfer_reason,
     }: {
       id: string;
       check_out_date?: string;
+      transfer_reason?: string;
     }) => {
       const { data, error } = await supabase
         .from("dormitory_residents")
         .update({
           status: "Đã rời",
           check_out_date: check_out_date || new Date().toISOString().split("T")[0],
+          transfer_reason: transfer_reason || null,
         })
         .eq("id", id)
         .select()
@@ -302,10 +333,79 @@ export function useCheckOutResident() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dormitory-residents"] });
       queryClient.invalidateQueries({ queryKey: ["dormitories-with-count"] });
+      queryClient.invalidateQueries({ queryKey: ["trainee-dormitory-history"] });
       toast.success("Học viên đã rời KTX");
     },
     onError: (error) => {
       toast.error("Lỗi: " + error.message);
+    },
+  });
+}
+
+// Hook to transfer trainee to another dormitory
+export function useTransferResident() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      currentResidentId,
+      traineeId,
+      fromDormitoryId,
+      toDormitoryId,
+      roomNumber,
+      bedNumber,
+      transferReason,
+    }: {
+      currentResidentId: string;
+      traineeId: string;
+      fromDormitoryId: string;
+      toDormitoryId: string;
+      roomNumber?: string;
+      bedNumber?: string;
+      transferReason: string;
+    }) => {
+      const today = new Date().toISOString().split("T")[0];
+
+      // Step 1: Check out from current dormitory
+      const { error: checkOutError } = await supabase
+        .from("dormitory_residents")
+        .update({
+          status: "Đã chuyển",
+          check_out_date: today,
+          transfer_reason: transferReason,
+        })
+        .eq("id", currentResidentId);
+
+      if (checkOutError) throw checkOutError;
+
+      // Step 2: Add to new dormitory with reference to old one
+      const { data, error: addError } = await supabase
+        .from("dormitory_residents")
+        .insert({
+          dormitory_id: toDormitoryId,
+          trainee_id: traineeId,
+          from_dormitory_id: fromDormitoryId,
+          room_number: roomNumber || null,
+          bed_number: bedNumber || null,
+          check_in_date: today,
+          status: "Đang ở",
+          transfer_reason: `Chuyển từ KTX khác: ${transferReason}`,
+        })
+        .select()
+        .single();
+
+      if (addError) throw addError;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dormitory-residents"] });
+      queryClient.invalidateQueries({ queryKey: ["dormitories-with-count"] });
+      queryClient.invalidateQueries({ queryKey: ["trainee-dormitory-history"] });
+      queryClient.invalidateQueries({ queryKey: ["available-trainees-for-dormitory"] });
+      toast.success("Đã chuyển học viên sang KTX mới");
+    },
+    onError: (error) => {
+      toast.error("Lỗi chuyển KTX: " + error.message);
     },
   });
 }
@@ -361,5 +461,33 @@ export function useAvailableTrainees() {
       // Filter out trainees already in dormitory
       return (data || []).filter((t) => !occupiedTraineeIds.includes(t.id));
     },
+  });
+}
+
+// Hook to get trainees currently in OTHER dormitories (for transfer)
+export function useTraineesInOtherDormitories(excludeDormitoryId: string | null) {
+  return useQuery({
+    queryKey: ["trainees-in-other-dormitories", excludeDormitoryId],
+    queryFn: async () => {
+      if (!excludeDormitoryId) return [];
+
+      const { data, error } = await supabase
+        .from("dormitory_residents")
+        .select(`
+          id,
+          dormitory_id,
+          trainee_id,
+          room_number,
+          bed_number,
+          trainee:trainees(id, trainee_code, full_name, photo_url, phone),
+          dormitory:dormitories!dormitory_residents_dormitory_id_fkey(id, name)
+        `)
+        .eq("status", "Đang ở")
+        .neq("dormitory_id", excludeDormitoryId);
+
+      if (error) throw error;
+      return data as (DormitoryResident & { dormitory: Dormitory })[];
+    },
+    enabled: !!excludeDormitoryId,
   });
 }
