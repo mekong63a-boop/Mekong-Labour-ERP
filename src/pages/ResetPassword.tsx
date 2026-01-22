@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Lock, CheckCircle, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, CheckCircle, Eye, EyeOff, Loader2, Lock } from "lucide-react";
 import mekongLogo from "@/assets/mekong-logo.png";
 
 export default function ResetPassword() {
@@ -18,18 +18,66 @@ export default function ResetPassword() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isRecoveryReady, setIsRecoveryReady] = useState(false);
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
+
+  const redirectAfterSuccess = useMemo(() => "/login", []);
 
   useEffect(() => {
-    // Check if we have a session from the recovery link
-    supabase.auth.onAuthStateChange((event) => {
+    let isMounted = true;
+
+    // 1) Lắng nghe event PASSWORD_RECOVERY từ Supabase khi mở link trong email
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (!isMounted) return;
       if (event === "PASSWORD_RECOVERY") {
-        // User is in password recovery mode
+        setIsRecoveryReady(true);
+        setRecoveryError(null);
       }
     });
+
+    // 2) Fallback: nếu event không bắn (tùy trình duyệt), vẫn kiểm tra session
+    // để biết link có hợp lệ hay không.
+    void (async () => {
+      const { data: sessionData, error } = await supabase.auth.getSession();
+      if (!isMounted) return;
+
+      if (error) {
+        setRecoveryError(error.message);
+        setIsRecoveryReady(false);
+        return;
+      }
+
+      // Nếu có session => cho phép update password
+      if (sessionData.session) {
+        setIsRecoveryReady(true);
+        setRecoveryError(null);
+      } else {
+        setIsRecoveryReady(false);
+        setRecoveryError(
+          "Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Vui lòng gửi lại email quên mật khẩu."
+        );
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+      data.subscription.unsubscribe();
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isRecoveryReady) {
+      toast({
+        title: "Không thể đặt lại mật khẩu",
+        description:
+          recoveryError ||
+          "Phiên đặt lại mật khẩu chưa sẵn sàng. Vui lòng mở lại link từ email hoặc gửi lại email quên mật khẩu.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (password !== confirmPassword) {
       toast({
@@ -68,7 +116,7 @@ export default function ResetPassword() {
         description: "Mật khẩu đã được đặt lại",
       });
       setTimeout(() => {
-        navigate("/");
+        navigate(redirectAfterSuccess);
       }, 2000);
     }
 
@@ -83,6 +131,7 @@ export default function ResetPassword() {
       {/* Animated Orbs */}
       <div className="absolute top-1/4 -left-20 w-96 h-96 bg-[hsl(152,60%,30%)]/20 rounded-full blur-3xl animate-pulse" />
       <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-[hsl(165,50%,25%)]/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[hsl(152,40%,20%)]/10 rounded-full blur-3xl" />
       
       {/* Grid Pattern Overlay */}
       <div className="absolute inset-0 opacity-[0.03]" style={{
@@ -106,12 +155,8 @@ export default function ResetPassword() {
               </div>
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-3 tracking-tight drop-shadow-lg">
-            Đặt lại mật khẩu
-          </h1>
-          <p className="text-[hsl(152,30%,70%)] text-lg font-medium">
-            Nhập mật khẩu mới cho tài khoản
-          </p>
+          <h1 className="text-4xl font-bold text-white mb-3 tracking-tight drop-shadow-lg">Đặt lại mật khẩu</h1>
+          <p className="text-[hsl(152,30%,70%)] text-lg font-medium">Nhập mật khẩu mới và xác nhận</p>
         </div>
 
         {/* Card */}
@@ -141,15 +186,26 @@ export default function ResetPassword() {
                       <Lock className="h-12 w-12 text-[hsl(152,50%,50%)]" />
                     </div>
                   </div>
-                  <CardTitle className="text-2xl font-bold text-white">Mật khẩu mới</CardTitle>
-                  <CardDescription className="text-white/60 mt-1">
-                    Tạo mật khẩu mới an toàn
-                  </CardDescription>
+                  <CardTitle className="text-2xl font-bold text-white">Tạo mật khẩu mới</CardTitle>
+                  <CardDescription className="text-white/60 mt-1">Dùng mật khẩu tối thiểu 6 ký tự</CardDescription>
                 </>
               )}
             </CardHeader>
             
             <CardContent className="relative pb-8 px-8">
+              {recoveryError && !isSuccess && (
+                <div className="mb-4 rounded-xl border border-white/15 bg-white/5 p-4">
+                  <p className="text-sm text-white/80 leading-relaxed">{recoveryError}</p>
+                  <div className="mt-3">
+                    <Link to="/forgot-password" className="inline-flex">
+                      <Button variant="outline" className="h-10 bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-xl">
+                        Gửi lại email quên mật khẩu
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              )}
+
               {!isSuccess && (
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="space-y-2">
@@ -199,7 +255,7 @@ export default function ResetPassword() {
                   <Button 
                     type="submit" 
                     className="w-full h-12 bg-gradient-to-r from-[hsl(152,50%,40%)] to-[hsl(160,45%,35%)] hover:from-[hsl(152,50%,45%)] hover:to-[hsl(160,45%,40%)] text-white font-bold rounded-xl shadow-lg shadow-[hsl(152,50%,30%)]/30 hover:shadow-[hsl(152,50%,30%)]/50 transition-all duration-300 border-0"
-                    disabled={isLoading}
+                    disabled={isLoading || !isRecoveryReady}
                   >
                     {isLoading ? (
                       <>
@@ -213,6 +269,17 @@ export default function ResetPassword() {
                       </>
                     )}
                   </Button>
+
+                  <Link to="/login" className="block">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-full h-12 text-white/70 hover:text-white hover:bg-white/10 rounded-xl"
+                    >
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      Quay lại đăng nhập
+                    </Button>
+                  </Link>
                 </form>
               )}
             </CardContent>
