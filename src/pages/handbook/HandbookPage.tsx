@@ -29,7 +29,7 @@ import {
 } from '@/hooks/useHandbook';
 import { HandbookEntryDialog } from '@/components/handbook/HandbookEntryDialog';
 
-// Phase configuration with colors and icons
+// Phase configuration with colors, icons, and sub-items based on real XKLĐ Japan process
 const PHASES = [
   {
     id: 'phase-1',
@@ -41,6 +41,11 @@ const PHASES = [
     borderColor: 'border-blue-500',
     textColor: 'text-blue-600',
     lightBg: 'bg-blue-50 dark:bg-blue-950/30',
+    subItems: [
+      'Hình thức tiếp cận Online và Offline',
+      'Tư vấn chương trình (TTS, KND, Kỹ sư, Du học)',
+      'Đăng ký hồ sơ & Khám sức khỏe sơ bộ',
+    ],
   },
   {
     id: 'phase-2',
@@ -52,6 +57,14 @@ const PHASES = [
     borderColor: 'border-green-500',
     textColor: 'text-green-600',
     lightBg: 'bg-green-50 dark:bg-green-950/30',
+    subItems: [
+      'Đăng ký nhập học tại trung tâm',
+      'Đào tạo tác phong, kỷ luật Nhật Bản',
+      'Kỹ năng phỏng vấn & tự giới thiệu',
+      'Phỏng vấn trực tiếp/online với Xí nghiệp/Nghiệp đoàn',
+      'Họp phụ huynh sau khi đậu phỏng vấn',
+      'Hoàn thiện hồ sơ gửi sang Nhật Bản',
+    ],
   },
   {
     id: 'phase-3',
@@ -63,6 +76,12 @@ const PHASES = [
     borderColor: 'border-orange-500',
     textColor: 'text-orange-600',
     lightBg: 'bg-orange-50 dark:bg-orange-950/30',
+    subItems: [
+      'Đào tạo ngoại ngữ chuyên ngành (N5/N4)',
+      'Làm hồ sơ xin COE (Giấy chứng nhận tư cách lưu trú)',
+      'Xin VISA tại Đại sứ quán Nhật Bản',
+      'Họp phụ huynh trước xuất cảnh',
+    ],
   },
   {
     id: 'phase-4',
@@ -74,6 +93,10 @@ const PHASES = [
     borderColor: 'border-red-500',
     textColor: 'text-red-600',
     lightBg: 'bg-red-50 dark:bg-red-950/30',
+    subItems: [
+      'Xuất cảnh sang Nhật làm việc',
+      'Hết hợp đồng: Gia hạn/Chuyển diện Tokutei hoặc Về nước',
+    ],
   },
 ];
 
@@ -283,18 +306,37 @@ export default function HandbookPage() {
 
         {/* Phase Content */}
         {phaseEntries.length === 0 ? (
-          <div className="p-6 text-center text-muted-foreground">
-            <p className="text-sm">Chưa có nội dung cho giai đoạn này</p>
+          <div className="p-6">
+            <p className="text-sm text-muted-foreground mb-4 text-center">Chưa có nội dung cho giai đoạn này</p>
+            
+            {/* Show expected sub-items as guide */}
+            {phase.subItems && phase.subItems.length > 0 && (
+              <div className="mb-4">
+                <p className="text-xs text-muted-foreground mb-2 font-medium">Các mục cần thêm:</p>
+                <ul className="space-y-1.5">
+                  {phase.subItems.map((item, idx) => (
+                    <li key={idx} className={`flex items-center gap-2 text-sm ${phase.textColor}`}>
+                      <span className={`${phase.bgColor}/20 ${phase.textColor} rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium`}>
+                        {idx + 1}
+                      </span>
+                      <span className="text-foreground/70">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
             {canCreate && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="mt-3"
-                onClick={() => setDialogOpen(true)}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Thêm nội dung
-              </Button>
+              <div className="text-center">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Thêm nội dung
+                </Button>
+              </div>
             )}
           </div>
         ) : (
