@@ -865,6 +865,13 @@ export type Database = {
             foreignKeyName: "interview_history_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "dashboard_trainee_by_company"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "interview_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "legal_company_stats"
             referencedColumns: ["id"]
           },
@@ -1151,6 +1158,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_trainee_by_company"
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "orders_company_id_fkey"
@@ -2238,6 +2252,15 @@ export type Database = {
         Row: {
           birthplace: string | null
           count: number | null
+        }
+        Relationships: []
+      }
+      dashboard_trainee_by_company: {
+        Row: {
+          company_id: string | null
+          company_name: string | null
+          count: number | null
+          year: number | null
         }
         Relationships: []
       }

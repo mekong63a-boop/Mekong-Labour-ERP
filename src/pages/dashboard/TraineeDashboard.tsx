@@ -9,7 +9,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
 import {
   Users,
   GraduationCap,
@@ -17,8 +16,6 @@ import {
   FileText,
   TrendingUp,
   TrendingDown,
-  Target,
-  Clock,
 } from "lucide-react";
 import {
   BarChart,
@@ -37,6 +34,7 @@ import {
   useTraineeKPIs,
   useMonthlyCombined,
   useTraineeBySource,
+  useTraineeByCompany,
 } from "@/hooks/useDashboardTrainee";
 
 // Icon color classes
@@ -64,35 +62,10 @@ export default function TraineeDashboard() {
   const { data: kpis, isLoading: loadingKPIs } = useTraineeKPIs();
   const { data: monthlyCombined, isLoading: loadingMonthly } = useMonthlyCombined();
   const { data: sourceData, isLoading: loadingSource } = useTraineeBySource();
+  const { data: companyData, isLoading: loadingCompany } = useTraineeByCompany();
 
   // SYSTEM RULE: activeOrders từ kpis view (đã tính sẵn ở DB)
   const activeOrders = kpis?.active_orders || 0;
-
-  // SYSTEM RULE: monthlyChartData từ dashboard_monthly_combined view
-  // Đảm bảo hiển thị đủ 12 tháng trong năm
-  const monthlyChartData = useMemo(() => {
-    const months = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
-    
-    // Tạo template 12 tháng với giá trị mặc định = 0
-    const template = months.map((month) => ({
-      month,
-      recruitment: 0,
-      departure: 0,
-    }));
-    
-    if (!monthlyCombined) return template;
-    
-    // Merge dữ liệu từ DB vào template
-    monthlyCombined.forEach((item) => {
-      const monthIndex = template.findIndex((t) => t.month === item.month_label);
-      if (monthIndex !== -1) {
-        template[monthIndex].recruitment = item.recruitment || 0;
-        template[monthIndex].departure = item.departure || 0;
-      }
-    });
-    
-    return template;
-  }, [monthlyCombined]);
 
   // Generate year options từ dữ liệu thực tế (các năm có học viên)
   const yearOptions = useMemo(() => {
@@ -112,6 +85,42 @@ export default function TraineeDashboard() {
     return Array.from(years).sort((a, b) => b - a);
   }, [monthlyCombined, currentYear]);
 
+  // SYSTEM RULE: monthlyChartData từ dashboard_monthly_combined view
+  // Đảm bảo hiển thị đủ 12 tháng trong năm VÀ LỌC THEO NĂM ĐƯỢC CHỌN
+  const monthlyChartData = useMemo(() => {
+    const months = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
+    
+    // Tạo template 12 tháng với giá trị mặc định = 0
+    const template = months.map((month, index) => ({
+      month,
+      monthNum: index + 1, // 1-12
+      recruitment: 0,
+      departure: 0,
+    }));
+    
+    if (!monthlyCombined) return template;
+    
+    // Merge dữ liệu từ DB vào template - LỌC THEO NĂM
+    // month_label từ DB có format "01/2026", "02/2026"...
+    monthlyCombined.forEach((item) => {
+      if (item.month_date) {
+        const itemDate = new Date(item.month_date);
+        const itemYear = itemDate.getFullYear();
+        const itemMonth = itemDate.getMonth() + 1; // 1-12
+        
+        if (itemYear === selectedYear) {
+          const templateItem = template.find((t) => t.monthNum === itemMonth);
+          if (templateItem) {
+            templateItem.recruitment = item.recruitment || 0;
+            templateItem.departure = item.departure || 0;
+          }
+        }
+      }
+    });
+    
+    return template;
+  }, [monthlyCombined, selectedYear]);
+
   // Calculate growth rate from KPIs
   const growthPercent = useMemo(() => {
     if (!kpis) return 0;
@@ -122,12 +131,6 @@ export default function TraineeDashboard() {
     if (avgPerMonth === 0) return monthTotal > 0 ? 100 : 0;
     return Math.round(((monthTotal - avgPerMonth) / avgPerMonth) * 100);
   }, [kpis]);
-
-  // Format time for last updated
-  const lastUpdated = useMemo(() => {
-    const now = new Date();
-    return `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-  }, []);
 
   // Format source data for horizontal bar chart
   const sourceChartData = useMemo(() => {
@@ -141,6 +144,19 @@ export default function TraineeDashboard() {
         value: s.count,
       }));
   }, [sourceData]);
+
+  // Top 10 công ty tuyển dụng trong năm - LỌC THEO NĂM
+  const companyChartData = useMemo(() => {
+    if (!companyData) return [];
+    return companyData
+      .filter(c => c.company_name && c.year === selectedYear && c.count > 0)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10)
+      .map(c => ({
+        name: c.company_name || "Không xác định",
+        value: c.count,
+      }));
+  }, [companyData, selectedYear]);
 
   // Calculate studying count - use status_studying from KPIs
   const studyingCount = useMemo(() => {
@@ -439,74 +455,74 @@ export default function TraineeDashboard() {
         </CardContent>
       </Card>
 
-      {/* Bottom Row - Progress + Target */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Profile Completion Progress */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-base font-semibold">Tiến độ đăng ký tháng này</CardTitle>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              <span>Cập nhật {lastUpdated}</span>
+      {/* Top 10 công ty tuyển dụng trong năm */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-base font-semibold">Top 10 công ty tuyển dụng trong năm {selectedYear}</CardTitle>
+          <Select
+            value={selectedYear.toString()}
+            onValueChange={(v) => setSelectedYear(parseInt(v))}
+          >
+            <SelectTrigger className="w-[100px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {yearOptions.map((y) => (
+                <SelectItem key={y} value={y.toString()}>
+                  {y}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardHeader>
+        <CardContent>
+          {loadingCompany ? (
+            <Skeleton className="h-64 w-full" />
+          ) : companyChartData.length === 0 ? (
+            <div className="h-64 flex items-center justify-center text-muted-foreground">
+              Không có dữ liệu công ty trong năm {selectedYear}
             </div>
-          </CardHeader>
-          <CardContent>
-            {loadingKPIs ? (
-              <div className="space-y-3">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-2 w-full" />
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">Đăng ký tháng này</span>
-                  <span className="text-lg font-bold text-primary">
-                    {kpis?.registered_this_month || 0}
-                  </span>
-                </div>
-                <Progress 
-                  value={Math.min(100, ((kpis?.registered_this_month || 0) / Math.max(1, (kpis?.registered_this_year || 1) / 12)) * 100)} 
-                  className="h-2" 
-                />
-                <p className="text-xs text-muted-foreground">
-                  {kpis?.registered_this_month || 0} / {Math.round((kpis?.registered_this_year || 0) / 12)} trung bình tháng
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Yearly Target */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-base font-semibold">Chỉ tiêu năm {selectedYear}</CardTitle>
-            <Target className="h-5 w-5 text-primary" />
-          </CardHeader>
-          <CardContent>
-            {loadingKPIs ? (
-              <div className="space-y-3">
-                <Skeleton className="h-8 w-24" />
-                <Skeleton className="h-2 w-full" />
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="text-2xl font-bold">
-                  <span className="text-primary">{kpis?.departed_this_year || 0}</span>
-                  <span className="text-muted-foreground mx-1">/</span>
-                  <span>{kpis?.registered_this_year || 0}</span>
-                </div>
-                <Progress 
-                  value={kpis?.registered_this_year ? Math.round((kpis.departed_this_year / kpis.registered_this_year) * 100) : 0} 
-                  className="h-2" 
-                />
-                <p className="text-xs text-muted-foreground">
-                  Đã xuất cảnh {kpis?.registered_this_year ? Math.round((kpis?.departed_this_year || 0) / kpis.registered_this_year * 100) : 0}% số đăng ký
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          ) : (
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart 
+                  data={companyChartData} 
+                  layout="vertical" 
+                  barSize={22}
+                  margin={{ left: 10, right: 30 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                  <XAxis type="number" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    fontSize={11} 
+                    tickLine={false} 
+                    width={150}
+                    tickFormatter={(value) => value.length > 20 ? value.substring(0, 20) + "..." : value}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: "8px",
+                      border: "1px solid hsl(var(--border))",
+                    }}
+                  />
+                  <Bar dataKey="value" name="Số lượng" fill="#3B82F6" radius={[0, 4, 4, 0]}>
+                    <LabelList 
+                      dataKey="value" 
+                      position="insideRight" 
+                      fill="#dc2626" 
+                      fontSize={12} 
+                      fontWeight="bold"
+                      formatter={(value: number) => value > 0 ? value : ""}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
