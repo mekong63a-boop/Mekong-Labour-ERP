@@ -2347,10 +2347,20 @@ export type Database = {
       }
       legal_summary_stats: {
         Row: {
+          docs_completed: number | null
+          docs_in_progress: number | null
+          docs_not_started: number | null
           total_all: number | null
           total_companies: number | null
           total_departed: number | null
           total_paperwork: number | null
+        }
+        Relationships: []
+      }
+      legal_trainee_type_stats: {
+        Row: {
+          count: number | null
+          trainee_type: Database["public"]["Enums"]["trainee_type"] | null
         }
         Relationships: []
       }
