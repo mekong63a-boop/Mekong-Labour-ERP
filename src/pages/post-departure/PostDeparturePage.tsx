@@ -126,30 +126,71 @@ export default function PostDeparturePage() {
   // Get year options from actual data
   const yearOptions = useMemo(() => getYearOptionsFromData(trainees), [trainees]);
 
-  // Calculate stats
+  // SYSTEM RULE: Chart data từ database view post_departure_stats_by_year
+  // Logic tính toán đã ở Supabase, frontend chỉ hiển thị
+  const { data: chartDataFromDb } = useQuery({
+    queryKey: ["post-departure-chart-data"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("post_departure_stats_by_year")
+        .select("*");
+      
+      if (error) throw error;
+      return (data || []).map(row => ({
+        year: row.year,
+        working: row.working,
+        earlyReturn: row.early_return,
+        absconded: row.absconded,
+        completed: row.completed,
+      }));
+    },
+  });
+
+  const chartData = chartDataFromDb || [];
+
+  // SYSTEM RULE: Stats từ database view, UI filtering là hợp lệ
+  // Khi selectedYear = "all" → dùng post_departure_summary view
+  // Khi selectedYear != "all" → lọc từ post_departure_stats_by_year view
+  const { data: summaryStats } = useQuery({
+    queryKey: ["post-departure-summary"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("post_departure_summary")
+        .select("*")
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const stats = useMemo(() => {
-    if (!trainees) return { working: 0, earlyReturn: 0, absconded: 0, completed: 0, total: 0 };
-    
-    let filtered = trainees;
-    
-    // Filter by year if selected
-    if (selectedYear && selectedYear !== "all") {
-      filtered = trainees.filter(t => {
-        if (!t.departure_date) return false;
-        return t.departure_date.startsWith(selectedYear);
-      });
+    if (selectedYear === "all" && summaryStats) {
+      return {
+        working: summaryStats.working || 0,
+        earlyReturn: summaryStats.early_return || 0,
+        absconded: summaryStats.absconded || 0,
+        completed: summaryStats.completed || 0,
+        total: summaryStats.total || 0,
+      };
     }
+    
+    // Khi chọn năm cụ thể, lấy từ chartData (đã có sẵn từ DB view)
+    const yearData = chartData.find(d => d.year === selectedYear);
+    if (yearData) {
+      return {
+        working: yearData.working,
+        earlyReturn: yearData.earlyReturn,
+        absconded: yearData.absconded,
+        completed: yearData.completed,
+        total: yearData.working + yearData.earlyReturn + yearData.absconded + yearData.completed,
+      };
+    }
+    
+    return { working: 0, earlyReturn: 0, absconded: 0, completed: 0, total: 0 };
+  }, [selectedYear, summaryStats, chartData]);
 
-    return {
-      working: filtered.filter(t => t.progression_stage === "Đang làm việc" || t.progression_stage === "Xuất cảnh").length,
-      earlyReturn: filtered.filter(t => t.progression_stage === "Về trước hạn").length,
-      absconded: filtered.filter(t => t.progression_stage === "Bỏ trốn").length,
-      completed: filtered.filter(t => t.progression_stage === "Hoàn thành hợp đồng").length,
-      total: filtered.length,
-    };
-  }, [trainees, selectedYear]);
-
-  // Filter trainees
+  // Filter trainees (UI filtering - hợp lệ ở frontend)
   const filteredTrainees = useMemo(() => {
     if (!trainees) return [];
 
@@ -184,40 +225,6 @@ export default function PostDeparturePage() {
 
     return result;
   }, [trainees, selectedYear, selectedStatus, searchQuery]);
-
-  // Calculate chart data by year
-  const chartData = useMemo(() => {
-    if (!trainees) return [];
-
-    const yearStats: Record<string, { year: string; working: number; earlyReturn: number; absconded: number; completed: number }> = {};
-
-    trainees.forEach(t => {
-      if (!t.departure_date) return;
-      const year = t.departure_date.substring(0, 4);
-      
-      if (!yearStats[year]) {
-        yearStats[year] = { year, working: 0, earlyReturn: 0, absconded: 0, completed: 0 };
-      }
-
-      switch (t.progression_stage) {
-        case "Đang làm việc":
-        case "Xuất cảnh":
-          yearStats[year].working++;
-          break;
-        case "Về trước hạn":
-          yearStats[year].earlyReturn++;
-          break;
-        case "Bỏ trốn":
-          yearStats[year].absconded++;
-          break;
-        case "Hoàn thành hợp đồng":
-          yearStats[year].completed++;
-          break;
-      }
-    });
-
-    return Object.values(yearStats).sort((a, b) => a.year.localeCompare(b.year));
-  }, [trainees]);
 
 
   const formatDate = (dateStr: string | null) => {

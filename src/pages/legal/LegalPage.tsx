@@ -43,85 +43,18 @@ export default function LegalPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  // Fetch companies with trainees who passed interview
+  // SYSTEM RULE: Query từ database view legal_company_stats
+  // Logic tính toán đã nằm ở Supabase, frontend chỉ hiển thị
   const { data: companies = [], isLoading } = useQuery({
-    queryKey: ["companies-with-trainees"],
+    queryKey: ["legal-company-stats"],
     queryFn: async () => {
-      // Get all trainees with interview_pass_date (means they passed)
-      const { data: trainees, error: traineesError } = await supabase
-        .from("trainees")
-        .select(`
-          id,
-          receiving_company_id,
-          progression_stage,
-          interview_pass_date
-        `)
-        .not("receiving_company_id", "is", null)
-        .not("interview_pass_date", "is", null);
+      const { data, error } = await supabase
+        .from("legal_company_stats")
+        .select("*")
+        .order("total_passed", { ascending: false });
 
-      if (traineesError) throw traineesError;
-
-      // Get unique company IDs
-      const companyIds = [...new Set(trainees?.map(t => t.receiving_company_id).filter(Boolean) as string[])];
-
-      if (companyIds.length === 0) {
-        return [];
-      }
-
-      // Fetch company details
-      const { data: companiesData, error: companiesError } = await supabase
-        .from("companies")
-        .select("id, code, name, name_japanese, address, work_address")
-        .in("id", companyIds);
-
-      if (companiesError) throw companiesError;
-
-      // Get interview history for last interview dates
-      const { data: interviews, error: interviewsError } = await supabase
-        .from("interview_history")
-        .select("company_id, interview_date")
-        .in("company_id", companyIds)
-        .not("interview_date", "is", null)
-        .order("interview_date", { ascending: false });
-
-      if (interviewsError) throw interviewsError;
-
-      // Build company map with stats
-      const result: CompanyWithTrainees[] = companiesData?.map(company => {
-        const companyTrainees = trainees?.filter(t => t.receiving_company_id === company.id) || [];
-        
-        // Count by progression stage
-        const doingPaperworkStages = ["Đậu phỏng vấn", "Nộp hồ sơ", "OTIT", "Nyukan", "COE", "Visa"];
-        const departedStages = ["Xuất cảnh", "Đang làm việc", "Hoàn thành hợp đồng"];
-        
-        const doingPaperwork = companyTrainees.filter(t => 
-          t.progression_stage && doingPaperworkStages.includes(t.progression_stage)
-        ).length;
-        
-        const departed = companyTrainees.filter(t => 
-          t.progression_stage && departedStages.includes(t.progression_stage)
-        ).length;
-
-        // Get last interview date for this company
-        const companyInterviews = interviews?.filter(i => i.company_id === company.id) || [];
-        const lastInterviewDate = companyInterviews[0]?.interview_date || null;
-
-        return {
-          id: company.id,
-          code: company.code,
-          name: company.name,
-          name_japanese: company.name_japanese,
-          address: company.address,
-          work_address: company.work_address,
-          last_interview_date: lastInterviewDate,
-          doing_paperwork: doingPaperwork,
-          departed: departed,
-          total_passed: companyTrainees.length,
-        };
-      }) || [];
-
-      // Sort by total passed (descending)
-      return result.sort((a, b) => b.total_passed - a.total_passed);
+      if (error) throw error;
+      return (data || []) as CompanyWithTrainees[];
     },
   });
 

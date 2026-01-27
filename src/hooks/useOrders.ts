@@ -71,17 +71,39 @@ export function useOrders() {
   });
 }
 
+// SYSTEM RULE: Logic tính toán nằm ở Supabase view order_stats
+// Frontend chỉ hiển thị, không tính toán
+interface OrderStatsRow {
+  total: number;
+  recruiting: number;
+  form_complete: number;
+  interviewed: number;
+  completed: number;
+  cancelled: number;
+}
+
 export function useOrderStats() {
-  const { data: orders } = useOrders();
+  const { data, isLoading } = useQuery({
+    queryKey: ["order-stats"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("order_stats")
+        .select("*")
+        .single();
 
-  const stats = {
-    total: orders?.length || 0,
-    recruiting: orders?.filter((o) => o.status === "Đang tuyển").length || 0,
-    formComplete: orders?.filter((o) => o.status === "Đã đủ form").length || 0,
-    interviewed: orders?.filter((o) => o.status === "Đã phỏng vấn").length || 0,
+      if (error) throw error;
+      return data as OrderStatsRow;
+    },
+    staleTime: 30 * 1000,
+  });
+
+  return {
+    total: data?.total || 0,
+    recruiting: data?.recruiting || 0,
+    formComplete: data?.form_complete || 0,
+    interviewed: data?.interviewed || 0,
+    isLoading,
   };
-
-  return stats;
 }
 
 export function useCreateOrder() {
