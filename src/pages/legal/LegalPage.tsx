@@ -58,7 +58,28 @@ export default function LegalPage() {
     },
   });
 
-  // Filter companies
+  // SYSTEM RULE: Query từ database view legal_summary_stats
+  // Thay thế reduce() bằng data từ DB view
+  const { data: summaryStats } = useQuery({
+    queryKey: ["legal-summary-stats"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("legal_summary_stats")
+        .select("*")
+        .limit(1)
+        .single();
+
+      if (error) throw error;
+      return data as {
+        total_companies: number;
+        total_paperwork: number;
+        total_departed: number;
+        total_all: number;
+      };
+    },
+  });
+
+  // Filter companies - UI logic (allowed in frontend)
   const filteredCompanies = companies.filter(company => {
     const matchesSearch = 
       company.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -71,12 +92,6 @@ export default function LegalPage() {
     
     return matchesSearch;
   });
-
-  // Stats
-  const totalPaperwork = companies.reduce((sum, c) => sum + c.doing_paperwork, 0);
-  const totalDeparted = companies.reduce((sum, c) => sum + c.departed, 0);
-  const totalAll = companies.reduce((sum, c) => sum + c.total_passed, 0);
-
 
   return (
     <div className="space-y-6">
@@ -95,7 +110,7 @@ export default function LegalPage() {
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{companies.length}</div>
+            <div className="text-2xl font-bold">{summaryStats?.total_companies || 0}</div>
             <p className="text-xs text-muted-foreground">Đã tuyển học viên</p>
           </CardContent>
         </Card>
@@ -106,7 +121,7 @@ export default function LegalPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalAll}</div>
+            <div className="text-2xl font-bold">{summaryStats?.total_all || 0}</div>
             <p className="text-xs text-muted-foreground">Đã đậu phỏng vấn</p>
           </CardContent>
         </Card>
@@ -117,7 +132,7 @@ export default function LegalPage() {
             <FileText className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{totalPaperwork}</div>
+            <div className="text-2xl font-bold text-blue-600">{summaryStats?.total_paperwork || 0}</div>
             <p className="text-xs text-muted-foreground">OTIT/Nyukan/COE/Visa</p>
           </CardContent>
         </Card>
@@ -128,7 +143,7 @@ export default function LegalPage() {
             <Plane className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{totalDeparted}</div>
+            <div className="text-2xl font-bold text-green-600">{summaryStats?.total_departed || 0}</div>
             <p className="text-xs text-muted-foreground">Đang làm việc tại Nhật</p>
           </CardContent>
         </Card>

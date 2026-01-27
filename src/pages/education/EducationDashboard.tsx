@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -20,48 +19,33 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-// Hook to get interview status stats for trainees in valid classes
+// =============================================================================
+// SYSTEM RULE: Hook query từ database view education_interview_stats
+// Logic tính toán đã nằm ở Supabase, frontend chỉ hiển thị
+// =============================================================================
 function useInterviewStats() {
   return useQuery({
     queryKey: ["education-interview-stats"],
     queryFn: async () => {
-      // First, get all valid class IDs
-      const { data: classesData, error: classesError } = await supabase
-        .from("classes")
-        .select("id");
-      
-      if (classesError) throw classesError;
-      
-      const validClassIds = new Set(classesData?.map(c => c.id) || []);
-      
-      // Then get all trainees with class assignment
       const { data, error } = await supabase
-        .from("trainees")
-        .select("id, gender, class_id, progression_stage");
+        .from("education_interview_stats")
+        .select("*")
+        .limit(1)
+        .single();
 
       if (error) throw error;
-
-      // Only trainees assigned to an existing class
-      const traineesInValidClasses =
-        data?.filter((t) => t.class_id && validClassIds.has(t.class_id)) || [];
-
-      // Passed interview (đậu phỏng vấn) - has a valid progression_stage
-      const passed = traineesInValidClasses.filter(
-        (t) => t.progression_stage !== null
-      );
-      const passedMale = passed.filter((t) => t.gender === "Nam").length;
-      const passedFemale = passed.filter((t) => t.gender === "Nữ").length;
-
-      // Not passed interview (chưa đậu phỏng vấn) - no progression_stage
-      const notPassed = traineesInValidClasses.filter(
-        (t) => t.progression_stage === null
-      );
-      const notPassedMale = notPassed.filter((t) => t.gender === "Nam").length;
-      const notPassedFemale = notPassed.filter((t) => t.gender === "Nữ").length;
-
+      
       return {
-        passed: { male: passedMale, female: passedFemale, total: passed.length },
-        notPassed: { male: notPassedMale, female: notPassedFemale, total: notPassed.length },
+        passed: { 
+          male: data?.passed_male || 0, 
+          female: data?.passed_female || 0, 
+          total: data?.passed_total || 0 
+        },
+        notPassed: { 
+          male: data?.not_passed_male || 0, 
+          female: data?.not_passed_female || 0, 
+          total: data?.not_passed_total || 0 
+        },
       };
     },
   });
@@ -107,7 +91,7 @@ export default function EducationDashboard() {
   const { data: interviewStats, isLoading: interviewStatsLoading } = useInterviewStats();
   const { data: absentLate, isLoading: absentLateLoading } = useAbsentLateAttendance(selectedDate);
 
-  // Interview stats table data
+  // Interview stats table data - UI formatting only
   const interviewTableData = useMemo(() => {
     if (!interviewStats) return [];
     return [
@@ -229,7 +213,7 @@ export default function EducationDashboard() {
                       <TableCell className="text-center font-bold">{row.total}</TableCell>
                     </TableRow>
                   ))}
-                  {/* Total row */}
+                  {/* Total row - data từ view, chỉ cộng để hiển thị */}
                   <TableRow className="bg-muted/30 font-bold">
                     <TableCell>Tổng cộng</TableCell>
                     <TableCell className="text-center text-blue-600">

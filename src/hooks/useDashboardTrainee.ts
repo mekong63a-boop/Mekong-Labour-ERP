@@ -33,6 +33,14 @@ export interface TraineeKPIs {
   registered_this_year: number;
   departed_this_month: number;
   departed_this_year: number;
+  // Added from new view
+  active_orders: number;
+  stage_recruited: number;
+  stage_visa_processing: number;
+  stage_ready_to_depart: number;
+  stage_post_departure: number;
+  stage_in_japan: number;
+  stage_archived: number;
 }
 
 export interface StageData { stage: string; count: number; }
@@ -44,6 +52,7 @@ export interface BirthplaceData { birthplace: string; count: number; }
 export interface GenderData { gender: string; count: number; }
 export interface DeparturesMonthlyData { month_label: string; departures: number; }
 export interface PassedMonthlyData { month_label: string; passed_count: number; }
+export interface MonthlyCombinedData { month_label: string; month_date: string; recruitment: number; departure: number; }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const queryView = async (viewName: string): Promise<any[]> => {
@@ -116,5 +125,12 @@ export const useTraineeDeparturesMonthly = () => useQuery({
 export const useTraineePassedMonthly = () => useQuery({
   queryKey: ["dashboard-trainee-passed-monthly"],
   queryFn: () => queryView("dashboard_trainee_passed_monthly") as Promise<PassedMonthlyData[]>,
+  staleTime: 30 * 1000,
+});
+
+// SYSTEM RULE: Combined monthly data từ DB view (thay thế useMemo combine ở frontend)
+export const useMonthlyCombined = () => useQuery({
+  queryKey: ["dashboard-monthly-combined"],
+  queryFn: () => queryView("dashboard_monthly_combined") as Promise<MonthlyCombinedData[]>,
   staleTime: 30 * 1000,
 });

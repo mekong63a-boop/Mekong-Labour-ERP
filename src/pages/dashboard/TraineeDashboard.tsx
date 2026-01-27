@@ -39,11 +39,9 @@ import { cn } from "@/lib/utils";
 // Single Source - PostgreSQL views
 import {
   useTraineeKPIs,
-  useTraineeMonthly,
-  useTraineeDeparturesMonthly,
+  useMonthlyCombined,
   useTraineeBySource,
 } from "@/hooks/useDashboardTrainee";
-import { useOrders } from "@/hooks/useOrders";
 
 // Color palette for charts
 const DONUT_COLORS = [
@@ -96,29 +94,22 @@ export default function TraineeDashboard() {
 
   // Single Source - PostgreSQL views
   const { data: kpis, isLoading: loadingKPIs } = useTraineeKPIs();
-  const { data: monthlyRegistrations, isLoading: loadingMonthly } = useTraineeMonthly();
-  const { data: monthlyDepartures, isLoading: loadingDepartures } = useTraineeDeparturesMonthly();
+  const { data: monthlyCombined, isLoading: loadingMonthly } = useMonthlyCombined();
   const { data: sourceData, isLoading: loadingSource } = useTraineeBySource();
-  const { data: orders } = useOrders();
 
-  // Calculate orders with status "Đang tuyển"
-  const activeOrders = useMemo(() => {
-    return orders?.filter(o => o.status === "Đang tuyển").length || 0;
-  }, [orders]);
+  // SYSTEM RULE: activeOrders từ kpis view (đã tính sẵn ở DB)
+  const activeOrders = kpis?.active_orders || 0;
 
-  // Combine monthly data for bar chart
+  // SYSTEM RULE: monthlyChartData từ dashboard_monthly_combined view
+  // Chỉ format lại cho chart, không tính toán
   const monthlyChartData = useMemo(() => {
-    if (!monthlyRegistrations || !monthlyDepartures) return [];
-    
-    return monthlyRegistrations.map((reg) => {
-      const dep = monthlyDepartures.find(d => d.month_label === reg.month_label);
-      return {
-        month: reg.month_label,
-        recruitment: reg.registrations || 0,
-        departure: dep?.departures || 0,
-      };
-    });
-  }, [monthlyRegistrations, monthlyDepartures]);
+    if (!monthlyCombined) return [];
+    return monthlyCombined.map((item) => ({
+      month: item.month_label,
+      recruitment: item.recruitment || 0,
+      departure: item.departure || 0,
+    }));
+  }, [monthlyCombined]);
 
   // Generate year options (from 2020 to current + 1)
   const yearOptions = useMemo(() => {
@@ -330,7 +321,7 @@ export default function TraineeDashboard() {
             </Select>
           </CardHeader>
           <CardContent>
-            {loadingMonthly || loadingDepartures ? (
+            {loadingMonthly ? (
               <Skeleton className="h-64 w-full" />
             ) : (
               <div className="h-72">
