@@ -8,7 +8,6 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { MenuProtectedRoute } from "@/components/auth/MenuProtectedRoute";
 import { AuthProviderWrapper } from "@/components/auth/AuthProvider";
-import Dashboard from "./pages/Dashboard";
 import TraineeDashboard from "./pages/dashboard/TraineeDashboard";
 import DashboardDetailList from "./pages/dashboard/DashboardDetailList";
 import TraineeList from "./pages/TraineeList";
@@ -127,14 +126,10 @@ function AppWithQueryClient() {
                 </ProtectedRoute>
               }
             >
-              {/* Dashboard - accessible to all authenticated users with dashboard permission */}
+              {/* Dashboard - redirect to trainees dashboard */}
               <Route
                 path="/"
-                element={
-                  <MenuProtectedRoute menuKey="dashboard">
-                    <Dashboard />
-                  </MenuProtectedRoute>
-                }
+                element={<Navigate to="/dashboard/trainees" replace />}
               />
               
               {/* Dashboard Học viên */}
