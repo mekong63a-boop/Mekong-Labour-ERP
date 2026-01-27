@@ -53,6 +53,7 @@ export interface GenderData { gender: string; count: number; }
 export interface DeparturesMonthlyData { month_label: string; departures: number; }
 export interface PassedMonthlyData { month_label: string; passed_count: number; }
 export interface MonthlyCombinedData { month_label: string; month_date: string; recruitment: number; departure: number; }
+export interface CompanyData { company_id: string; company_name: string; year: number; count: number; }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const queryView = async (viewName: string): Promise<any[]> => {
@@ -132,5 +133,12 @@ export const useTraineePassedMonthly = () => useQuery({
 export const useMonthlyCombined = () => useQuery({
   queryKey: ["dashboard-monthly-combined"],
   queryFn: () => queryView("dashboard_monthly_combined") as Promise<MonthlyCombinedData[]>,
+  staleTime: 30 * 1000,
+});
+
+// SYSTEM RULE: Top companies by recruited trainees
+export const useTraineeByCompany = () => useQuery({
+  queryKey: ["dashboard-trainee-by-company"],
+  queryFn: () => queryView("dashboard_trainee_by_company") as Promise<CompanyData[]>,
   staleTime: 30 * 1000,
 });
