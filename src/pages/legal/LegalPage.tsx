@@ -97,7 +97,7 @@ const DOCUMENT_COLUMNS = [
   'CCCD', 'Hộ chiếu', 'Sơ yếu lý lịch', 'Giấy khám SK', 'Bằng cấp',
   'Hợp đồng', 'Ảnh 3x4', 'Ảnh 4x6', 'Đơn xin visa', 'Phiếu XN',
   'OTIT', 'Nyukan', 'COE', 'Visa', 'Ghi chú',
-  'HĐ 1-14', 'HĐ 1-15', 'Thư phái cử'
+  'HĐ 1-14; 1-15', 'Thư phái cử'
 ];
 
 // View modes
@@ -183,7 +183,7 @@ export default function LegalPage() {
         .eq("trainee_type", selectedType as any)
         .not("interview_pass_date", "is", null)
         .not("receiving_company_id", "is", null)
-        .in("progression_stage", ['Đậu phỏng vấn', 'Nộp hồ sơ', 'COE'])
+        .eq("progression_stage", 'Đậu phỏng vấn')
         .order("full_name");
 
       if (error) throw error;
@@ -211,7 +211,7 @@ export default function LegalPage() {
         `)
         .eq("receiving_company_id", selectedCompanyBatch.company_id)
         .eq("interview_pass_date", selectedCompanyBatch.interview_pass_date)
-        .in("progression_stage", ['Đậu phỏng vấn', 'Nộp hồ sơ', 'COE'])
+        .eq("progression_stage", 'Đậu phỏng vấn')
         .order("full_name");
 
       if (error) throw error;
@@ -609,8 +609,7 @@ export default function LegalPage() {
                     <TableHead className="w-[120px]">Ngày phỏng vấn</TableHead>
                     <TableHead className="text-center w-[80px]">Số HV</TableHead>
                     <TableHead className="w-[140px]">Tình trạng</TableHead>
-                    <TableHead className="text-center w-[80px]">HĐ 1-14</TableHead>
-                    <TableHead className="text-center w-[80px]">HĐ 1-15</TableHead>
+                    <TableHead className="text-center w-[100px]">HĐ 1-14; 1-15</TableHead>
                     <TableHead className="text-center w-[100px]">Thư phái cử</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -666,7 +665,6 @@ export default function LegalPage() {
                             </Badge>
                           )}
                         </TableCell>
-                        <TableCell className="text-center text-muted-foreground">—</TableCell>
                         <TableCell className="text-center text-muted-foreground">—</TableCell>
                         <TableCell className="text-center text-muted-foreground">—</TableCell>
                       </TableRow>
