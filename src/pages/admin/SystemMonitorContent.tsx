@@ -79,20 +79,7 @@ interface AuditLog {
   full_name?: string;
 }
 
-interface EditPermission {
-  id: string;
-  user_id: string;
-  table_name: string;
-  record_id: string;
-  requested_at: string;
-  approved_by: string | null;
-  approved_at: string | null;
-  expires_at: string | null;
-  status: string;
-  reason: string | null;
-  email?: string;
-  full_name?: string;
-}
+// EditPermission interface removed - table was deleted during schema cleanup
 
 const ACTION_LABELS: Record<string, { label: string; icon: any; color: string }> = {
   INSERT: { label: "Thêm mới", icon: Plus, color: "bg-green-100 text-green-800" },
@@ -235,53 +222,17 @@ export default function SystemMonitorContent() {
     enabled: canAccess,
   });
 
-  // Fetch edit permission requests
-  const { data: editRequests = [], refetch: refetchRequests } = useQuery({
-    queryKey: ["edit-permissions"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("edit_permissions")
-        .select("*")
-        .order("requested_at", { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-
-      const userIds = [...new Set(data?.map(r => r.user_id) || [])];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, email, full_name")
-        .in("user_id", userIds);
-
-      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-
-      return (data || []).map(req => ({
-        ...req,
-        email: profileMap.get(req.user_id)?.email || "Unknown",
-        full_name: profileMap.get(req.user_id)?.full_name || "",
-      })) as EditPermission[];
-    },
-    enabled: canAccess,
-  });
+  // edit_permissions table was removed during schema cleanup
+  // Using empty array for backward compatibility with UI
+  const editRequests: Array<{id: string; status: string; full_name?: string; email?: string; table_name: string; reason?: string; requested_at: string}> = [];
+  const refetchRequests = () => {};
 
   // Heartbeat session (IP + User Agent) để bảng Online Users luôn đúng
   useSessionHeartbeat();
 
-  // Handle approve/reject edit permission
-  const handleEditPermission = async (id: string, approve: boolean) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    await supabase
-      .from("edit_permissions")
-      .update({
-        status: approve ? "approved" : "rejected",
-        approved_by: user?.id,
-        approved_at: new Date().toISOString(),
-        expires_at: approve ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null,
-      })
-      .eq("id", id);
-
-    refetchRequests();
+  // Handle approve/reject edit permission - disabled since table removed
+  const handleEditPermission = async (_id: string, _approve: boolean) => {
+    console.log("Edit permissions feature disabled - table removed");
   };
 
   const getActionInfo = (action: string) => {

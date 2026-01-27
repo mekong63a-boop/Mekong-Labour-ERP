@@ -59,9 +59,9 @@ export function useOrders() {
         .from("orders")
         .select(`
           *,
-          company:companies(name),
-          union:unions(name),
-          job_category:job_categories(name)
+          company:companies!fk_orders_company(name),
+          union:unions!fk_orders_union(name),
+          job_category:job_categories!fk_orders_job_category(name)
         `)
         .order("code", { ascending: false });
 

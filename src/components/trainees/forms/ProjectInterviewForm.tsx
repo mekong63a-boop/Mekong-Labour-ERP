@@ -38,9 +38,9 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
           contract_term,
           status,
           quantity,
-          companies:company_id(id, name, name_japanese, code),
-          unions:union_id(id, name, name_japanese, code),
-          job_categories:job_category_id(id, name, name_japanese, code)
+          companies:companies!fk_orders_company(id, name, name_japanese, code),
+          unions:unions!fk_orders_union(id, name, name_japanese, code),
+          job_categories:job_categories!fk_orders_job_category(id, name, name_japanese, code)
         `)
         .eq("status", "Đang tuyển")
         .order("code", { ascending: false });
