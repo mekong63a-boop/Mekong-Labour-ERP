@@ -183,7 +183,7 @@ export default function LegalPage() {
         .eq("trainee_type", selectedType as any)
         .not("interview_pass_date", "is", null)
         .not("receiving_company_id", "is", null)
-        .not("progression_stage", "in", '("Chưa đậu","Xuất cảnh","Đang làm việc","Hoàn thành hợp đồng","Bỏ trốn","Về trước hạn")')
+        .in("progression_stage", ['Đậu phỏng vấn', 'Nộp hồ sơ', 'COE'])
         .order("full_name");
 
       if (error) throw error;
@@ -211,7 +211,7 @@ export default function LegalPage() {
         `)
         .eq("receiving_company_id", selectedCompanyBatch.company_id)
         .eq("interview_pass_date", selectedCompanyBatch.interview_pass_date)
-        .not("progression_stage", "in", '("Chưa đậu","Xuất cảnh","Đang làm việc","Hoàn thành hợp đồng","Bỏ trốn","Về trước hạn")')
+        .in("progression_stage", ['Đậu phỏng vấn', 'Nộp hồ sơ', 'COE'])
         .order("full_name");
 
       if (error) throw error;
@@ -609,6 +609,9 @@ export default function LegalPage() {
                     <TableHead className="w-[120px]">Ngày phỏng vấn</TableHead>
                     <TableHead className="text-center w-[80px]">Số HV</TableHead>
                     <TableHead className="w-[140px]">Tình trạng</TableHead>
+                    <TableHead className="text-center w-[80px]">HĐ 1-14</TableHead>
+                    <TableHead className="text-center w-[80px]">HĐ 1-15</TableHead>
+                    <TableHead className="text-center w-[100px]">Thư phái cử</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -663,6 +666,9 @@ export default function LegalPage() {
                             </Badge>
                           )}
                         </TableCell>
+                        <TableCell className="text-center text-muted-foreground">—</TableCell>
+                        <TableCell className="text-center text-muted-foreground">—</TableCell>
+                        <TableCell className="text-center text-muted-foreground">—</TableCell>
                       </TableRow>
                     );
                   })}
