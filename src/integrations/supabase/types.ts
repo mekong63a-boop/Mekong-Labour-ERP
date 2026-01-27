@@ -1512,6 +1512,7 @@ export type Database = {
           current_address: string | null
           current_situation: string | null
           departure_date: string | null
+          document_status: string | null
           document_submission_date: string | null
           dominant_hand: string | null
           drinking: string | null
@@ -1593,6 +1594,7 @@ export type Database = {
           current_address?: string | null
           current_situation?: string | null
           departure_date?: string | null
+          document_status?: string | null
           document_submission_date?: string | null
           dominant_hand?: string | null
           drinking?: string | null
@@ -1674,6 +1676,7 @@ export type Database = {
           current_address?: string | null
           current_situation?: string | null
           departure_date?: string | null
+          document_status?: string | null
           document_submission_date?: string | null
           dominant_hand?: string | null
           drinking?: string | null
