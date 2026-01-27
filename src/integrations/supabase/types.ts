@@ -64,13 +64,6 @@ export type Database = {
             foreignKeyName: "attendance_trainee_id_fkey"
             columns: ["trainee_id"]
             isOneToOne: false
-            referencedRelation: "trainees_basic"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "attendance_trainee_id_fkey"
-            columns: ["trainee_id"]
-            isOneToOne: false
             referencedRelation: "trainees_with_workflow"
             referencedColumns: ["id"]
           },
@@ -290,53 +283,6 @@ export type Database = {
         }
         Relationships: []
       }
-      department_menu_permissions: {
-        Row: {
-          assigned_at: string | null
-          assigned_by: string | null
-          can_create: boolean | null
-          can_delete: boolean | null
-          can_update: boolean | null
-          can_view: boolean | null
-          created_at: string | null
-          department: string
-          id: string
-          menu_key: string
-        }
-        Insert: {
-          assigned_at?: string | null
-          assigned_by?: string | null
-          can_create?: boolean | null
-          can_delete?: boolean | null
-          can_update?: boolean | null
-          can_view?: boolean | null
-          created_at?: string | null
-          department: string
-          id?: string
-          menu_key: string
-        }
-        Update: {
-          assigned_at?: string | null
-          assigned_by?: string | null
-          can_create?: boolean | null
-          can_delete?: boolean | null
-          can_update?: boolean | null
-          can_view?: boolean | null
-          created_at?: string | null
-          department?: string
-          id?: string
-          menu_key?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "department_menu_permissions_menu_key_fkey"
-            columns: ["menu_key"]
-            isOneToOne: false
-            referencedRelation: "menus"
-            referencedColumns: ["key"]
-          },
-        ]
-      }
       departments: {
         Row: {
           code: string
@@ -506,59 +452,10 @@ export type Database = {
             foreignKeyName: "dormitory_residents_trainee_id_fkey"
             columns: ["trainee_id"]
             isOneToOne: false
-            referencedRelation: "trainees_basic"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dormitory_residents_trainee_id_fkey"
-            columns: ["trainee_id"]
-            isOneToOne: false
             referencedRelation: "trainees_with_workflow"
             referencedColumns: ["id"]
           },
         ]
-      }
-      edit_permissions: {
-        Row: {
-          approved_at: string | null
-          approved_by: string | null
-          created_at: string
-          expires_at: string | null
-          id: string
-          reason: string | null
-          record_id: string
-          requested_at: string
-          status: string
-          table_name: string
-          user_id: string
-        }
-        Insert: {
-          approved_at?: string | null
-          approved_by?: string | null
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          reason?: string | null
-          record_id: string
-          requested_at?: string
-          status?: string
-          table_name: string
-          user_id: string
-        }
-        Update: {
-          approved_at?: string | null
-          approved_by?: string | null
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          reason?: string | null
-          record_id?: string
-          requested_at?: string
-          status?: string
-          table_name?: string
-          user_id?: string
-        }
-        Relationships: []
       }
       education_history: {
         Row: {
@@ -597,13 +494,6 @@ export type Database = {
             columns: ["trainee_id"]
             isOneToOne: false
             referencedRelation: "trainees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "education_history_trainee_id_fkey"
-            columns: ["trainee_id"]
-            isOneToOne: false
-            referencedRelation: "trainees_basic"
             referencedColumns: ["id"]
           },
           {
@@ -685,13 +575,6 @@ export type Database = {
             foreignKeyName: "enrollment_history_trainee_id_fkey"
             columns: ["trainee_id"]
             isOneToOne: false
-            referencedRelation: "trainees_basic"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "enrollment_history_trainee_id_fkey"
-            columns: ["trainee_id"]
-            isOneToOne: false
             referencedRelation: "trainees_with_workflow"
             referencedColumns: ["id"]
           },
@@ -740,13 +623,6 @@ export type Database = {
             columns: ["trainee_id"]
             isOneToOne: false
             referencedRelation: "trainees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "family_members_trainee_id_fkey"
-            columns: ["trainee_id"]
-            isOneToOne: false
-            referencedRelation: "trainees_basic"
             referencedColumns: ["id"]
           },
           {
@@ -848,6 +724,48 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_interview_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_interview_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_interview_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_trainee_by_company"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "fk_interview_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "legal_company_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_interview_job_category"
+            columns: ["job_category_id"]
+            isOneToOne: false
+            referencedRelation: "job_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_interview_union"
+            columns: ["union_id"]
+            isOneToOne: false
+            referencedRelation: "unions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "interview_history_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
@@ -887,13 +805,6 @@ export type Database = {
             columns: ["trainee_id"]
             isOneToOne: false
             referencedRelation: "trainees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "interview_history_trainee_id_fkey"
-            columns: ["trainee_id"]
-            isOneToOne: false
-            referencedRelation: "trainees_basic"
             referencedColumns: ["id"]
           },
           {
@@ -952,13 +863,6 @@ export type Database = {
             columns: ["trainee_id"]
             isOneToOne: false
             referencedRelation: "trainees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "japan_relatives_trainee_id_fkey"
-            columns: ["trainee_id"]
-            isOneToOne: false
-            referencedRelation: "trainees_basic"
             referencedColumns: ["id"]
           },
           {
@@ -1145,6 +1049,48 @@ export type Database = {
           work_address?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_orders_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_orders_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_orders_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_trainee_by_company"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "fk_orders_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "legal_company_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_orders_job_category"
+            columns: ["job_category_id"]
+            isOneToOne: false
+            referencedRelation: "job_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_orders_union"
+            columns: ["union_id"]
+            isOneToOne: false
+            referencedRelation: "unions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_company_id_fkey"
             columns: ["company_id"]
@@ -1383,13 +1329,6 @@ export type Database = {
             foreignKeyName: "test_scores_trainee_id_fkey"
             columns: ["trainee_id"]
             isOneToOne: false
-            referencedRelation: "trainees_basic"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "test_scores_trainee_id_fkey"
-            columns: ["trainee_id"]
-            isOneToOne: false
             referencedRelation: "trainees_with_workflow"
             referencedColumns: ["id"]
           },
@@ -1448,13 +1387,6 @@ export type Database = {
             columns: ["trainee_id"]
             isOneToOne: false
             referencedRelation: "trainees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "trainee_reviews_trainee_id_fkey"
-            columns: ["trainee_id"]
-            isOneToOne: false
-            referencedRelation: "trainees_basic"
             referencedColumns: ["id"]
           },
           {
@@ -1522,13 +1454,6 @@ export type Database = {
             foreignKeyName: "trainee_workflow_trainee_id_fkey"
             columns: ["trainee_id"]
             isOneToOne: true
-            referencedRelation: "trainees_basic"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "trainee_workflow_trainee_id_fkey"
-            columns: ["trainee_id"]
-            isOneToOne: true
             referencedRelation: "trainees_with_workflow"
             referencedColumns: ["id"]
           },
@@ -1587,13 +1512,6 @@ export type Database = {
             columns: ["trainee_id"]
             isOneToOne: false
             referencedRelation: "trainees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "trainee_workflow_history_trainee_id_fkey"
-            columns: ["trainee_id"]
-            isOneToOne: false
-            referencedRelation: "trainees_basic"
             referencedColumns: ["id"]
           },
           {
@@ -1849,7 +1767,57 @@ export type Database = {
           weight?: number | null
           zalo?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_trainees_class"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_trainees_company"
+            columns: ["receiving_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_trainees_company"
+            columns: ["receiving_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_trainees_company"
+            columns: ["receiving_company_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_trainee_by_company"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "fk_trainees_company"
+            columns: ["receiving_company_id"]
+            isOneToOne: false
+            referencedRelation: "legal_company_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_trainees_job_category"
+            columns: ["job_category_id"]
+            isOneToOne: false
+            referencedRelation: "job_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_trainees_union"
+            columns: ["union_id"]
+            isOneToOne: false
+            referencedRelation: "unions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       union_members: {
         Row: {
@@ -2041,30 +2009,6 @@ export type Database = {
           },
         ]
       }
-      user_permissions: {
-        Row: {
-          created_at: string | null
-          granted_by: string | null
-          id: string
-          permission_code: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          granted_by?: string | null
-          id?: string
-          permission_code: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          granted_by?: string | null
-          id?: string
-          permission_code?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       user_roles: {
         Row: {
           assigned_at: string | null
@@ -2198,13 +2142,6 @@ export type Database = {
             foreignKeyName: "work_history_trainee_id_fkey"
             columns: ["trainee_id"]
             isOneToOne: false
-            referencedRelation: "trainees_basic"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "work_history_trainee_id_fkey"
-            columns: ["trainee_id"]
-            isOneToOne: false
             referencedRelation: "trainees_with_workflow"
             referencedColumns: ["id"]
           },
@@ -2295,13 +2232,6 @@ export type Database = {
           count: number | null
           stage: string | null
           stage_label: string | null
-        }
-        Relationships: []
-      }
-      dashboard_trainee_by_status: {
-        Row: {
-          count: number | null
-          status: string | null
         }
         Relationships: []
       }
@@ -2499,242 +2429,6 @@ export type Database = {
         }
         Relationships: []
       }
-      trainee_workflow_counts: {
-        Row: {
-          count: number | null
-          stage_key: string | null
-          stage_label: string | null
-        }
-        Relationships: []
-      }
-      trainees_basic: {
-        Row: {
-          absconded_date: string | null
-          birth_date: string | null
-          birthplace: string | null
-          blood_group: string | null
-          cccd_date: string | null
-          cccd_number: string | null
-          cccd_place: string | null
-          class_id: string | null
-          coe_date: string | null
-          contract_end_date: string | null
-          contract_term: number | null
-          created_at: string | null
-          current_address: string | null
-          current_situation: string | null
-          departure_date: string | null
-          document_submission_date: string | null
-          dominant_hand: string | null
-          drinking: string | null
-          early_return_date: string | null
-          early_return_reason: string | null
-          education_level: string | null
-          email: string | null
-          enrollment_status: string | null
-          entry_date: string | null
-          ethnicity: string | null
-          expected_entry_month: string | null
-          expected_return_date: string | null
-          facebook: string | null
-          full_name: string | null
-          furigana: string | null
-          gender: string | null
-          health_status: string | null
-          height: number | null
-          hobbies: string | null
-          household_address: string | null
-          id: string | null
-          interview_count: number | null
-          interview_pass_date: string | null
-          job_category_id: string | null
-          marital_status: string | null
-          notes: string | null
-          nyukan_entry_date: string | null
-          otit_entry_date: string | null
-          parent_phone_1: string | null
-          parent_phone_2: string | null
-          passport_date: string | null
-          passport_number: string | null
-          permanent_address: string | null
-          phone: string | null
-          photo_url: string | null
-          policy_category: string | null
-          progression_stage:
-            | Database["public"]["Enums"]["progression_stage"]
-            | null
-          receiving_company_id: string | null
-          registration_date: string | null
-          religion: string | null
-          return_date: string | null
-          simple_status: Database["public"]["Enums"]["simple_status"] | null
-          smoking: string | null
-          source: string | null
-          tattoo: boolean | null
-          tattoo_description: string | null
-          temp_address: string | null
-          trainee_code: string | null
-          trainee_type: Database["public"]["Enums"]["trainee_type"] | null
-          union_id: string | null
-          updated_at: string | null
-          visa_date: string | null
-          vision_left: number | null
-          vision_right: number | null
-          weight: number | null
-          zalo: string | null
-        }
-        Insert: {
-          absconded_date?: string | null
-          birth_date?: string | null
-          birthplace?: string | null
-          blood_group?: string | null
-          cccd_date?: string | null
-          cccd_number?: string | null
-          cccd_place?: string | null
-          class_id?: string | null
-          coe_date?: string | null
-          contract_end_date?: string | null
-          contract_term?: number | null
-          created_at?: string | null
-          current_address?: string | null
-          current_situation?: string | null
-          departure_date?: string | null
-          document_submission_date?: string | null
-          dominant_hand?: string | null
-          drinking?: string | null
-          early_return_date?: string | null
-          early_return_reason?: string | null
-          education_level?: string | null
-          email?: string | null
-          enrollment_status?: string | null
-          entry_date?: string | null
-          ethnicity?: string | null
-          expected_entry_month?: string | null
-          expected_return_date?: string | null
-          facebook?: string | null
-          full_name?: string | null
-          furigana?: string | null
-          gender?: string | null
-          health_status?: string | null
-          height?: number | null
-          hobbies?: string | null
-          household_address?: string | null
-          id?: string | null
-          interview_count?: number | null
-          interview_pass_date?: string | null
-          job_category_id?: string | null
-          marital_status?: string | null
-          notes?: string | null
-          nyukan_entry_date?: string | null
-          otit_entry_date?: string | null
-          parent_phone_1?: string | null
-          parent_phone_2?: string | null
-          passport_date?: string | null
-          passport_number?: string | null
-          permanent_address?: string | null
-          phone?: string | null
-          photo_url?: string | null
-          policy_category?: string | null
-          progression_stage?:
-            | Database["public"]["Enums"]["progression_stage"]
-            | null
-          receiving_company_id?: string | null
-          registration_date?: string | null
-          religion?: string | null
-          return_date?: string | null
-          simple_status?: Database["public"]["Enums"]["simple_status"] | null
-          smoking?: string | null
-          source?: string | null
-          tattoo?: boolean | null
-          tattoo_description?: string | null
-          temp_address?: string | null
-          trainee_code?: string | null
-          trainee_type?: Database["public"]["Enums"]["trainee_type"] | null
-          union_id?: string | null
-          updated_at?: string | null
-          visa_date?: string | null
-          vision_left?: number | null
-          vision_right?: number | null
-          weight?: number | null
-          zalo?: string | null
-        }
-        Update: {
-          absconded_date?: string | null
-          birth_date?: string | null
-          birthplace?: string | null
-          blood_group?: string | null
-          cccd_date?: string | null
-          cccd_number?: string | null
-          cccd_place?: string | null
-          class_id?: string | null
-          coe_date?: string | null
-          contract_end_date?: string | null
-          contract_term?: number | null
-          created_at?: string | null
-          current_address?: string | null
-          current_situation?: string | null
-          departure_date?: string | null
-          document_submission_date?: string | null
-          dominant_hand?: string | null
-          drinking?: string | null
-          early_return_date?: string | null
-          early_return_reason?: string | null
-          education_level?: string | null
-          email?: string | null
-          enrollment_status?: string | null
-          entry_date?: string | null
-          ethnicity?: string | null
-          expected_entry_month?: string | null
-          expected_return_date?: string | null
-          facebook?: string | null
-          full_name?: string | null
-          furigana?: string | null
-          gender?: string | null
-          health_status?: string | null
-          height?: number | null
-          hobbies?: string | null
-          household_address?: string | null
-          id?: string | null
-          interview_count?: number | null
-          interview_pass_date?: string | null
-          job_category_id?: string | null
-          marital_status?: string | null
-          notes?: string | null
-          nyukan_entry_date?: string | null
-          otit_entry_date?: string | null
-          parent_phone_1?: string | null
-          parent_phone_2?: string | null
-          passport_date?: string | null
-          passport_number?: string | null
-          permanent_address?: string | null
-          phone?: string | null
-          photo_url?: string | null
-          policy_category?: string | null
-          progression_stage?:
-            | Database["public"]["Enums"]["progression_stage"]
-            | null
-          receiving_company_id?: string | null
-          registration_date?: string | null
-          religion?: string | null
-          return_date?: string | null
-          simple_status?: Database["public"]["Enums"]["simple_status"] | null
-          smoking?: string | null
-          source?: string | null
-          tattoo?: boolean | null
-          tattoo_description?: string | null
-          temp_address?: string | null
-          trainee_code?: string | null
-          trainee_type?: Database["public"]["Enums"]["trainee_type"] | null
-          union_id?: string | null
-          updated_at?: string | null
-          visa_date?: string | null
-          vision_left?: number | null
-          vision_right?: number | null
-          weight?: number | null
-          zalo?: string | null
-        }
-        Relationships: []
-      }
       trainees_with_workflow: {
         Row: {
           absconded_date: string | null
@@ -2819,6 +2513,55 @@ export type Database = {
           zalo: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_trainees_class"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_trainees_company"
+            columns: ["receiving_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_trainees_company"
+            columns: ["receiving_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_trainees_company"
+            columns: ["receiving_company_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_trainee_by_company"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "fk_trainees_company"
+            columns: ["receiving_company_id"]
+            isOneToOne: false
+            referencedRelation: "legal_company_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_trainees_job_category"
+            columns: ["job_category_id"]
+            isOneToOne: false
+            referencedRelation: "job_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_trainees_union"
+            columns: ["union_id"]
+            isOneToOne: false
+            referencedRelation: "unions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "trainee_workflow_owner_department_id_fkey"
             columns: ["owner_department_id"]
