@@ -71,27 +71,36 @@ export const useUnionTransactions = () => {
   });
 };
 
-export const useUnionStats = () => {
-  const { data: members } = useUnionMembers();
-  const { data: transactions } = useUnionTransactions();
+// SYSTEM RULE: Logic tính toán nằm ở Supabase view union_stats
+// Financial logic must reside in database, not frontend
+interface UnionStatsRow {
+  active_members: number;
+  total_members: number;
+  total_income: number;
+  total_expense: number;
+  balance: number;
+}
 
-  const activeMembers = members?.filter(m => m.status === 'Đang tham gia').length || 0;
-  
-  const totalIncome = transactions
-    ?.filter(t => t.transaction_type === 'Thu')
-    .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
-  
-  const totalExpense = transactions
-    ?.filter(t => t.transaction_type === 'Chi')
-    .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
-  
-  const balance = totalIncome - totalExpense;
+export const useUnionStats = () => {
+  const { data, isLoading } = useQuery({
+    queryKey: ['union-stats'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('union_stats')
+        .select('*')
+        .single();
+
+      if (error) throw error;
+      return data as UnionStatsRow;
+    },
+  });
 
   return {
-    activeMembers,
-    totalIncome,
-    totalExpense,
-    balance,
+    activeMembers: data?.active_members || 0,
+    totalIncome: data?.total_income || 0,
+    totalExpense: data?.total_expense || 0,
+    balance: data?.balance || 0,
+    isLoading,
   };
 };
 

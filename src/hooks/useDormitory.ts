@@ -57,36 +57,20 @@ export function useDormitories() {
 }
 
 // Hook to get dormitory with resident count
+// SYSTEM RULE: Logic tính toán nằm ở Supabase view dormitories_with_occupancy
 export function useDormitoriesWithCount() {
   return useQuery({
     queryKey: ["dormitories-with-count"],
     queryFn: async () => {
-      const { data: dormitories, error: dormError } = await supabase
-        .from("dormitories")
+      // Query từ database view - logic tính toán đã ở Supabase
+      const { data, error } = await supabase
+        .from("dormitories_with_occupancy")
         .select("*")
         .order("name", { ascending: true });
 
-      if (dormError) throw dormError;
+      if (error) throw error;
 
-      // Get resident counts for each dormitory
-      const { data: counts, error: countError } = await supabase
-        .from("dormitory_residents")
-        .select("dormitory_id")
-        .eq("status", "Đang ở");
-
-      if (countError) throw countError;
-
-      // Count residents per dormitory
-      const countMap = new Map<string, number>();
-      counts?.forEach((r) => {
-        const current = countMap.get(r.dormitory_id) || 0;
-        countMap.set(r.dormitory_id, current + 1);
-      });
-
-      return (dormitories as Dormitory[]).map((d) => ({
-        ...d,
-        current_occupancy: countMap.get(d.id) || 0,
-      }));
+      return data as (Dormitory & { current_occupancy: number })[];
     },
   });
 }
