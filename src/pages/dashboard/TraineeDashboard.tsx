@@ -169,29 +169,42 @@ export default function TraineeDashboard() {
                 <Skeleton className="h-4 w-32" />
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", iconColorClasses.blue)}>
-                  <Users className="h-6 w-6" />
-                </div>
-                <div className="space-y-1">
-                  <div className="text-2xl font-bold text-foreground">
-                    {kpis?.total_trainees || 0}
+              <div className="flex gap-4">
+                <div className="space-y-3 flex-1">
+                  <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", iconColorClasses.blue)}>
+                    <Users className="h-6 w-6" />
                   </div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Tổng số học viên
-                  </p>
-                  <p className="text-xs text-muted-foreground">Học viên toàn hệ thống</p>
-                </div>
-                {growthPercent !== 0 && (
-                  <div className={cn(
-                    "flex items-center gap-1 text-xs font-medium",
-                    growthPercent >= 0 ? "text-emerald-600" : "text-red-600"
-                  )}>
-                    {growthPercent >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                    <span>{growthPercent >= 0 ? "+" : ""}{growthPercent}%</span>
-                    <span className="text-muted-foreground font-normal">so với tháng trước</span>
+                  <div className="space-y-1">
+                    <div className="text-2xl font-bold text-foreground">
+                      {kpis?.total_trainees || 0}
+                    </div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Tổng số học viên
+                    </p>
+                    <p className="text-xs text-muted-foreground">Học viên toàn hệ thống</p>
                   </div>
-                )}
+                  {growthPercent !== 0 && (
+                    <div className={cn(
+                      "flex items-center gap-1 text-xs font-medium",
+                      growthPercent >= 0 ? "text-emerald-600" : "text-red-600"
+                    )}>
+                      {growthPercent >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                      <span>{growthPercent >= 0 ? "+" : ""}{growthPercent}%</span>
+                      <span className="text-muted-foreground font-normal">so với tháng trước</span>
+                    </div>
+                  )}
+                </div>
+                {/* Gender breakdown */}
+                <div className="flex flex-col justify-center gap-1 min-w-[60px]">
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-semibold text-blue-600">{kpis?.total_male || 0}</span>
+                    <span className="text-xs text-muted-foreground">Nam</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-semibold text-red-500">{kpis?.total_female || 0}</span>
+                    <span className="text-xs text-muted-foreground">Nữ</span>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>
@@ -206,16 +219,29 @@ export default function TraineeDashboard() {
                 <Skeleton className="h-8 w-20" />
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", iconColorClasses.green)}>
-                  <GraduationCap className="h-6 w-6" />
+              <div className="flex gap-4">
+                <div className="space-y-3 flex-1">
+                  <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", iconColorClasses.green)}>
+                    <GraduationCap className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-2xl font-bold text-foreground">{studyingCount}</div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Học viên hiện tại
+                    </p>
+                    <p className="text-xs text-muted-foreground">Đang đào tạo</p>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <div className="text-2xl font-bold text-foreground">{studyingCount}</div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Học viên hiện tại
-                  </p>
-                  <p className="text-xs text-muted-foreground">Đang đào tạo</p>
+                {/* Gender breakdown */}
+                <div className="flex flex-col justify-center gap-1 min-w-[60px]">
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-semibold text-blue-600">{kpis?.studying_male || 0}</span>
+                    <span className="text-xs text-muted-foreground">Nam</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-semibold text-red-500">{kpis?.studying_female || 0}</span>
+                    <span className="text-xs text-muted-foreground">Nữ</span>
+                  </div>
                 </div>
               </div>
             )}
@@ -231,18 +257,31 @@ export default function TraineeDashboard() {
                 <Skeleton className="h-8 w-20" />
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", iconColorClasses.purple)}>
-                  <Plane className="h-6 w-6" />
-                </div>
-                <div className="space-y-1">
-                  <div className="text-2xl font-bold text-foreground">
-                    {kpis?.departed_this_year || 0}
+              <div className="flex gap-4">
+                <div className="space-y-3 flex-1">
+                  <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", iconColorClasses.purple)}>
+                    <Plane className="h-6 w-6" />
                   </div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Xuất cảnh năm nay
-                  </p>
-                  <p className="text-xs text-muted-foreground">Đã xuất cảnh năm {selectedYear}</p>
+                  <div className="space-y-1">
+                    <div className="text-2xl font-bold text-foreground">
+                      {kpis?.departed_this_year || 0}
+                    </div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Xuất cảnh năm nay
+                    </p>
+                    <p className="text-xs text-muted-foreground">Đã xuất cảnh năm {new Date().getFullYear()}</p>
+                  </div>
+                </div>
+                {/* Gender breakdown */}
+                <div className="flex flex-col justify-center gap-1 min-w-[60px]">
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-semibold text-blue-600">{kpis?.departed_male || 0}</span>
+                    <span className="text-xs text-muted-foreground">Nam</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-semibold text-red-500">{kpis?.departed_female || 0}</span>
+                    <span className="text-xs text-muted-foreground">Nữ</span>
+                  </div>
                 </div>
               </div>
             )}

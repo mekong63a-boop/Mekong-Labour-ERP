@@ -2323,6 +2323,8 @@ export type Database = {
       dashboard_trainee_kpis: {
         Row: {
           active_orders: number | null
+          departed_female: number | null
+          departed_male: number | null
           departed_this_month: number | null
           departed_this_year: number | null
           registered_this_month: number | null
@@ -2335,6 +2337,10 @@ export type Database = {
           stage_recruited: number | null
           stage_visa_processing: number | null
           status_studying: number | null
+          studying_female: number | null
+          studying_male: number | null
+          total_female: number | null
+          total_male: number | null
           total_trainees: number | null
           type_engineer: number | null
           type_knd: number | null
