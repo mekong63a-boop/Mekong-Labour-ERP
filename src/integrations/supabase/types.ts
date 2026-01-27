@@ -209,7 +209,6 @@ export type Database = {
           id: string
           name: string
           name_japanese: string | null
-          name_phonetic: string | null
           notes: string | null
           phone: string | null
           position: string | null
@@ -227,7 +226,6 @@ export type Database = {
           id?: string
           name: string
           name_japanese?: string | null
-          name_phonetic?: string | null
           notes?: string | null
           phone?: string | null
           position?: string | null
@@ -245,7 +243,6 @@ export type Database = {
           id?: string
           name?: string
           name_japanese?: string | null
-          name_phonetic?: string | null
           notes?: string | null
           phone?: string | null
           position?: string | null
@@ -1884,7 +1881,6 @@ export type Database = {
           id: string
           name: string
           name_japanese: string | null
-          name_phonetic: string | null
           notes: string | null
           phone: string | null
           status: string | null
@@ -1900,7 +1896,6 @@ export type Database = {
           id?: string
           name: string
           name_japanese?: string | null
-          name_phonetic?: string | null
           notes?: string | null
           phone?: string | null
           status?: string | null
@@ -1916,7 +1911,6 @@ export type Database = {
           id?: string
           name?: string
           name_japanese?: string | null
-          name_phonetic?: string | null
           notes?: string | null
           phone?: string | null
           status?: string | null
