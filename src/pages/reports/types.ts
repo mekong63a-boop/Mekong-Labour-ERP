@@ -110,6 +110,8 @@ export const COLUMN_GROUPS: ReportColumnGroup[] = [
       { key: "blood_group", label: "Nhóm máu", group: "health" },
       { key: "vision_left", label: "Thị lực trái", group: "health" },
       { key: "vision_right", label: "Thị lực phải", group: "health" },
+      { key: "hearing", label: "Thính lực", group: "health" },
+      { key: "hepatitis_b", label: "Viêm gan B", group: "health" },
       { key: "health_status", label: "Tình trạng sức khỏe", group: "health" },
       { key: "dominant_hand", label: "Tay thuận", group: "health" },
       { key: "smoking", label: "Hút thuốc", group: "health" },
