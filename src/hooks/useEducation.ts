@@ -233,23 +233,30 @@ export function useClassStudents(classId: string) {
 }
 
 // Dashboard stats
+// SYSTEM RULE: Logic tính toán nằm ở Supabase view education_stats
+interface EducationStatsRow {
+  total_teachers: number;
+  active_teachers: number;
+  total_classes: number;
+  active_classes: number;
+}
+
 export function useEducationStats() {
   return useQuery({
     queryKey: ["education-stats"],
     queryFn: async () => {
-      const [teachersRes, classesRes] = await Promise.all([
-        supabase.from("teachers").select("id, status", { count: "exact" }),
-        supabase.from("classes").select("id, status", { count: "exact" }),
-      ]);
+      const { data, error } = await supabase
+        .from("education_stats")
+        .select("*")
+        .single();
 
-      const activeTeachers = teachersRes.data?.filter(t => t.status === "Đang làm việc").length || 0;
-      const activeClasses = classesRes.data?.filter(c => c.status === "Đang hoạt động").length || 0;
+      if (error) throw error;
 
       return {
-        totalTeachers: teachersRes.count || 0,
-        activeTeachers,
-        totalClasses: classesRes.count || 0,
-        activeClasses,
+        totalTeachers: data?.total_teachers || 0,
+        activeTeachers: data?.active_teachers || 0,
+        totalClasses: data?.total_classes || 0,
+        activeClasses: data?.active_classes || 0,
       };
     },
   });

@@ -475,10 +475,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "dormitory_residents_dormitory_id_fkey"
+            columns: ["dormitory_id"]
+            isOneToOne: false
+            referencedRelation: "dormitories_with_occupancy"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "dormitory_residents_from_dormitory_id_fkey"
             columns: ["from_dormitory_id"]
             isOneToOne: false
             referencedRelation: "dormitories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dormitory_residents_from_dormitory_id_fkey"
+            columns: ["from_dormitory_id"]
+            isOneToOne: false
+            referencedRelation: "dormitories_with_occupancy"
             referencedColumns: ["id"]
           },
           {
@@ -2287,6 +2301,29 @@ export type Database = {
         }
         Relationships: []
       }
+      dormitories_with_occupancy: {
+        Row: {
+          address: string | null
+          capacity: number | null
+          created_at: string | null
+          current_occupancy: number | null
+          id: string | null
+          name: string | null
+          notes: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
+      education_stats: {
+        Row: {
+          active_classes: number | null
+          active_teachers: number | null
+          total_classes: number | null
+          total_teachers: number | null
+        }
+        Relationships: []
+      }
       teachers_public: {
         Row: {
           class_end_date: string | null
@@ -2320,6 +2357,13 @@ export type Database = {
           specialty?: string | null
           status?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      trainee_stage_counts: {
+        Row: {
+          count: number | null
+          stage: string | null
         }
         Relationships: []
       }
@@ -2651,6 +2695,16 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      union_stats: {
+        Row: {
+          active_members: number | null
+          balance: number | null
+          total_expense: number | null
+          total_income: number | null
+          total_members: number | null
+        }
+        Relationships: []
       }
     }
     Functions: {

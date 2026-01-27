@@ -1,19 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
 import { StageCounts } from '@/components/trainees/StageTabsGrid';
-
-type ProgressionStage = Database['public']['Enums']['progression_stage'];
 
 // =============================================================================
 // Hook đếm số lượng học viên theo progression_stage
-// SOURCE OF TRUTH: trainees.progression_stage (cho UI tabs)
+// SOURCE OF TRUTH: PostgreSQL view trainee_stage_counts
+// SYSTEM RULE: Logic tính toán nằm ở Supabase, frontend chỉ hiển thị
 // =============================================================================
 
-const PROGRESSION_STAGES: ProgressionStage[] = [
-  'Chưa đậu', 'Đậu phỏng vấn', 'Nộp hồ sơ', 'OTIT', 'Nyukan', 'COE', 'Visa',
-  'Xuất cảnh', 'Đang làm việc', 'Hoàn thành hợp đồng', 'Bỏ trốn', 'Về trước hạn'
-];
+interface StageCountRow {
+  stage: string;
+  count: number;
+}
 
 export function useTraineeStageCounts() {
   return useQuery({
@@ -21,32 +19,16 @@ export function useTraineeStageCounts() {
     queryFn: async () => {
       const startTime = performance.now();
 
-      // Fetch all counts in parallel
-      const countPromises = PROGRESSION_STAGES.map(async (stage) => {
-        const { count, error } = await supabase
-          .from('trainees')
-          .select('*', { count: 'exact', head: true })
-          .eq('progression_stage', stage);
+      // Query từ database view - single query thay vì 13 parallel queries
+      const { data, error } = await supabase
+        .from('trainee_stage_counts')
+        .select('*');
 
-        if (error) throw error;
-        return { stage, count: count || 0 };
-      });
+      if (error) throw error;
 
-      // Also get total count
-      const totalPromise = supabase
-        .from('trainees')
-        .select('*', { count: 'exact', head: true });
-
-      const [stageCounts, totalResult] = await Promise.all([
-        Promise.all(countPromises),
-        totalPromise,
-      ]);
-
-      if (totalResult.error) throw totalResult.error;
-
-      // Build counts object
+      // Build counts object từ view data
       const counts: StageCounts = {
-        all: totalResult.count || 0,
+        all: 0,
         'Chưa đậu': 0,
         'Đậu phỏng vấn': 0,
         'Nộp hồ sơ': 0,
@@ -61,12 +43,14 @@ export function useTraineeStageCounts() {
         'Hoàn thành hợp đồng': 0,
       };
 
-      stageCounts.forEach(({ stage, count }) => {
-        counts[stage] = count;
+      (data as StageCountRow[])?.forEach(({ stage, count }) => {
+        if (stage in counts) {
+          counts[stage as keyof StageCounts] = count;
+        }
       });
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[StageCounts] ${(performance.now() - startTime).toFixed(0)}ms`, counts);
+        console.log(`[StageCounts] ${(performance.now() - startTime).toFixed(0)}ms (via DB view)`, counts);
       }
 
       return counts;
