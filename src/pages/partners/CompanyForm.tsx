@@ -33,7 +33,6 @@ export default function CompanyForm() {
     code: "",
     name: "",
     name_japanese: "",
-    name_phonetic: "",
     address: "",
     work_address: "",
     representative: "",
@@ -86,7 +85,6 @@ export default function CompanyForm() {
           code: company.code,
           name: company.name,
           name_japanese: company.name_japanese || "",
-          name_phonetic: (company as any).name_phonetic || "",
           address: company.address || "",
           work_address: company.work_address || "",
           representative: company.representative || "",
@@ -263,17 +261,6 @@ export default function CompanyForm() {
                   {isNameJpDuplicate && !isCheckingNameJp && (
                     <span className="text-xs text-destructive">{getDuplicateErrorMessage('companies', 'name_japanese')}</span>
                   )}
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-primary">Phiên âm</Label>
-                  <Input
-                    value={formData.name_phonetic}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, name_phonetic: e.target.value }))
-                    }
-                    placeholder="VD: カイシャメイ"
-                    className="bg-amber-50/50 border-primary/20"
-                  />
                 </div>
               </div>
 

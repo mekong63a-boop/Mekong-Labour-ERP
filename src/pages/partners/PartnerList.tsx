@@ -294,7 +294,6 @@ export default function PartnerList() {
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead className="w-[280px]">Tên công ty</TableHead>
-                    <TableHead>Phiên âm</TableHead>
                     <TableHead>Địa chỉ làm việc</TableHead>
                     <TableHead>Người phụ trách</TableHead>
                     <TableHead className="text-center">Số HV</TableHead>
@@ -317,7 +316,6 @@ export default function PartnerList() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm">{(company as any).name_phonetic || "—"}</TableCell>
                       <TableCell>{company.work_address || "—"}</TableCell>
                       <TableCell>{company.representative || "-"}</TableCell>
                       <TableCell className="text-center">
@@ -371,7 +369,6 @@ export default function PartnerList() {
                   <TableRow className="bg-muted/50">
                     <TableHead className="w-[100px]">Mã nghiệp đoàn</TableHead>
                     <TableHead>Tên nghiệp đoàn</TableHead>
-                    <TableHead>Phiên âm</TableHead>
                     <TableHead>Địa chỉ</TableHead>
                     <TableHead>Người liên hệ</TableHead>
                     <TableHead>Điện thoại</TableHead>
@@ -386,7 +383,6 @@ export default function PartnerList() {
                       <TableCell className="text-primary font-medium">
                         {union.name_japanese || union.name}
                       </TableCell>
-                      <TableCell className="text-sm">{(union as any).name_phonetic || "—"}</TableCell>
                       <TableCell className="max-w-[200px] truncate">
                         {union.address || "—"}
                       </TableCell>

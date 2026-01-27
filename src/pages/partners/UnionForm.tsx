@@ -33,7 +33,6 @@ export default function UnionForm() {
     code: "",
     name: "",
     name_japanese: "",
-    name_phonetic: "",
     country: "Nhật Bản",
     contact_person: "",
     phone: "",
@@ -84,7 +83,6 @@ export default function UnionForm() {
           code: union.code,
           name: union.name,
           name_japanese: union.name_japanese || "",
-          name_phonetic: (union as any).name_phonetic || "",
           country: union.country || "Nhật Bản",
           contact_person: union.contact_person || "",
           phone: union.phone || "",
@@ -258,17 +256,6 @@ export default function UnionForm() {
                 {isNameJpDuplicate && !isCheckingNameJp && (
                   <span className="text-xs text-destructive">{getDuplicateErrorMessage('unions', 'name_japanese')}</span>
                 )}
-              </div>
-              <div className="space-y-2">
-                <Label className="text-primary">Phiên âm</Label>
-                <Input
-                  value={formData.name_phonetic}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, name_phonetic: e.target.value }))
-                  }
-                  placeholder="VD: エービーシークミアイ"
-                  className="bg-amber-50/50 border-primary/20"
-                />
               </div>
             </div>
 
