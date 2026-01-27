@@ -13,32 +13,42 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Search, Building2, FileText, Users, FileCheck, FileClock, FileX, GraduationCap, Plane, Wrench, UserCheck } from "lucide-react";
+import { Search, Building2, FileText, Users, FileCheck, FileClock, FileX, GraduationCap, Wrench, UserCheck } from "lucide-react";
 
-interface CompanyWithTrainees {
-  id: string;
+interface CompanyBatch {
+  company_id: string;
   code: string;
   name: string;
   name_japanese: string | null;
   address: string | null;
   work_address: string | null;
-  last_interview_date: string | null;
-  doing_paperwork: number;
-  departed: number;
+  interview_pass_date: string;
+  docs_not_started: number;
+  docs_in_progress: number;
+  docs_completed: number;
   total_passed: number;
 }
 
 interface TraineeTypeCount {
   trainee_type: string | null;
   count: number;
+}
+
+interface TraineeBasic {
+  id: string;
+  trainee_code: string;
+  full_name: string;
+  gender: string | null;
+  birth_date: string | null;
+  progression_stage: string | null;
+  receiving_company: { name: string } | null;
 }
 
 const TRAINEE_TYPE_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
@@ -51,20 +61,20 @@ const TRAINEE_TYPE_CONFIG: Record<string, { label: string; icon: React.Component
 
 export default function LegalPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [showTypeModal, setShowTypeModal] = useState(false);
 
-  // SYSTEM RULE: Query từ database view legal_company_stats
-  const { data: companies = [], isLoading } = useQuery({
+  // SYSTEM RULE: Query từ database view legal_company_stats (grouped by company + date)
+  const { data: companyBatches = [], isLoading } = useQuery({
     queryKey: ["legal-company-stats"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("legal_company_stats")
         .select("*")
-        .order("total_passed", { ascending: false });
+        .order("interview_pass_date", { ascending: false });
 
       if (error) throw error;
-      return (data || []) as CompanyWithTrainees[];
+      return (data || []) as CompanyBatch[];
     },
   });
 
@@ -85,8 +95,6 @@ export default function LegalPage() {
         docs_not_started: number;
         docs_in_progress: number;
         docs_completed: number;
-        total_paperwork: number;
-        total_departed: number;
       };
     },
   });
@@ -104,6 +112,36 @@ export default function LegalPage() {
     },
   });
 
+  // Query trainees by selected type
+  const { data: traineesByType = [], isLoading: isLoadingTrainees } = useQuery({
+    queryKey: ["legal-trainees-by-type", selectedType],
+    queryFn: async () => {
+      if (!selectedType) return [];
+      
+      // Use type assertion since we're using custom trainee_type values
+      const { data, error } = await supabase
+        .from("trainees")
+        .select(`
+          id,
+          trainee_code,
+          full_name,
+          gender,
+          birth_date,
+          progression_stage,
+          receiving_company:companies!fk_trainees_company(name)
+        `)
+        .eq("trainee_type", selectedType as any)
+        .not("progression_stage", "is", null)
+        .neq("progression_stage", "Chưa đậu")
+        .not("receiving_company_id", "is", null)
+        .order("full_name");
+
+      if (error) throw error;
+      return (data || []) as TraineeBasic[];
+    },
+    enabled: !!selectedType && showTypeModal,
+  });
+
   // Build type counts map
   const typeCountsMap = typeStats.reduce((acc, item) => {
     if (item.trainee_type) {
@@ -112,26 +150,26 @@ export default function LegalPage() {
     return acc;
   }, {} as Record<string, number>);
 
-  // Filter companies - UI logic (allowed in frontend)
-  const filteredCompanies = companies.filter(company => {
-    const matchesSearch = 
-      company.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (company.name_japanese?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
-    
-    if (statusFilter === "all") return matchesSearch;
-    if (statusFilter === "paperwork") return matchesSearch && company.doing_paperwork > 0;
-    if (statusFilter === "departed") return matchesSearch && company.departed > 0;
-    
-    return matchesSearch;
+  // Filter batches by search
+  const filteredBatches = companyBatches.filter(batch => {
+    return (
+      batch.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      batch.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (batch.name_japanese?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+    );
   });
+
+  const handleTypeClick = (type: string) => {
+    setSelectedType(type);
+    setShowTypeModal(true);
+  };
 
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-xl font-bold text-foreground">Tình trạng hồ sơ</h1>
         <p className="text-sm text-muted-foreground">
-          Danh sách công ty đã tuyển học viên và tình trạng hồ sơ
+          Danh sách đợt tuyển và tình trạng hồ sơ
         </p>
       </header>
 
@@ -193,15 +231,12 @@ export default function LegalPage() {
         {Object.entries(TRAINEE_TYPE_CONFIG).map(([type, config]) => {
           const count = typeCountsMap[type] || 0;
           const Icon = config.icon;
-          const isSelected = selectedType === type;
           
           return (
             <Card 
               key={type}
-              className={`cursor-pointer transition-all hover:shadow-md ${
-                isSelected ? 'ring-2 ring-primary border-primary' : ''
-              }`}
-              onClick={() => setSelectedType(isSelected ? null : type)}
+              className="cursor-pointer transition-all hover:shadow-md hover:border-primary"
+              onClick={() => handleTypeClick(type)}
             >
               <CardContent className="pt-4 pb-4">
                 <div className="flex items-center justify-between mb-2">
@@ -215,33 +250,19 @@ export default function LegalPage() {
         })}
       </div>
 
-      {/* Table */}
+      {/* Company Batches Table */}
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <CardTitle className="text-base">Danh sách công ty</CardTitle>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Tìm theo mã, tên công ty..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 w-64"
-                />
-              </div>
-              
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Lọc theo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả</SelectItem>
-                  <SelectItem value="paperwork">Đang làm hồ sơ</SelectItem>
-                  <SelectItem value="departed">Đã xuất cảnh</SelectItem>
-                </SelectContent>
-              </Select>
-              
+            <CardTitle className="text-base">Danh sách đợt tuyển</CardTitle>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Tìm theo mã, tên công ty..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 w-64"
+              />
             </div>
           </div>
         </CardHeader>
@@ -250,11 +271,11 @@ export default function LegalPage() {
             <div className="text-center py-8 text-muted-foreground">
               Đang tải...
             </div>
-          ) : filteredCompanies.length === 0 ? (
+          ) : filteredBatches.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {searchTerm || statusFilter !== "all" 
-                ? "Không tìm thấy công ty phù hợp" 
-                : "Chưa có công ty nào đã tuyển học viên"
+              {searchTerm 
+                ? "Không tìm thấy đợt tuyển phù hợp" 
+                : "Chưa có đợt tuyển nào"
               }
             </div>
           ) : (
@@ -265,55 +286,62 @@ export default function LegalPage() {
                     <TableHead className="w-[100px]">Mã công ty</TableHead>
                     <TableHead>Tên công ty</TableHead>
                     <TableHead>Địa chỉ làm việc</TableHead>
-                    <TableHead className="w-[120px]">Ngày PV gần nhất</TableHead>
-                    <TableHead className="text-center w-[100px]">Đang làm HS</TableHead>
-                    <TableHead className="text-center w-[100px]">Đã xuất cảnh</TableHead>
-                    <TableHead className="text-center w-[80px]">Tổng</TableHead>
+                    <TableHead className="w-[120px]">Ngày đậu PV</TableHead>
+                    <TableHead className="text-center w-[80px]">Số HV</TableHead>
+                    <TableHead className="text-center w-[100px]">Chưa làm</TableHead>
+                    <TableHead className="text-center w-[100px]">Đang làm</TableHead>
+                    <TableHead className="text-center w-[100px]">Đã xong</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredCompanies.map((company) => (
-                    <TableRow key={company.id}>
+                  {filteredBatches.map((batch, idx) => (
+                    <TableRow key={`${batch.company_id}-${batch.interview_pass_date}-${idx}`}>
                       <TableCell className="font-mono font-medium">
-                        {company.code}
+                        {batch.code}
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{company.name}</p>
-                          {company.name_japanese && (
-                            <p className="text-xs text-muted-foreground">{company.name_japanese}</p>
+                          <p className="font-medium">{batch.name}</p>
+                          {batch.name_japanese && (
+                            <p className="text-xs text-muted-foreground">{batch.name_japanese}</p>
                           )}
                         </div>
                       </TableCell>
                       <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
-                        {company.work_address || company.address || "—"}
+                        {batch.work_address || batch.address || "—"}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {company.last_interview_date 
-                          ? format(new Date(company.last_interview_date), "dd/MM/yyyy", { locale: vi })
-                          : "—"
-                        }
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {company.doing_paperwork > 0 ? (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                            {company.doing_paperwork}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">0</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {company.departed > 0 ? (
-                          <Badge variant="outline" className="bg-green-50 text-green-700">
-                            {company.departed}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">0</span>
-                        )}
+                        {format(new Date(batch.interview_pass_date), "dd/MM/yyyy", { locale: vi })}
                       </TableCell>
                       <TableCell className="text-center font-medium">
-                        {company.total_passed}
+                        {batch.total_passed}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {batch.docs_not_started > 0 ? (
+                          <Badge variant="outline" className="bg-orange-50 text-orange-700">
+                            {batch.docs_not_started}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">0</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {batch.docs_in_progress > 0 ? (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                            {batch.docs_in_progress}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">0</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {batch.docs_completed > 0 ? (
+                          <Badge variant="outline" className="bg-green-50 text-green-700">
+                            {batch.docs_completed}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">0</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -323,6 +351,59 @@ export default function LegalPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Trainee Type Modal */}
+      <Dialog open={showTypeModal} onOpenChange={setShowTypeModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedType ? TRAINEE_TYPE_CONFIG[selectedType]?.label : ''} - Danh sách học viên đậu
+            </DialogTitle>
+          </DialogHeader>
+          
+          {isLoadingTrainees ? (
+            <div className="text-center py-8 text-muted-foreground">Đang tải...</div>
+          ) : traineesByType.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">Không có học viên</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[100px]">Mã HV</TableHead>
+                  <TableHead>Họ và tên</TableHead>
+                  <TableHead className="w-[80px]">Giới tính</TableHead>
+                  <TableHead className="w-[100px]">Năm sinh</TableHead>
+                  <TableHead>Công ty</TableHead>
+                  <TableHead className="w-[120px]">Tình trạng</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {traineesByType.map((trainee) => (
+                  <TableRow key={trainee.id}>
+                    <TableCell className="font-mono">{trainee.trainee_code}</TableCell>
+                    <TableCell className="font-medium">{trainee.full_name}</TableCell>
+                    <TableCell>{trainee.gender || "—"}</TableCell>
+                    <TableCell>
+                      {trainee.birth_date 
+                        ? new Date(trainee.birth_date).getFullYear()
+                        : "—"
+                      }
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {trainee.receiving_company?.name || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
+                        {trainee.progression_stage}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
