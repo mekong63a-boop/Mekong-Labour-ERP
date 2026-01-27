@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -22,9 +21,7 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Search, Building2, FileText, Users, Plane } from "lucide-react";
-
-import { toast } from "sonner";
+import { Search, Building2, FileText, Users, FileCheck, FileClock, FileX, GraduationCap, Plane, Wrench, UserCheck } from "lucide-react";
 
 interface CompanyWithTrainees {
   id: string;
@@ -39,12 +36,25 @@ interface CompanyWithTrainees {
   total_passed: number;
 }
 
+interface TraineeTypeCount {
+  trainee_type: string | null;
+  count: number;
+}
+
+const TRAINEE_TYPE_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
+  'TTS': { label: 'Thực tập sinh', icon: Users },
+  'TTS3': { label: 'TTS số 3', icon: Users },
+  'Du học sinh': { label: 'Du học sinh', icon: GraduationCap },
+  'Kỹ năng đặc định': { label: 'Kỹ năng đặc định', icon: Wrench },
+  'Kỹ sư': { label: 'Kỹ sư', icon: UserCheck },
+};
+
 export default function LegalPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedType, setSelectedType] = useState<string | null>(null);
 
   // SYSTEM RULE: Query từ database view legal_company_stats
-  // Logic tính toán đã nằm ở Supabase, frontend chỉ hiển thị
   const { data: companies = [], isLoading } = useQuery({
     queryKey: ["legal-company-stats"],
     queryFn: async () => {
@@ -59,7 +69,6 @@ export default function LegalPage() {
   });
 
   // SYSTEM RULE: Query từ database view legal_summary_stats
-  // Thay thế reduce() bằng data từ DB view
   const { data: summaryStats } = useQuery({
     queryKey: ["legal-summary-stats"],
     queryFn: async () => {
@@ -72,12 +81,36 @@ export default function LegalPage() {
       if (error) throw error;
       return data as {
         total_companies: number;
+        total_all: number;
+        docs_not_started: number;
+        docs_in_progress: number;
+        docs_completed: number;
         total_paperwork: number;
         total_departed: number;
-        total_all: number;
       };
     },
   });
+
+  // SYSTEM RULE: Query từ database view legal_trainee_type_stats
+  const { data: typeStats = [] } = useQuery({
+    queryKey: ["legal-trainee-type-stats"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("legal_trainee_type_stats")
+        .select("*");
+
+      if (error) throw error;
+      return (data || []) as TraineeTypeCount[];
+    },
+  });
+
+  // Build type counts map
+  const typeCountsMap = typeStats.reduce((acc, item) => {
+    if (item.trainee_type) {
+      acc[item.trainee_type] = item.count;
+    }
+    return acc;
+  }, {} as Record<string, number>);
 
   // Filter companies - UI logic (allowed in frontend)
   const filteredCompanies = companies.filter(company => {
@@ -102,8 +135,8 @@ export default function LegalPage() {
         </p>
       </header>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Summary Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Tổng công ty</CardTitle>
@@ -111,42 +144,75 @@ export default function LegalPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{summaryStats?.total_companies || 0}</div>
-            <p className="text-xs text-muted-foreground">Đã tuyển học viên</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Tổng học viên đậu</CardTitle>
+            <CardTitle className="text-sm font-medium">Tổng HV đậu</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{summaryStats?.total_all || 0}</div>
-            <p className="text-xs text-muted-foreground">Đã đậu phỏng vấn</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Đang làm hồ sơ</CardTitle>
-            <FileText className="h-4 w-4 text-blue-500" />
+            <CardTitle className="text-sm font-medium">HS chưa làm</CardTitle>
+            <FileX className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{summaryStats?.total_paperwork || 0}</div>
-            <p className="text-xs text-muted-foreground">OTIT/Nyukan/COE/Visa</p>
+            <div className="text-2xl font-bold text-orange-600">{summaryStats?.docs_not_started || 0}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Đã xuất cảnh</CardTitle>
-            <Plane className="h-4 w-4 text-green-500" />
+            <CardTitle className="text-sm font-medium">HS đang làm</CardTitle>
+            <FileClock className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{summaryStats?.total_departed || 0}</div>
-            <p className="text-xs text-muted-foreground">Đang làm việc tại Nhật</p>
+            <div className="text-2xl font-bold text-blue-600">{summaryStats?.docs_in_progress || 0}</div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">HS đã làm</CardTitle>
+            <FileCheck className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{summaryStats?.docs_completed || 0}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Trainee Type Tabs */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {Object.entries(TRAINEE_TYPE_CONFIG).map(([type, config]) => {
+          const count = typeCountsMap[type] || 0;
+          const Icon = config.icon;
+          const isSelected = selectedType === type;
+          
+          return (
+            <Card 
+              key={type}
+              className={`cursor-pointer transition-all hover:shadow-md ${
+                isSelected ? 'ring-2 ring-primary border-primary' : ''
+              }`}
+              onClick={() => setSelectedType(isSelected ? null : type)}
+            >
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">{config.label}</span>
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="text-2xl font-bold text-primary">{count}</div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Table */}
