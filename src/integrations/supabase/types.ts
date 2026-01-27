@@ -749,7 +749,7 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "legal_company_stats"
-            referencedColumns: ["id"]
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "fk_interview_job_category"
@@ -791,7 +791,7 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "legal_company_stats"
-            referencedColumns: ["id"]
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "interview_history_job_category_id_fkey"
@@ -1075,7 +1075,7 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "legal_company_stats"
-            referencedColumns: ["id"]
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "fk_orders_job_category"
@@ -1117,7 +1117,7 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "legal_company_stats"
-            referencedColumns: ["id"]
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "orders_job_category_id_fkey"
@@ -1801,7 +1801,7 @@ export type Database = {
             columns: ["receiving_company_id"]
             isOneToOne: false
             referencedRelation: "legal_company_stats"
-            referencedColumns: ["id"]
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "fk_trainees_job_category"
@@ -2334,10 +2334,11 @@ export type Database = {
         Row: {
           address: string | null
           code: string | null
-          departed: number | null
-          doing_paperwork: number | null
-          id: string | null
-          last_interview_date: string | null
+          company_id: string | null
+          docs_completed: number | null
+          docs_in_progress: number | null
+          docs_not_started: number | null
+          interview_pass_date: string | null
           name: string | null
           name_japanese: string | null
           total_passed: number | null
@@ -2556,7 +2557,7 @@ export type Database = {
             columns: ["receiving_company_id"]
             isOneToOne: false
             referencedRelation: "legal_company_stats"
-            referencedColumns: ["id"]
+            referencedColumns: ["company_id"]
           },
           {
             foreignKeyName: "fk_trainees_job_category"
