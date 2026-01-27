@@ -280,7 +280,12 @@ export default function TraineeDashboard() {
         {/* Bar Chart - Tuyển dụng trong năm */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-base font-semibold">Tuyển dụng trong năm</CardTitle>
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-base font-semibold">Tuyển dụng trong năm</CardTitle>
+              <span className="text-lg font-bold text-emerald-600">
+                (Tổng: {monthlyChartData.reduce((sum, item) => sum + item.recruitment, 0)})
+              </span>
+            </div>
             <Select
               value={selectedYear.toString()}
               onValueChange={(v) => setSelectedYear(parseInt(v))}
@@ -333,7 +338,12 @@ export default function TraineeDashboard() {
         {/* Bar Chart - Xuất cảnh trong năm */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-base font-semibold">Xuất cảnh trong năm</CardTitle>
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-base font-semibold">Xuất cảnh trong năm</CardTitle>
+              <span className="text-lg font-bold text-blue-600">
+                (Tổng: {monthlyChartData.reduce((sum, item) => sum + item.departure, 0)})
+              </span>
+            </div>
             <Select
               value={selectedYear.toString()}
               onValueChange={(v) => setSelectedYear(parseInt(v))}
