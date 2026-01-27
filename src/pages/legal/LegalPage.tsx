@@ -20,7 +20,14 @@ import {
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Search, Building2, FileText, Users, FileCheck, FileClock, FileX, GraduationCap, Wrench, UserCheck } from "lucide-react";
+import { Search, Building2, Users, FileCheck, FileClock, FileX, GraduationCap, Wrench, UserCheck, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 interface CompanyBatch {
   company_id: string;
@@ -29,12 +36,16 @@ interface CompanyBatch {
   name_japanese: string | null;
   address: string | null;
   work_address: string | null;
+  union_name: string | null;
+  job_category_name: string | null;
   interview_pass_date: string;
   docs_not_started: number;
   docs_in_progress: number;
   docs_completed: number;
   total_passed: number;
 }
+
+type DocumentStatus = 'in_progress' | 'completed' | null;
 
 interface TraineeTypeCount {
   trainee_type: string | null;
@@ -63,6 +74,7 @@ export default function LegalPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [showTypeModal, setShowTypeModal] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<DocumentStatus>(null);
 
   // SYSTEM RULE: Query từ database view legal_company_stats (grouped by company + date)
   const { data: companyBatches = [], isLoading } = useQuery({
@@ -150,13 +162,26 @@ export default function LegalPage() {
     return acc;
   }, {} as Record<string, number>);
 
-  // Filter batches by search
+  // Filter batches by search and status
   const filteredBatches = companyBatches.filter(batch => {
-    return (
+    const matchesSearch = (
       batch.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       batch.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (batch.name_japanese?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+      (batch.name_japanese?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+      (batch.union_name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+      (batch.job_category_name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
     );
+    
+    if (!matchesSearch) return false;
+    
+    // Filter by status
+    if (statusFilter === 'in_progress') {
+      return batch.docs_in_progress > 0;
+    } else if (statusFilter === 'completed') {
+      return batch.docs_completed > 0 && batch.docs_in_progress === 0;
+    }
+    
+    return true;
   });
 
   const handleTypeClick = (type: string) => {
@@ -169,7 +194,7 @@ export default function LegalPage() {
       <header>
         <h1 className="text-xl font-bold text-foreground">Tình trạng hồ sơ</h1>
         <p className="text-sm text-muted-foreground">
-          Danh sách đợt tuyển và tình trạng hồ sơ
+          Theo dõi tình trạng hồ sơ các công ty đã tuyển dụng
         </p>
       </header>
 
@@ -254,15 +279,46 @@ export default function LegalPage() {
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <CardTitle className="text-base">Danh sách đợt tuyển</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Tìm theo mã, tên công ty..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 w-64"
-              />
+            <CardTitle className="text-base">Danh sách công ty đang làm hồ sơ</CardTitle>
+            <div className="flex items-center gap-3">
+              {/* Status Filter Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    {statusFilter === 'in_progress' ? (
+                      <><FileClock className="h-4 w-4 text-blue-500" /> HS đang làm</>
+                    ) : statusFilter === 'completed' ? (
+                      <><FileCheck className="h-4 w-4 text-green-500" /> HS đã làm</>
+                    ) : (
+                      <>Tình trạng</>
+                    )}
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setStatusFilter(null)}>
+                    Tất cả
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter('in_progress')}>
+                    <FileClock className="h-4 w-4 mr-2 text-blue-500" />
+                    Hồ sơ đang làm ({summaryStats?.docs_in_progress || 0})
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setStatusFilter('completed')}>
+                    <FileCheck className="h-4 w-4 mr-2 text-green-500" />
+                    Hồ sơ đã làm ({summaryStats?.docs_completed || 0})
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Tìm công ty, nghiệp đoàn..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 w-64"
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -273,9 +329,9 @@ export default function LegalPage() {
             </div>
           ) : filteredBatches.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {searchTerm 
-                ? "Không tìm thấy đợt tuyển phù hợp" 
-                : "Chưa có đợt tuyển nào"
+              {searchTerm || statusFilter
+                ? "Không tìm thấy công ty phù hợp" 
+                : "Chưa có công ty nào đang làm hồ sơ"
               }
             </div>
           ) : (
@@ -283,68 +339,66 @@ export default function LegalPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[100px]">Mã công ty</TableHead>
                     <TableHead>Tên công ty</TableHead>
-                    <TableHead>Địa chỉ làm việc</TableHead>
-                    <TableHead className="w-[120px]">Ngày đậu PV</TableHead>
+                    <TableHead>Nghiệp đoàn</TableHead>
+                    <TableHead>Ngành nghề</TableHead>
+                    <TableHead className="w-[120px]">Ngày phỏng vấn</TableHead>
                     <TableHead className="text-center w-[80px]">Số HV</TableHead>
-                    <TableHead className="text-center w-[100px]">Chưa làm</TableHead>
-                    <TableHead className="text-center w-[100px]">Đang làm</TableHead>
-                    <TableHead className="text-center w-[100px]">Đã xong</TableHead>
+                    <TableHead className="w-[140px]">Tình trạng</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredBatches.map((batch, idx) => (
-                    <TableRow key={`${batch.company_id}-${batch.interview_pass_date}-${idx}`}>
-                      <TableCell className="font-mono font-medium">
-                        {batch.code}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{batch.name}</p>
-                          {batch.name_japanese && (
-                            <p className="text-xs text-muted-foreground">{batch.name_japanese}</p>
+                  {filteredBatches.map((batch, idx) => {
+                    // Determine status for this batch
+                    const batchStatus = batch.docs_in_progress > 0 
+                      ? 'in_progress' 
+                      : batch.docs_completed > 0 
+                        ? 'completed' 
+                        : 'not_started';
+                    
+                    return (
+                      <TableRow key={`${batch.company_id}-${batch.interview_pass_date}-${idx}`}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{batch.name}</p>
+                            {batch.name_japanese && (
+                              <p className="text-xs text-muted-foreground">{batch.name_japanese}</p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {batch.union_name || "—"}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {batch.job_category_name || "—"}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {format(new Date(batch.interview_pass_date), "dd/MM/yyyy", { locale: vi })}
+                        </TableCell>
+                        <TableCell className="text-center font-medium">
+                          {batch.total_passed}
+                        </TableCell>
+                        <TableCell>
+                          {batchStatus === 'in_progress' ? (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 gap-1">
+                              <FileClock className="h-3 w-3" />
+                              Đang làm ({batch.docs_in_progress})
+                            </Badge>
+                          ) : batchStatus === 'completed' ? (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 gap-1">
+                              <FileCheck className="h-3 w-3" />
+                              Đã xong ({batch.docs_completed})
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-orange-50 text-orange-700 gap-1">
+                              <FileX className="h-3 w-3" />
+                              Chưa làm ({batch.docs_not_started})
+                            </Badge>
                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
-                        {batch.work_address || batch.address || "—"}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {format(new Date(batch.interview_pass_date), "dd/MM/yyyy", { locale: vi })}
-                      </TableCell>
-                      <TableCell className="text-center font-medium">
-                        {batch.total_passed}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {batch.docs_not_started > 0 ? (
-                          <Badge variant="outline" className="bg-orange-50 text-orange-700">
-                            {batch.docs_not_started}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">0</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {batch.docs_in_progress > 0 ? (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                            {batch.docs_in_progress}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">0</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {batch.docs_completed > 0 ? (
-                          <Badge variant="outline" className="bg-green-50 text-green-700">
-                            {batch.docs_completed}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground">0</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

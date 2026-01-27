@@ -2339,9 +2339,11 @@ export type Database = {
           docs_in_progress: number | null
           docs_not_started: number | null
           interview_pass_date: string | null
+          job_category_name: string | null
           name: string | null
           name_japanese: string | null
           total_passed: number | null
+          union_name: string | null
           work_address: string | null
         }
         Relationships: []
