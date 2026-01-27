@@ -91,13 +91,12 @@ const DOCUMENT_STATUS_OPTIONS = [
   { value: 'completed', label: 'Đã xong', className: 'bg-green-50 text-green-700' },
 ];
 
-// 22 columns for the document checklist table
+// 16 columns for the document checklist table
 const DOCUMENT_COLUMNS = [
-  'STT', 'Mã HV', 'Họ tên', 'Giới tính', 'Năm sinh',
-  'CCCD', 'Hộ chiếu', 'Sơ yếu lý lịch', 'Giấy khám SK', 'Bằng cấp',
-  'Hợp đồng', 'Ảnh 3x4', 'Ảnh 4x6', 'Đơn xin visa', 'Phiếu XN',
-  'OTIT', 'Nyukan', 'COE', 'Visa', 'Ghi chú',
-  'HĐ 1-14; 1-15', 'Thư phái cử'
+  'STT', 'Mã HV', 'Họ và tên', 'Giới tính', 'Ngày tháng năm sinh',
+  'Ngày trình ĐKHĐ', 'Số ĐKHĐ', 'Mã HS ĐKHĐ',
+  'Ngày gửi xin TPC', 'Số CV xin TPC', 'Mã HS xin TPC',
+  'Số PTL', 'Tình trạng', 'Ngày cấp PTL', 'Ngày cấp TPC', 'Hiện trạng'
 ];
 
 // View modes
@@ -418,7 +417,7 @@ export default function LegalPage() {
               <TableBody>
                 {companyTrainees.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={23} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={16} className="text-center py-8 text-muted-foreground">
                       Không có học viên
                     </TableCell>
                   </TableRow>
@@ -428,12 +427,14 @@ export default function LegalPage() {
                       <TableCell className="text-center">{idx + 1}</TableCell>
                       <TableCell className="font-mono text-xs">{trainee.trainee_code}</TableCell>
                       <TableCell className="font-medium whitespace-nowrap">{trainee.full_name}</TableCell>
-                      <TableCell>{trainee.gender || "—"}</TableCell>
-                      <TableCell>
-                        {trainee.birth_date ? new Date(trainee.birth_date).getFullYear() : "—"}
+                      <TableCell className="text-center">{trainee.gender || "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {trainee.birth_date 
+                          ? format(new Date(trainee.birth_date), "dd/MM/yyyy", { locale: vi })
+                          : "—"}
                       </TableCell>
-                      {/* Empty cells for document columns - to be filled manually */}
-                      {Array.from({ length: 18 }).map((_, cellIdx) => (
+                      {/* Empty cells for remaining columns - to be filled manually */}
+                      {Array.from({ length: 11 }).map((_, cellIdx) => (
                         <TableCell key={cellIdx} className="text-center">
                           —
                         </TableCell>
