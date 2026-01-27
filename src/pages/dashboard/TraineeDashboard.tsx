@@ -28,10 +28,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
   LabelList,
 } from "recharts";
 import { cn } from "@/lib/utils";
@@ -42,34 +38,6 @@ import {
   useMonthlyCombined,
   useTraineeBySource,
 } from "@/hooks/useDashboardTrainee";
-
-// Color palette for charts
-const DONUT_COLORS = [
-  "#F97316", // Orange
-  "#EF4444", // Red
-  "#006633", // Mekong Green
-  "#3B82F6", // Blue
-  "#8B5CF6", // Purple
-  "#10B981", // Emerald
-];
-
-// Bar label renderer
-const renderBarLabel = (props: { x?: number; y?: number; width?: number; value?: number }) => {
-  const { x = 0, y = 0, width = 0, value = 0 } = props;
-  if (value === 0) return null;
-  return (
-    <text
-      x={x + width / 2}
-      y={y - 5}
-      fill="#dc2626"
-      fontSize={12}
-      fontWeight="bold"
-      textAnchor="middle"
-    >
-      {value}
-    </text>
-  );
-};
 
 // Icon color classes
 const iconColorClasses = {
@@ -137,26 +105,18 @@ export default function TraineeDashboard() {
     return `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
   }, []);
 
-  // Format source data for pie chart
+  // Format source data for horizontal bar chart
   const sourceChartData = useMemo(() => {
     if (!sourceData) return [];
     return sourceData
       .filter(s => s.source && s.count > 0)
-      .slice(0, 6)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10)
       .map(s => ({
         name: s.source || "Khác",
         value: s.count,
       }));
   }, [sourceData]);
-
-  // Calculate trainees in Japan (departed but not returned)
-  const traineesInJapan = useMemo(() => {
-    if (!kpis) return { inJapan: 0, total: 0 };
-    return {
-      inJapan: kpis.departed_this_year || 0,
-      total: kpis.stage_departed || 0,
-    };
-  }, [kpis]);
 
   // Calculate studying count - use status_studying from KPIs
   const studyingCount = useMemo(() => {
@@ -255,14 +215,12 @@ export default function TraineeDashboard() {
                 </div>
                 <div className="space-y-1">
                   <div className="text-2xl font-bold text-foreground">
-                    <span className="text-primary">{traineesInJapan.inJapan}</span>
-                    <span className="text-muted-foreground mx-1">/</span>
-                    <span>{traineesInJapan.total}</span>
+                    {kpis?.departed_this_year || 0}
                   </div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Học viên tại Nhật
+                    Xuất cảnh năm nay
                   </p>
-                  <p className="text-xs text-muted-foreground">Tỷ lệ xuất cảnh</p>
+                  <p className="text-xs text-muted-foreground">Đã xuất cảnh năm {selectedYear}</p>
                 </div>
               </div>
             )}
@@ -298,12 +256,12 @@ export default function TraineeDashboard() {
         </Card>
       </div>
 
-      {/* Charts Row - Bar Chart + Donut */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Grouped Bar Chart - Recruitment vs Departure */}
-        <Card className="lg:col-span-2">
+      {/* Charts Row - Two separate bar charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Bar Chart - Tuyển dụng */}
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-base font-semibold">Tình hình tuyển dụng & Xuất cảnh</CardTitle>
+            <CardTitle className="text-base font-semibold">Tuyển dụng theo tháng</CardTitle>
             <Select
               value={selectedYear.toString()}
               onValueChange={(v) => setSelectedYear(parseInt(v))}
@@ -326,32 +284,25 @@ export default function TraineeDashboard() {
             ) : (
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyChartData} barGap={2} barCategoryGap="20%">
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="month" fontSize={12} tickLine={false} />
-                    <YAxis fontSize={12} tickLine={false} axisLine={false} />
+                  <BarChart data={monthlyChartData} layout="vertical" barSize={20}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                    <XAxis type="number" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis dataKey="month" type="category" fontSize={11} tickLine={false} width={45} />
                     <Tooltip
                       contentStyle={{
                         borderRadius: "8px",
                         border: "1px solid hsl(var(--border))",
                       }}
                     />
-                    <Legend />
-                    <Bar
-                      dataKey="recruitment"
-                      name="Tuyển dụng"
-                      fill="#22C55E"
-                      radius={[4, 4, 0, 0]}
-                    >
-                      <LabelList dataKey="recruitment" content={renderBarLabel} />
-                    </Bar>
-                    <Bar
-                      dataKey="departure"
-                      name="Xuất cảnh"
-                      fill="#3B82F6"
-                      radius={[4, 4, 0, 0]}
-                    >
-                      <LabelList dataKey="departure" content={renderBarLabel} />
+                    <Bar dataKey="recruitment" name="Tuyển dụng" fill="#006633" radius={[0, 4, 4, 0]}>
+                      <LabelList 
+                        dataKey="recruitment" 
+                        position="insideRight" 
+                        fill="#fff" 
+                        fontSize={12} 
+                        fontWeight="bold"
+                        formatter={(value: number) => value > 0 ? value : ""}
+                      />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -360,56 +311,94 @@ export default function TraineeDashboard() {
           </CardContent>
         </Card>
 
-        {/* Donut Chart - Source Distribution */}
+        {/* Bar Chart - Xuất cảnh */}
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-semibold">Nguồn tuyển dụng</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-base font-semibold">Xuất cảnh theo tháng</CardTitle>
           </CardHeader>
           <CardContent>
-            {loadingSource ? (
+            {loadingMonthly ? (
               <Skeleton className="h-64 w-full" />
             ) : (
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={sourceChartData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="45%"
-                      innerRadius={50}
-                      outerRadius={80}
-                      paddingAngle={2}
-                      label={({ percent }) =>
-                        percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : ""
-                      }
-                      labelLine={false}
-                    >
-                      {sourceChartData.map((_, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={DONUT_COLORS[index % DONUT_COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: number, name: string) => [value, name]} />
-                    <Legend
-                      layout="horizontal"
-                      verticalAlign="bottom"
-                      wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }}
-                      formatter={(value, entry) => {
-                        const item = sourceChartData.find((d) => d.name === value);
-                        return `${value} (${item?.value || 0})`;
+                  <BarChart data={monthlyChartData} layout="vertical" barSize={20}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                    <XAxis type="number" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis dataKey="month" type="category" fontSize={11} tickLine={false} width={45} />
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: "8px",
+                        border: "1px solid hsl(var(--border))",
                       }}
                     />
-                  </PieChart>
+                    <Bar dataKey="departure" name="Xuất cảnh" fill="#3B82F6" radius={[0, 4, 4, 0]}>
+                      <LabelList 
+                        dataKey="departure" 
+                        position="insideRight" 
+                        fill="#fff" 
+                        fontSize={12} 
+                        fontWeight="bold"
+                        formatter={(value: number) => value > 0 ? value : ""}
+                      />
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Nguồn tuyển dụng - Horizontal Bar Chart */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold">Top 10 nguồn giới thiệu</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingSource ? (
+            <Skeleton className="h-64 w-full" />
+          ) : (
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart 
+                  data={sourceChartData.slice(0, 10)} 
+                  layout="vertical" 
+                  barSize={22}
+                  margin={{ left: 10, right: 30 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                  <XAxis type="number" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    fontSize={11} 
+                    tickLine={false} 
+                    width={120}
+                    tickFormatter={(value) => value.length > 15 ? value.substring(0, 15) + "..." : value}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: "8px",
+                      border: "1px solid hsl(var(--border))",
+                    }}
+                  />
+                  <Bar dataKey="value" name="Số lượng" fill="#006633" radius={[0, 4, 4, 0]}>
+                    <LabelList 
+                      dataKey="value" 
+                      position="insideRight" 
+                      fill="#dc2626" 
+                      fontSize={12} 
+                      fontWeight="bold"
+                      formatter={(value: number) => value > 0 ? value : ""}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Bottom Row - Progress + Target */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

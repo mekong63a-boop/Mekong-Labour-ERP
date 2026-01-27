@@ -29,7 +29,8 @@ type FilterType =
   | "departed_student"
   | "departed_knd"
   | "departed_engineer"
-  | "departed_total";
+  | "departed_total"
+  | "in_japan";
 
 const FILTER_TITLES: Record<FilterType, string> = {
   registered_new: "Đăng ký mới",
@@ -44,6 +45,32 @@ const FILTER_TITLES: Record<FilterType, string> = {
   departed_knd: "Kỹ năng đặc định xuất cảnh",
   departed_engineer: "Kỹ sư xuất cảnh",
   departed_total: "Tổng xuất cảnh",
+  in_japan: "Xuất cảnh năm nay",
+};
+
+// Check if filter is for "Xuất cảnh" tab (departed this year)
+const isInJapanFilter = (filter: FilterType): boolean => {
+  return filter === "in_japan";
+};
+
+// Check if filter is for "Số liệu đầu ra" (Output Data)
+const isOutputDataFilter = (filter: FilterType): boolean => {
+  return filter.startsWith("departed_") || filter === "in_japan";
+};
+
+// Check if filter is for students
+const isStudentFilter = (filter: FilterType): boolean => {
+  return filter === "departed_student";
+};
+
+// Check if filter needs status column (chưa học, đang học, bảo lưu, hủy, đậu phỏng vấn)
+const needsStatusColumn = (filter: FilterType): boolean => {
+  return ["not_studying", "studying", "reserved", "cancelled", "passed_interview"].includes(filter);
+};
+
+// Check if filter needs class name column (đang học, bảo lưu, đậu phỏng vấn, hủy)
+const needsClassColumn = (filter: FilterType): boolean => {
+  return ["studying", "reserved", "passed_interview", "cancelled"].includes(filter);
 };
 
 // Dynamic column definitions based on filter type
@@ -67,30 +94,11 @@ const getDynamicColumn = (filter: FilterType): { label: string; field: string } 
     case "departed_knd":
     case "departed_engineer":
     case "departed_total":
+    case "in_japan":
       return { label: "Ngày xuất cảnh", field: "departure_date" };
     default:
       return { label: "Ngày đăng ký", field: "registration_date" };
   }
-};
-
-// Check if filter is for "Số liệu đầu ra" (Output Data)
-const isOutputDataFilter = (filter: FilterType): boolean => {
-  return filter.startsWith("departed_");
-};
-
-// Check if filter is for students
-const isStudentFilter = (filter: FilterType): boolean => {
-  return filter === "departed_student";
-};
-
-// Check if filter needs status column (chưa học, đang học, bảo lưu, hủy, đậu phỏng vấn)
-const needsStatusColumn = (filter: FilterType): boolean => {
-  return ["not_studying", "studying", "reserved", "cancelled", "passed_interview"].includes(filter);
-};
-
-// Check if filter needs class name column (đang học, bảo lưu, đậu phỏng vấn, hủy)
-const needsClassColumn = (filter: FilterType): boolean => {
-  return ["studying", "reserved", "passed_interview", "cancelled"].includes(filter);
 };
 
 export default function DashboardDetailList() {
@@ -106,6 +114,7 @@ export default function DashboardDetailList() {
   const showSchoolColumn = filter && isStudentFilter(filter);
   const showStatusColumn = filter && needsStatusColumn(filter);
   const showClassColumn = filter && needsClassColumn(filter);
+  const showInJapanStatus = filter && isInJapanFilter(filter);
 
   // Fetch trainees based on filter - include related data for output filters
   const { data: trainees = [], isLoading } = useQuery({
@@ -285,11 +294,22 @@ export default function DashboardDetailList() {
           return t.departure_date && t.trainee_type === "Kỹ sư";
         case "departed_total":
           return !!t.departure_date;
+        case "in_japan":
+          // Xuất cảnh năm nay: có departure_date và thuộc năm được chọn
+          return !!t.departure_date;
         default:
           return true;
       }
     });
   }, [trainees, filter, year, month]);
+
+  // Helper function to get status display for in_japan filter
+  const getInJapanStatus = (trainee: typeof trainees[0]) => {
+    if (trainee.progression_stage === "Bỏ trốn") return "Bỏ trốn";
+    if (trainee.progression_stage === "Về trước hạn") return "Về giữa chừng";
+    if (trainee.progression_stage === "Hoàn thành hợp đồng") return "Hoàn thành HĐ";
+    return "Đang ở Nhật";
+  };
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "—";
@@ -312,20 +332,23 @@ export default function DashboardDetailList() {
 
   // Calculate colspan for empty state
   const getColspan = () => {
-    let base = 7; // Base columns: Mã HV, Họ tên, Ngày sinh, Giới tính, Quê quán, Dynamic, Thao tác
-    // Add Ngày ĐK if not Chưa học/Đang học
-    if (filter !== "not_studying" && filter !== "studying") base += 1;
-    // Add Ngày nhập học if not Đăng ký mới/Chưa học and dynamic is not entry_date
+    let base = 6; // Base columns: Mã HV, Họ tên, Ngày sinh, Giới tính, Quê quán, Thao tác
+    // Add Ngày ĐK if not Chưa học/Đang học/in_japan
+    if (filter !== "not_studying" && filter !== "studying" && filter !== "in_japan") base += 1;
+    // Add Ngày nhập học if not Đăng ký mới/Chưa học/in_japan and dynamic is not entry_date
     const dynField = filter ? getDynamicColumn(filter).field : null;
-    if (filter !== "registered_new" && filter !== "not_studying" && dynField !== "entry_date") base += 1;
-    // Add output columns
+    if (filter !== "registered_new" && filter !== "not_studying" && filter !== "in_japan" && dynField !== "entry_date") base += 1;
+    // Add output columns (công ty, nghiệp đoàn, ngành nghề, ngày xuất cảnh)
     if (showOutputColumns) {
-      base += showSchoolColumn ? 1 : 3;
+      base += 4; // 3 columns + 1 departure date
+      if (showInJapanStatus) base += 1; // Tình trạng
     }
     // Add status column for passed interview
     if (showStatusColumn) base += 1;
     // Add class column for studying, reserved, passed_interview
     if (showClassColumn) base += 1;
+    // Add dynamic column for non-output filters
+    if (!showOutputColumns) base += 1;
     return base;
   };
 
@@ -380,15 +403,14 @@ export default function DashboardDetailList() {
                   <TableHead className="w-24">Ngày sinh</TableHead>
                   <TableHead className="w-16">Giới tính</TableHead>
                   <TableHead className="min-w-[100px]">Quê quán</TableHead>
-                  {/* Chỉ hiển thị Ngày ĐK nếu không phải Chưa học/Đang học */}
-                  {filter !== "not_studying" && filter !== "studying" && (
+                  {/* Chỉ hiển thị Ngày ĐK nếu không phải Chưa học/Đang học/in_japan */}
+                  {filter !== "not_studying" && filter !== "studying" && filter !== "in_japan" && (
                     <TableHead className="w-24">Ngày ĐK</TableHead>
                   )}
-                  {/* Chỉ hiển thị Ngày nhập học nếu không phải Đăng ký mới/Chưa học và dynamic không phải entry_date */}
-                  {filter !== "registered_new" && filter !== "not_studying" && dynamicColumn?.field !== "entry_date" && (
+                  {/* Chỉ hiển thị Ngày nhập học nếu không phải Đăng ký mới/Chưa học/in_japan và dynamic không phải entry_date */}
+                  {filter !== "registered_new" && filter !== "not_studying" && filter !== "in_japan" && dynamicColumn?.field !== "entry_date" && (
                     <TableHead className="w-24">Ngày nhập học</TableHead>
                   )}
-                  <TableHead className="w-28">{dynamicColumn?.label || "—"}</TableHead>
                   {/* Additional columns for output data */}
                   {showOutputColumns && !showSchoolColumn && (
                     <>
@@ -396,6 +418,14 @@ export default function DashboardDetailList() {
                       <TableHead className="min-w-[120px]">Nghiệp đoàn</TableHead>
                       <TableHead className="min-w-[100px]">Ngành nghề</TableHead>
                     </>
+                  )}
+                  {/* Ngày xuất cảnh */}
+                  {showOutputColumns && (
+                    <TableHead className="w-28">Ngày xuất cảnh</TableHead>
+                  )}
+                  {/* Tình trạng for in_japan filter */}
+                  {showInJapanStatus && (
+                    <TableHead className="min-w-[100px]">Tình trạng</TableHead>
                   )}
                   {showSchoolColumn && (
                     <TableHead className="min-w-[120px]">Tên trường</TableHead>
@@ -405,6 +435,10 @@ export default function DashboardDetailList() {
                   )}
                   {showClassColumn && (
                     <TableHead className="min-w-[120px]">Tên lớp</TableHead>
+                  )}
+                  {/* For non-output filters, show dynamic column */}
+                  {!showOutputColumns && (
+                    <TableHead className="w-28">{dynamicColumn?.label || "—"}</TableHead>
                   )}
                   <TableHead className="w-20 text-center">Thao tác</TableHead>
                 </TableRow>
@@ -430,23 +464,16 @@ export default function DashboardDetailList() {
                         {trainee.gender || "—"}
                       </TableCell>
                       <TableCell className="text-sm">{getProvince(trainee.birthplace)}</TableCell>
-                      {/* Chỉ hiển thị Ngày ĐK nếu không phải Chưa học/Đang học */}
-                      {filter !== "not_studying" && filter !== "studying" && (
+                      {/* Chỉ hiển thị Ngày ĐK nếu không phải Chưa học/Đang học/in_japan */}
+                      {filter !== "not_studying" && filter !== "studying" && filter !== "in_japan" && (
                         <TableCell className="text-sm">
                           {formatDate(trainee.registration_date || trainee.created_at)}
                         </TableCell>
                       )}
-                      {/* Chỉ hiển thị Ngày nhập học nếu không phải Đăng ký mới/Chưa học và dynamic không phải entry_date */}
-                      {filter !== "registered_new" && filter !== "not_studying" && dynamicColumn?.field !== "entry_date" && (
+                      {/* Chỉ hiển thị Ngày nhập học nếu không phải Đăng ký mới/Chưa học/in_japan và dynamic không phải entry_date */}
+                      {filter !== "registered_new" && filter !== "not_studying" && filter !== "in_japan" && dynamicColumn?.field !== "entry_date" && (
                         <TableCell className="text-sm">{formatDate(trainee.entry_date)}</TableCell>
                       )}
-                      <TableCell className="text-sm">
-                        {dynamicColumn?.field === "registration_date" && formatDate(trainee.registration_date)}
-                        {dynamicColumn?.field === "entry_date" && formatDate(trainee.entry_date)}
-                        {dynamicColumn?.field === "interview_pass_date" && formatDate(trainee.interview_pass_date)}
-                        {dynamicColumn?.field === "departure_date" && formatDate(trainee.departure_date)}
-                        {dynamicColumn?.field === "updated_at" && formatDate(trainee.updated_at)}
-                      </TableCell>
                       {/* Additional data for output data */}
                       {showOutputColumns && !showSchoolColumn && (
                         <>
@@ -461,6 +488,16 @@ export default function DashboardDetailList() {
                           </TableCell>
                         </>
                       )}
+                      {/* Ngày xuất cảnh */}
+                      {showOutputColumns && (
+                        <TableCell className="text-sm">{formatDate(trainee.departure_date)}</TableCell>
+                      )}
+                      {/* Tình trạng for in_japan filter */}
+                      {showInJapanStatus && (
+                        <TableCell className="text-sm font-medium">
+                          {getInJapanStatus(trainee)}
+                        </TableCell>
+                      )}
                       {showSchoolColumn && (
                         <TableCell className="text-sm">
                           {trainee.class_id ? classMap[trainee.class_id] || "—" : "—"}
@@ -474,6 +511,16 @@ export default function DashboardDetailList() {
                       {showClassColumn && (
                         <TableCell className="text-sm">
                           {trainee.class_id ? classMap[trainee.class_id] || "Chưa nhập học" : "Chưa nhập học"}
+                        </TableCell>
+                      )}
+                      {/* For non-output filters, show dynamic column */}
+                      {!showOutputColumns && (
+                        <TableCell className="text-sm">
+                          {dynamicColumn?.field === "registration_date" && formatDate(trainee.registration_date)}
+                          {dynamicColumn?.field === "entry_date" && formatDate(trainee.entry_date)}
+                          {dynamicColumn?.field === "interview_pass_date" && formatDate(trainee.interview_pass_date)}
+                          {dynamicColumn?.field === "departure_date" && formatDate(trainee.departure_date)}
+                          {dynamicColumn?.field === "updated_at" && formatDate(trainee.updated_at)}
                         </TableCell>
                       )}
                       <TableCell className="text-center">
