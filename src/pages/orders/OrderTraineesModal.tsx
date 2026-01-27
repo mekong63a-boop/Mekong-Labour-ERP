@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useOrderTrainees, OrderTrainee } from "@/hooks/useOrderTrainees";
 import { Order } from "@/hooks/useOrders";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useCanAccessMenu } from "@/hooks/useMenuPermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -46,8 +46,8 @@ export function OrderTraineesModal({
   order,
 }: OrderTraineesModalProps) {
   const queryClient = useQueryClient();
-  const { isAdmin, isSeniorStaff } = useUserRole();
-  const canDelete = isAdmin || isSeniorStaff;
+  // SYSTEM RULE: Dùng menu permission thay vì hardcode role check
+  const { canDelete } = useCanAccessMenu("orders");
   
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [traineeToRemove, setTraineeToRemove] = useState<OrderTrainee | null>(null);

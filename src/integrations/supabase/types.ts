@@ -862,6 +862,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "interview_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "legal_company_stats"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "interview_history_job_category_id_fkey"
             columns: ["job_category_id"]
             isOneToOne: false
@@ -1143,6 +1150,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "legal_company_stats"
             referencedColumns: ["id"]
           },
           {
@@ -2321,6 +2335,53 @@ export type Database = {
           active_teachers: number | null
           total_classes: number | null
           total_teachers: number | null
+        }
+        Relationships: []
+      }
+      legal_company_stats: {
+        Row: {
+          address: string | null
+          code: string | null
+          departed: number | null
+          doing_paperwork: number | null
+          id: string | null
+          last_interview_date: string | null
+          name: string | null
+          name_japanese: string | null
+          total_passed: number | null
+          work_address: string | null
+        }
+        Relationships: []
+      }
+      order_stats: {
+        Row: {
+          cancelled: number | null
+          completed: number | null
+          form_complete: number | null
+          interviewed: number | null
+          recruiting: number | null
+          total: number | null
+        }
+        Relationships: []
+      }
+      post_departure_stats_by_year: {
+        Row: {
+          absconded: number | null
+          completed: number | null
+          early_return: number | null
+          total: number | null
+          working: number | null
+          year: string | null
+        }
+        Relationships: []
+      }
+      post_departure_summary: {
+        Row: {
+          absconded: number | null
+          completed: number | null
+          early_return: number | null
+          total: number | null
+          working: number | null
         }
         Relationships: []
       }
