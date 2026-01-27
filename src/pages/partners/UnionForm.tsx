@@ -33,6 +33,7 @@ export default function UnionForm() {
     code: "",
     name: "",
     name_japanese: "",
+    name_phonetic: "",
     country: "Nhật Bản",
     contact_person: "",
     phone: "",
@@ -83,6 +84,7 @@ export default function UnionForm() {
           code: union.code,
           name: union.name,
           name_japanese: union.name_japanese || "",
+          name_phonetic: (union as any).name_phonetic || "",
           country: union.country || "Nhật Bản",
           contact_person: union.contact_person || "",
           phone: union.phone || "",
@@ -238,7 +240,39 @@ export default function UnionForm() {
               </div>
             </div>
 
-            {/* Row 2 */}
+            {/* Row 2 - Japanese name and phonetic */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-primary">Tên tiếng Nhật</Label>
+                <Input
+                  value={formData.name_japanese}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, name_japanese: e.target.value }))
+                  }
+                  placeholder="VD: ABC組合"
+                  className={`bg-amber-50/50 border-primary/20 ${isNameJpDuplicate ? 'border-destructive' : ''}`}
+                />
+                {isCheckingNameJp && (
+                  <span className="text-xs text-muted-foreground">Đang kiểm tra...</span>
+                )}
+                {isNameJpDuplicate && !isCheckingNameJp && (
+                  <span className="text-xs text-destructive">{getDuplicateErrorMessage('unions', 'name_japanese')}</span>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label className="text-primary">Phiên âm</Label>
+                <Input
+                  value={formData.name_phonetic}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, name_phonetic: e.target.value }))
+                  }
+                  placeholder="VD: エービーシークミアイ"
+                  className="bg-amber-50/50 border-primary/20"
+                />
+              </div>
+            </div>
+
+            {/* Row 3 */}
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label className="text-primary">Quốc gia</Label>
