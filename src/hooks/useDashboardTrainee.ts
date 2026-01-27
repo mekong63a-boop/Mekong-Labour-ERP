@@ -4,26 +4,21 @@ import { supabase } from "@/integrations/supabase/client";
 // Types for dashboard views
 export interface TraineeKPIs {
   total_trainees: number;
-  status_new: number;
+  total_male: number;
+  total_female: number;
   status_studying: number;
-  status_reserved: number;
-  status_stopped: number;
-  status_not_studying: number;
-  status_cancelled: number;
-  status_in_japan: number;
-  status_left_company: number;
-  stage_not_passed: number;
-  stage_passed_interview: number;
-  stage_submitted: number;
-  stage_otit: number;
-  stage_nyukan: number;
-  stage_coe: number;
-  stage_visa: number;
+  studying_male: number;
+  studying_female: number;
+  departed_this_year: number;
+  departed_male: number;
+  departed_female: number;
+  stage_recruited: number;
+  stage_visa_processing: number;
+  stage_ready_to_depart: number;
   stage_departed: number;
-  stage_working: number;
-  stage_completed: number;
-  stage_absconded: number;
-  stage_early_return: number;
+  stage_in_japan: number;
+  stage_post_departure: number;
+  stage_archived: number;
   type_tts: number;
   type_knd: number;
   type_engineer: number;
@@ -32,15 +27,7 @@ export interface TraineeKPIs {
   registered_this_month: number;
   registered_this_year: number;
   departed_this_month: number;
-  departed_this_year: number;
-  // Added from new view
   active_orders: number;
-  stage_recruited: number;
-  stage_visa_processing: number;
-  stage_ready_to_depart: number;
-  stage_post_departure: number;
-  stage_in_japan: number;
-  stage_archived: number;
 }
 
 export interface StageData { stage: string; count: number; }
