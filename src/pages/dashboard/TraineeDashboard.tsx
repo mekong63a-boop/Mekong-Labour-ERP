@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -47,17 +46,8 @@ const iconColorClasses = {
 };
 
 export default function TraineeDashboard() {
-  const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
-
-  // Navigate to detail list with filter
-  const navigateToDetail = (filter: string) => {
-    const params = new URLSearchParams();
-    params.set("filter", filter);
-    params.set("year", selectedYear.toString());
-    navigate(`/dashboard/trainees/detail?${params.toString()}`);
-  };
 
   // Single Source - PostgreSQL views
   const { data: kpis, isLoading: loadingKPIs } = useTraineeKPIs();
@@ -167,13 +157,10 @@ export default function TraineeDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* KPI Cards Row */}
+      {/* KPI Cards Row - Display only, no navigation */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Trainees */}
-        <Card
-          className="cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all"
-          onClick={() => navigateToDetail("total")}
-        >
+        <Card>
           <CardContent className="p-5">
             {loadingKPIs ? (
               <div className="space-y-3">
@@ -211,10 +198,7 @@ export default function TraineeDashboard() {
         </Card>
 
         {/* Currently Studying */}
-        <Card
-          className="cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all"
-          onClick={() => navigateToDetail("studying")}
-        >
+        <Card>
           <CardContent className="p-5">
             {loadingKPIs ? (
               <div className="space-y-3">
@@ -238,11 +222,8 @@ export default function TraineeDashboard() {
           </CardContent>
         </Card>
 
-        {/* Trainees in Japan */}
-        <Card
-          className="cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all"
-          onClick={() => navigateToDetail("in_japan")}
-        >
+        {/* Trainees Departed */}
+        <Card>
           <CardContent className="p-5">
             {loadingKPIs ? (
               <div className="space-y-3">
@@ -269,10 +250,7 @@ export default function TraineeDashboard() {
         </Card>
 
         {/* Active Orders */}
-        <Card
-          className="cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all"
-          onClick={() => navigate("/orders")}
-        >
+        <Card>
           <CardContent className="p-5">
             {loadingKPIs ? (
               <div className="space-y-3">
@@ -338,9 +316,9 @@ export default function TraineeDashboard() {
                     <Bar dataKey="recruitment" name="Tuyển dụng" fill="#006633" radius={[4, 4, 0, 0]}>
                       <LabelList 
                         dataKey="recruitment" 
-                        position="top" 
-                        fill="#dc2626" 
-                        fontSize={11} 
+                        position="inside" 
+                        fill="#ffffff" 
+                        fontSize={14} 
                         fontWeight="bold"
                         formatter={(value: number) => value > 0 ? value : ""}
                       />
@@ -391,9 +369,9 @@ export default function TraineeDashboard() {
                     <Bar dataKey="departure" name="Xuất cảnh" fill="#3B82F6" radius={[4, 4, 0, 0]}>
                       <LabelList 
                         dataKey="departure" 
-                        position="top" 
-                        fill="#dc2626" 
-                        fontSize={11} 
+                        position="inside" 
+                        fill="#ffffff" 
+                        fontSize={14} 
                         fontWeight="bold"
                         formatter={(value: number) => value > 0 ? value : ""}
                       />
