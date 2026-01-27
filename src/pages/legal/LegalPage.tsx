@@ -161,7 +161,7 @@ export default function LegalPage() {
     },
   });
 
-  // Query trainees by selected type - FIX: match view logic exactly
+  // Query trainees by selected type - match view logic: only document processing stages
   const { data: traineesByType = [], isLoading: isLoadingTrainees } = useQuery({
     queryKey: ["legal-trainees-by-type", selectedType],
     queryFn: async () => {
@@ -182,7 +182,7 @@ export default function LegalPage() {
         .eq("trainee_type", selectedType as any)
         .not("interview_pass_date", "is", null)
         .not("receiving_company_id", "is", null)
-        .not("progression_stage", "in", '("Chưa đậu","Xuất cảnh")')
+        .not("progression_stage", "in", '("Chưa đậu","Xuất cảnh","Đang làm việc","Hoàn thành hợp đồng","Bỏ trốn","Về trước hạn")')
         .order("full_name");
 
       if (error) throw error;
@@ -191,7 +191,7 @@ export default function LegalPage() {
     enabled: !!selectedType && viewMode === 'type-detail',
   });
 
-  // Query trainees for company batch
+  // Query trainees for company batch - only document processing stages
   const { data: companyTrainees = [], isLoading: isLoadingCompanyTrainees } = useQuery({
     queryKey: ["legal-company-trainees", selectedCompanyBatch?.company_id, selectedCompanyBatch?.interview_pass_date],
     queryFn: async () => {
@@ -210,7 +210,7 @@ export default function LegalPage() {
         `)
         .eq("receiving_company_id", selectedCompanyBatch.company_id)
         .eq("interview_pass_date", selectedCompanyBatch.interview_pass_date)
-        .not("progression_stage", "in", '("Chưa đậu","Xuất cảnh")')
+        .not("progression_stage", "in", '("Chưa đậu","Xuất cảnh","Đang làm việc","Hoàn thành hợp đồng","Bỏ trốn","Về trước hạn")')
         .order("full_name");
 
       if (error) throw error;
