@@ -69,24 +69,48 @@ export default function TraineeDashboard() {
   const activeOrders = kpis?.active_orders || 0;
 
   // SYSTEM RULE: monthlyChartData từ dashboard_monthly_combined view
-  // Chỉ format lại cho chart, không tính toán
+  // Đảm bảo hiển thị đủ 12 tháng trong năm
   const monthlyChartData = useMemo(() => {
-    if (!monthlyCombined) return [];
-    return monthlyCombined.map((item) => ({
-      month: item.month_label,
-      recruitment: item.recruitment || 0,
-      departure: item.departure || 0,
+    const months = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
+    
+    // Tạo template 12 tháng với giá trị mặc định = 0
+    const template = months.map((month) => ({
+      month,
+      recruitment: 0,
+      departure: 0,
     }));
+    
+    if (!monthlyCombined) return template;
+    
+    // Merge dữ liệu từ DB vào template
+    monthlyCombined.forEach((item) => {
+      const monthIndex = template.findIndex((t) => t.month === item.month_label);
+      if (monthIndex !== -1) {
+        template[monthIndex].recruitment = item.recruitment || 0;
+        template[monthIndex].departure = item.departure || 0;
+      }
+    });
+    
+    return template;
   }, [monthlyCombined]);
 
-  // Generate year options (from 2020 to current + 1)
+  // Generate year options từ dữ liệu thực tế (các năm có học viên)
   const yearOptions = useMemo(() => {
-    const years = [];
-    for (let y = currentYear + 1; y >= 2020; y--) {
-      years.push(y);
+    const years = new Set<number>();
+    // Thêm các năm từ dữ liệu monthly
+    if (monthlyCombined) {
+      monthlyCombined.forEach((item) => {
+        if (item.month_date) {
+          const year = new Date(item.month_date).getFullYear();
+          years.add(year);
+        }
+      });
     }
-    return years;
-  }, [currentYear]);
+    // Luôn thêm năm hiện tại
+    years.add(currentYear);
+    // Convert to array và sort giảm dần
+    return Array.from(years).sort((a, b) => b - a);
+  }, [monthlyCombined, currentYear]);
 
   // Calculate growth rate from KPIs
   const growthPercent = useMemo(() => {
@@ -258,10 +282,10 @@ export default function TraineeDashboard() {
 
       {/* Charts Row - Two separate bar charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Bar Chart - Tuyển dụng */}
+        {/* Bar Chart - Tuyển dụng trong năm */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-base font-semibold">Tuyển dụng theo tháng</CardTitle>
+            <CardTitle className="text-base font-semibold">Tuyển dụng trong năm</CardTitle>
             <Select
               value={selectedYear.toString()}
               onValueChange={(v) => setSelectedYear(parseInt(v))}
@@ -284,22 +308,22 @@ export default function TraineeDashboard() {
             ) : (
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyChartData} layout="vertical" barSize={20}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                    <XAxis type="number" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis dataKey="month" type="category" fontSize={11} tickLine={false} width={45} />
+                  <BarChart data={monthlyChartData} barSize={28} margin={{ top: 20, right: 10, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="month" fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis fontSize={11} tickLine={false} axisLine={false} />
                     <Tooltip
                       contentStyle={{
                         borderRadius: "8px",
                         border: "1px solid hsl(var(--border))",
                       }}
                     />
-                    <Bar dataKey="recruitment" name="Tuyển dụng" fill="#006633" radius={[0, 4, 4, 0]}>
+                    <Bar dataKey="recruitment" name="Tuyển dụng" fill="#006633" radius={[4, 4, 0, 0]}>
                       <LabelList 
                         dataKey="recruitment" 
-                        position="insideRight" 
-                        fill="#fff" 
-                        fontSize={12} 
+                        position="top" 
+                        fill="#dc2626" 
+                        fontSize={11} 
                         fontWeight="bold"
                         formatter={(value: number) => value > 0 ? value : ""}
                       />
@@ -311,10 +335,25 @@ export default function TraineeDashboard() {
           </CardContent>
         </Card>
 
-        {/* Bar Chart - Xuất cảnh */}
+        {/* Bar Chart - Xuất cảnh trong năm */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-base font-semibold">Xuất cảnh theo tháng</CardTitle>
+            <CardTitle className="text-base font-semibold">Xuất cảnh trong năm</CardTitle>
+            <Select
+              value={selectedYear.toString()}
+              onValueChange={(v) => setSelectedYear(parseInt(v))}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions.map((y) => (
+                  <SelectItem key={y} value={y.toString()}>
+                    {y}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </CardHeader>
           <CardContent>
             {loadingMonthly ? (
@@ -322,22 +361,22 @@ export default function TraineeDashboard() {
             ) : (
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyChartData} layout="vertical" barSize={20}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                    <XAxis type="number" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis dataKey="month" type="category" fontSize={11} tickLine={false} width={45} />
+                  <BarChart data={monthlyChartData} barSize={28} margin={{ top: 20, right: 10, left: 10, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="month" fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis fontSize={11} tickLine={false} axisLine={false} />
                     <Tooltip
                       contentStyle={{
                         borderRadius: "8px",
                         border: "1px solid hsl(var(--border))",
                       }}
                     />
-                    <Bar dataKey="departure" name="Xuất cảnh" fill="#3B82F6" radius={[0, 4, 4, 0]}>
+                    <Bar dataKey="departure" name="Xuất cảnh" fill="#3B82F6" radius={[4, 4, 0, 0]}>
                       <LabelList 
                         dataKey="departure" 
-                        position="insideRight" 
-                        fill="#fff" 
-                        fontSize={12} 
+                        position="top" 
+                        fill="#dc2626" 
+                        fontSize={11} 
                         fontWeight="bold"
                         formatter={(value: number) => value > 0 ? value : ""}
                       />
