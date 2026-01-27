@@ -79,7 +79,7 @@ interface CompanyTrainee {
 
 const TRAINEE_TYPE_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
   'Thực tập sinh': { label: 'Thực tập sinh', icon: Users },
-  'TTS số 3': { label: 'TTS số 3', icon: Users },
+  'Thực tập sinh số 3': { label: 'TTS số 3', icon: Users },
   'Du học sinh': { label: 'Du học sinh', icon: GraduationCap },
   'Kỹ năng đặc định': { label: 'Kỹ năng đặc định', icon: Wrench },
   'Kỹ sư': { label: 'Kỹ sư', icon: UserCheck },
@@ -91,12 +91,13 @@ const DOCUMENT_STATUS_OPTIONS = [
   { value: 'completed', label: 'Đã xong', className: 'bg-green-50 text-green-700' },
 ];
 
-// 20 columns for the document checklist table
+// 22 columns for the document checklist table
 const DOCUMENT_COLUMNS = [
   'STT', 'Mã HV', 'Họ tên', 'Giới tính', 'Năm sinh',
   'CCCD', 'Hộ chiếu', 'Sơ yếu lý lịch', 'Giấy khám SK', 'Bằng cấp',
   'Hợp đồng', 'Ảnh 3x4', 'Ảnh 4x6', 'Đơn xin visa', 'Phiếu XN',
-  'OTIT', 'Nyukan', 'COE', 'Visa', 'Ghi chú'
+  'OTIT', 'Nyukan', 'COE', 'Visa', 'Ghi chú',
+  'HĐ 1-14', 'HĐ 1-15', 'Thư phái cử'
 ];
 
 // View modes
@@ -417,7 +418,7 @@ export default function LegalPage() {
               <TableBody>
                 {companyTrainees.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={20} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={23} className="text-center py-8 text-muted-foreground">
                       Không có học viên
                     </TableCell>
                   </TableRow>
@@ -432,7 +433,7 @@ export default function LegalPage() {
                         {trainee.birth_date ? new Date(trainee.birth_date).getFullYear() : "—"}
                       </TableCell>
                       {/* Empty cells for document columns - to be filled manually */}
-                      {Array.from({ length: 15 }).map((_, cellIdx) => (
+                      {Array.from({ length: 18 }).map((_, cellIdx) => (
                         <TableCell key={cellIdx} className="text-center">
                           —
                         </TableCell>
