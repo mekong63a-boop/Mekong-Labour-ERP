@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { Search, Building2, Users, FileCheck, FileClock, FileX, GraduationCap, Wrench, UserCheck, ChevronDown } from "lucide-react";
@@ -28,6 +35,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface CompanyBatch {
   company_id: string;
@@ -45,7 +53,7 @@ interface CompanyBatch {
   total_passed: number;
 }
 
-type DocumentStatus = 'in_progress' | 'completed' | null;
+type DocumentStatusFilter = 'in_progress' | 'completed' | null;
 
 interface TraineeTypeCount {
   trainee_type: string | null;
@@ -61,7 +69,18 @@ interface TraineeBasic {
   gender: string | null;
   birth_date: string | null;
   progression_stage: string | null;
+  document_status: string | null;
   receiving_company: { name: string } | null;
+}
+
+interface CompanyTrainee {
+  id: string;
+  trainee_code: string;
+  full_name: string;
+  gender: string | null;
+  birth_date: string | null;
+  progression_stage: string | null;
+  document_status: string | null;
 }
 
 const TRAINEE_TYPE_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
@@ -72,11 +91,30 @@ const TRAINEE_TYPE_CONFIG: Record<string, { label: string; icon: React.Component
   'Kỹ sư': { label: 'Kỹ sư', icon: UserCheck },
 };
 
+const DOCUMENT_STATUS_OPTIONS = [
+  { value: 'not_started', label: 'Chưa làm', className: 'bg-orange-50 text-orange-700' },
+  { value: 'in_progress', label: 'Đang làm', className: 'bg-blue-50 text-blue-700' },
+  { value: 'completed', label: 'Đã xong', className: 'bg-green-50 text-green-700' },
+];
+
+// 20 columns for the document checklist table
+const DOCUMENT_COLUMNS = [
+  'STT', 'Mã HV', 'Họ tên', 'Giới tính', 'Năm sinh',
+  'CCCD', 'Hộ chiếu', 'Sơ yếu lý lịch', 'Giấy khám SK', 'Bằng cấp',
+  'Hợp đồng', 'Ảnh 3x4', 'Ảnh 4x6', 'Đơn xin visa', 'Phiếu XN',
+  'OTIT', 'Nyukan', 'COE', 'Visa', 'Ghi chú'
+];
+
 export default function LegalPage() {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [showTypeModal, setShowTypeModal] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<DocumentStatus>(null);
+  const [statusFilter, setStatusFilter] = useState<DocumentStatusFilter>(null);
+  
+  // Company detail modal states
+  const [selectedCompanyBatch, setSelectedCompanyBatch] = useState<CompanyBatch | null>(null);
+  const [showCompanyModal, setShowCompanyModal] = useState(false);
 
   // SYSTEM RULE: Query từ database view legal_company_stats (grouped by company + date)
   const { data: companyBatches = [], isLoading } = useQuery({
@@ -126,13 +164,12 @@ export default function LegalPage() {
     },
   });
 
-  // Query trainees by selected type
+  // Query trainees by selected type - FIX: match view logic exactly
   const { data: traineesByType = [], isLoading: isLoadingTrainees } = useQuery({
     queryKey: ["legal-trainees-by-type", selectedType],
     queryFn: async () => {
       if (!selectedType) return [];
       
-      // Use type assertion since we're using custom trainee_type values
       const { data, error } = await supabase
         .from("trainees")
         .select(`
@@ -142,18 +179,69 @@ export default function LegalPage() {
           gender,
           birth_date,
           progression_stage,
+          document_status,
           receiving_company:companies!fk_trainees_company(name)
         `)
         .eq("trainee_type", selectedType as any)
-        .not("progression_stage", "is", null)
-        .neq("progression_stage", "Chưa đậu")
+        .not("interview_pass_date", "is", null)
         .not("receiving_company_id", "is", null)
+        .not("progression_stage", "in", '("Chưa đậu","Xuất cảnh")')
         .order("full_name");
 
       if (error) throw error;
       return (data || []) as TraineeBasic[];
     },
     enabled: !!selectedType && showTypeModal,
+  });
+
+  // Query trainees for company batch
+  const { data: companyTrainees = [], isLoading: isLoadingCompanyTrainees } = useQuery({
+    queryKey: ["legal-company-trainees", selectedCompanyBatch?.company_id, selectedCompanyBatch?.interview_pass_date],
+    queryFn: async () => {
+      if (!selectedCompanyBatch) return [];
+      
+      const { data, error } = await supabase
+        .from("trainees")
+        .select(`
+          id,
+          trainee_code,
+          full_name,
+          gender,
+          birth_date,
+          progression_stage,
+          document_status
+        `)
+        .eq("receiving_company_id", selectedCompanyBatch.company_id)
+        .eq("interview_pass_date", selectedCompanyBatch.interview_pass_date)
+        .not("progression_stage", "in", '("Chưa đậu","Xuất cảnh")')
+        .order("full_name");
+
+      if (error) throw error;
+      return (data || []) as CompanyTrainee[];
+    },
+    enabled: !!selectedCompanyBatch && showCompanyModal,
+  });
+
+  // Mutation to update document status
+  const updateDocStatusMutation = useMutation({
+    mutationFn: async ({ traineeId, status }: { traineeId: string; status: string }) => {
+      const { error } = await supabase
+        .from("trainees")
+        .update({ document_status: status })
+        .eq("id", traineeId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Đã cập nhật tình trạng hồ sơ");
+      queryClient.invalidateQueries({ queryKey: ["legal-company-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["legal-summary-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["legal-trainees-by-type"] });
+      queryClient.invalidateQueries({ queryKey: ["legal-company-trainees"] });
+    },
+    onError: () => {
+      toast.error("Lỗi khi cập nhật");
+    },
   });
 
   // Build type counts map with gender breakdown
@@ -193,6 +281,20 @@ export default function LegalPage() {
   const handleTypeClick = (type: string) => {
     setSelectedType(type);
     setShowTypeModal(true);
+  };
+
+  const handleCompanyClick = (batch: CompanyBatch) => {
+    setSelectedCompanyBatch(batch);
+    setShowCompanyModal(true);
+  };
+
+  const handleDocStatusChange = (traineeId: string, status: string) => {
+    updateDocStatusMutation.mutate({ traineeId, status });
+  };
+
+  const getDocStatusBadge = (status: string | null) => {
+    const opt = DOCUMENT_STATUS_OPTIONS.find(o => o.value === (status || 'not_started'));
+    return opt || DOCUMENT_STATUS_OPTIONS[0];
   };
 
   return (
@@ -371,12 +473,15 @@ export default function LegalPage() {
                     return (
                       <TableRow key={`${batch.company_id}-${batch.interview_pass_date}-${idx}`}>
                         <TableCell>
-                          <div>
-                            <p className="font-medium">{batch.name}</p>
+                          <button
+                            onClick={() => handleCompanyClick(batch)}
+                            className="text-left hover:text-primary transition-colors"
+                          >
+                            <p className="font-medium hover:underline">{batch.name}</p>
                             {batch.name_japanese && (
                               <p className="text-xs text-muted-foreground">{batch.name_japanese}</p>
                             )}
-                          </div>
+                          </button>
                         </TableCell>
                         <TableCell className="text-sm">
                           {batch.union_name || "—"}
@@ -418,12 +523,12 @@ export default function LegalPage() {
         </CardContent>
       </Card>
 
-      {/* Trainee Type Modal */}
+      {/* Trainee Type Modal - with document status selector */}
       <Dialog open={showTypeModal} onOpenChange={setShowTypeModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {selectedType ? TRAINEE_TYPE_CONFIG[selectedType]?.label : ''} - Danh sách học viên đậu
+              {selectedType ? TRAINEE_TYPE_CONFIG[selectedType]?.label : ''} - Danh sách học viên đậu PV (chưa xuất cảnh)
             </DialogTitle>
           </DialogHeader>
           
@@ -440,7 +545,8 @@ export default function LegalPage() {
                   <TableHead className="w-[80px]">Giới tính</TableHead>
                   <TableHead className="w-[100px]">Năm sinh</TableHead>
                   <TableHead>Công ty</TableHead>
-                  <TableHead className="w-[120px]">Tình trạng</TableHead>
+                  <TableHead className="w-[120px]">Giai đoạn</TableHead>
+                  <TableHead className="w-[150px]">Tình trạng HS</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -463,10 +569,93 @@ export default function LegalPage() {
                         {trainee.progression_stage}
                       </Badge>
                     </TableCell>
+                    <TableCell>
+                      <Select
+                        value={trainee.document_status || 'not_started'}
+                        onValueChange={(value) => handleDocStatusChange(trainee.id, value)}
+                      >
+                        <SelectTrigger className="h-8 w-[140px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DOCUMENT_STATUS_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              <span className={`px-2 py-0.5 rounded text-xs ${opt.className}`}>
+                                {opt.label}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Company Detail Modal - 20 column checklist table */}
+      <Dialog open={showCompanyModal} onOpenChange={setShowCompanyModal}>
+        <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle className="flex flex-col gap-1">
+              <span>{selectedCompanyBatch?.name}</span>
+              <span className="text-sm font-normal text-muted-foreground">
+                {selectedCompanyBatch?.name_japanese && `${selectedCompanyBatch.name_japanese} • `}
+                Ngày PV: {selectedCompanyBatch?.interview_pass_date && 
+                  format(new Date(selectedCompanyBatch.interview_pass_date), "dd/MM/yyyy", { locale: vi })}
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {isLoadingCompanyTrainees ? (
+            <div className="text-center py-8 text-muted-foreground">Đang tải...</div>
+          ) : (
+            <div className="overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {DOCUMENT_COLUMNS.map((col, idx) => (
+                      <TableHead 
+                        key={idx} 
+                        className={`text-xs whitespace-nowrap ${idx <= 4 ? 'bg-muted/50' : ''}`}
+                      >
+                        {col}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {companyTrainees.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={20} className="text-center py-8 text-muted-foreground">
+                        Không có học viên
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    companyTrainees.map((trainee, idx) => (
+                      <TableRow key={trainee.id}>
+                        <TableCell className="text-center">{idx + 1}</TableCell>
+                        <TableCell className="font-mono text-xs">{trainee.trainee_code}</TableCell>
+                        <TableCell className="font-medium whitespace-nowrap">{trainee.full_name}</TableCell>
+                        <TableCell>{trainee.gender || "—"}</TableCell>
+                        <TableCell>
+                          {trainee.birth_date ? new Date(trainee.birth_date).getFullYear() : "—"}
+                        </TableCell>
+                        {/* Empty cells for document columns - to be filled manually */}
+                        {Array.from({ length: 15 }).map((_, cellIdx) => (
+                          <TableCell key={cellIdx} className="text-center">
+                            —
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </DialogContent>
       </Dialog>
