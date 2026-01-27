@@ -110,6 +110,8 @@ interface FormData {
   drinking: string;
   blood_group: string;
   health_status: string;
+  hearing: string;
+  hepatitis_b: string;
   notes: string;
   photo_url: string;
   line_qr_url: string;
@@ -269,6 +271,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     drinking: "",
     blood_group: "",
     health_status: "",
+    hearing: "",
+    hepatitis_b: "",
     notes: "",
     photo_url: "",
     line_qr_url: "",
@@ -352,6 +356,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         drinking: trainee.drinking || "",
         blood_group: trainee.blood_group || "",
         health_status: trainee.health_status || "",
+        hearing: (trainee as any).hearing || "",
+        hepatitis_b: (trainee as any).hepatitis_b || "",
         notes: trainee.notes || "",
         photo_url: trainee.photo_url || "",
         line_qr_url: (trainee as any).line_qr_url || "",
@@ -576,6 +582,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     drinking: formData.drinking || null,
     blood_group: formData.blood_group || null,
     health_status: formData.health_status || null,
+    hearing: formData.hearing || null,
+    hepatitis_b: formData.hepatitis_b || null,
     notes: formData.notes || null,
     photo_url: formData.photo_url || null,
     line_qr_url: formData.line_qr_url || null,
@@ -1478,6 +1486,31 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                         className={getInputClass(formData.health_status)}
                       />
                     </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Thính lực</Label>
+                      <Input
+                        placeholder="Bình thường"
+                        value={formData.hearing}
+                        onChange={(e) => updateField("hearing", e.target.value)}
+                        className={getInputClass(formData.hearing)}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Viêm gan B</Label>
+                      <Select
+                        value={formData.hepatitis_b}
+                        onValueChange={(v) => updateField("hepatitis_b", v)}
+                      >
+                        <SelectTrigger className={getSelectClass(formData.hepatitis_b)}>
+                          <SelectValue placeholder="Chọn" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Âm tính">Âm tính</SelectItem>
+                          <SelectItem value="Dương tính">Dương tính</SelectItem>
+                          <SelectItem value="Chưa xét nghiệm">Chưa xét nghiệm</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
                   {/* Measurements - Số đo */}
@@ -1596,7 +1629,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   )}
 
                   <div>
-                    <Label className="text-xs text-muted-foreground">Tình trạng tiến trình</Label>
+                    <Label className="text-xs text-muted-foreground">Tình trạng hiện tại</Label>
                     <Select
                       value={formData.progression_stage}
                       onValueChange={(v) => updateField("progression_stage", v)}

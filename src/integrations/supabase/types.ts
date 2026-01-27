@@ -1639,7 +1639,9 @@ export type Database = {
           furigana: string | null
           gender: string | null
           health_status: string | null
+          hearing: string | null
           height: number | null
+          hepatitis_b: string | null
           hobbies: string | null
           household_address: string | null
           id: string
@@ -1718,7 +1720,9 @@ export type Database = {
           furigana?: string | null
           gender?: string | null
           health_status?: string | null
+          hearing?: string | null
           height?: number | null
+          hepatitis_b?: string | null
           hobbies?: string | null
           household_address?: string | null
           id?: string
@@ -1797,7 +1801,9 @@ export type Database = {
           furigana?: string | null
           gender?: string | null
           health_status?: string | null
+          hearing?: string | null
           height?: number | null
+          hepatitis_b?: string | null
           hobbies?: string | null
           household_address?: string | null
           id?: string

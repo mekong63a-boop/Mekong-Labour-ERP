@@ -315,6 +315,8 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                 <InfoRow label="Nhóm máu" value={profile.blood_group} />
                 <InfoRow label="Thị lực trái" value={profile.vision_left?.toString()} />
                 <InfoRow label="Thị lực phải" value={profile.vision_right?.toString()} />
+                <InfoRow label="Thính lực" value={(profile as any).hearing} />
+                <InfoRow label="Viêm gan B" value={(profile as any).hepatitis_b} />
                 <InfoRow label="Tay thuận" value={profile.dominant_hand} />
                 <InfoRow label="Hút thuốc" value={profile.smoking} />
                 <InfoRow label="Uống rượu" value={profile.drinking} />

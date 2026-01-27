@@ -219,6 +219,14 @@ export function PersonalInfoTab({ trainee }: PersonalInfoTabProps) {
             <Label className="text-muted-foreground text-xs">Hình xăm</Label>
             <p>{trainee.tattoo ? "Có" : "Không"}</p>
           </div>
+          <div>
+            <Label className="text-muted-foreground text-xs">Thính lực</Label>
+            <p>{(trainee as any).hearing || "—"}</p>
+          </div>
+          <div>
+            <Label className="text-muted-foreground text-xs">Viêm gan B</Label>
+            <p>{(trainee as any).hepatitis_b || "—"}</p>
+          </div>
           <div className="col-span-2">
             <Label className="text-muted-foreground text-xs">Tình trạng sức khỏe</Label>
             <p>{trainee.health_status || "—"}</p>
