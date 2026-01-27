@@ -142,3 +142,11 @@ export const useTraineeByCompany = () => useQuery({
   queryFn: () => queryView("dashboard_trainee_by_company") as Promise<CompanyData[]>,
   staleTime: 30 * 1000,
 });
+
+// SYSTEM RULE: Available years from all trainee data
+export interface YearData { year: number; }
+export const useAvailableYears = () => useQuery({
+  queryKey: ["dashboard-available-years"],
+  queryFn: () => queryView("dashboard_available_years") as Promise<YearData[]>,
+  staleTime: 60 * 1000, // 1 minute - years don't change often
+});
