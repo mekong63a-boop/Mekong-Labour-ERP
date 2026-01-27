@@ -293,7 +293,8 @@ export default function PartnerList() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="w-[300px]">Tên công ty</TableHead>
+                    <TableHead className="w-[280px]">Tên công ty</TableHead>
+                    <TableHead>Phiên âm</TableHead>
                     <TableHead>Địa chỉ làm việc</TableHead>
                     <TableHead>Người phụ trách</TableHead>
                     <TableHead className="text-center">Số HV</TableHead>
@@ -316,7 +317,8 @@ export default function PartnerList() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{company.work_address || "-"}</TableCell>
+                      <TableCell className="text-sm">{(company as any).name_phonetic || "—"}</TableCell>
+                      <TableCell>{company.work_address || "—"}</TableCell>
                       <TableCell>{company.representative || "-"}</TableCell>
                       <TableCell className="text-center">
                         <Badge 
@@ -369,10 +371,10 @@ export default function PartnerList() {
                   <TableRow className="bg-muted/50">
                     <TableHead className="w-[100px]">Mã nghiệp đoàn</TableHead>
                     <TableHead>Tên nghiệp đoàn</TableHead>
+                    <TableHead>Phiên âm</TableHead>
                     <TableHead>Địa chỉ</TableHead>
                     <TableHead>Người liên hệ</TableHead>
                     <TableHead>Điện thoại</TableHead>
-                    <TableHead>Email</TableHead>
                     <TableHead>Trạng thái</TableHead>
                     <TableHead className="text-right">Thao tác</TableHead>
                   </TableRow>
@@ -384,12 +386,12 @@ export default function PartnerList() {
                       <TableCell className="text-primary font-medium">
                         {union.name_japanese || union.name}
                       </TableCell>
+                      <TableCell className="text-sm">{(union as any).name_phonetic || "—"}</TableCell>
                       <TableCell className="max-w-[200px] truncate">
-                        {union.address || "-"}
+                        {union.address || "—"}
                       </TableCell>
-                      <TableCell>{union.contact_person || "-"}</TableCell>
-                      <TableCell>{union.phone || "-"}</TableCell>
-                      <TableCell>{union.email || "-"}</TableCell>
+                      <TableCell>{union.contact_person || "—"}</TableCell>
+                      <TableCell>{union.phone || "—"}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={getStatusColor(union.status)}>
                           {union.status || "Đang hợp tác"}

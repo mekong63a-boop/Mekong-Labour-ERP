@@ -33,6 +33,7 @@ export default function CompanyForm() {
     code: "",
     name: "",
     name_japanese: "",
+    name_phonetic: "",
     address: "",
     work_address: "",
     representative: "",
@@ -85,6 +86,7 @@ export default function CompanyForm() {
           code: company.code,
           name: company.name,
           name_japanese: company.name_japanese || "",
+          name_phonetic: (company as any).name_phonetic || "",
           address: company.address || "",
           work_address: company.work_address || "",
           representative: company.representative || "",
@@ -242,6 +244,37 @@ export default function CompanyForm() {
                 {isNameDuplicate && !isCheckingName && (
                   <span className="text-xs text-destructive">{getDuplicateErrorMessage('companies', 'name')}</span>
                 )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-primary">Tên tiếng Nhật</Label>
+                  <Input
+                    value={formData.name_japanese}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, name_japanese: e.target.value }))
+                    }
+                    placeholder="会社名"
+                    className={`bg-amber-50/50 border-primary/20 ${isNameJpDuplicate ? 'border-destructive' : ''}`}
+                  />
+                  {isCheckingNameJp && (
+                    <span className="text-xs text-muted-foreground">Đang kiểm tra...</span>
+                  )}
+                  {isNameJpDuplicate && !isCheckingNameJp && (
+                    <span className="text-xs text-destructive">{getDuplicateErrorMessage('companies', 'name_japanese')}</span>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-primary">Phiên âm</Label>
+                  <Input
+                    value={formData.name_phonetic}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, name_phonetic: e.target.value }))
+                    }
+                    placeholder="VD: カイシャメイ"
+                    className="bg-amber-50/50 border-primary/20"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
