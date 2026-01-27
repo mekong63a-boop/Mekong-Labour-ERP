@@ -2225,6 +2225,15 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboard_monthly_combined: {
+        Row: {
+          departure: number | null
+          month_date: string | null
+          month_label: string | null
+          recruitment: number | null
+        }
+        Relationships: []
+      }
       dashboard_trainee_by_birthplace: {
         Row: {
           birthplace: string | null
@@ -2278,18 +2287,19 @@ export type Database = {
       }
       dashboard_trainee_kpis: {
         Row: {
+          active_orders: number | null
           departed_this_month: number | null
           departed_this_year: number | null
           registered_this_month: number | null
           registered_this_year: number | null
           stage_archived: number | null
           stage_departed: number | null
-          stage_dormitory: number | null
+          stage_in_japan: number | null
           stage_post_departure: number | null
           stage_ready_to_depart: number | null
           stage_recruited: number | null
-          stage_trained: number | null
           stage_visa_processing: number | null
+          status_studying: number | null
           total_trainees: number | null
           type_engineer: number | null
           type_knd: number | null
@@ -2329,6 +2339,17 @@ export type Database = {
         }
         Relationships: []
       }
+      education_interview_stats: {
+        Row: {
+          not_passed_female: number | null
+          not_passed_male: number | null
+          not_passed_total: number | null
+          passed_female: number | null
+          passed_male: number | null
+          passed_total: number | null
+        }
+        Relationships: []
+      }
       education_stats: {
         Row: {
           active_classes: number | null
@@ -2350,6 +2371,15 @@ export type Database = {
           name_japanese: string | null
           total_passed: number | null
           work_address: string | null
+        }
+        Relationships: []
+      }
+      legal_summary_stats: {
+        Row: {
+          total_all: number | null
+          total_companies: number | null
+          total_departed: number | null
+          total_paperwork: number | null
         }
         Relationships: []
       }
@@ -2923,8 +2953,6 @@ export type Database = {
         Args: { _identifier: string; _ip_address?: string; _success: boolean }
         Returns: undefined
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
       touch_user_access_version: {
         Args: { _user_id: string }
         Returns: undefined
