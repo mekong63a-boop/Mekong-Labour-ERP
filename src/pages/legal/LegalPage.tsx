@@ -50,6 +50,8 @@ type DocumentStatus = 'in_progress' | 'completed' | null;
 interface TraineeTypeCount {
   trainee_type: string | null;
   count: number;
+  male_count: number;
+  female_count: number;
 }
 
 interface TraineeBasic {
@@ -63,8 +65,8 @@ interface TraineeBasic {
 }
 
 const TRAINEE_TYPE_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
-  'TTS': { label: 'Thực tập sinh', icon: Users },
-  'TTS3': { label: 'TTS số 3', icon: Users },
+  'Thực tập sinh': { label: 'Thực tập sinh', icon: Users },
+  'TTS số 3': { label: 'TTS số 3', icon: Users },
   'Du học sinh': { label: 'Du học sinh', icon: GraduationCap },
   'Kỹ năng đặc định': { label: 'Kỹ năng đặc định', icon: Wrench },
   'Kỹ sư': { label: 'Kỹ sư', icon: UserCheck },
@@ -154,13 +156,17 @@ export default function LegalPage() {
     enabled: !!selectedType && showTypeModal,
   });
 
-  // Build type counts map
+  // Build type counts map with gender breakdown
   const typeCountsMap = typeStats.reduce((acc, item) => {
     if (item.trainee_type) {
-      acc[item.trainee_type] = item.count;
+      acc[item.trainee_type] = {
+        count: item.count,
+        male: item.male_count,
+        female: item.female_count
+      };
     }
     return acc;
-  }, {} as Record<string, number>);
+  }, {} as Record<string, { count: number; male: number; female: number }>);
 
   // Filter batches by search and status
   const filteredBatches = companyBatches.filter(batch => {
@@ -251,10 +257,10 @@ export default function LegalPage() {
         </Card>
       </div>
 
-      {/* Trainee Type Tabs */}
+      {/* Trainee Type Tabs with Gender Breakdown */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {Object.entries(TRAINEE_TYPE_CONFIG).map(([type, config]) => {
-          const count = typeCountsMap[type] || 0;
+          const stats = typeCountsMap[type] || { count: 0, male: 0, female: 0 };
           const Icon = config.icon;
           
           return (
@@ -268,7 +274,13 @@ export default function LegalPage() {
                   <span className="text-sm text-muted-foreground">{config.label}</span>
                   <Icon className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <div className="text-2xl font-bold text-primary">{count}</div>
+                <div className="text-2xl font-bold text-primary">{stats.count}</div>
+                {stats.count > 0 && (
+                  <div className="flex items-center gap-3 mt-1 text-xs">
+                    <span className="text-blue-600">{stats.male} Nam</span>
+                    <span className="text-red-500">{stats.female} Nữ</span>
+                  </div>
+                )}
               </CardContent>
             </Card>
           );

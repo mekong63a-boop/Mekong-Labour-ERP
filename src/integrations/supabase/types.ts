@@ -745,13 +745,6 @@ export type Database = {
             referencedColumns: ["company_id"]
           },
           {
-            foreignKeyName: "fk_interview_company"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "legal_company_stats"
-            referencedColumns: ["company_id"]
-          },
-          {
             foreignKeyName: "fk_interview_job_category"
             columns: ["job_category_id"]
             isOneToOne: false
@@ -784,13 +777,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "dashboard_trainee_by_company"
-            referencedColumns: ["company_id"]
-          },
-          {
-            foreignKeyName: "interview_history_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "legal_company_stats"
             referencedColumns: ["company_id"]
           },
           {
@@ -1071,13 +1057,6 @@ export type Database = {
             referencedColumns: ["company_id"]
           },
           {
-            foreignKeyName: "fk_orders_company"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "legal_company_stats"
-            referencedColumns: ["company_id"]
-          },
-          {
             foreignKeyName: "fk_orders_job_category"
             columns: ["job_category_id"]
             isOneToOne: false
@@ -1110,13 +1089,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "dashboard_trainee_by_company"
-            referencedColumns: ["company_id"]
-          },
-          {
-            foreignKeyName: "orders_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "legal_company_stats"
             referencedColumns: ["company_id"]
           },
           {
@@ -1797,13 +1769,6 @@ export type Database = {
             referencedColumns: ["company_id"]
           },
           {
-            foreignKeyName: "fk_trainees_company"
-            columns: ["receiving_company_id"]
-            isOneToOne: false
-            referencedRelation: "legal_company_stats"
-            referencedColumns: ["company_id"]
-          },
-          {
             foreignKeyName: "fk_trainees_job_category"
             columns: ["job_category_id"]
             isOneToOne: false
@@ -2346,7 +2311,29 @@ export type Database = {
           union_name: string | null
           work_address: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_trainees_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_trainees_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_trainees_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_trainee_by_company"
+            referencedColumns: ["company_id"]
+          },
+        ]
       }
       legal_summary_stats: {
         Row: {
@@ -2363,6 +2350,8 @@ export type Database = {
       legal_trainee_type_stats: {
         Row: {
           count: number | null
+          female_count: number | null
+          male_count: number | null
           trainee_type: Database["public"]["Enums"]["trainee_type"] | null
         }
         Relationships: []
@@ -2552,13 +2541,6 @@ export type Database = {
             columns: ["receiving_company_id"]
             isOneToOne: false
             referencedRelation: "dashboard_trainee_by_company"
-            referencedColumns: ["company_id"]
-          },
-          {
-            foreignKeyName: "fk_trainees_company"
-            columns: ["receiving_company_id"]
-            isOneToOne: false
-            referencedRelation: "legal_company_stats"
             referencedColumns: ["company_id"]
           },
           {
