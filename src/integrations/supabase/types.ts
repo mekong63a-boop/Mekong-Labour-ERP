@@ -2239,6 +2239,12 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboard_available_years: {
+        Row: {
+          year: number | null
+        }
+        Relationships: []
+      }
       dashboard_monthly_combined: {
         Row: {
           departure: number | null

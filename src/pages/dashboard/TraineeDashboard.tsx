@@ -35,6 +35,7 @@ import {
   useMonthlyCombined,
   useTraineeBySource,
   useTraineeByCompany,
+  useAvailableYears,
 } from "@/hooks/useDashboardTrainee";
 
 // Icon color classes
@@ -63,19 +64,19 @@ export default function TraineeDashboard() {
   const { data: monthlyCombined, isLoading: loadingMonthly } = useMonthlyCombined();
   const { data: sourceData, isLoading: loadingSource } = useTraineeBySource();
   const { data: companyData, isLoading: loadingCompany } = useTraineeByCompany();
+  const { data: availableYears } = useAvailableYears();
 
   // SYSTEM RULE: activeOrders từ kpis view (đã tính sẵn ở DB)
   const activeOrders = kpis?.active_orders || 0;
 
-  // Generate year options từ dữ liệu thực tế (các năm có học viên)
+  // Generate year options từ dữ liệu thực tế (các năm có học viên) - lấy từ DB view
   const yearOptions = useMemo(() => {
     const years = new Set<number>();
-    // Thêm các năm từ dữ liệu monthly
-    if (monthlyCombined) {
-      monthlyCombined.forEach((item) => {
-        if (item.month_date) {
-          const year = new Date(item.month_date).getFullYear();
-          years.add(year);
+    // Thêm các năm từ DB view
+    if (availableYears) {
+      availableYears.forEach((item) => {
+        if (item.year) {
+          years.add(item.year);
         }
       });
     }
@@ -83,7 +84,7 @@ export default function TraineeDashboard() {
     years.add(currentYear);
     // Convert to array và sort giảm dần
     return Array.from(years).sort((a, b) => b - a);
-  }, [monthlyCombined, currentYear]);
+  }, [availableYears, currentYear]);
 
   // SYSTEM RULE: monthlyChartData từ dashboard_monthly_combined view
   // Đảm bảo hiển thị đủ 12 tháng trong năm VÀ LỌC THEO NĂM ĐƯỢC CHỌN
