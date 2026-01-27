@@ -13,12 +13,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -27,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Search, Building2, Users, FileCheck, FileClock, FileX, GraduationCap, Wrench, UserCheck, ChevronDown } from "lucide-react";
+import { Search, Building2, Users, FileCheck, FileClock, FileX, GraduationCap, Wrench, UserCheck, ChevronDown, ChevronLeft, BarChart3 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -105,16 +99,19 @@ const DOCUMENT_COLUMNS = [
   'OTIT', 'Nyukan', 'COE', 'Visa', 'Ghi chú'
 ];
 
+// View modes
+type ViewMode = 'list' | 'type-detail' | 'company-detail';
+
 export default function LegalPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [showTypeModal, setShowTypeModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState<DocumentStatusFilter>(null);
+  const [showStats, setShowStats] = useState(true);
   
-  // Company detail modal states
+  // View state
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedCompanyBatch, setSelectedCompanyBatch] = useState<CompanyBatch | null>(null);
-  const [showCompanyModal, setShowCompanyModal] = useState(false);
 
   // SYSTEM RULE: Query từ database view legal_company_stats (grouped by company + date)
   const { data: companyBatches = [], isLoading } = useQuery({
@@ -191,7 +188,7 @@ export default function LegalPage() {
       if (error) throw error;
       return (data || []) as TraineeBasic[];
     },
-    enabled: !!selectedType && showTypeModal,
+    enabled: !!selectedType && viewMode === 'type-detail',
   });
 
   // Query trainees for company batch
@@ -219,7 +216,7 @@ export default function LegalPage() {
       if (error) throw error;
       return (data || []) as CompanyTrainee[];
     },
-    enabled: !!selectedCompanyBatch && showCompanyModal,
+    enabled: !!selectedCompanyBatch && viewMode === 'company-detail',
   });
 
   // Mutation to update document status
@@ -280,114 +277,266 @@ export default function LegalPage() {
 
   const handleTypeClick = (type: string) => {
     setSelectedType(type);
-    setShowTypeModal(true);
+    setViewMode('type-detail');
   };
 
   const handleCompanyClick = (batch: CompanyBatch) => {
     setSelectedCompanyBatch(batch);
-    setShowCompanyModal(true);
+    setViewMode('company-detail');
+  };
+
+  const handleBackToList = () => {
+    setViewMode('list');
+    setSelectedType(null);
+    setSelectedCompanyBatch(null);
   };
 
   const handleDocStatusChange = (traineeId: string, status: string) => {
     updateDocStatusMutation.mutate({ traineeId, status });
   };
 
-  const getDocStatusBadge = (status: string | null) => {
-    const opt = DOCUMENT_STATUS_OPTIONS.find(o => o.value === (status || 'not_started'));
-    return opt || DOCUMENT_STATUS_OPTIONS[0];
-  };
+  // Render trainee type detail view
+  const renderTypeDetailView = () => (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={handleBackToList}>
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Quay lại
+          </Button>
+          <CardTitle className="text-base">
+            {selectedType ? TRAINEE_TYPE_CONFIG[selectedType]?.label : ''} - Danh sách học viên đậu PV (chưa xuất cảnh)
+          </CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoadingTrainees ? (
+          <div className="text-center py-8 text-muted-foreground">Đang tải...</div>
+        ) : traineesByType.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">Không có học viên</div>
+        ) : (
+          <div className="overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[100px]">Mã HV</TableHead>
+                  <TableHead>Họ và tên</TableHead>
+                  <TableHead className="w-[80px]">Giới tính</TableHead>
+                  <TableHead className="w-[100px]">Năm sinh</TableHead>
+                  <TableHead>Công ty</TableHead>
+                  <TableHead className="w-[120px]">Giai đoạn</TableHead>
+                  <TableHead className="w-[150px]">Tình trạng HS</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {traineesByType.map((trainee) => (
+                  <TableRow key={trainee.id}>
+                    <TableCell className="font-mono">{trainee.trainee_code}</TableCell>
+                    <TableCell className="font-medium">{trainee.full_name}</TableCell>
+                    <TableCell>{trainee.gender || "—"}</TableCell>
+                    <TableCell>
+                      {trainee.birth_date 
+                        ? new Date(trainee.birth_date).getFullYear()
+                        : "—"
+                      }
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {trainee.receiving_company?.name || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
+                        {trainee.progression_stage}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={trainee.document_status || 'not_started'}
+                        onValueChange={(value) => handleDocStatusChange(trainee.id, value)}
+                      >
+                        <SelectTrigger className="h-8 w-[140px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DOCUMENT_STATUS_OPTIONS.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              <span className={`px-2 py-0.5 rounded text-xs ${opt.className}`}>
+                                {opt.label}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 
-  return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-xl font-bold text-foreground">Tình trạng hồ sơ</h1>
-        <p className="text-sm text-muted-foreground">
-          Theo dõi tình trạng hồ sơ các công ty đã tuyển dụng
-        </p>
-      </header>
-
-      {/* Summary Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Tổng công ty</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summaryStats?.total_companies || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Tổng HV đậu</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summaryStats?.total_all || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">HS chưa làm</CardTitle>
-            <FileX className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{summaryStats?.docs_not_started || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">HS đang làm</CardTitle>
-            <FileClock className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{summaryStats?.docs_in_progress || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">HS đã làm</CardTitle>
-            <FileCheck className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{summaryStats?.docs_completed || 0}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Trainee Type Tabs with Gender Breakdown */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        {Object.entries(TRAINEE_TYPE_CONFIG).map(([type, config]) => {
-          const stats = typeCountsMap[type] || { count: 0, male: 0, female: 0 };
-          const Icon = config.icon;
-          
-          return (
-            <Card 
-              key={type}
-              className="cursor-pointer transition-all hover:shadow-md hover:border-primary"
-              onClick={() => handleTypeClick(type)}
-            >
-              <CardContent className="pt-4 pb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-muted-foreground">{config.label}</span>
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <div className="text-2xl font-bold text-primary">{stats.count}</div>
-                {stats.count > 0 && (
-                  <div className="flex items-center gap-3 mt-1 text-xs">
-                    <span className="text-blue-600">{stats.male} Nam</span>
-                    <span className="text-red-500">{stats.female} Nữ</span>
-                  </div>
+  // Render company detail view with 20 columns
+  const renderCompanyDetailView = () => (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={handleBackToList}>
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Quay lại
+          </Button>
+          <div>
+            <CardTitle className="text-base">{selectedCompanyBatch?.name}</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {selectedCompanyBatch?.name_japanese && `${selectedCompanyBatch.name_japanese} • `}
+              Ngày PV: {selectedCompanyBatch?.interview_pass_date && 
+                format(new Date(selectedCompanyBatch.interview_pass_date), "dd/MM/yyyy", { locale: vi })}
+            </p>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoadingCompanyTrainees ? (
+          <div className="text-center py-8 text-muted-foreground">Đang tải...</div>
+        ) : (
+          <div className="overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {DOCUMENT_COLUMNS.map((col, idx) => (
+                    <TableHead 
+                      key={idx} 
+                      className={`text-xs whitespace-nowrap ${idx <= 4 ? 'bg-muted/50' : ''}`}
+                    >
+                      {col}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {companyTrainees.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={20} className="text-center py-8 text-muted-foreground">
+                      Không có học viên
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  companyTrainees.map((trainee, idx) => (
+                    <TableRow key={trainee.id}>
+                      <TableCell className="text-center">{idx + 1}</TableCell>
+                      <TableCell className="font-mono text-xs">{trainee.trainee_code}</TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">{trainee.full_name}</TableCell>
+                      <TableCell>{trainee.gender || "—"}</TableCell>
+                      <TableCell>
+                        {trainee.birth_date ? new Date(trainee.birth_date).getFullYear() : "—"}
+                      </TableCell>
+                      {/* Empty cells for document columns - to be filled manually */}
+                      {Array.from({ length: 15 }).map((_, cellIdx) => (
+                        <TableCell key={cellIdx} className="text-center">
+                          —
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
                 )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  // Render main list view
+  const renderListView = () => (
+    <>
+      {/* Summary Stats Cards - with toggle */}
+      {showStats && (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Tổng công ty</CardTitle>
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{summaryStats?.total_companies || 0}</div>
               </CardContent>
             </Card>
-          );
-        })}
-      </div>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Tổng HV đậu</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{summaryStats?.total_all || 0}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">HS chưa làm</CardTitle>
+                <FileX className="h-4 w-4 text-orange-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-600">{summaryStats?.docs_not_started || 0}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">HS đang làm</CardTitle>
+                <FileClock className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">{summaryStats?.docs_in_progress || 0}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">HS đã làm</CardTitle>
+                <FileCheck className="h-4 w-4 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{summaryStats?.docs_completed || 0}</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Trainee Type Tabs with Gender Breakdown */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {Object.entries(TRAINEE_TYPE_CONFIG).map(([type, config]) => {
+              const stats = typeCountsMap[type] || { count: 0, male: 0, female: 0 };
+              const Icon = config.icon;
+              
+              return (
+                <Card 
+                  key={type}
+                  className="cursor-pointer transition-all hover:shadow-md hover:border-primary"
+                  onClick={() => handleTypeClick(type)}
+                >
+                  <CardContent className="pt-4 pb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-muted-foreground">{config.label}</span>
+                      <Icon className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="text-2xl font-bold text-primary">{stats.count}</div>
+                    {stats.count > 0 && (
+                      <div className="flex items-center gap-3 mt-1 text-xs">
+                        <span className="text-blue-600">{stats.male} Nam</span>
+                        <span className="text-red-500">{stats.female} Nữ</span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {/* Company Batches Table */}
       <Card>
@@ -522,143 +671,33 @@ export default function LegalPage() {
           )}
         </CardContent>
       </Card>
+    </>
+  );
 
-      {/* Trainee Type Modal - with document status selector */}
-      <Dialog open={showTypeModal} onOpenChange={setShowTypeModal}>
-        <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedType ? TRAINEE_TYPE_CONFIG[selectedType]?.label : ''} - Danh sách học viên đậu PV (chưa xuất cảnh)
-            </DialogTitle>
-          </DialogHeader>
-          
-          {isLoadingTrainees ? (
-            <div className="text-center py-8 text-muted-foreground">Đang tải...</div>
-          ) : traineesByType.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">Không có học viên</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[100px]">Mã HV</TableHead>
-                  <TableHead>Họ và tên</TableHead>
-                  <TableHead className="w-[80px]">Giới tính</TableHead>
-                  <TableHead className="w-[100px]">Năm sinh</TableHead>
-                  <TableHead>Công ty</TableHead>
-                  <TableHead className="w-[120px]">Giai đoạn</TableHead>
-                  <TableHead className="w-[150px]">Tình trạng HS</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {traineesByType.map((trainee) => (
-                  <TableRow key={trainee.id}>
-                    <TableCell className="font-mono">{trainee.trainee_code}</TableCell>
-                    <TableCell className="font-medium">{trainee.full_name}</TableCell>
-                    <TableCell>{trainee.gender || "—"}</TableCell>
-                    <TableCell>
-                      {trainee.birth_date 
-                        ? new Date(trainee.birth_date).getFullYear()
-                        : "—"
-                      }
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {trainee.receiving_company?.name || "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {trainee.progression_stage}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        value={trainee.document_status || 'not_started'}
-                        onValueChange={(value) => handleDocStatusChange(trainee.id, value)}
-                      >
-                        <SelectTrigger className="h-8 w-[140px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {DOCUMENT_STATUS_OPTIONS.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              <span className={`px-2 py-0.5 rounded text-xs ${opt.className}`}>
-                                {opt.label}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </DialogContent>
-      </Dialog>
+  return (
+    <div className="space-y-6">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Tình trạng hồ sơ</h1>
+          <p className="text-sm text-muted-foreground">
+            Theo dõi tình trạng hồ sơ các công ty đã tuyển dụng
+          </p>
+        </div>
+        {viewMode === 'list' && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowStats(!showStats)}
+          >
+            <BarChart3 className="h-4 w-4 mr-2" />
+            {showStats ? "Ẩn thống kê" : "Hiện thống kê"}
+          </Button>
+        )}
+      </header>
 
-      {/* Company Detail Modal - 20 column checklist table */}
-      <Dialog open={showCompanyModal} onOpenChange={setShowCompanyModal}>
-        <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-auto">
-          <DialogHeader>
-            <DialogTitle className="flex flex-col gap-1">
-              <span>{selectedCompanyBatch?.name}</span>
-              <span className="text-sm font-normal text-muted-foreground">
-                {selectedCompanyBatch?.name_japanese && `${selectedCompanyBatch.name_japanese} • `}
-                Ngày PV: {selectedCompanyBatch?.interview_pass_date && 
-                  format(new Date(selectedCompanyBatch.interview_pass_date), "dd/MM/yyyy", { locale: vi })}
-              </span>
-            </DialogTitle>
-          </DialogHeader>
-          
-          {isLoadingCompanyTrainees ? (
-            <div className="text-center py-8 text-muted-foreground">Đang tải...</div>
-          ) : (
-            <div className="overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {DOCUMENT_COLUMNS.map((col, idx) => (
-                      <TableHead 
-                        key={idx} 
-                        className={`text-xs whitespace-nowrap ${idx <= 4 ? 'bg-muted/50' : ''}`}
-                      >
-                        {col}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {companyTrainees.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={20} className="text-center py-8 text-muted-foreground">
-                        Không có học viên
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    companyTrainees.map((trainee, idx) => (
-                      <TableRow key={trainee.id}>
-                        <TableCell className="text-center">{idx + 1}</TableCell>
-                        <TableCell className="font-mono text-xs">{trainee.trainee_code}</TableCell>
-                        <TableCell className="font-medium whitespace-nowrap">{trainee.full_name}</TableCell>
-                        <TableCell>{trainee.gender || "—"}</TableCell>
-                        <TableCell>
-                          {trainee.birth_date ? new Date(trainee.birth_date).getFullYear() : "—"}
-                        </TableCell>
-                        {/* Empty cells for document columns - to be filled manually */}
-                        {Array.from({ length: 15 }).map((_, cellIdx) => (
-                          <TableCell key={cellIdx} className="text-center">
-                            —
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {viewMode === 'list' && renderListView()}
+      {viewMode === 'type-detail' && renderTypeDetailView()}
+      {viewMode === 'company-detail' && renderCompanyDetailView()}
     </div>
   );
 }
