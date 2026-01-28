@@ -1536,12 +1536,16 @@ export type Database = {
           hearing: string | null
           height: number | null
           hepatitis_b: string | null
+          high_school_name: string | null
+          high_school_period: string | null
           hobbies: string | null
           household_address: string | null
           id: string
           interview_count: number | null
           interview_pass_date: string | null
           job_category_id: string | null
+          jp_certificate_period: string | null
+          jp_certificate_school: string | null
           legal_address_jp: string | null
           legal_address_vn: string | null
           line_qr_url: string | null
@@ -1623,12 +1627,16 @@ export type Database = {
           hearing?: string | null
           height?: number | null
           hepatitis_b?: string | null
+          high_school_name?: string | null
+          high_school_period?: string | null
           hobbies?: string | null
           household_address?: string | null
           id?: string
           interview_count?: number | null
           interview_pass_date?: string | null
           job_category_id?: string | null
+          jp_certificate_period?: string | null
+          jp_certificate_school?: string | null
           legal_address_jp?: string | null
           legal_address_vn?: string | null
           line_qr_url?: string | null
@@ -1710,12 +1718,16 @@ export type Database = {
           hearing?: string | null
           height?: number | null
           hepatitis_b?: string | null
+          high_school_name?: string | null
+          high_school_period?: string | null
           hobbies?: string | null
           household_address?: string | null
           id?: string
           interview_count?: number | null
           interview_pass_date?: string | null
           job_category_id?: string | null
+          jp_certificate_period?: string | null
+          jp_certificate_school?: string | null
           legal_address_jp?: string | null
           legal_address_vn?: string | null
           line_qr_url?: string | null
