@@ -640,7 +640,7 @@ export default function LegalPage() {
                           className="h-7 text-xs"
                           defaultValue={trainee.jp_course_1 || ""}
                           onBlur={(e) => handleLegalFieldBlur(trainee.id, "jp_course_1", e.target.value)}
-                          placeholder="Khóa học JP 1"
+                          placeholder="2002年09月~2005年06月"
                         />
                       </TableCell>
                       {/* Tên trường JP 2 - manual input */}
@@ -658,7 +658,7 @@ export default function LegalPage() {
                           className="h-7 text-xs"
                           defaultValue={trainee.jp_course_2 || ""}
                           onBlur={(e) => handleLegalFieldBlur(trainee.id, "jp_course_2", e.target.value)}
-                          placeholder="Khóa học JP 2"
+                          placeholder="2002年09月~2005年06月"
                         />
                       </TableCell>
                       {/* Empty cells for remaining columns - to be filled manually */}
