@@ -1529,6 +1529,9 @@ export type Database = {
           full_name: string
           furigana: string | null
           gender: string | null
+          guarantor_name_jp: string | null
+          guarantor_name_vn: string | null
+          guarantor_phone: string | null
           health_status: string | null
           hearing: string | null
           height: number | null
@@ -1539,6 +1542,8 @@ export type Database = {
           interview_count: number | null
           interview_pass_date: string | null
           job_category_id: string | null
+          legal_address_jp: string | null
+          legal_address_vn: string | null
           line_qr_url: string | null
           marital_status: string | null
           notes: string | null
@@ -1611,6 +1616,9 @@ export type Database = {
           full_name: string
           furigana?: string | null
           gender?: string | null
+          guarantor_name_jp?: string | null
+          guarantor_name_vn?: string | null
+          guarantor_phone?: string | null
           health_status?: string | null
           hearing?: string | null
           height?: number | null
@@ -1621,6 +1629,8 @@ export type Database = {
           interview_count?: number | null
           interview_pass_date?: string | null
           job_category_id?: string | null
+          legal_address_jp?: string | null
+          legal_address_vn?: string | null
           line_qr_url?: string | null
           marital_status?: string | null
           notes?: string | null
@@ -1693,6 +1703,9 @@ export type Database = {
           full_name?: string
           furigana?: string | null
           gender?: string | null
+          guarantor_name_jp?: string | null
+          guarantor_name_vn?: string | null
+          guarantor_phone?: string | null
           health_status?: string | null
           hearing?: string | null
           height?: number | null
@@ -1703,6 +1716,8 @@ export type Database = {
           interview_count?: number | null
           interview_pass_date?: string | null
           job_category_id?: string | null
+          legal_address_jp?: string | null
+          legal_address_vn?: string | null
           line_qr_url?: string | null
           marital_status?: string | null
           notes?: string | null
