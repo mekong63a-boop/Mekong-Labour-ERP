@@ -283,6 +283,50 @@ export type Database = {
         }
         Relationships: []
       }
+      department_menu_permissions: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          can_create: boolean | null
+          can_delete: boolean | null
+          can_update: boolean | null
+          can_view: boolean | null
+          department: string
+          id: string
+          menu_key: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          can_create?: boolean | null
+          can_delete?: boolean | null
+          can_update?: boolean | null
+          can_view?: boolean | null
+          department: string
+          id?: string
+          menu_key: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          can_create?: boolean | null
+          can_delete?: boolean | null
+          can_update?: boolean | null
+          can_view?: boolean | null
+          department?: string
+          id?: string
+          menu_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_menu_permissions_menu_key_fkey"
+            columns: ["menu_key"]
+            isOneToOne: false
+            referencedRelation: "menus"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       departments: {
         Row: {
           code: string
@@ -2684,6 +2728,18 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_department_menu_permissions: {
+        Args: { _department: string }
+        Returns: {
+          can_create: boolean
+          can_delete: boolean
+          can_update: boolean
+          can_view: boolean
+          department: string
+          id: string
+          menu_key: string
+        }[]
+      }
       get_effective_menu_permissions: {
         Args: { _user_id: string }
         Returns: {
@@ -2793,6 +2849,10 @@ export type Database = {
       mask_phone: { Args: { phone_value: string }; Returns: string }
       record_login_attempt: {
         Args: { _identifier: string; _ip_address?: string; _success: boolean }
+        Returns: undefined
+      }
+      save_department_menu_permissions: {
+        Args: { _assigned_by?: string; _department: string; _permissions: Json }
         Returns: undefined
       }
       touch_user_access_version: {

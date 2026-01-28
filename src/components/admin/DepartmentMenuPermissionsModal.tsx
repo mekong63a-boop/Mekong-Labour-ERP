@@ -80,32 +80,22 @@ export function DepartmentMenuPermissionsModal({
     staleTime: 0,
   });
 
-  // Fetch current department menu permissions using raw fetch
+  // Fetch current department menu permissions using raw RPC
   const { data: currentPermissions = [], isLoading: loadingPerms } = useQuery({
     queryKey: ["department-menu-permissions", department.value],
     queryFn: async () => {
-      const session = (await supabase.auth.getSession()).data.session;
-      if (!session) return [];
+      // Use raw query since table may not be in types yet - cast to any to bypass type checking
+      const { data, error } = await (supabase.rpc as any)('get_department_menu_permissions', {
+        _department: department.value
+      });
       
-      const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const apiKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      
-      const response = await fetch(
-        `${baseUrl}/rest/v1/department_menu_permissions?department=eq.${encodeURIComponent(department.value)}&select=*`,
-        {
-          headers: {
-            'apikey': apiKey,
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-        }
-      );
-      
-      if (!response.ok) {
-        console.error('Failed to fetch department permissions');
+      if (error) {
+        // If function doesn't exist yet, return empty
+        console.error('Failed to fetch department permissions:', error);
         return [];
       }
       
-      return (await response.json()) as DeptMenuPermRow[];
+      return (data ?? []) as DeptMenuPermRow[];
     },
     enabled: open && !!department.value,
   });
@@ -153,53 +143,28 @@ export function DepartmentMenuPermissionsModal({
     }
   }, [open, menus, currentPermissions, loadingMenus, loadingPerms, initialized]);
 
-  // Save mutation using raw fetch
+  // Save mutation using RPC
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const session = (await supabase.auth.getSession()).data.session;
-      if (!session) throw new Error('Not authenticated');
-      
-      const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const apiKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      const headers = {
-        'apikey': apiKey,
-        'Authorization': `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal',
-      };
-
-      // Delete existing permissions for this department
-      const deleteRes = await fetch(
-        `${baseUrl}/rest/v1/department_menu_permissions?department=eq.${department.value}`,
-        { method: 'DELETE', headers }
-      );
-      if (!deleteRes.ok) {
-        const err = await deleteRes.text();
-        throw new Error(`Delete failed: ${err}`);
-      }
-
-      // Insert new permissions (only those with at least can_view = true)
-      const toInsert = Object.values(localPermissions)
+      // Use RPC to save permissions (bypasses type checking)
+      const toSave = Object.values(localPermissions)
         .filter((p) => p.can_view)
         .map((p) => ({
-          department: department.value,
           menu_key: p.menu_key,
           can_view: p.can_view,
           can_create: p.can_create,
           can_update: p.can_update,
           can_delete: p.can_delete,
-          assigned_by: user?.id,
         }));
 
-      if (toInsert.length > 0) {
-        const insertRes = await fetch(
-          `${baseUrl}/rest/v1/department_menu_permissions`,
-          { method: 'POST', headers, body: JSON.stringify(toInsert) }
-        );
-        if (!insertRes.ok) {
-          const err = await insertRes.text();
-          throw new Error(`Insert failed: ${err}`);
-        }
+      const { error } = await (supabase.rpc as any)('save_department_menu_permissions', {
+        _department: department.value,
+        _permissions: toSave,
+        _assigned_by: user?.id
+      });
+      
+      if (error) {
+        throw new Error(`Lưu quyền thất bại: ${error.message}`);
       }
     },
     onSuccess: () => {
