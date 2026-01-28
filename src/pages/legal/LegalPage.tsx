@@ -75,6 +75,9 @@ interface CompanyTrainee {
   furigana: string | null;
   gender: string | null;
   birth_date: string | null;
+  birthplace: string | null;
+  passport_number: string | null;
+  passport_date: string | null;
   progression_stage: string | null;
   document_status: string | null;
 }
@@ -93,10 +96,12 @@ const DOCUMENT_STATUS_OPTIONS = [
   { value: 'completed', label: 'Đã xong', className: 'bg-green-50 text-green-700' },
 ];
 
-// 19 columns for the document checklist table
+// 24 columns for the document checklist table
 const DOCUMENT_COLUMNS = [
   'STT', 'Mã HV', 'Họ và tên', 'Họ và tên không dấu', 'Tên phiên âm', 
   'Giới tính', 'Ngày tháng năm sinh', 'Ngày sinh tiếng Nhật',
+  'Nơi sinh', 'Nơi sinh không dấu', 
+  'Số hộ chiếu', 'Ngày cấp HC', 'Ngày cấp HC (JP)',
   'Ngày trình ĐKHĐ', 'Số ĐKHĐ', 'Mã HS ĐKHĐ',
   'Ngày gửi xin TPC', 'Số CV xin TPC', 'Mã HS xin TPC',
   'Số PTL', 'Tình trạng', 'Ngày cấp PTL', 'Ngày cấp TPC', 'Hiện trạng'
@@ -209,6 +214,9 @@ export default function LegalPage() {
           furigana,
           gender,
           birth_date,
+          birthplace,
+          passport_number,
+          passport_date,
           progression_stage,
           document_status
         `)
@@ -421,7 +429,7 @@ export default function LegalPage() {
               <TableBody>
                 {companyTrainees.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={19} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={24} className="text-center py-8 text-muted-foreground">
                       Không có học viên
                     </TableCell>
                   </TableRow>
@@ -445,6 +453,28 @@ export default function LegalPage() {
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {formatJapaneseDate(trainee.birth_date)}
+                      </TableCell>
+                      {/* Nơi sinh có dấu */}
+                      <TableCell className="whitespace-nowrap">
+                        {trainee.birthplace || "—"}
+                      </TableCell>
+                      {/* Nơi sinh không dấu */}
+                      <TableCell className="whitespace-nowrap">
+                        {trainee.birthplace ? removeVietnameseDiacritics(trainee.birthplace) : "—"}
+                      </TableCell>
+                      {/* Số hộ chiếu */}
+                      <TableCell className="font-mono text-xs">
+                        {trainee.passport_number || "—"}
+                      </TableCell>
+                      {/* Ngày cấp hộ chiếu */}
+                      <TableCell className="whitespace-nowrap">
+                        {trainee.passport_date 
+                          ? format(new Date(trainee.passport_date), "dd/MM/yyyy", { locale: vi })
+                          : "—"}
+                      </TableCell>
+                      {/* Ngày cấp hộ chiếu tiếng Nhật */}
+                      <TableCell className="whitespace-nowrap">
+                        {formatJapaneseDate(trainee.passport_date)}
                       </TableCell>
                       {/* Empty cells for remaining columns - to be filled manually */}
                       {Array.from({ length: 11 }).map((_, cellIdx) => (
