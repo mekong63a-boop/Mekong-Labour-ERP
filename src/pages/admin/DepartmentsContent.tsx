@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Building2, Users, Crown, Briefcase, UserCheck, GraduationCap, Star, Loader2, UserPlus, ShieldCheck, Check, X, Pencil, Trash2, UserCog, Menu } from "lucide-react";
 import { DepartmentStaffModal } from "@/components/admin/DepartmentStaffModal";
 import { UserMenuPermissionsModal } from "@/components/admin/UserMenuPermissionsModal";
+import { DepartmentMenuPermissionsModal } from "@/components/admin/DepartmentMenuPermissionsModal";
 import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -122,8 +123,13 @@ const departmentConfig = [
   },
 ];
 
-type ModalType = "staff" | null;
+type ModalType = "staff" | "dept_permissions" | null;
 
+// State for department permissions modal
+interface SelectedDeptForPerms {
+  value: string;
+  label: string;
+}
 export default function DepartmentsContent() {
   const queryClient = useQueryClient();
   const { logAudit } = useAuditLog();
@@ -140,6 +146,8 @@ export default function DepartmentsContent() {
     full_name: string | null;
     email: string | null;
   } | null>(null);
+  // State for department permissions modal
+  const [selectedDeptForPerms, setSelectedDeptForPerms] = useState<SelectedDeptForPerms | null>(null);
   const { isPrimaryAdmin, isAdmin } = useMenuPermissions();
   const canManage = isPrimaryAdmin || isAdmin;
 
@@ -739,14 +747,28 @@ export default function DepartmentsContent() {
                       </CardDescription>
                     </div>
                   </div>
-                  {/* Clickable Badge for staff count */}
-                  <Badge 
-                    variant="secondary" 
-                    className={`bg-white/20 text-white ${canManage ? 'cursor-pointer hover:bg-white/30 transition-colors' : ''}`}
-                    onClick={canManage ? () => openModal(dept, "staff") : undefined}
-                  >
-                    {counts?.total_count || 0} người
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {/* Button for department menu permissions */}
+                    {canManage && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="bg-white/20 text-white hover:bg-white/30"
+                        onClick={() => setSelectedDeptForPerms({ value: dept.value, label: dept.label })}
+                        title="Quyền menu phòng ban"
+                      >
+                        <Menu className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {/* Clickable Badge for staff count */}
+                    <Badge 
+                      variant="secondary" 
+                      className={`bg-white/20 text-white ${canManage ? 'cursor-pointer hover:bg-white/30 transition-colors' : ''}`}
+                      onClick={canManage ? () => openModal(dept, "staff") : undefined}
+                    >
+                      {counts?.total_count || 0} người
+                    </Badge>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
@@ -853,12 +875,12 @@ export default function DepartmentsContent() {
         />
       )}
 
-      {/* User Menu Permissions Modal */}
-      {selectedUserForMenu && (
-        <UserMenuPermissionsModal
+      {/* Department Menu Permissions Modal */}
+      {selectedDeptForPerms && (
+        <DepartmentMenuPermissionsModal
           open={true}
-          onOpenChange={(open) => !open && setSelectedUserForMenu(null)}
-          targetUser={selectedUserForMenu}
+          onOpenChange={(open) => !open && setSelectedDeptForPerms(null)}
+          department={selectedDeptForPerms}
         />
       )}
 

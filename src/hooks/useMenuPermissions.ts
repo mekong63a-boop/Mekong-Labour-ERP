@@ -104,19 +104,31 @@ export function useMenuPermissions() {
     refetchOnReconnect: false,
   });
 
-  // Lấy quyền menu - CHỈ LOAD 1 LẦN SAU LOGIN
+  // Lấy quyền menu đã gộp (cá nhân + phòng ban) - CHỈ LOAD 1 LẦN SAU LOGIN
   const { data: permissions = [], isLoading: permissionsLoading } = useQuery({
-    queryKey: ['user-menu-permissions-direct', user?.id],
+    queryKey: ['user-menu-permissions-merged', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data, error } = await supabase
-        .from('user_menu_permissions')
-        .select('menu_key, can_view, can_create, can_update, can_delete')
-        .eq('user_id', user.id);
+      
+      // Sử dụng function get_user_merged_permissions để lấy quyền đã gộp
+      const { data, error } = await supabase.rpc('get_user_merged_permissions', { 
+        _user_id: user.id 
+      });
+      
       if (error) {
-        console.error('Error fetching user menu permissions:', error);
-        return [];
+        console.error('Error fetching merged permissions, falling back to direct:', error);
+        // Fallback: chỉ lấy quyền cá nhân
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('user_menu_permissions')
+          .select('menu_key, can_view, can_create, can_update, can_delete')
+          .eq('user_id', user.id);
+        if (fallbackError) {
+          console.error('Error fetching user menu permissions:', fallbackError);
+          return [];
+        }
+        return (fallbackData ?? []) as MenuPermission[];
       }
+      
       return (data ?? []) as MenuPermission[];
     },
     enabled: !!user?.id,
@@ -130,7 +142,7 @@ export function useMenuPermissions() {
   // ★ Inline setters cho realtime - update cache trực tiếp
   const updatePermissionsInline = useCallback((updater: (prev: MenuPermission[]) => MenuPermission[]) => {
     queryClient.setQueryData<MenuPermission[]>(
-      ['user-menu-permissions-direct', user?.id],
+      ['user-menu-permissions-merged', user?.id],
       (prev) => updater(prev ?? [])
     );
   }, [queryClient, user?.id]);
