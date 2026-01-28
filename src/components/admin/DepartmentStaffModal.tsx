@@ -343,64 +343,66 @@ export function DepartmentStaffModal({
               </div>
 
               {/* Available Users List */}
-              <ScrollArea className="flex-1 min-h-0 max-h-48">
-                <div className="space-y-2 pr-4">
-                  {availableUsers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      {searchTerm
-                        ? "Không tìm thấy người dùng"
-                        : "Tất cả người dùng đã được gán"}
-                    </p>
-                  ) : (
-                    availableUsers.map((u) => (
-                      <div
-                        key={u.id}
-                        className="flex items-center justify-between p-2 border rounded-lg hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="text-xs">
-                              {u.full_name?.charAt(0) || u.email?.charAt(0) || "U"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="text-sm font-medium">
-                              {u.full_name || "Chưa đặt tên"}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {u.email}
-                            </p>
+              <div className="flex-1 min-h-0 overflow-hidden rounded-lg border">
+                <ScrollArea className="h-[200px]">
+                  <div className="space-y-2 p-2">
+                    {availableUsers.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        {searchTerm
+                          ? "Không tìm thấy người dùng"
+                          : "Tất cả người dùng đã được gán"}
+                      </p>
+                    ) : (
+                      availableUsers.map((u) => (
+                        <div
+                          key={u.id}
+                          className="flex items-center justify-between p-2 bg-background rounded-lg hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="text-xs">
+                                {u.full_name?.charAt(0) || u.email?.charAt(0) || "U"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="text-sm font-medium">
+                                {u.full_name || "Chưa đặt tên"}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {u.email}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex gap-1">
-                          {!currentManager && (
+                          <div className="flex gap-1">
+                            {!currentManager && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => assignManagerMutation.mutate(u.user_id)}
+                                disabled={isMutating}
+                                className="gap-1 text-amber-600 border-amber-300 hover:bg-amber-50"
+                              >
+                                <Crown className="h-3 w-3" />
+                                <span className="hidden sm:inline">Trưởng phòng</span>
+                              </Button>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => assignManagerMutation.mutate(u.user_id)}
+                              onClick={() => addStaffMutation.mutate(u.user_id)}
                               disabled={isMutating}
-                              className="gap-1 text-amber-600 border-amber-300 hover:bg-amber-50"
+                              className="gap-1"
                             >
-                              <Crown className="h-3 w-3" />
-                              <span className="hidden sm:inline">Trưởng phòng</span>
+                              <Check className="h-3 w-3" />
+                              <span className="hidden sm:inline">Nhân viên</span>
                             </Button>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => addStaffMutation.mutate(u.user_id)}
-                            disabled={isMutating}
-                            className="gap-1"
-                          >
-                            <Check className="h-3 w-3" />
-                            <span className="hidden sm:inline">Nhân viên</span>
-                          </Button>
+                          </div>
                         </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </ScrollArea>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
             </div>
           </div>
         )}
