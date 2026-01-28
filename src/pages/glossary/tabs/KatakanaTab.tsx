@@ -123,7 +123,7 @@ const KatakanaTab = () => {
         <ul className="mt-2 text-sm text-amber-700 space-y-1">
           <li>• Dùng để tự động chuyển đổi <strong>Họ và Tên tiếng Việt → Katakana</strong></li>
           <li>• Nhập tên không dấu (VD: TRAN, NGUYEN) → sẽ tự động match cả tên có dấu</li>
-          <li>• Khi xuất Excel, hệ thống sẽ tự động chuyển đổi tên theo bảng này</li>
+          <li>• Hệ thống sẽ tự động chuyển đổi tên theo bảng này</li>
         </ul>
       </div>
 
