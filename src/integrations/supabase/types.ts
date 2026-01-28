@@ -1546,6 +1546,10 @@ export type Database = {
           job_category_id: string | null
           jp_certificate_period: string | null
           jp_certificate_school: string | null
+          jp_course_1: string | null
+          jp_course_2: string | null
+          jp_school_1: string | null
+          jp_school_2: string | null
           legal_address_jp: string | null
           legal_address_vn: string | null
           line_qr_url: string | null
@@ -1637,6 +1641,10 @@ export type Database = {
           job_category_id?: string | null
           jp_certificate_period?: string | null
           jp_certificate_school?: string | null
+          jp_course_1?: string | null
+          jp_course_2?: string | null
+          jp_school_1?: string | null
+          jp_school_2?: string | null
           legal_address_jp?: string | null
           legal_address_vn?: string | null
           line_qr_url?: string | null
@@ -1728,6 +1736,10 @@ export type Database = {
           job_category_id?: string | null
           jp_certificate_period?: string | null
           jp_certificate_school?: string | null
+          jp_course_1?: string | null
+          jp_course_2?: string | null
+          jp_school_1?: string | null
+          jp_school_2?: string | null
           legal_address_jp?: string | null
           legal_address_vn?: string | null
           line_qr_url?: string | null
