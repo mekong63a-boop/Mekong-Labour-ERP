@@ -88,6 +88,10 @@ interface CompanyTrainee {
   high_school_period: string | null;
   jp_certificate_school: string | null;
   jp_certificate_period: string | null;
+  jp_school_1: string | null;
+  jp_course_1: string | null;
+  jp_school_2: string | null;
+  jp_course_2: string | null;
   progression_stage: string | null;
   document_status: string | null;
 }
@@ -106,7 +110,7 @@ const DOCUMENT_STATUS_OPTIONS = [
   { value: 'completed', label: 'Đã xong', className: 'bg-green-50 text-green-700' },
 ];
 
-// 35 columns for the document checklist table
+// Columns for the document checklist table
 const DOCUMENT_COLUMNS = [
   'STT', 'Mã HV', 'Họ và tên', 'Họ và tên không dấu', 'Tên phiên âm', 
   'Giới tính', 'Ngày tháng năm sinh', 'Ngày sinh tiếng Nhật',
@@ -117,6 +121,8 @@ const DOCUMENT_COLUMNS = [
   'Tên người bảo lãnh VN', 'Tên người bảo lãnh JP', 'SĐT người bảo lãnh',
   'Tên trường cấp 3', 'Thời gian học',
   'Trường chứng chỉ JP', 'Thời gian học CC',
+  'Tên trường JP 1', 'Khóa học JP 1',
+  'Tên trường JP 2', 'Khóa học JP 2',
   'Ngày trình ĐKHĐ', 'Số ĐKHĐ', 'Mã HS ĐKHĐ',
   'Ngày gửi xin TPC', 'Số CV xin TPC', 'Mã HS xin TPC',
   'Số PTL', 'Tình trạng', 'Ngày cấp PTL', 'Ngày cấp TPC', 'Hiện trạng'
@@ -242,6 +248,10 @@ export default function LegalPage() {
           high_school_period,
           jp_certificate_school,
           jp_certificate_period,
+          jp_school_1,
+          jp_course_1,
+          jp_school_2,
+          jp_course_2,
           progression_stage,
           document_status
         `)
@@ -613,6 +623,42 @@ export default function LegalPage() {
                           defaultValue={trainee.jp_certificate_period || ""}
                           onBlur={(e) => handleLegalFieldBlur(trainee.id, "jp_certificate_period", e.target.value)}
                           placeholder="2002年09月~2005年06月"
+                        />
+                      </TableCell>
+                      {/* Tên trường JP 1 - manual input */}
+                      <TableCell className="min-w-[180px]">
+                        <Input
+                          className="h-7 text-xs"
+                          defaultValue={trainee.jp_school_1 || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "jp_school_1", e.target.value)}
+                          placeholder="Tên trường JP 1"
+                        />
+                      </TableCell>
+                      {/* Khóa học JP 1 - manual input */}
+                      <TableCell className="min-w-[150px]">
+                        <Input
+                          className="h-7 text-xs"
+                          defaultValue={trainee.jp_course_1 || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "jp_course_1", e.target.value)}
+                          placeholder="Khóa học JP 1"
+                        />
+                      </TableCell>
+                      {/* Tên trường JP 2 - manual input */}
+                      <TableCell className="min-w-[180px]">
+                        <Input
+                          className="h-7 text-xs"
+                          defaultValue={trainee.jp_school_2 || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "jp_school_2", e.target.value)}
+                          placeholder="Tên trường JP 2"
+                        />
+                      </TableCell>
+                      {/* Khóa học JP 2 - manual input */}
+                      <TableCell className="min-w-[150px]">
+                        <Input
+                          className="h-7 text-xs"
+                          defaultValue={trainee.jp_course_2 || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "jp_course_2", e.target.value)}
+                          placeholder="Khóa học JP 2"
                         />
                       </TableCell>
                       {/* Empty cells for remaining columns - to be filled manually */}
