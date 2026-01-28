@@ -1,12 +1,11 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Save, X, Pencil, Trash2, Upload } from "lucide-react";
+import { Search, Plus, Save, X, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useCanAction } from "@/hooks/useMenuPermissions";
-import * as XLSX from "xlsx";
 
 interface KatakanaName {
   id: string;
@@ -21,7 +20,6 @@ const KatakanaTab = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ vietnamese_name: "", katakana: "" });
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { hasPermission: canCreate } = useCanAction("glossary", "create");
   const { hasPermission: canUpdate } = useCanAction("glossary", "update");
   const { hasPermission: canDelete } = useCanAction("glossary", "delete");
@@ -115,40 +113,6 @@ const KatakanaTab = () => {
     }
   };
 
-
-  // Import from Excel
-  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
-
-      const namesToInsert = jsonData.map((row) => ({
-        vietnamese_name: (row["Tên tiếng Việt"] || row.vietnamese_name || "").toUpperCase(),
-        katakana: row["Katakana"] || row.katakana || "",
-      })).filter(n => n.vietnamese_name && n.katakana);
-
-      if (namesToInsert.length === 0) {
-        toast.error("Không tìm thấy dữ liệu hợp lệ trong file");
-        return;
-      }
-
-      const { error } = await supabase.from("katakana_names").insert(namesToInsert);
-      if (error) throw error;
-
-      queryClient.invalidateQueries({ queryKey: ["katakana-names"] });
-      toast.success(`Đã import ${namesToInsert.length} tên`);
-    } catch (error: any) {
-      toast.error("Lỗi khi import: " + error.message);
-    }
-
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
   return (
     <div className="space-y-4">
       {/* Guide Box */}
@@ -174,25 +138,12 @@ const KatakanaTab = () => {
             className="pl-10"
           />
         </div>
-        <div className="flex gap-2 ml-auto">
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            accept=".xlsx,.xls"
-            onChange={handleImport}
-          />
-          <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-            <Upload className="h-4 w-4 mr-2" />
-            Import Excel
+        {canCreate && (
+          <Button onClick={() => setShowAddForm(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Thêm tên mới
           </Button>
-          {canCreate && (
-            <Button onClick={() => setShowAddForm(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Thêm tên mới
-            </Button>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Add/Edit Form */}
