@@ -78,8 +78,20 @@ interface CompanyTrainee {
   birthplace: string | null;
   passport_number: string | null;
   passport_date: string | null;
+  expected_entry_month: string | null;
+  legal_address_vn: string | null;
+  legal_address_jp: string | null;
+  guarantor_name_vn: string | null;
+  guarantor_name_jp: string | null;
+  guarantor_phone: string | null;
   progression_stage: string | null;
   document_status: string | null;
+  education_history: Array<{
+    school_name: string;
+    level: string | null;
+    start_year: number | null;
+    end_year: number | null;
+  }> | null;
 }
 
 const TRAINEE_TYPE_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
@@ -96,12 +108,16 @@ const DOCUMENT_STATUS_OPTIONS = [
   { value: 'completed', label: 'Đã xong', className: 'bg-green-50 text-green-700' },
 ];
 
-// 24 columns for the document checklist table
+// 35 columns for the document checklist table
 const DOCUMENT_COLUMNS = [
   'STT', 'Mã HV', 'Họ và tên', 'Họ và tên không dấu', 'Tên phiên âm', 
   'Giới tính', 'Ngày tháng năm sinh', 'Ngày sinh tiếng Nhật',
   'Nơi sinh', 'Nơi sinh không dấu', 
   'Số hộ chiếu', 'Ngày cấp HC', 'Ngày cấp HC (JP)',
+  'Ngày dự kiến XC', 'Ngày dự kiến XC (JP)',
+  'Địa chỉ Việt', 'Địa chỉ Nhật',
+  'Tên người bảo lãnh VN', 'Tên người bảo lãnh JP', 'SĐT người bảo lãnh',
+  'Tên trường cấp 3', 'Thời gian học',
   'Ngày trình ĐKHĐ', 'Số ĐKHĐ', 'Mã HS ĐKHĐ',
   'Ngày gửi xin TPC', 'Số CV xin TPC', 'Mã HS xin TPC',
   'Số PTL', 'Tình trạng', 'Ngày cấp PTL', 'Ngày cấp TPC', 'Hiện trạng'
@@ -217,8 +233,20 @@ export default function LegalPage() {
           birthplace,
           passport_number,
           passport_date,
+          expected_entry_month,
+          legal_address_vn,
+          legal_address_jp,
+          guarantor_name_vn,
+          guarantor_name_jp,
+          guarantor_phone,
           progression_stage,
-          document_status
+          document_status,
+          education_history (
+            school_name,
+            level,
+            start_year,
+            end_year
+          )
         `)
         .eq("receiving_company_id", selectedCompanyBatch.company_id)
         .eq("interview_pass_date", selectedCompanyBatch.interview_pass_date)
@@ -246,6 +274,24 @@ export default function LegalPage() {
       queryClient.invalidateQueries({ queryKey: ["legal-company-stats"] });
       queryClient.invalidateQueries({ queryKey: ["legal-summary-stats"] });
       queryClient.invalidateQueries({ queryKey: ["legal-trainees-by-type"] });
+      queryClient.invalidateQueries({ queryKey: ["legal-company-trainees"] });
+    },
+    onError: () => {
+      toast.error("Lỗi khi cập nhật");
+    },
+  });
+
+  // Mutation to update legal fields (address, guarantor, etc.)
+  const updateLegalFieldMutation = useMutation({
+    mutationFn: async ({ traineeId, field, value }: { traineeId: string; field: string; value: string }) => {
+      const { error } = await supabase
+        .from("trainees")
+        .update({ [field]: value || null })
+        .eq("id", traineeId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["legal-company-trainees"] });
     },
     onError: () => {
@@ -305,6 +351,53 @@ export default function LegalPage() {
 
   const handleDocStatusChange = (traineeId: string, status: string) => {
     updateDocStatusMutation.mutate({ traineeId, status });
+  };
+
+  const handleLegalFieldBlur = (traineeId: string, field: string, value: string) => {
+    updateLegalFieldMutation.mutate({ traineeId, field, value });
+  };
+
+  // Helper to format high school education period (2002年09月~2005年06月)
+  const formatEducationPeriod = (trainee: CompanyTrainee) => {
+    if (!trainee.education_history || trainee.education_history.length === 0) return "—";
+    
+    // Find high school level education
+    const highSchool = trainee.education_history.find(
+      edu => edu.level?.toLowerCase().includes('cấp 3') || 
+             edu.level?.toLowerCase().includes('thpt') ||
+             edu.level?.toLowerCase().includes('trung học phổ thông') ||
+             edu.level?.toLowerCase().includes('phổ thông')
+    ) || trainee.education_history[0];
+    
+    if (!highSchool) return "—";
+    
+    const startYear = highSchool.start_year;
+    const endYear = highSchool.end_year;
+    
+    if (!startYear && !endYear) return "—";
+    
+    // Format as 2002年09月~2005年06月 (assuming September start, June end)
+    const startStr = startYear ? `${startYear}年09月` : "";
+    const endStr = endYear ? `${endYear}年06月` : "";
+    
+    if (startStr && endStr) return `${startStr}~${endStr}`;
+    if (startStr) return `${startStr}~`;
+    if (endStr) return `~${endStr}`;
+    return "—";
+  };
+
+  // Helper to get high school name
+  const getHighSchoolName = (trainee: CompanyTrainee) => {
+    if (!trainee.education_history || trainee.education_history.length === 0) return "—";
+    
+    const highSchool = trainee.education_history.find(
+      edu => edu.level?.toLowerCase().includes('cấp 3') || 
+             edu.level?.toLowerCase().includes('thpt') ||
+             edu.level?.toLowerCase().includes('trung học phổ thông') ||
+             edu.level?.toLowerCase().includes('phổ thông')
+    ) || trainee.education_history[0];
+    
+    return highSchool?.school_name || "—";
   };
 
   // Render trainee type detail view
@@ -429,7 +522,7 @@ export default function LegalPage() {
               <TableBody>
                 {companyTrainees.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={24} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={33} className="text-center py-8 text-muted-foreground">
                       Không có học viên
                     </TableCell>
                   </TableRow>
@@ -475,6 +568,69 @@ export default function LegalPage() {
                       {/* Ngày cấp hộ chiếu tiếng Nhật */}
                       <TableCell className="whitespace-nowrap">
                         {formatJapaneseDate(trainee.passport_date)}
+                      </TableCell>
+                      {/* Ngày dự kiến XC */}
+                      <TableCell className="whitespace-nowrap">
+                        {trainee.expected_entry_month || "—"}
+                      </TableCell>
+                      {/* Ngày dự kiến XC tiếng Nhật */}
+                      <TableCell className="whitespace-nowrap">
+                        {trainee.expected_entry_month 
+                          ? formatJapaneseDate(trainee.expected_entry_month)
+                          : "—"}
+                      </TableCell>
+                      {/* Địa chỉ Việt - editable */}
+                      <TableCell className="min-w-[150px]">
+                        <Input
+                          className="h-7 text-xs"
+                          defaultValue={trainee.legal_address_vn || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "legal_address_vn", e.target.value)}
+                          placeholder="Nhập địa chỉ VN"
+                        />
+                      </TableCell>
+                      {/* Địa chỉ Nhật - editable */}
+                      <TableCell className="min-w-[150px]">
+                        <Input
+                          className="h-7 text-xs"
+                          defaultValue={trainee.legal_address_jp || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "legal_address_jp", e.target.value)}
+                          placeholder="日本住所"
+                        />
+                      </TableCell>
+                      {/* Tên người bảo lãnh VN - editable */}
+                      <TableCell className="min-w-[120px]">
+                        <Input
+                          className="h-7 text-xs"
+                          defaultValue={trainee.guarantor_name_vn || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "guarantor_name_vn", e.target.value)}
+                          placeholder="Tên BL VN"
+                        />
+                      </TableCell>
+                      {/* Tên người bảo lãnh JP - editable */}
+                      <TableCell className="min-w-[120px]">
+                        <Input
+                          className="h-7 text-xs"
+                          defaultValue={trainee.guarantor_name_jp || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "guarantor_name_jp", e.target.value)}
+                          placeholder="保証人名"
+                        />
+                      </TableCell>
+                      {/* SĐT người bảo lãnh - editable */}
+                      <TableCell className="min-w-[100px]">
+                        <Input
+                          className="h-7 text-xs font-mono"
+                          defaultValue={trainee.guarantor_phone || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "guarantor_phone", e.target.value)}
+                          placeholder="SĐT"
+                        />
+                      </TableCell>
+                      {/* Tên trường cấp 3 */}
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {getHighSchoolName(trainee)}
+                      </TableCell>
+                      {/* Thời gian học */}
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {formatEducationPeriod(trainee)}
                       </TableCell>
                       {/* Empty cells for remaining columns - to be filled manually */}
                       {Array.from({ length: 11 }).map((_, cellIdx) => (
