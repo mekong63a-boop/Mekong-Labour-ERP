@@ -22,6 +22,7 @@ import {
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { Search, Building2, Users, FileCheck, FileClock, FileX, GraduationCap, Wrench, UserCheck, ChevronDown, ChevronLeft, BarChart3 } from "lucide-react";
+import { removeVietnameseDiacritics, formatJapaneseDate } from "@/lib/vietnamese-utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,6 +72,7 @@ interface CompanyTrainee {
   id: string;
   trainee_code: string;
   full_name: string;
+  furigana: string | null;
   gender: string | null;
   birth_date: string | null;
   progression_stage: string | null;
@@ -91,9 +93,10 @@ const DOCUMENT_STATUS_OPTIONS = [
   { value: 'completed', label: 'Đã xong', className: 'bg-green-50 text-green-700' },
 ];
 
-// 16 columns for the document checklist table
+// 19 columns for the document checklist table
 const DOCUMENT_COLUMNS = [
-  'STT', 'Mã HV', 'Họ và tên', 'Giới tính', 'Ngày tháng năm sinh',
+  'STT', 'Mã HV', 'Họ và tên', 'Họ và tên không dấu', 'Tên phiên âm', 
+  'Giới tính', 'Ngày tháng năm sinh', 'Ngày sinh tiếng Nhật',
   'Ngày trình ĐKHĐ', 'Số ĐKHĐ', 'Mã HS ĐKHĐ',
   'Ngày gửi xin TPC', 'Số CV xin TPC', 'Mã HS xin TPC',
   'Số PTL', 'Tình trạng', 'Ngày cấp PTL', 'Ngày cấp TPC', 'Hiện trạng'
@@ -203,6 +206,7 @@ export default function LegalPage() {
           id,
           trainee_code,
           full_name,
+          furigana,
           gender,
           birth_date,
           progression_stage,
@@ -417,7 +421,7 @@ export default function LegalPage() {
               <TableBody>
                 {companyTrainees.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={16} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={19} className="text-center py-8 text-muted-foreground">
                       Không có học viên
                     </TableCell>
                   </TableRow>
@@ -427,11 +431,20 @@ export default function LegalPage() {
                       <TableCell className="text-center">{idx + 1}</TableCell>
                       <TableCell className="font-mono text-xs">{trainee.trainee_code}</TableCell>
                       <TableCell className="font-medium whitespace-nowrap">{trainee.full_name}</TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">
+                        {removeVietnameseDiacritics(trainee.full_name)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {trainee.furigana || "—"}
+                      </TableCell>
                       <TableCell className="text-center">{trainee.gender || "—"}</TableCell>
                       <TableCell className="whitespace-nowrap">
                         {trainee.birth_date 
                           ? format(new Date(trainee.birth_date), "dd/MM/yyyy", { locale: vi })
                           : "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {formatJapaneseDate(trainee.birth_date)}
                       </TableCell>
                       {/* Empty cells for remaining columns - to be filled manually */}
                       {Array.from({ length: 11 }).map((_, cellIdx) => (
