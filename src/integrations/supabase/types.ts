@@ -2709,7 +2709,28 @@ export type Database = {
         }[]
       }
       get_user_department: { Args: { _user_id: string }; Returns: string }
+      get_user_effective_permissions: {
+        Args: { _user_id: string }
+        Returns: {
+          can_create: boolean
+          can_delete: boolean
+          can_update: boolean
+          can_view: boolean
+          menu_key: string
+          source: string
+        }[]
+      }
       get_user_menu_permissions: {
+        Args: { _user_id: string }
+        Returns: {
+          can_create: boolean
+          can_delete: boolean
+          can_update: boolean
+          can_view: boolean
+          menu_key: string
+        }[]
+      }
+      get_user_merged_permissions: {
         Args: { _user_id: string }
         Returns: {
           can_create: boolean
@@ -2726,7 +2747,7 @@ export type Database = {
       has_any_admin: { Args: never; Returns: boolean }
       has_any_role: { Args: { _user_id: string }; Returns: boolean }
       has_menu_permission: {
-        Args: { _action?: string; _menu_key: string; _user_id: string }
+        Args: { _menu_key: string; _permission?: string; _user_id: string }
         Returns: boolean
       }
       has_permission: {
