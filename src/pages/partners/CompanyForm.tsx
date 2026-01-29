@@ -56,16 +56,7 @@ export default function CompanyForm() {
     }
   );
 
-  // Real-time duplicate check for name
-  const { isDuplicate: isNameDuplicate, isChecking: isCheckingName } = useDuplicateCheck(
-    formData.name,
-    {
-      table: 'companies',
-      field: 'name',
-      currentId: id,
-      enabled: formData.name.length >= 2,
-    }
-  );
+  // No duplicate check for Vietnamese name (removed per user request)
 
   // Real-time duplicate check for Japanese name
   const { isDuplicate: isNameJpDuplicate, isChecking: isCheckingNameJp } = useDuplicateCheck(
@@ -103,21 +94,13 @@ export default function CompanyForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.code || !formData.name) return;
+    if (!formData.code || !formData.name || !formData.name_japanese) return;
 
     // Check for duplicates before submitting
     if (isCodeDuplicate) {
       toast({
         title: "Mã công ty đã tồn tại",
         description: "Vui lòng nhập mã khác.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (isNameDuplicate) {
-      toast({
-        title: "Tên công ty đã tồn tại",
-        description: "Vui lòng nhập tên khác.",
         variant: "destructive",
       });
       return;
@@ -140,7 +123,7 @@ export default function CompanyForm() {
   };
 
   const isSubmitting = createCompany.isPending || updateCompany.isPending;
-  const hasDuplicates = isCodeDuplicate || isNameDuplicate || isNameJpDuplicate;
+  const hasDuplicates = isCodeDuplicate || isNameJpDuplicate;
 
   return (
     <div className="p-6 space-y-6">
@@ -227,43 +210,38 @@ export default function CompanyForm() {
 
               <div className="space-y-2">
                 <Label className="text-primary">
-                  Tên đối tác <span className="text-destructive">*</span>
+                  Tên công ty <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   value={formData.name}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, name: e.target.value }))
                   }
-                  placeholder="Tên công ty / Nghiệp đoàn"
-                  className={`bg-amber-50/50 border-primary/20 ${isNameDuplicate ? 'border-destructive' : ''}`}
+                  placeholder="Tên công ty"
+                  className="bg-amber-50/50 border-primary/20"
                   required
                 />
-                {isCheckingName && (
-                  <span className="text-xs text-muted-foreground">Đang kiểm tra...</span>
-                )}
-                {isNameDuplicate && !isCheckingName && (
-                  <span className="text-xs text-destructive">{getDuplicateErrorMessage('companies', 'name')}</span>
-                )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-primary">Tên tiếng Nhật</Label>
-                  <Input
-                    value={formData.name_japanese}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, name_japanese: e.target.value }))
-                    }
-                    placeholder="会社名"
-                    className={`bg-amber-50/50 border-primary/20 ${isNameJpDuplicate ? 'border-destructive' : ''}`}
-                  />
-                  {isCheckingNameJp && (
-                    <span className="text-xs text-muted-foreground">Đang kiểm tra...</span>
-                  )}
-                  {isNameJpDuplicate && !isCheckingNameJp && (
-                    <span className="text-xs text-destructive">{getDuplicateErrorMessage('companies', 'name_japanese')}</span>
-                  )}
-                </div>
+              <div className="space-y-2">
+                <Label className="text-primary">
+                  Tên tiếng Nhật <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  value={formData.name_japanese}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, name_japanese: e.target.value }))
+                  }
+                  placeholder="会社名"
+                  className={`bg-amber-50/50 border-primary/20 ${isNameJpDuplicate ? 'border-destructive' : ''}`}
+                  required
+                />
+                {isCheckingNameJp && (
+                  <span className="text-xs text-muted-foreground">Đang kiểm tra...</span>
+                )}
+                {isNameJpDuplicate && !isCheckingNameJp && (
+                  <span className="text-xs text-destructive">{getDuplicateErrorMessage('companies', 'name_japanese')}</span>
+                )}
               </div>
 
               <div className="space-y-2">
