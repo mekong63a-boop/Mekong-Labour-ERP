@@ -206,25 +206,39 @@ export default function CompanyForm() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-primary">
-                  Tên công ty <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                  placeholder="VD: Công ty ABC"
-                  className={`bg-amber-50/50 border-primary/20 ${isNameDuplicate ? 'border-destructive' : ''}`}
-                  required
-                />
-                {isCheckingName && (
-                  <span className="text-xs text-muted-foreground">Đang kiểm tra...</span>
-                )}
-                {isNameDuplicate && !isCheckingName && (
-                  <span className="text-xs text-destructive">⚠️ Tên công ty đã tồn tại!</span>
-                )}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-primary">
+                    Tên công ty <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, name: e.target.value }))
+                    }
+                    placeholder="VD: Công ty ABC"
+                    className={`bg-amber-50/50 border-primary/20 ${isNameDuplicate ? 'border-destructive' : ''}`}
+                    required
+                  />
+                  {isCheckingName && (
+                    <span className="text-xs text-muted-foreground">Đang kiểm tra...</span>
+                  )}
+                  {isNameDuplicate && !isCheckingName && (
+                    <span className="text-xs text-destructive">⚠️ Tên công ty đã tồn tại!</span>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-primary">Tên công ty phiên âm</Label>
+                  <Input
+                    value={formData.name_japanese}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, name_japanese: e.target.value }))
+                    }
+                    placeholder="VD: Chugoku Mokuzai"
+                    className="bg-amber-50/50 border-primary/20"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
