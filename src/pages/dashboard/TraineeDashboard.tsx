@@ -15,6 +15,7 @@ import {
   FileText,
   TrendingUp,
   TrendingDown,
+  CheckCircle,
 } from "lucide-react";
 import {
   BarChart,
@@ -35,6 +36,7 @@ import {
   useTraineeBySource,
   useTraineeByCompany,
   useAvailableYears,
+  useMonthlyPassed,
 } from "@/hooks/useDashboardTrainee";
 
 // Icon color classes
@@ -47,7 +49,11 @@ const iconColorClasses = {
 
 export default function TraineeDashboard() {
   const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  // Separate year filters for each chart
+  const [recruitmentYear, setRecruitmentYear] = useState<number>(currentYear);
+  const [departureYear, setDepartureYear] = useState<number>(currentYear);
+  const [passedYear, setPassedYear] = useState<number>(currentYear);
+  const [companyYear, setCompanyYear] = useState<number>(currentYear);
 
   // Single Source - PostgreSQL views
   const { data: kpis, isLoading: loadingKPIs } = useTraineeKPIs();
@@ -55,6 +61,7 @@ export default function TraineeDashboard() {
   const { data: sourceData, isLoading: loadingSource } = useTraineeBySource();
   const { data: companyData, isLoading: loadingCompany } = useTraineeByCompany();
   const { data: availableYears } = useAvailableYears();
+  const { data: monthlyPassed, isLoading: loadingPassed } = useMonthlyPassed();
 
   // SYSTEM RULE: activeOrders từ kpis view (đã tính sẵn ở DB)
   const activeOrders = kpis?.active_orders || 0;
@@ -76,33 +83,57 @@ export default function TraineeDashboard() {
     return Array.from(years).sort((a, b) => b - a);
   }, [availableYears, currentYear]);
 
-  // SYSTEM RULE: monthlyChartData từ dashboard_monthly_combined view
-  // Đảm bảo hiển thị đủ 12 tháng trong năm VÀ LỌC THEO NĂM ĐƯỢC CHỌN
-  const monthlyChartData = useMemo(() => {
+  // SYSTEM RULE: Recruitment chart data - LỌC THEO recruitmentYear
+  const recruitmentChartData = useMemo(() => {
     const months = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
     
-    // Tạo template 12 tháng với giá trị mặc định = 0
     const template = months.map((month, index) => ({
       month,
-      monthNum: index + 1, // 1-12
+      monthNum: index + 1,
       recruitment: 0,
+    }));
+    
+    if (!monthlyCombined) return template;
+    
+    monthlyCombined.forEach((item) => {
+      if (item.month_date) {
+        const itemDate = new Date(item.month_date);
+        const itemYear = itemDate.getFullYear();
+        const itemMonth = itemDate.getMonth() + 1;
+        
+        if (itemYear === recruitmentYear) {
+          const templateItem = template.find((t) => t.monthNum === itemMonth);
+          if (templateItem) {
+            templateItem.recruitment = item.recruitment || 0;
+          }
+        }
+      }
+    });
+    
+    return template;
+  }, [monthlyCombined, recruitmentYear]);
+
+  // SYSTEM RULE: Departure chart data - LỌC THEO departureYear
+  const departureChartData = useMemo(() => {
+    const months = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
+    
+    const template = months.map((month, index) => ({
+      month,
+      monthNum: index + 1,
       departure: 0,
     }));
     
     if (!monthlyCombined) return template;
     
-    // Merge dữ liệu từ DB vào template - LỌC THEO NĂM
-    // month_label từ DB có format "01/2026", "02/2026"...
     monthlyCombined.forEach((item) => {
       if (item.month_date) {
         const itemDate = new Date(item.month_date);
         const itemYear = itemDate.getFullYear();
-        const itemMonth = itemDate.getMonth() + 1; // 1-12
+        const itemMonth = itemDate.getMonth() + 1;
         
-        if (itemYear === selectedYear) {
+        if (itemYear === departureYear) {
           const templateItem = template.find((t) => t.monthNum === itemMonth);
           if (templateItem) {
-            templateItem.recruitment = item.recruitment || 0;
             templateItem.departure = item.departure || 0;
           }
         }
@@ -110,7 +141,37 @@ export default function TraineeDashboard() {
     });
     
     return template;
-  }, [monthlyCombined, selectedYear]);
+  }, [monthlyCombined, departureYear]);
+
+  // SYSTEM RULE: Passed interview chart data - LỌC THEO passedYear
+  const passedChartData = useMemo(() => {
+    const months = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
+    
+    const template = months.map((month, index) => ({
+      month,
+      monthNum: index + 1,
+      passed: 0,
+    }));
+    
+    if (!monthlyPassed) return template;
+    
+    monthlyPassed.forEach((item) => {
+      if (item.month_date) {
+        const itemDate = new Date(item.month_date);
+        const itemYear = itemDate.getFullYear();
+        const itemMonth = itemDate.getMonth() + 1;
+        
+        if (itemYear === passedYear) {
+          const templateItem = template.find((t) => t.monthNum === itemMonth);
+          if (templateItem) {
+            templateItem.passed = item.passed_count || 0;
+          }
+        }
+      }
+    });
+    
+    return template;
+  }, [monthlyPassed, passedYear]);
 
   // Calculate growth rate from KPIs
   const growthPercent = useMemo(() => {
@@ -136,18 +197,18 @@ export default function TraineeDashboard() {
       }));
   }, [sourceData]);
 
-  // Top 10 công ty tuyển dụng trong năm - LỌC THEO NĂM
+  // Top 10 công ty tuyển dụng trong năm - LỌC THEO companyYear
   const companyChartData = useMemo(() => {
     if (!companyData) return [];
     return companyData
-      .filter(c => c.company_name && c.year === selectedYear && c.count > 0)
+      .filter(c => c.company_name && c.year === companyYear && c.count > 0)
       .sort((a, b) => b.count - a.count)
       .slice(0, 10)
       .map(c => ({
         name: c.company_name || "Không xác định",
         value: c.count,
       }));
-  }, [companyData, selectedYear]);
+  }, [companyData, companyYear]);
 
   // Calculate studying count - use status_studying from KPIs
   const studyingCount = useMemo(() => {
@@ -314,22 +375,22 @@ export default function TraineeDashboard() {
         </Card>
       </div>
 
-      {/* Charts Row - Two separate bar charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Charts Row - Three separate bar charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Bar Chart - Tuyển dụng trong năm */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div className="flex items-center gap-3">
-              <CardTitle className="text-base font-semibold">Tuyển dụng trong năm</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base font-semibold">Tuyển dụng</CardTitle>
               <span className="text-lg font-bold text-emerald-600">
-                (Tổng: {monthlyChartData.reduce((sum, item) => sum + item.recruitment, 0)})
+                ({recruitmentChartData.reduce((sum, item) => sum + item.recruitment, 0)})
               </span>
             </div>
             <Select
-              value={selectedYear.toString()}
-              onValueChange={(v) => setSelectedYear(parseInt(v))}
+              value={recruitmentYear.toString()}
+              onValueChange={(v) => setRecruitmentYear(parseInt(v))}
             >
-              <SelectTrigger className="w-[100px]">
+              <SelectTrigger className="w-[90px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -347,10 +408,10 @@ export default function TraineeDashboard() {
             ) : (
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyChartData} barSize={28} margin={{ top: 20, right: 10, left: 10, bottom: 5 }}>
+                  <BarChart data={recruitmentChartData} barSize={20} margin={{ top: 20, right: 5, left: 5, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="month" fontSize={11} tickLine={false} axisLine={false} />
-                    <YAxis fontSize={11} tickLine={false} axisLine={false} />
+                    <XAxis dataKey="month" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis fontSize={10} tickLine={false} axisLine={false} />
                     <Tooltip
                       contentStyle={{
                         borderRadius: "8px",
@@ -362,7 +423,65 @@ export default function TraineeDashboard() {
                         dataKey="recruitment" 
                         position="inside" 
                         fill="#ffffff" 
-                        fontSize={14} 
+                        fontSize={12} 
+                        fontWeight="bold"
+                        formatter={(value: number) => value > 0 ? value : ""}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Bar Chart - Đậu phỏng vấn trong năm */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base font-semibold">Đậu phỏng vấn</CardTitle>
+              <span className="text-lg font-bold text-orange-600">
+                ({passedChartData.reduce((sum, item) => sum + item.passed, 0)})
+              </span>
+            </div>
+            <Select
+              value={passedYear.toString()}
+              onValueChange={(v) => setPassedYear(parseInt(v))}
+            >
+              <SelectTrigger className="w-[90px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions.map((y) => (
+                  <SelectItem key={y} value={y.toString()}>
+                    {y}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardHeader>
+          <CardContent>
+            {loadingPassed ? (
+              <Skeleton className="h-64 w-full" />
+            ) : (
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={passedChartData} barSize={20} margin={{ top: 20, right: 5, left: 5, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="month" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis fontSize={10} tickLine={false} axisLine={false} />
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: "8px",
+                        border: "1px solid hsl(var(--border))",
+                      }}
+                    />
+                    <Bar dataKey="passed" name="Đậu phỏng vấn" fill="#F97316" radius={[4, 4, 0, 0]}>
+                      <LabelList 
+                        dataKey="passed" 
+                        position="inside" 
+                        fill="#ffffff" 
+                        fontSize={12} 
                         fontWeight="bold"
                         formatter={(value: number) => value > 0 ? value : ""}
                       />
@@ -377,17 +496,17 @@ export default function TraineeDashboard() {
         {/* Bar Chart - Xuất cảnh trong năm */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div className="flex items-center gap-3">
-              <CardTitle className="text-base font-semibold">Xuất cảnh trong năm</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base font-semibold">Xuất cảnh</CardTitle>
               <span className="text-lg font-bold text-blue-600">
-                (Tổng: {monthlyChartData.reduce((sum, item) => sum + item.departure, 0)})
+                ({departureChartData.reduce((sum, item) => sum + item.departure, 0)})
               </span>
             </div>
             <Select
-              value={selectedYear.toString()}
-              onValueChange={(v) => setSelectedYear(parseInt(v))}
+              value={departureYear.toString()}
+              onValueChange={(v) => setDepartureYear(parseInt(v))}
             >
-              <SelectTrigger className="w-[100px]">
+              <SelectTrigger className="w-[90px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -405,10 +524,10 @@ export default function TraineeDashboard() {
             ) : (
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyChartData} barSize={28} margin={{ top: 20, right: 10, left: 10, bottom: 5 }}>
+                  <BarChart data={departureChartData} barSize={20} margin={{ top: 20, right: 5, left: 5, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="month" fontSize={11} tickLine={false} axisLine={false} />
-                    <YAxis fontSize={11} tickLine={false} axisLine={false} />
+                    <XAxis dataKey="month" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis fontSize={10} tickLine={false} axisLine={false} />
                     <Tooltip
                       contentStyle={{
                         borderRadius: "8px",
@@ -420,7 +539,7 @@ export default function TraineeDashboard() {
                         dataKey="departure" 
                         position="inside" 
                         fill="#ffffff" 
-                        fontSize={14} 
+                        fontSize={12} 
                         fontWeight="bold"
                         formatter={(value: number) => value > 0 ? value : ""}
                       />
@@ -486,10 +605,10 @@ export default function TraineeDashboard() {
       {/* Top 10 công ty tuyển dụng trong năm */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base font-semibold">Top 10 công ty tuyển dụng trong năm {selectedYear}</CardTitle>
+          <CardTitle className="text-base font-semibold">Top 10 công ty tuyển dụng trong năm {companyYear}</CardTitle>
           <Select
-            value={selectedYear.toString()}
-            onValueChange={(v) => setSelectedYear(parseInt(v))}
+            value={companyYear.toString()}
+            onValueChange={(v) => setCompanyYear(parseInt(v))}
           >
             <SelectTrigger className="w-[100px]">
               <SelectValue />
@@ -508,7 +627,7 @@ export default function TraineeDashboard() {
             <Skeleton className="h-64 w-full" />
           ) : companyChartData.length === 0 ? (
             <div className="h-64 flex items-center justify-center text-muted-foreground">
-              Không có dữ liệu công ty trong năm {selectedYear}
+              Không có dữ liệu công ty trong năm {companyYear}
             </div>
           ) : (
             <div className="h-80">
