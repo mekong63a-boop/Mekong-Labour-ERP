@@ -235,7 +235,13 @@ export function useManualRefresh() {
     queryClient.invalidateQueries({ queryKey: ["available-trainees"] });
     queryClient.invalidateQueries({ queryKey: ["attendance"] });
     queryClient.invalidateQueries({ queryKey: ["test-scores"] });
-    queryClient.invalidateQueries({ queryKey: ["interview-stats"] });
+
+    // Education dashboards/views
+    queryClient.invalidateQueries({ queryKey: ["education-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["education-interview-stats"] });
+
+    // Absent/late widget on EducationDashboard (date-param queries)
+    queryClient.invalidateQueries({ queryKey: ["absent-late-attendance"] });
   };
 
   const refreshAll = () => {

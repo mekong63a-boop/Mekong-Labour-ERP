@@ -48,6 +48,7 @@ export function useCreateTeacher() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["teachers"] });
+      queryClient.invalidateQueries({ queryKey: ["education-stats"] });
     },
   });
 }
@@ -133,6 +134,7 @@ export function useCreateClass() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["education-stats"] });
     },
   });
 }
@@ -153,6 +155,7 @@ export function useUpdateClass() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       queryClient.invalidateQueries({ queryKey: ["class", data.id] });
+      queryClient.invalidateQueries({ queryKey: ["education-stats"] });
     },
   });
 }
@@ -275,6 +278,7 @@ export function useDeleteClass() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["classes"] });
+      queryClient.invalidateQueries({ queryKey: ["education-stats"] });
     },
   });
 }
