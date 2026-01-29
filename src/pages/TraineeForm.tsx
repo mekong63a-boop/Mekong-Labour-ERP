@@ -157,8 +157,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   const { isAdmin } = useUserRole();
   const { canViewUnmasked } = useDataMasking();
   
-  // Chỉ admin mới được sửa trường nhạy cảm
-  const canEditSensitiveFields = isAdmin;
+  // Admin và Nhân viên cấp cao có thể xem/sửa trường nhạy cảm
+  const canEditSensitiveFields = canViewUnmasked;
   
   // Pending photo file for upload on save
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
