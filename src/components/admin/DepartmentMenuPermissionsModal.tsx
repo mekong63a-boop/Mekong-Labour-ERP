@@ -218,15 +218,40 @@ export function DepartmentMenuPermissionsModal({
   };
 
   const toggleAllView = (checked: boolean) => {
-    setLocalPermissions(() => {
-      const newPerms: Record<string, MenuPermission> = {};
+    setLocalPermissions((prev) => {
+      const newPerms = { ...prev };
       menus.forEach((menu) => {
         newPerms[menu.key] = {
+          ...newPerms[menu.key],
           menu_key: menu.key,
           can_view: checked,
+          // If unchecking view, also uncheck other permissions
+          can_create: checked ? newPerms[menu.key]?.can_create ?? false : false,
+          can_update: checked ? newPerms[menu.key]?.can_update ?? false : false,
+          can_delete: checked ? newPerms[menu.key]?.can_delete ?? false : false,
+        };
+      });
+      setHasChanges(true);
+      return newPerms;
+    });
+  };
+
+  const toggleAllColumn = (field: "can_create" | "can_update" | "can_delete", checked: boolean) => {
+    setLocalPermissions((prev) => {
+      const newPerms = { ...prev };
+      menus.forEach((menu) => {
+        const current = newPerms[menu.key] || {
+          menu_key: menu.key,
+          can_view: false,
           can_create: false,
           can_update: false,
           can_delete: false,
+        };
+        newPerms[menu.key] = {
+          ...current,
+          [field]: checked,
+          // Auto-enable view if enabling any other permission
+          can_view: checked ? true : current.can_view,
         };
       });
       setHasChanges(true);
@@ -293,6 +318,21 @@ export function DepartmentMenuPermissionsModal({
     return menus.every((m) => getPermission(m.key).can_view);
   }, [menus, localPermissions]);
 
+  const allCreateChecked = useMemo(() => {
+    if (menus.length === 0) return false;
+    return menus.every((m) => getPermission(m.key).can_create);
+  }, [menus, localPermissions]);
+
+  const allUpdateChecked = useMemo(() => {
+    if (menus.length === 0) return false;
+    return menus.every((m) => getPermission(m.key).can_update);
+  }, [menus, localPermissions]);
+
+  const allDeleteChecked = useMemo(() => {
+    if (menus.length === 0) return false;
+    return menus.every((m) => getPermission(m.key).can_delete);
+  }, [menus, localPermissions]);
+
   const selectedCount = useMemo(() => {
     return Object.values(localPermissions).filter(p => p.can_view).length;
   }, [localPermissions]);
@@ -354,9 +394,24 @@ export function DepartmentMenuPermissionsModal({
                   onCheckedChange={(checked) => toggleAllView(!!checked)}
                 />
               </div>
-              <div className="w-20" />
-              <div className="w-20" />
-              <div className="w-20" />
+              <div className="w-20 flex justify-center">
+                <Checkbox
+                  checked={allCreateChecked}
+                  onCheckedChange={(checked) => toggleAllColumn("can_create", !!checked)}
+                />
+              </div>
+              <div className="w-20 flex justify-center">
+                <Checkbox
+                  checked={allUpdateChecked}
+                  onCheckedChange={(checked) => toggleAllColumn("can_update", !!checked)}
+                />
+              </div>
+              <div className="w-20 flex justify-center">
+                <Checkbox
+                  checked={allDeleteChecked}
+                  onCheckedChange={(checked) => toggleAllColumn("can_delete", !!checked)}
+                />
+              </div>
             </div>
 
             {/* Menu list */}
