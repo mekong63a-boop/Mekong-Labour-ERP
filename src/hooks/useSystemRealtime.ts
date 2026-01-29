@@ -63,14 +63,22 @@ export function useSystemRealtime() {
           // Queue dashboard invalidations
           queueInvalidation(REALTIME_GROUPS.DASHBOARD, QUERY_KEY_BUNDLES.traineesDashboard, false);
           
-          // Queue education (class_id changes)
+          // Queue education (class_id, progression_stage changes affect stats)
           queueInvalidation(REALTIME_GROUPS.EDUCATION, [
             ["classes"],
             ["class-students"],
             ["class-students-detailed"],
             ["available-trainees"],
             ["interview-stats"],
-          ], false);
+            ["education-interview-stats"], // Thống kê giáo dục
+          ], true);
+          
+          // Queue dormitory (progression_stage changes affect stats - loại bỏ học viên xuất cảnh)
+          queueInvalidation(REALTIME_GROUPS.DORMITORY, [
+            ["dormitory-residents"],
+            ["dormitories-with-count"],
+            ["dormitory-gender-stats"],
+          ], true);
         }
       )
       

@@ -2370,6 +2370,28 @@ export type Database = {
           status: string | null
           updated_at: string | null
         }
+        Insert: {
+          address?: string | null
+          capacity?: number | null
+          created_at?: string | null
+          current_occupancy?: never
+          id?: string | null
+          name?: string | null
+          notes?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          capacity?: number | null
+          created_at?: string | null
+          current_occupancy?: never
+          id?: string | null
+          name?: string | null
+          notes?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
         Relationships: []
       }
       dormitory_gender_stats: {

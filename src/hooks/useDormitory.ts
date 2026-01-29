@@ -35,10 +35,15 @@ export interface DormitoryResident {
     photo_url: string | null;
     phone: string | null;
     class_id: string | null;
+    departure_date: string | null;
+    progression_stage: string | null;
   };
   dormitory?: Dormitory;
   from_dormitory?: Dormitory;
 }
+
+// Học viên đã xuất cảnh - loại khỏi danh sách hiển thị nhưng giữ lịch sử
+const DEPARTED_STAGES = ["Xuất cảnh", "Đang làm việc", "Bỏ trốn", "Về trước hạn", "Hoàn thành hợp đồng"];
 
 // Hook to get all dormitories
 export function useDormitories() {
@@ -76,6 +81,7 @@ export function useDormitoriesWithCount() {
 }
 
 // Hook to get residents of a specific dormitory
+// SYSTEM RULE: Loại bỏ học viên đã xuất cảnh khỏi danh sách hiển thị
 export function useDormitoryResidents(dormitoryId: string | null) {
   return useQuery({
     queryKey: ["dormitory-residents", dormitoryId],
@@ -86,14 +92,25 @@ export function useDormitoryResidents(dormitoryId: string | null) {
         .from("dormitory_residents")
         .select(`
           *,
-          trainee:trainees(id, trainee_code, full_name, photo_url, phone, class_id),
+          trainee:trainees(id, trainee_code, full_name, photo_url, phone, class_id, departure_date, progression_stage),
           from_dormitory:dormitories!dormitory_residents_from_dormitory_id_fkey(id, name)
         `)
         .eq("dormitory_id", dormitoryId)
         .order("room_number", { ascending: true });
 
       if (error) throw error;
-      return data as DormitoryResident[];
+      
+      // Filter học viên đã xuất cảnh ra khỏi danh sách hiển thị
+      const filtered = (data || []).filter(r => {
+        const trainee = r.trainee;
+        if (!trainee) return true;
+        // Loại bỏ nếu có departure_date hoặc progression_stage thuộc DEPARTED_STAGES
+        if (trainee.departure_date) return false;
+        if (trainee.progression_stage && DEPARTED_STAGES.includes(trainee.progression_stage)) return false;
+        return true;
+      });
+      
+      return filtered as DormitoryResident[];
     },
     enabled: !!dormitoryId,
   });
@@ -295,6 +312,8 @@ export function useAddResident() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dormitory-residents"] });
       queryClient.invalidateQueries({ queryKey: ["dormitories-with-count"] });
+      queryClient.invalidateQueries({ queryKey: ["dormitory-gender-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["available-trainees-for-dormitory"] });
       toast.success("Đã thêm học viên vào KTX");
     },
     onError: (error) => {
@@ -328,6 +347,7 @@ export function useUpdateResident() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dormitory-residents"] });
       queryClient.invalidateQueries({ queryKey: ["dormitories-with-count"] });
+      queryClient.invalidateQueries({ queryKey: ["dormitory-gender-stats"] });
       toast.success("Đã cập nhật thông tin");
     },
     onError: (error) => {
@@ -367,7 +387,9 @@ export function useCheckOutResident() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dormitory-residents"] });
       queryClient.invalidateQueries({ queryKey: ["dormitories-with-count"] });
+      queryClient.invalidateQueries({ queryKey: ["dormitory-gender-stats"] });
       queryClient.invalidateQueries({ queryKey: ["trainee-dormitory-history"] });
+      queryClient.invalidateQueries({ queryKey: ["available-trainees-for-dormitory"] });
       toast.success("Học viên đã rời KTX");
     },
     onError: (error) => {
@@ -434,8 +456,10 @@ export function useTransferResident() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dormitory-residents"] });
       queryClient.invalidateQueries({ queryKey: ["dormitories-with-count"] });
+      queryClient.invalidateQueries({ queryKey: ["dormitory-gender-stats"] });
       queryClient.invalidateQueries({ queryKey: ["trainee-dormitory-history"] });
       queryClient.invalidateQueries({ queryKey: ["available-trainees-for-dormitory"] });
+      queryClient.invalidateQueries({ queryKey: ["trainees-in-other-dormitories"] });
       toast.success("Đã chuyển học viên sang KTX mới");
     },
     onError: (error) => {
@@ -459,6 +483,8 @@ export function useRemoveResident() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dormitory-residents"] });
       queryClient.invalidateQueries({ queryKey: ["dormitories-with-count"] });
+      queryClient.invalidateQueries({ queryKey: ["dormitory-gender-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["available-trainees-for-dormitory"] });
       toast.success("Đã xóa học viên khỏi KTX");
     },
     onError: (error) => {
