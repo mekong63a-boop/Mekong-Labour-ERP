@@ -117,8 +117,15 @@ const getStatusLabel = (status: string) => {
   }
 };
 
+// Các giai đoạn đã xuất cảnh - học viên đã rời khỏi KTX
+const DEPARTED_STAGES = ["Xuất cảnh", "Đang làm việc", "Bỏ trốn", "Về trước hạn", "Hoàn thành hợp đồng"];
+
 export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps) {
   const [isExporting, setIsExporting] = useState(false);
+
+  // Check nếu học viên đã xuất cảnh
+  const isDeparted = profile.departure_date || 
+    (profile.progression_stage && DEPARTED_STAGES.includes(profile.progression_stage));
 
   const stageLabels: Record<string, string> = {
     trained: "Đào tạo",
@@ -212,8 +219,9 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                 {profile.trainee_type && (
                   <Badge variant="secondary">{profile.trainee_type}</Badge>
                 )}
-                {profile.workflow?.current_stage && (
-                  <Badge>{stageLabels[profile.workflow.current_stage] || profile.workflow.current_stage}</Badge>
+                {/* Hiển thị progression_stage (VN) thay vì workflow stage để tránh thuật ngữ cấm như "recruited" */}
+                {profile.progression_stage && (
+                  <Badge>{profile.progression_stage}</Badge>
                 )}
               </div>
             </div>
@@ -627,9 +635,17 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                             <TableCell className="text-xs py-1.5">{formatDate(dorm.check_in_date)}</TableCell>
                             <TableCell className="text-xs py-1.5">{formatDate(dorm.check_out_date)}</TableCell>
                             <TableCell className="text-xs py-1.5">
-                              <Badge variant={dorm.status === "Đang ở" ? "default" : "secondary"}>
-                                {dorm.status || "—"}
-                              </Badge>
+                              {(() => {
+                                // Logic: Nếu học viên đã xuất cảnh hoặc có check_out_date => Đã rời
+                                const actualStatus = (dorm.check_out_date || isDeparted) 
+                                  ? "Đã rời" 
+                                  : (dorm.status || "Đang ở");
+                                return (
+                                  <Badge variant={actualStatus === "Đang ở" ? "default" : "secondary"}>
+                                    {actualStatus}
+                                  </Badge>
+                                );
+                              })()}
                             </TableCell>
                           </TableRow>
                         ))}
