@@ -204,7 +204,8 @@ export default function PartnerList() {
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.name_japanese?.toLowerCase().includes(search.toLowerCase()) ||
-      c.code.toLowerCase().includes(search.toLowerCase())
+      c.code.toLowerCase().includes(search.toLowerCase()) ||
+      c.industry?.toLowerCase().includes(search.toLowerCase())
   );
 
   const filteredUnions = unions?.filter(
