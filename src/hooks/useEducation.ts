@@ -71,18 +71,23 @@ export function useClasses() {
         .order("created_at", { ascending: false });
       if (classesError) throw classesError;
       
-      // Get student counts per class
+      // Get student counts per class - CHỈ đếm học viên CHƯA xuất cảnh
       const { data: traineesData, error: traineesError } = await supabase
         .from("trainees")
-        .select("class_id")
+        .select("class_id, progression_stage, departure_date")
         .not("class_id", "is", null);
       if (traineesError) throw traineesError;
       
-      // Count students per class
+      // Count students per class - loại bỏ học viên đã xuất cảnh
       const studentCounts: Record<string, number> = {};
       traineesData?.forEach(t => {
         if (t.class_id) {
-          studentCounts[t.class_id] = (studentCounts[t.class_id] || 0) + 1;
+          // Bỏ qua học viên đã xuất cảnh
+          const isDeparted = t.departure_date || 
+            (t.progression_stage && DEPARTED_STAGES.includes(t.progression_stage));
+          if (!isDeparted) {
+            studentCounts[t.class_id] = (studentCounts[t.class_id] || 0) + 1;
+          }
         }
       });
       
