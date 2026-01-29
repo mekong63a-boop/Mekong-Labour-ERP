@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, RefreshCw, Search, MapPin, Briefcase, Calendar } from "lucide-react";
+import { Plus, RefreshCw, Search, MapPin, Briefcase, Calendar, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { useCanAction } from "@/hooks/useMenuPermissions";
 import { supabase } from "@/integrations/supabase/client";
@@ -216,6 +216,16 @@ export default function OrderList() {
                         >
                           ỨNG VIÊN
                         </Button>
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteClick(order)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

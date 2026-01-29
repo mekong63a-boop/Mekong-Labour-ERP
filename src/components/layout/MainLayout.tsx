@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
-import { Menu, RefreshCw, Search, Bell } from "lucide-react";
+import { Menu, RefreshCw, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSystemRealtime, useManualRefresh } from "@/hooks/useSystemRealtime";
 import { useSessionHeartbeat } from "@/hooks/useSessionHeartbeat";
@@ -24,7 +23,6 @@ const pageTitles: Record<string, string> = {
 
 export function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const location = useLocation();
   const { user } = useAuth();
 
@@ -81,18 +79,8 @@ export function MainLayout() {
             </h1>
           </div>
 
-          {/* Center: Search Bar */}
-          <div className="flex-1 max-w-md mx-4 hidden md:block">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Tìm kiếm nhanh..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-muted/50 border-0 focus-visible:ring-1"
-              />
-            </div>
-          </div>
+          {/* Center: Spacer */}
+          <div className="flex-1" />
 
           {/* Right: Actions + User */}
           <div className="flex items-center gap-3">
