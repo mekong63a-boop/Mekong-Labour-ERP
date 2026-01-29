@@ -294,6 +294,7 @@ export default function PartnerList() {
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead className="w-[280px]">Tên công ty</TableHead>
+                    <TableHead>Ngành nghề</TableHead>
                     <TableHead>Địa chỉ làm việc</TableHead>
                     <TableHead>Người phụ trách</TableHead>
                     <TableHead className="text-center">Số HV</TableHead>
@@ -316,6 +317,7 @@ export default function PartnerList() {
                           </div>
                         </div>
                       </TableCell>
+                      <TableCell>{company.industry || "—"}</TableCell>
                       <TableCell>{company.work_address || "—"}</TableCell>
                       <TableCell>{company.representative || "-"}</TableCell>
                       <TableCell className="text-center">

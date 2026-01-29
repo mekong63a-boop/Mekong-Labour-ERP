@@ -18,6 +18,7 @@ export interface Company {
   code: string;
   name: string;
   name_japanese: string | null;
+  industry: string | null;
   address: string | null;
   work_address: string | null;
   representative: string | null;
