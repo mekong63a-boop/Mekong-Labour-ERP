@@ -2464,6 +2464,21 @@ export type Database = {
         }
         Relationships: []
       }
+      post_departure_by_type: {
+        Row: {
+          count: number | null
+          departure_year: string | null
+          trainee_type: Database["public"]["Enums"]["trainee_type"] | null
+        }
+        Relationships: []
+      }
+      post_departure_by_type_summary: {
+        Row: {
+          count: number | null
+          trainee_type: Database["public"]["Enums"]["trainee_type"] | null
+        }
+        Relationships: []
+      }
       post_departure_stats_by_year: {
         Row: {
           absconded: number | null

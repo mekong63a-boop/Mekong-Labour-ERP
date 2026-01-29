@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Search, RefreshCw, BarChart3 } from "lucide-react";
+import { Users, Search, RefreshCw, BarChart3, GraduationCap, Wrench, Briefcase, Plane, Key } from "lucide-react";
 import { format, parseISO, addYears } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +44,15 @@ const STATUS_FILTERS = [
   { value: "Hoàn thành hợp đồng", label: "Hoàn thành HĐ", color: "text-blue-600" },
 ];
 
+// Trainee type config with icons
+const TRAINEE_TYPES = [
+  { value: "Thực tập sinh", label: "Thực tập sinh", icon: GraduationCap },
+  { value: "TTS số 3", label: "TTS số 3", icon: GraduationCap },
+  { value: "Du học sinh", label: "Du học sinh", icon: Plane },
+  { value: "Kỹ năng đặc định", label: "Kỹ năng đặc định", icon: Key },
+  { value: "Kỹ sư", label: "Kỹ sư", icon: Briefcase },
+];
+
 // Hook to fetch post-departure trainees
 function usePostDepartureTrainees() {
   return useQuery({
@@ -53,7 +62,7 @@ function usePostDepartureTrainees() {
       const { data: trainees, error: traineeError } = await supabase
         .from("trainees")
         .select(
-          "id,trainee_code,full_name,progression_stage,departure_date,contract_term,contract_end_date,return_date,early_return_date,notes,receiving_company_id"
+          "id,trainee_code,full_name,progression_stage,departure_date,contract_term,contract_end_date,return_date,early_return_date,notes,receiving_company_id,trainee_type"
         )
         .in("progression_stage", [
           "Xuất cảnh",
@@ -121,10 +130,63 @@ export default function PostDeparturePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [selectedTraineeType, setSelectedTraineeType] = useState<string | null>(null);
   const [showChart, setShowChart] = useState(true);
 
   // Get year options from actual data
   const yearOptions = useMemo(() => getYearOptionsFromData(trainees), [trainees]);
+
+  // Fetch KPI data by trainee_type from DB views
+  const { data: typeByYearData } = useQuery({
+    queryKey: ["post-departure-by-type"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("post_departure_by_type")
+        .select("*");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const { data: typeSummaryData } = useQuery({
+    queryKey: ["post-departure-by-type-summary"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("post_departure_by_type_summary")
+        .select("*");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Calculate type stats based on selectedYear
+  const typeStats = useMemo(() => {
+    const result: Record<string, number> = {
+      "Thực tập sinh": 0,
+      "TTS số 3": 0,
+      "Du học sinh": 0,
+      "Kỹ năng đặc định": 0,
+      "Kỹ sư": 0,
+    };
+
+    if (selectedYear === "all" && typeSummaryData) {
+      typeSummaryData.forEach((item: any) => {
+        if (item.trainee_type && item.trainee_type in result) {
+          result[item.trainee_type] = item.count || 0;
+        }
+      });
+    } else if (typeByYearData) {
+      typeByYearData
+        .filter((item: any) => item.departure_year === selectedYear)
+        .forEach((item: any) => {
+          if (item.trainee_type && item.trainee_type in result) {
+            result[item.trainee_type] = item.count || 0;
+          }
+        });
+    }
+
+    return result;
+  }, [selectedYear, typeSummaryData, typeByYearData]);
 
   // SYSTEM RULE: Chart data từ database view post_departure_stats_by_year
   // Logic tính toán đã ở Supabase, frontend chỉ hiển thị
@@ -214,6 +276,11 @@ export default function PostDeparturePage() {
       }
     }
 
+    // Filter by trainee type
+    if (selectedTraineeType) {
+      result = result.filter(t => (t as any).trainee_type === selectedTraineeType);
+    }
+
     // Filter by search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -224,7 +291,7 @@ export default function PostDeparturePage() {
     }
 
     return result;
-  }, [trainees, selectedYear, selectedStatus, searchQuery]);
+  }, [trainees, selectedYear, selectedStatus, selectedTraineeType, searchQuery]);
 
 
   const formatDate = (dateStr: string | null) => {
@@ -273,6 +340,16 @@ export default function PostDeparturePage() {
       setSelectedStatus(null); // Toggle off if already selected
     } else {
       setSelectedStatus(status);
+      setSelectedTraineeType(null); // Clear trainee type filter when selecting status
+    }
+  };
+
+  const handleTraineeTypeClick = (type: string | null) => {
+    if (selectedTraineeType === type) {
+      setSelectedTraineeType(null); // Toggle off if already selected
+    } else {
+      setSelectedTraineeType(type);
+      setSelectedStatus(null); // Clear status filter when selecting type
     }
   };
 
@@ -397,6 +474,34 @@ export default function PostDeparturePage() {
         </div>
       </div>
 
+      {/* KPI Cards by Trainee Type */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+        {TRAINEE_TYPES.map((type) => {
+          const IconComponent = type.icon;
+          const isSelected = selectedTraineeType === type.value;
+          return (
+            <button
+              key={type.value}
+              onClick={() => handleTraineeTypeClick(type.value)}
+              className={cn(
+                "p-4 rounded-lg border text-left transition-all hover:shadow-md",
+                isSelected
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:border-primary/50"
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-primary">{type.label}</p>
+                <IconComponent className="h-4 w-4 text-primary/60" />
+              </div>
+              <p className="text-3xl font-bold text-primary mt-1">
+                {typeStats[type.value] || 0}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         <div className="flex items-center gap-2">
@@ -426,11 +531,14 @@ export default function PostDeparturePage() {
           />
         </div>
 
-        {selectedStatus && (
+        {(selectedStatus || selectedTraineeType) && (
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setSelectedStatus(null)}
+            onClick={() => {
+              setSelectedStatus(null);
+              setSelectedTraineeType(null);
+            }}
           >
             Bỏ lọc
           </Button>
