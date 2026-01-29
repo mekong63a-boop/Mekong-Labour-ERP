@@ -71,6 +71,7 @@ import {
   useTransferResident,
   useTraineeDormitoryHistory,
   useSearchTraineeDormitory,
+  useDormitoryGenderStats,
   Dormitory,
   DormitoryResident,
 } from "@/hooks/useDormitory";
@@ -121,6 +122,7 @@ export default function DormitoryPage() {
   const { data: transferableTrainees } = useTraineesInOtherDormitories(selectedDormitory);
   const { data: traineeHistory, isLoading: isLoadingHistory } = useTraineeDormitoryHistory(historyTraineeId);
   const { data: searchResults, isLoading: isSearching } = useSearchTraineeDormitory(debouncedSearch);
+  const { data: genderStats } = useDormitoryGenderStats();
 
   // Mutations
   const createDormitory = useCreateDormitory();
@@ -260,6 +262,7 @@ export default function DormitoryPage() {
         return <Badge variant="outline">{status}</Badge>;
     }
   };
+
 
   return (
     <div className="space-y-6">
@@ -415,6 +418,44 @@ export default function DormitoryPage() {
         </TabsContent>
 
         <TabsContent value="manage" className="mt-6">
+          {/* Gender Statistics Table */}
+          <Card className="mb-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Thống kê học viên đang ở KTX
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[200px]">Tổng số học viên</TableHead>
+                    <TableHead className="w-[150px] text-center">Nam</TableHead>
+                    <TableHead className="w-[150px] text-center">Nữ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell className="font-bold text-lg">
+                      {genderStats?.total_residents || 0}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
+                        {genderStats?.male_count || 0}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge className="bg-pink-100 text-pink-700 hover:bg-pink-100">
+                        {genderStats?.female_count || 0}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
           <div className="flex justify-end mb-4">
             {canCreate && (
               <Dialog open={isAddDormOpen} onOpenChange={setIsAddDormOpen}>
