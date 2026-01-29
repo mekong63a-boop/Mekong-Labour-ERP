@@ -147,10 +147,10 @@ export function useSearchTraineeDormitory(searchTerm: string) {
     queryFn: async () => {
       if (!searchTerm || searchTerm.length < 2) return [];
 
-      // Search trainees by name or code
+      // Search trainees by name or code - thêm departure_date & progression_stage để xác định trạng thái
       const { data: trainees, error: traineeError } = await supabase
         .from("trainees")
-        .select("id, trainee_code, full_name, photo_url, phone")
+        .select("id, trainee_code, full_name, photo_url, phone, departure_date, progression_stage")
         .or(`full_name.ilike.%${searchTerm}%,trainee_code.ilike.%${searchTerm}%`)
         .limit(20);
 

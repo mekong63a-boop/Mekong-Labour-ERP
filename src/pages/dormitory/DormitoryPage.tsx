@@ -325,85 +325,106 @@ export default function DormitoryPage() {
 
               {!isSearching && searchResults && searchResults.length > 0 && (
                 <div className="space-y-4">
-                  {searchResults.map((result) => (
-                    <div
-                      key={result.trainee.id}
-                      className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-start gap-4">
-                        {result.trainee.photo_url ? (
-                          <img
-                            src={result.trainee.photo_url}
-                            alt=""
-                            className="h-12 w-12 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                            <User className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <div>
-                              <h3 className="font-medium">{result.trainee.full_name}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                {result.trainee.trainee_code}
-                                {result.trainee.phone && ` • ${result.trainee.phone}`}
-                              </p>
+                  {searchResults.map((result) => {
+                    // Check nếu học viên đã xuất cảnh để hiển thị đúng trạng thái KTX
+                    const DEPARTED_STAGES = ["Xuất cảnh", "Đang làm việc", "Bỏ trốn", "Về trước hạn", "Hoàn thành hợp đồng"];
+                    const isDeparted = result.trainee.departure_date || 
+                      (result.trainee.progression_stage && DEPARTED_STAGES.includes(result.trainee.progression_stage));
+                    
+                    // Nếu đã xuất cảnh thì không còn "Đang ở" mà là "Đã rời"
+                    const hasDormitory = result.currentDormitory && !isDeparted;
+                    
+                    return (
+                      <div
+                        key={result.trainee.id}
+                        className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-start gap-4">
+                          {result.trainee.photo_url ? (
+                            <img
+                              src={result.trainee.photo_url}
+                              alt=""
+                              className="h-12 w-12 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                              <User className="h-6 w-6 text-muted-foreground" />
                             </div>
-                            {result.currentDormitory ? (
-                              <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
-                                <Home className="h-3 w-3 mr-1" />
-                                Đang ở: {result.currentDormitory.name}
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary">Không ở KTX</Badge>
+                          )}
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
+                              <div>
+                                <h3 className="font-medium">{result.trainee.full_name}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  {result.trainee.trainee_code}
+                                  {result.trainee.phone && ` • ${result.trainee.phone}`}
+                                </p>
+                              </div>
+                              {hasDormitory ? (
+                                <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                                  <Home className="h-3 w-3 mr-1" />
+                                  Đang ở: {result.currentDormitory.name}
+                                </Badge>
+                              ) : result.currentDormitory && isDeparted ? (
+                                <Badge variant="secondary">
+                                  <Home className="h-3 w-3 mr-1" />
+                                  Đã rời: {result.currentDormitory.name}
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary">Không ở KTX</Badge>
+                              )}
+                            </div>
+
+                            {result.currentRecord && (
+                              <div className="text-sm text-muted-foreground mb-2">
+                                Phòng: {result.currentRecord.room_number || "—"} | 
+                                Giường: {result.currentRecord.bed_number || "—"} | 
+                                Vào ngày: {format(new Date(result.currentRecord.check_in_date), "dd/MM/yyyy")}
+                              </div>
+                            )}
+
+                            {/* Lịch sử KTX */}
+                            {result.history.length > 0 && (
+                              <div className="mt-3 pt-3 border-t">
+                                <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                                  <History className="h-3 w-3" />
+                                  Lịch sử KTX ({result.history.length} bản ghi)
+                                </p>
+                                <div className="space-y-2">
+                                  {result.history.map((record) => {
+                                    // Logic: Nếu đã xuất cảnh hoặc có check_out_date => "Đã rời"
+                                    const actualStatus = (record.check_out_date || isDeparted)
+                                      ? "Đã rời"
+                                      : (record.status || "Đang ở");
+                                    return (
+                                      <div
+                                        key={record.id}
+                                        className="text-sm flex items-center gap-2 bg-muted/50 rounded px-2 py-1"
+                                      >
+                                        {getStatusBadge(actualStatus)}
+                                        <span className="font-medium">{record.dormitory?.name}</span>
+                                        <span className="text-muted-foreground">
+                                          ({format(new Date(record.check_in_date), "dd/MM/yyyy")}
+                                          {record.check_out_date && (
+                                            <> → {format(new Date(record.check_out_date), "dd/MM/yyyy")}</>
+                                          )})
+                                        </span>
+                                        {record.from_dormitory && (
+                                          <span className="text-xs text-muted-foreground">
+                                            (từ {record.from_dormitory.name})
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
                             )}
                           </div>
-
-                          {result.currentRecord && (
-                            <div className="text-sm text-muted-foreground mb-2">
-                              Phòng: {result.currentRecord.room_number || "—"} | 
-                              Giường: {result.currentRecord.bed_number || "—"} | 
-                              Vào ngày: {format(new Date(result.currentRecord.check_in_date), "dd/MM/yyyy")}
-                            </div>
-                          )}
-
-                          {/* Lịch sử KTX */}
-                          {result.history.length > 0 && (
-                            <div className="mt-3 pt-3 border-t">
-                              <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
-                                <History className="h-3 w-3" />
-                                Lịch sử KTX ({result.history.length} bản ghi)
-                              </p>
-                              <div className="space-y-2">
-                                {result.history.map((record) => (
-                                  <div
-                                    key={record.id}
-                                    className="text-sm flex items-center gap-2 bg-muted/50 rounded px-2 py-1"
-                                  >
-                                    {getStatusBadge(record.status)}
-                                    <span className="font-medium">{record.dormitory?.name}</span>
-                                    <span className="text-muted-foreground">
-                                      ({format(new Date(record.check_in_date), "dd/MM/yyyy")}
-                                      {record.check_out_date && (
-                                        <> → {format(new Date(record.check_out_date), "dd/MM/yyyy")}</>
-                                      )})
-                                    </span>
-                                    {record.from_dormitory && (
-                                      <span className="text-xs text-muted-foreground">
-                                        (từ {record.from_dormitory.name})
-                                      </span>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
