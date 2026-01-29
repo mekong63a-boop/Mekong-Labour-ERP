@@ -2251,6 +2251,14 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboard_monthly_passed: {
+        Row: {
+          month_date: string | null
+          month_label: string | null
+          passed_count: number | null
+        }
+        Relationships: []
+      }
       dashboard_trainee_by_birthplace: {
         Row: {
           birthplace: string | null

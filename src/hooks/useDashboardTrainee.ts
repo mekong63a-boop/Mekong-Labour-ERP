@@ -38,9 +38,10 @@ export interface SourceData { source: string; count: number; }
 export interface BirthplaceData { birthplace: string; count: number; }
 export interface GenderData { gender: string; count: number; }
 export interface DeparturesMonthlyData { month_label: string; departures: number; }
-export interface PassedMonthlyData { month_label: string; passed_count: number; }
+export interface PassedMonthlyData { month_label: string; month_date: string; passed_count: number; }
 export interface MonthlyCombinedData { month_label: string; month_date: string; recruitment: number; departure: number; }
 export interface CompanyData { company_id: string; company_name: string; year: number; count: number; }
+export interface MonthlyPassedData { month_label: string; month_date: string; passed_count: number; }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const queryView = async (viewName: string): Promise<any[]> => {
@@ -113,6 +114,13 @@ export const useTraineeDeparturesMonthly = () => useQuery({
 export const useTraineePassedMonthly = () => useQuery({
   queryKey: ["dashboard-trainee-passed-monthly"],
   queryFn: () => queryView("dashboard_trainee_passed_monthly") as Promise<PassedMonthlyData[]>,
+  staleTime: 30 * 1000,
+});
+
+// SYSTEM RULE: Monthly passed data from new view (with month_date for filtering)
+export const useMonthlyPassed = () => useQuery({
+  queryKey: ["dashboard-monthly-passed"],
+  queryFn: () => queryView("dashboard_monthly_passed") as Promise<MonthlyPassedData[]>,
   staleTime: 30 * 1000,
 });
 
