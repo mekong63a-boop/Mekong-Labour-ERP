@@ -535,14 +535,14 @@ export function useDormitoryGenderStats() {
       const { data, error } = await supabase
         .from("dormitory_gender_stats")
         .select("*")
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data as {
         total_residents: number;
         male_count: number;
         female_count: number;
-      };
+      } | null;
     },
   });
 }

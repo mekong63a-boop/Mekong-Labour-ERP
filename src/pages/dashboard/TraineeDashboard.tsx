@@ -410,7 +410,7 @@ export default function TraineeDashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={recruitmentChartData} barSize={20} margin={{ top: 20, right: 5, left: 5, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="month" fontSize={10} tickLine={false} axisLine={false} />
+                    <XAxis dataKey="month" fontSize={10} tickLine={false} axisLine={false} interval={0} />
                     <YAxis fontSize={10} tickLine={false} axisLine={false} />
                     <Tooltip
                       contentStyle={{
@@ -468,7 +468,7 @@ export default function TraineeDashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={passedChartData} barSize={20} margin={{ top: 20, right: 5, left: 5, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="month" fontSize={10} tickLine={false} axisLine={false} />
+                    <XAxis dataKey="month" fontSize={10} tickLine={false} axisLine={false} interval={0} />
                     <YAxis fontSize={10} tickLine={false} axisLine={false} />
                     <Tooltip
                       contentStyle={{
@@ -526,7 +526,7 @@ export default function TraineeDashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={departureChartData} barSize={20} margin={{ top: 20, right: 5, left: 5, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="month" fontSize={10} tickLine={false} axisLine={false} />
+                    <XAxis dataKey="month" fontSize={10} tickLine={false} axisLine={false} interval={0} />
                     <YAxis fontSize={10} tickLine={false} axisLine={false} />
                     <Tooltip
                       contentStyle={{

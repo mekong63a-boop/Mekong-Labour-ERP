@@ -135,6 +135,7 @@ export const REALTIME_GROUPS = {
   ORDERS: 'orders',
   PERMISSIONS: 'permissions',
   DASHBOARD: 'dashboard',
+  DORMITORY: 'dormitory',
 } as const;
 
 export const QUERY_KEY_BUNDLES = {
@@ -194,5 +195,15 @@ export const QUERY_KEY_BUNDLES = {
     ["order-trainee-counts"],
     ["order-trainees"],
     ["interview-history"],
+  ],
+  dormitory: [
+    ["dormitories"],
+    ["dormitories-with-count"],
+    ["dormitory-residents"],
+    ["dormitory-gender-stats"],
+    ["available-trainees-for-dormitory"],
+    ["trainees-in-other-dormitories"],
+    ["trainee-dormitory-history"],
+    ["search-trainee-dormitory"],
   ],
 } as const;
