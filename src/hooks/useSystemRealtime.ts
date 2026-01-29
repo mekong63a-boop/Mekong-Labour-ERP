@@ -245,13 +245,51 @@ export function useManualRefresh() {
     refreshOrders();
     refreshPartners();
     refreshEducation();
+    
+    // Internal Union
     queryClient.invalidateQueries({ queryKey: ["union-members"] });
     queryClient.invalidateQueries({ queryKey: ["union-transactions"] });
+    
+    // Glossary
     queryClient.invalidateQueries({ queryKey: ["vocabulary"] });
+    queryClient.invalidateQueries({ queryKey: ["katakana-names"] });
+    queryClient.invalidateQueries({ queryKey: ["religions"] });
+    queryClient.invalidateQueries({ queryKey: ["referral-sources"] });
+    queryClient.invalidateQueries({ queryKey: ["policy-categories"] });
+    
+    // Dormitory
+    queryClient.invalidateQueries({ queryKey: ["dormitories"] });
+    queryClient.invalidateQueries({ queryKey: ["dormitory-residents"] });
+    
+    // Handbook
+    queryClient.invalidateQueries({ queryKey: ["handbook-entries"] });
+    
+    // Violations/Blacklist
+    queryClient.invalidateQueries({ queryKey: ["blacklist"] });
+    queryClient.invalidateQueries({ queryKey: ["trainee-reviews"] });
+    
+    // Permissions & Roles (để cập nhật quyền xem PII)
+    queryClient.invalidateQueries({ queryKey: ["menus"] });
     queryClient.invalidateQueries({ queryKey: ["menus-full"] });
+    queryClient.invalidateQueries({ queryKey: ["user-role"] });
     queryClient.invalidateQueries({ queryKey: ["user-menu-permissions-direct"] });
     queryClient.invalidateQueries({ queryKey: ["user-access-version"] });
     queryClient.invalidateQueries({ queryKey: ["is-primary-admin"] });
+    queryClient.invalidateQueries({ queryKey: ["effective-permissions"] });
+    queryClient.invalidateQueries({ queryKey: ["menu-permissions"] });
+    queryClient.invalidateQueries({ queryKey: ["all-users-with-roles"] });
+    queryClient.invalidateQueries({ queryKey: ["department-permissions"] });
+    queryClient.invalidateQueries({ queryKey: ["department-members"] });
+    
+    // Departments
+    queryClient.invalidateQueries({ queryKey: ["departments"] });
+    
+    // Audit logs
+    queryClient.invalidateQueries({ queryKey: ["audit-logs"] });
+    
+    // System monitoring
+    queryClient.invalidateQueries({ queryKey: ["user-sessions"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-users"] });
   };
 
   return {
