@@ -22,6 +22,29 @@ export function useSystemRealtime() {
   const queryClient = useQueryClient();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
+  const refreshEducationRealtime = (source: string, eventType: string) => {
+    console.log(`[Realtime] Education changed (${source}):`, eventType);
+
+    // Mark stale
+    queryClient.invalidateQueries({ queryKey: ["classes"] });
+    queryClient.invalidateQueries({ queryKey: ["teachers"] });
+    queryClient.invalidateQueries({ queryKey: ["class-teachers"] });
+    queryClient.invalidateQueries({ queryKey: ["test-scores"] });
+    queryClient.invalidateQueries({ queryKey: ["test-names"] });
+    queryClient.invalidateQueries({ queryKey: ["education-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["education-interview-stats"] });
+
+    // Date-param queries (EducationDashboard)
+    queryClient.invalidateQueries({ queryKey: ["absent-late-attendance"] });
+
+    // Force immediate refetch for any currently visible screens (avoid 20–30s lag)
+    queryClient.refetchQueries({ queryKey: ["education-stats"], type: "active" });
+    queryClient.refetchQueries({ queryKey: ["education-interview-stats"], type: "active" });
+    queryClient.refetchQueries({ queryKey: ["classes"], type: "active" });
+    queryClient.refetchQueries({ queryKey: ["teachers"], type: "active" });
+    queryClient.refetchQueries({ queryKey: ["absent-late-attendance"], type: "active" });
+  };
+
   useEffect(() => {
     // Prevent duplicate subscriptions
     if (channelRef.current) {
@@ -86,7 +109,32 @@ export function useSystemRealtime() {
         (payload) => {
           console.log('[Realtime] Attendance changed:', payload.eventType);
           queryClient.invalidateQueries({ queryKey: ["attendance"] });
+          // EducationDashboard uses date-param query; keep it in sync
+          queryClient.invalidateQueries({ queryKey: ["absent-late-attendance"] });
+          queryClient.refetchQueries({ queryKey: ["absent-late-attendance"], type: "active" });
         }
+      )
+
+      // ========== EDUCATION TABLES (nhỏ nhưng cần realtime để đồng bộ đa tài khoản) ==========
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'classes' },
+        (payload) => refreshEducationRealtime('classes', payload.eventType)
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'teachers' },
+        (payload) => refreshEducationRealtime('teachers', payload.eventType)
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'class_teachers' },
+        (payload) => refreshEducationRealtime('class_teachers', payload.eventType)
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'test_scores' },
+        (payload) => refreshEducationRealtime('test_scores', payload.eventType)
       )
       // ========== USER ROLES (phân quyền - RẤT QUAN TRỌNG) ==========
       .on(
