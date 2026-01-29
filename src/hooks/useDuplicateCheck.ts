@@ -30,8 +30,8 @@ export function useDuplicateCheck(
   const [isChecking, setIsChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Debounce the value to avoid too many API calls
-  const debouncedValue = useDebounce(value, 500);
+  // Shorter debounce for faster feedback (300ms)
+  const debouncedValue = useDebounce(value, 300);
   
   // Use ref to track the latest request and avoid race conditions
   const requestIdRef = useRef(0);
