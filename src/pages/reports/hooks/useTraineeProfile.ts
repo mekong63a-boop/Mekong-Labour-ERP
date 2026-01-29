@@ -62,6 +62,29 @@ export interface JapanRelativeRecord {
   residence_status: string | null;
 }
 
+export interface DormitoryHistoryRecord {
+  id: string;
+  dormitory_name: string | null;
+  dormitory_address: string | null;
+  room_number: string | null;
+  bed_number: string | null;
+  check_in_date: string;
+  check_out_date: string | null;
+  status: string | null;
+  notes: string | null;
+  transfer_reason: string | null;
+  from_dormitory_name: string | null;
+}
+
+export interface EnrollmentHistoryRecord {
+  id: string;
+  action_type: string;
+  action_date: string;
+  notes: string | null;
+  from_class: string | null;
+  to_class: string | null;
+}
+
 export interface InterviewHistoryRecord {
   id: string;
   interview_date: string;
@@ -220,6 +243,8 @@ export interface TraineeProfile {
   work_history: WorkHistoryRecord[];
   family_members: FamilyMemberRecord[];
   japan_relatives: JapanRelativeRecord[];
+  dormitory_history: DormitoryHistoryRecord[];
+  enrollment_history: EnrollmentHistoryRecord[];
   
   can_view_pii: boolean;
   error?: string;

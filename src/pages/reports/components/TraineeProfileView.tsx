@@ -595,6 +595,81 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
               </>
             )}
 
+            {/* Dormitory History */}
+            {profile.dormitory_history && profile.dormitory_history.length > 0 && (
+              <>
+                <Section title="Lịch sử ở ký túc xá" icon={Home}>
+                  <div className="rounded-md border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="text-xs py-2">KTX</TableHead>
+                          <TableHead className="text-xs py-2">Phòng</TableHead>
+                          <TableHead className="text-xs py-2">Giường</TableHead>
+                          <TableHead className="text-xs py-2">Ngày vào</TableHead>
+                          <TableHead className="text-xs py-2">Ngày ra</TableHead>
+                          <TableHead className="text-xs py-2">Trạng thái</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {profile.dormitory_history.map((dorm) => (
+                          <TableRow key={dorm.id}>
+                            <TableCell className="text-xs py-1.5">
+                              <div>
+                                <p className="font-medium">{dorm.dormitory_name || "—"}</p>
+                                {dorm.from_dormitory_name && (
+                                  <p className="text-muted-foreground">Từ: {dorm.from_dormitory_name}</p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-xs py-1.5">{dorm.room_number || "—"}</TableCell>
+                            <TableCell className="text-xs py-1.5">{dorm.bed_number || "—"}</TableCell>
+                            <TableCell className="text-xs py-1.5">{formatDate(dorm.check_in_date)}</TableCell>
+                            <TableCell className="text-xs py-1.5">{formatDate(dorm.check_out_date)}</TableCell>
+                            <TableCell className="text-xs py-1.5">
+                              <Badge variant={dorm.status === "Đang ở" ? "default" : "secondary"}>
+                                {dorm.status || "—"}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </Section>
+                <Separator />
+              </>
+            )}
+
+            {/* Enrollment History - Lịch sử chuyển lớp */}
+            {profile.enrollment_history && profile.enrollment_history.length > 0 && (
+              <>
+                <Section title="Lịch sử chuyển lớp" icon={History}>
+                  <div className="space-y-2">
+                    {profile.enrollment_history.map((enroll) => (
+                      <div key={enroll.id} className="p-2 bg-muted/50 rounded text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{enroll.action_type}</span>
+                          <span className="text-xs text-muted-foreground">{formatDate(enroll.action_date)}</span>
+                        </div>
+                        {(enroll.from_class || enroll.to_class) && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {enroll.from_class && <span>Từ: {enroll.from_class}</span>}
+                            {enroll.from_class && enroll.to_class && <span> → </span>}
+                            {enroll.to_class && <span>Đến: {enroll.to_class}</span>}
+                          </div>
+                        )}
+                        {enroll.notes && (
+                          <p className="text-xs text-muted-foreground mt-1 italic">{enroll.notes}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </Section>
+                <Separator />
+              </>
+            )}
+
             {/* Interview History */}
             {profile.interview_history && profile.interview_history.length > 0 && (
               <>
