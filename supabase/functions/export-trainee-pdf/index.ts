@@ -357,19 +357,24 @@ serve(async (req) => {
     };
 
     // Draw bilingual string "JP (VN)" with mixed fonts to avoid VN squares
+    // CRITICAL: Use Noto Sans JP for BOTH parts - it supports Vietnamese AND Japanese/CJK
+    // Roboto from Google CDN does NOT fully support Vietnamese diacritics causing □ squares
     const drawBilingualValue = (value: string, x: number, yPos: number, size = 9, bold = false) => {
       const safeValue = sanitizeText(value || "");
       const match = safeValue.match(/^(.*)\s\((.*)\)$/);
       if (!match) {
-        drawText(safeValue, x, yPos, size, bold);
+        // Use Noto Sans JP for all bilingual content (supports both JP and VN)
+        const safeFont = bold ? fontJpBold : fontJp;
+        drawTextWithFont(safeValue, x, yPos, size, safeFont, bold);
         return;
       }
 
       const jpPart = (match[1] || "").trimEnd();
       const vnPart = match[2] || "";
 
-      const jpFont = containsCJK(jpPart) ? (bold ? fontJpBold : fontJp) : (bold ? fontBold : font);
-      const vnFont = bold ? fontBold : font;
+      // Use Noto Sans JP for BOTH parts - it has full Vietnamese support
+      const jpFont = bold ? fontJpBold : fontJp;
+      const vnFont = bold ? fontJpBold : fontJp;
 
       drawTextWithFont(jpPart, x, yPos, size, jpFont, bold);
       const jpWidth = jpFont.widthOfTextAtSize(sanitizeText(jpPart), size);
