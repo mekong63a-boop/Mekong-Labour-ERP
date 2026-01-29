@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useDebounce } from './useDebounce';
 
@@ -30,78 +30,98 @@ export function useDuplicateCheck(
   const [isChecking, setIsChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Debounce the value to avoid too many API calls
   const debouncedValue = useDebounce(value, 500);
+  
+  // Use ref to track the latest request and avoid race conditions
+  const requestIdRef = useRef(0);
 
-  const checkDuplicate = useCallback(async () => {
+  useEffect(() => {
+    // Skip check if not enabled or value is empty
     if (!enabled || !debouncedValue?.trim()) {
       setIsDuplicate(false);
       setError(null);
+      setIsChecking(false);
       return;
     }
 
-    setIsChecking(true);
-    setError(null);
+    const trimmedValue = debouncedValue.trim();
+    
+    // Increment request ID to track latest request
+    requestIdRef.current += 1;
+    const currentRequestId = requestIdRef.current;
 
-    try {
-      const trimmedValue = debouncedValue.trim();
+    const checkDuplicate = async () => {
+      setIsChecking(true);
+      setError(null);
 
-      // Build query based on field type
-      // Use ilike for case-insensitive comparison on name fields
-      let data: { id: string }[] | null = null;
-      let dbError: any = null;
+      try {
+        // Use case-insensitive for name fields or when explicitly requested
+        const useCaseInsensitive = field === 'name' || field === 'name_japanese' || caseInsensitive;
+        
+        let data: { id: string }[] | null = null;
+        let dbError: any = null;
 
-      // Use case-insensitive for name fields or when explicitly requested
-      const useCaseInsensitive = field === 'name' || field === 'name_japanese' || caseInsensitive;
-      
-      if (useCaseInsensitive) {
-        // Case-insensitive comparison
-        const result = await supabase
-          .from(table)
-          .select('id')
-          .ilike(field, trimmedValue)
-          .limit(5);
-        data = result.data;
-        dbError = result.error;
-      } else {
-        // Exact match for code fields using filter
-        const filters: Record<string, string> = {};
-        filters[field] = trimmedValue;
-        const result = await supabase
-          .from(table)
-          .select('id')
-          .match(filters)
-          .limit(5);
-        data = result.data;
-        dbError = result.error;
-      }
-
-      if (dbError) {
-        console.error('Duplicate check error:', dbError);
-        setError('Lỗi kiểm tra dữ liệu');
-        return;
-      }
-
-      // Check if result exists and isn't the current record
-      if (data && data.length > 0) {
-        if (currentId) {
-          setIsDuplicate(data.some((item) => item.id !== currentId));
+        if (useCaseInsensitive) {
+          // Case-insensitive comparison
+          const result = await supabase
+            .from(table)
+            .select('id')
+            .ilike(field, trimmedValue)
+            .limit(5);
+          data = result.data;
+          dbError = result.error;
         } else {
-          setIsDuplicate(true);
+          // Exact match for code fields using filter
+          const filters: Record<string, string> = {};
+          filters[field] = trimmedValue;
+          const result = await supabase
+            .from(table)
+            .select('id')
+            .match(filters)
+            .limit(5);
+          data = result.data;
+          dbError = result.error;
         }
-      } else {
-        setIsDuplicate(false);
-      }
-    } catch (err) {
-      console.error('Duplicate check exception:', err);
-      setError('Lỗi kiểm tra dữ liệu');
-    } finally {
-      setIsChecking(false);
-    }
-  }, [debouncedValue, table, field, currentId, enabled]);
 
-  useEffect(() => {
+        // Only update state if this is still the latest request
+        if (currentRequestId !== requestIdRef.current) {
+          return;
+        }
+
+        if (dbError) {
+          console.error('Duplicate check error:', dbError);
+          setError('Lỗi kiểm tra dữ liệu');
+          return;
+        }
+
+        // Check if result exists and isn't the current record
+        if (data && data.length > 0) {
+          if (currentId) {
+            setIsDuplicate(data.some((item) => item.id !== currentId));
+          } else {
+            setIsDuplicate(true);
+          }
+        } else {
+          setIsDuplicate(false);
+        }
+      } catch (err) {
+        // Only update state if this is still the latest request
+        if (currentRequestId !== requestIdRef.current) {
+          return;
+        }
+        console.error('Duplicate check exception:', err);
+        setError('Lỗi kiểm tra dữ liệu');
+      } finally {
+        // Only update state if this is still the latest request
+        if (currentRequestId === requestIdRef.current) {
+          setIsChecking(false);
+        }
+      }
+    };
+
     checkDuplicate();
-  }, [checkDuplicate]);
+  }, [debouncedValue, table, field, currentId, enabled, caseInsensitive]);
 
   return { isDuplicate, isChecking, error };
 }
