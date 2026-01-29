@@ -1,49 +1,35 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { 
+  createDebouncedRealtimeHandler, 
+  REALTIME_GROUPS, 
+  QUERY_KEY_BUNDLES 
+} from './useRealtimeDebounce';
 
 /**
- * OPTIMIZED REALTIME HOOK
+ * OPTIMIZED REALTIME HOOK - V2 (Debounced + Scalable)
  * 
- * Lắng nghe các bảng QUAN TRỌNG để tối ưu hiệu suất:
- * - trainees: học viên (chỉ UPDATE để invalidate cache)
- * - attendance: điểm danh realtime
- * - user_roles: phân quyền user
- * - menus: cấu trúc menu
- * - user_menu_permissions: quyền menu của user
- * - department_menu_permissions: quyền menu theo phòng ban
- * - department_members: thành viên phòng ban
+ * QUY TẮC VÀNG #3: Thiết kế cho triệu records + 100 users đồng thời
  * 
- * CÁC BẢNG LỚN KHÁC (orders, companies, unions) 
- * KHÔNG dùng realtime để tiết kiệm tài nguyên.
- * Thay vào đó sử dụng refetch thủ công khi cần.
+ * Tối ưu hóa:
+ * - Debounce 500ms để tránh Query Storm
+ * - Gom nhiều events liên tiếp thành 1 batch refresh
+ * - Targeted invalidation theo groups
+ * 
+ * Bảng được subscribe realtime:
+ * - trainees: học viên (debounced)
+ * - attendance: điểm danh
+ * - education tables: classes, teachers, class_teachers, test_scores
+ * - permissions: user_roles, menus, user_menu_permissions, department_menu_permissions
+ * 
+ * Bảng LỚN KHÔNG dùng realtime (dùng manual refresh):
+ * - orders, companies, unions
  */
 export function useSystemRealtime() {
   const queryClient = useQueryClient();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-
-  const refreshEducationRealtime = (source: string, eventType: string) => {
-    console.log(`[Realtime] Education changed (${source}):`, eventType);
-
-    // Mark stale
-    queryClient.invalidateQueries({ queryKey: ["classes"] });
-    queryClient.invalidateQueries({ queryKey: ["teachers"] });
-    queryClient.invalidateQueries({ queryKey: ["class-teachers"] });
-    queryClient.invalidateQueries({ queryKey: ["test-scores"] });
-    queryClient.invalidateQueries({ queryKey: ["test-names"] });
-    queryClient.invalidateQueries({ queryKey: ["education-stats"] });
-    queryClient.invalidateQueries({ queryKey: ["education-interview-stats"] });
-
-    // Date-param queries (EducationDashboard)
-    queryClient.invalidateQueries({ queryKey: ["absent-late-attendance"] });
-
-    // Force immediate refetch for any currently visible screens (avoid 20–30s lag)
-    queryClient.refetchQueries({ queryKey: ["education-stats"], type: "active" });
-    queryClient.refetchQueries({ queryKey: ["education-interview-stats"], type: "active" });
-    queryClient.refetchQueries({ queryKey: ["classes"], type: "active" });
-    queryClient.refetchQueries({ queryKey: ["teachers"], type: "active" });
-    queryClient.refetchQueries({ queryKey: ["absent-late-attendance"], type: "active" });
-  };
+  const debounceHandlerRef = useRef<ReturnType<typeof createDebouncedRealtimeHandler> | null>(null);
 
   useEffect(() => {
     // Prevent duplicate subscriptions
@@ -51,165 +37,181 @@ export function useSystemRealtime() {
       return;
     }
 
-    const channelId = `system-realtime-optimized-${Date.now()}`;
+    // Initialize debounce handler
+    if (!debounceHandlerRef.current) {
+      debounceHandlerRef.current = createDebouncedRealtimeHandler(queryClient);
+    }
+    const { queueInvalidation } = debounceHandlerRef.current;
+
+    const channelId = `system-realtime-debounced-${Date.now()}`;
     
-    console.log('[Realtime] Starting optimized subscription...');
+    console.log('[Realtime] Starting debounced subscription (500ms batch)...');
     
     const channel = supabase
       .channel(channelId)
-      // ========== TRAINEES (học viên - INSERT/UPDATE/DELETE) ==========
+      
+      // ========== TRAINEES (debounced - tránh query storm) ==========
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'trainees' },
         (payload) => {
-          console.log('[Realtime] Trainee changed:', payload.eventType);
-          // Invalidate tất cả queries liên quan đến trainees
-          queryClient.invalidateQueries({ queryKey: ["trainees"] });
-          queryClient.invalidateQueries({ queryKey: ["trainee"] });
-          queryClient.invalidateQueries({ queryKey: ["trainees-paginated"] });
-          queryClient.invalidateQueries({ queryKey: ["trainee-stage-counts"] });
-          queryClient.invalidateQueries({ queryKey: ["trainees-count"] });
-
-          // Invalidate dashboard (đúng query keys đang dùng)
-          queryClient.invalidateQueries({ queryKey: ["dashboard-trainees-raw"] });
-          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-kpis"] });
-          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-stage"] });
-          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-status"] });
-          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-type"] });
-          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-monthly"] });
-          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-source"] });
-          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-birthplace"] });
-          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-gender"] });
-          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-departures-monthly"] });
-          queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-passed-monthly"] });
+          console.log('[Realtime] Trainee changed (queued):', payload.eventType);
           
-          // Invalidate education queries khi trainee thay đổi (class_id được gán/xóa)
-          queryClient.invalidateQueries({ queryKey: ["classes"] });
-          queryClient.invalidateQueries({ queryKey: ["class-students"] });
-          queryClient.invalidateQueries({ queryKey: ["class-students-detailed"] });
-          queryClient.invalidateQueries({ queryKey: ["available-trainees"] });
-          queryClient.invalidateQueries({ queryKey: ["interview-stats"] });
+          // Queue trainee-related invalidations (debounced 500ms)
+          queueInvalidation(REALTIME_GROUPS.TRAINEES, QUERY_KEY_BUNDLES.trainees, true);
+          
+          // Queue dashboard invalidations
+          queueInvalidation(REALTIME_GROUPS.DASHBOARD, QUERY_KEY_BUNDLES.traineesDashboard, false);
+          
+          // Queue education (class_id changes)
+          queueInvalidation(REALTIME_GROUPS.EDUCATION, [
+            ["classes"],
+            ["class-students"],
+            ["class-students-detailed"],
+            ["available-trainees"],
+            ["interview-stats"],
+          ], false);
         }
       )
-      // ========== INTERVIEW HISTORY (lịch sử phỏng vấn - ảnh hưởng đến đơn tuyển) ==========
+      
+      // ========== INTERVIEW HISTORY (debounced) ==========
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'interview_history' },
         (payload) => {
-          console.log('[Realtime] Interview history changed:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: ["interview-history"] });
-          queryClient.invalidateQueries({ queryKey: ["order-trainee-counts"] });
-          queryClient.invalidateQueries({ queryKey: ["order-trainees"] });
+          console.log('[Realtime] Interview history changed (queued):', payload.eventType);
+          queueInvalidation(REALTIME_GROUPS.ORDERS, QUERY_KEY_BUNDLES.orders, false);
         }
       )
-      // ========== ATTENDANCE (điểm danh realtime) ==========
+      
+      // ========== ATTENDANCE (debounced) ==========
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'attendance' },
         (payload) => {
-          console.log('[Realtime] Attendance changed:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: ["attendance"] });
-          // EducationDashboard uses date-param query; keep it in sync
-          queryClient.invalidateQueries({ queryKey: ["absent-late-attendance"] });
-          queryClient.refetchQueries({ queryKey: ["absent-late-attendance"], type: "active" });
+          console.log('[Realtime] Attendance changed (queued):', payload.eventType);
+          queueInvalidation(REALTIME_GROUPS.EDUCATION, [
+            ["attendance"],
+            ["absent-late-attendance"],
+          ], true);
         }
       )
 
-      // ========== EDUCATION TABLES (nhỏ nhưng cần realtime để đồng bộ đa tài khoản) ==========
+      // ========== EDUCATION TABLES (debounced) ==========
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'classes' },
-        (payload) => refreshEducationRealtime('classes', payload.eventType)
+        (payload) => {
+          console.log('[Realtime] Classes changed (queued):', payload.eventType);
+          queueInvalidation(REALTIME_GROUPS.EDUCATION, QUERY_KEY_BUNDLES.education, true);
+        }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'teachers' },
-        (payload) => refreshEducationRealtime('teachers', payload.eventType)
+        (payload) => {
+          console.log('[Realtime] Teachers changed (queued):', payload.eventType);
+          queueInvalidation(REALTIME_GROUPS.EDUCATION, QUERY_KEY_BUNDLES.education, true);
+        }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'class_teachers' },
-        (payload) => refreshEducationRealtime('class_teachers', payload.eventType)
+        (payload) => {
+          console.log('[Realtime] Class teachers changed (queued):', payload.eventType);
+          queueInvalidation(REALTIME_GROUPS.EDUCATION, QUERY_KEY_BUNDLES.education, true);
+        }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'test_scores' },
-        (payload) => refreshEducationRealtime('test_scores', payload.eventType)
+        (payload) => {
+          console.log('[Realtime] Test scores changed (queued):', payload.eventType);
+          queueInvalidation(REALTIME_GROUPS.EDUCATION, QUERY_KEY_BUNDLES.education, true);
+        }
       )
-      // ========== USER ROLES (phân quyền - RẤT QUAN TRỌNG) ==========
+      
+      // ========== USER ROLES (immediate - critical for security) ==========
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'user_roles' },
         (payload) => {
           console.log('[Realtime] User roles changed:', payload.eventType);
-          // Invalidate tất cả query liên quan đến roles/permissions
-          queryClient.invalidateQueries({ queryKey: ["user-role"] });
-          queryClient.invalidateQueries({ queryKey: ["users"] });
-          queryClient.invalidateQueries({ queryKey: ["all-users"] });
-          queryClient.invalidateQueries({ queryKey: ["all-users-with-roles"] });
-          queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-          queryClient.invalidateQueries({ queryKey: ["is-primary-admin"] });
-          queryClient.invalidateQueries({ queryKey: ["is-admin-check"] });
-          queryClient.invalidateQueries({ queryKey: ["user-access-version"] });
+          // Permissions are critical - use smaller debounce window
+          queueInvalidation(REALTIME_GROUPS.PERMISSIONS, QUERY_KEY_BUNDLES.permissions, true);
         }
       )
-      // ========== MENUS (cấu trúc menu) ==========
+      
+      // ========== MENUS ==========
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'menus' },
         (payload) => {
           console.log('[Realtime] Menus changed:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: ["menus"] });
-          queryClient.invalidateQueries({ queryKey: ["menus-full"] });
+          queueInvalidation(REALTIME_GROUPS.PERMISSIONS, [
+            ["menus"],
+            ["menus-full"],
+          ], true);
         }
       )
+      
       // ========== USER MENU PERMISSIONS ==========
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'user_menu_permissions' },
         (payload) => {
           console.log('[Realtime] User menu permissions changed:', payload.eventType);
-          // Invalidate tất cả query liên quan đến permissions
-          queryClient.invalidateQueries({ queryKey: ["menu-permissions"] });
-          queryClient.invalidateQueries({ queryKey: ["effective-permissions"] });
-          queryClient.invalidateQueries({ queryKey: ["user-permissions"] });
-          queryClient.invalidateQueries({ queryKey: ["user-menu-permissions-direct"] });
-          queryClient.invalidateQueries({ queryKey: ["user-access-version"] });
-          queryClient.invalidateQueries({ queryKey: ["is-primary-admin"] });
+          queueInvalidation(REALTIME_GROUPS.PERMISSIONS, [
+            ["menu-permissions"],
+            ["effective-permissions"],
+            ["user-permissions"],
+            ["user-menu-permissions-direct"],
+            ["user-access-version"],
+            ["is-primary-admin"],
+          ], true);
         }
       )
+      
       // ========== DEPARTMENT MENU PERMISSIONS ==========
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'department_menu_permissions' },
         (payload) => {
           console.log('[Realtime] Department menu permissions changed:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: ["department-permissions"] });
-          queryClient.invalidateQueries({ queryKey: ["effective-permissions"] });
-          queryClient.invalidateQueries({ queryKey: ["user-menu-permissions-direct"] });
+          queueInvalidation(REALTIME_GROUPS.PERMISSIONS, [
+            ["department-permissions"],
+            ["effective-permissions"],
+            ["user-menu-permissions-direct"],
+          ], true);
         }
       )
+      
       // ========== DEPARTMENT MEMBERS ==========
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'department_members' },
         (payload) => {
           console.log('[Realtime] Department members changed:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: ["department-members"] });
-          queryClient.invalidateQueries({ queryKey: ["department-counts"] });
-          queryClient.invalidateQueries({ queryKey: ["effective-permissions"] });
-          queryClient.invalidateQueries({ queryKey: ["user-departments"] });
+          queueInvalidation(REALTIME_GROUPS.PERMISSIONS, [
+            ["department-members"],
+            ["department-counts"],
+            ["effective-permissions"],
+            ["user-departments"],
+          ], true);
         }
       )
-      // ========== USER ACCESS VERSIONS (quyền được thay đổi) ==========
+      
+      // ========== USER ACCESS VERSIONS ==========
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'user_access_versions' },
         (payload) => {
           console.log('[Realtime] User access version changed:', payload.eventType);
-          queryClient.invalidateQueries({ queryKey: ["user-access-version"] });
-          queryClient.invalidateQueries({ queryKey: ["user-menu-permissions-direct"] });
-          queryClient.invalidateQueries({ queryKey: ["is-primary-admin"] });
+          queueInvalidation(REALTIME_GROUPS.PERMISSIONS, [
+            ["user-access-version"],
+            ["user-menu-permissions-direct"],
+            ["is-primary-admin"],
+          ], true);
         }
       )
       .subscribe((status) => {
@@ -242,6 +244,10 @@ export function useManualRefresh() {
     queryClient.invalidateQueries({ queryKey: ["trainee-stage-counts"] });
     queryClient.invalidateQueries({ queryKey: ["trainees-count"] });
     queryClient.invalidateQueries({ queryKey: ["trainee"] });
+    
+    // Force immediate refetch for active queries
+    queryClient.refetchQueries({ queryKey: ["trainees"], type: "active" });
+    queryClient.refetchQueries({ queryKey: ["trainees-paginated"], type: "active" });
   };
 
   const refreshDashboard = () => {
@@ -257,6 +263,9 @@ export function useManualRefresh() {
     queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-by-gender"] });
     queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-departures-monthly"] });
     queryClient.invalidateQueries({ queryKey: ["dashboard-trainee-passed-monthly"] });
+    
+    // Force immediate refetch
+    queryClient.refetchQueries({ queryKey: ["dashboard-trainee-kpis"], type: "active" });
   };
 
   const refreshOrders = () => {
@@ -265,6 +274,8 @@ export function useManualRefresh() {
     queryClient.invalidateQueries({ queryKey: ["order-trainee-counts"] });
     queryClient.invalidateQueries({ queryKey: ["order-trainees"] });
     queryClient.invalidateQueries({ queryKey: ["interview-history"] });
+    
+    queryClient.refetchQueries({ queryKey: ["orders"], type: "active" });
   };
 
   const refreshPartners = () => {
@@ -272,6 +283,9 @@ export function useManualRefresh() {
     queryClient.invalidateQueries({ queryKey: ["companies"] });
     queryClient.invalidateQueries({ queryKey: ["unions"] });
     queryClient.invalidateQueries({ queryKey: ["job_categories"] });
+    
+    queryClient.refetchQueries({ queryKey: ["companies"], type: "active" });
+    queryClient.refetchQueries({ queryKey: ["unions"], type: "active" });
   };
 
   const refreshEducation = () => {
@@ -283,19 +297,15 @@ export function useManualRefresh() {
     queryClient.invalidateQueries({ queryKey: ["available-trainees"] });
     queryClient.invalidateQueries({ queryKey: ["attendance"] });
     queryClient.invalidateQueries({ queryKey: ["test-scores"] });
-
-    // Education dashboards/views
     queryClient.invalidateQueries({ queryKey: ["education-stats"] });
     queryClient.invalidateQueries({ queryKey: ["education-interview-stats"] });
-
-    // Absent/late widget on EducationDashboard (date-param queries)
     queryClient.invalidateQueries({ queryKey: ["absent-late-attendance"] });
 
-    // CRITICAL: default staleTime=2m => invalidate có thể chưa kéo lại ngay tùy trạng thái.
-    // Refetch các query đang active để số liệu cập nhật tức thì (không cần điều hướng ra/vào).
+    // Force immediate refetch for active queries
     queryClient.refetchQueries({ queryKey: ["education-stats"], type: "active" });
     queryClient.refetchQueries({ queryKey: ["education-interview-stats"], type: "active" });
     queryClient.refetchQueries({ queryKey: ["classes"], type: "active" });
+    queryClient.refetchQueries({ queryKey: ["teachers"], type: "active" });
   };
 
   const refreshAll = () => {
@@ -328,7 +338,7 @@ export function useManualRefresh() {
     queryClient.invalidateQueries({ queryKey: ["blacklist"] });
     queryClient.invalidateQueries({ queryKey: ["trainee-reviews"] });
     
-    // Permissions & Roles (để cập nhật quyền xem PII)
+    // Permissions & Roles
     queryClient.invalidateQueries({ queryKey: ["menus"] });
     queryClient.invalidateQueries({ queryKey: ["menus-full"] });
     queryClient.invalidateQueries({ queryKey: ["user-role"] });
@@ -364,24 +374,15 @@ export function useManualRefresh() {
 
 /**
  * DEPRECATED: Các hook cũ vẫn giữ lại để tương thích ngược
- * Nhưng không còn tự động subscribe realtime cho bảng lớn
  */
 export function useOrdersRealtime() {
-  // Không còn realtime cho orders - sử dụng useManualRefresh().refreshOrders() thay thế
   console.log('[Realtime] Orders realtime disabled - use manual refresh instead');
 }
 
 export function usePartnersRealtime() {
-  // Không còn realtime cho partners - sử dụng useManualRefresh().refreshPartners() thay thế
   console.log('[Realtime] Partners realtime disabled - use manual refresh instead');
 }
 
 export function useInternalUnionRealtime() {
-  // Không còn realtime cho internal union - sử dụng manual refresh thay thế
-  console.log('[Realtime] Internal Union realtime disabled - use manual refresh instead');
-}
-
-export function useGlossaryRealtime() {
-  // Không còn realtime cho glossary - sử dụng manual refresh thay thế
-  console.log('[Realtime] Glossary realtime disabled - use manual refresh instead');
+  console.log('[Realtime] Internal union realtime disabled - use manual refresh instead');
 }
