@@ -33,6 +33,7 @@ export default function CompanyForm() {
     code: "",
     name: "",
     name_japanese: "",
+    industry: "",
     address: "",
     work_address: "",
     representative: "",
@@ -85,6 +86,7 @@ export default function CompanyForm() {
           code: company.code,
           name: company.name,
           name_japanese: company.name_japanese || "",
+          industry: company.industry || "",
           address: company.address || "",
           work_address: company.work_address || "",
           representative: company.representative || "",
@@ -262,6 +264,18 @@ export default function CompanyForm() {
                     <span className="text-xs text-destructive">{getDuplicateErrorMessage('companies', 'name_japanese')}</span>
                   )}
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-primary">Ngành nghề</Label>
+                <Input
+                  value={formData.industry}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, industry: e.target.value }))
+                  }
+                  placeholder="VD: Thực phẩm, Xây dựng, Cơ khí..."
+                  className="bg-amber-50/50 border-primary/20"
+                />
               </div>
 
               <div className="space-y-2">
