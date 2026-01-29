@@ -214,6 +214,24 @@ export function useSystemRealtime() {
           ], true);
         }
       )
+      
+      // ========== DORMITORY TABLES (debounced) ==========
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'dormitories' },
+        (payload) => {
+          console.log('[Realtime] Dormitories changed (queued):', payload.eventType);
+          queueInvalidation(REALTIME_GROUPS.DORMITORY, QUERY_KEY_BUNDLES.dormitory, true);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'dormitory_residents' },
+        (payload) => {
+          console.log('[Realtime] Dormitory residents changed (queued):', payload.eventType);
+          queueInvalidation(REALTIME_GROUPS.DORMITORY, QUERY_KEY_BUNDLES.dormitory, true);
+        }
+      )
       .subscribe((status) => {
         console.log('[Realtime] System subscription status:', status);
       });
@@ -327,9 +345,16 @@ export function useManualRefresh() {
     queryClient.invalidateQueries({ queryKey: ["referral-sources"] });
     queryClient.invalidateQueries({ queryKey: ["policy-categories"] });
     
-    // Dormitory
+    // Dormitory - với force refetch
     queryClient.invalidateQueries({ queryKey: ["dormitories"] });
+    queryClient.invalidateQueries({ queryKey: ["dormitories-with-count"] });
     queryClient.invalidateQueries({ queryKey: ["dormitory-residents"] });
+    queryClient.invalidateQueries({ queryKey: ["dormitory-gender-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["available-trainees-for-dormitory"] });
+    queryClient.invalidateQueries({ queryKey: ["trainees-in-other-dormitories"] });
+    queryClient.refetchQueries({ queryKey: ["dormitories-with-count"], type: "active" });
+    queryClient.refetchQueries({ queryKey: ["dormitory-residents"], type: "active" });
+    queryClient.refetchQueries({ queryKey: ["dormitory-gender-stats"], type: "active" });
     
     // Handbook
     queryClient.invalidateQueries({ queryKey: ["handbook-entries"] });
