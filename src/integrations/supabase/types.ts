@@ -2361,6 +2361,14 @@ export type Database = {
         }
         Relationships: []
       }
+      dormitory_gender_stats: {
+        Row: {
+          female_count: number | null
+          male_count: number | null
+          total_residents: number | null
+        }
+        Relationships: []
+      }
       education_interview_stats: {
         Row: {
           not_passed_female: number | null

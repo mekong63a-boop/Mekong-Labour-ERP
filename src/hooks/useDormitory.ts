@@ -525,3 +525,24 @@ export function useTraineesInOtherDormitories(excludeDormitoryId: string | null)
     enabled: !!excludeDormitoryId,
   });
 }
+
+// Hook to get gender statistics for current dormitory residents
+// SYSTEM RULE: Logic tính toán từ database view dormitory_gender_stats
+export function useDormitoryGenderStats() {
+  return useQuery({
+    queryKey: ["dormitory-gender-stats"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dormitory_gender_stats")
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      return data as {
+        total_residents: number;
+        male_count: number;
+        female_count: number;
+      };
+    },
+  });
+}

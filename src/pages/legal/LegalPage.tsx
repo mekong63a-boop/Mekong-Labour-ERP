@@ -500,7 +500,7 @@ export default function LegalPage() {
                       <TableCell className="font-medium whitespace-nowrap">
                         {removeVietnameseDiacritics(trainee.full_name)}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">
+                      <TableCell className={`whitespace-nowrap ${!trainee.furigana ? 'bg-orange-50 text-orange-600' : ''}`}>
                         {trainee.furigana || "—"}
                       </TableCell>
                       <TableCell className="text-center">{trainee.gender || "—"}</TableCell>
@@ -513,149 +513,149 @@ export default function LegalPage() {
                         {formatJapaneseDate(trainee.birth_date)}
                       </TableCell>
                       {/* Nơi sinh có dấu */}
-                      <TableCell className="whitespace-nowrap">
+                      <TableCell className={`whitespace-nowrap ${!trainee.birthplace ? 'bg-orange-50 text-orange-600' : ''}`}>
                         {trainee.birthplace || "—"}
                       </TableCell>
                       {/* Nơi sinh không dấu */}
-                      <TableCell className="whitespace-nowrap">
+                      <TableCell className={`whitespace-nowrap ${!trainee.birthplace ? 'bg-orange-50 text-orange-600' : ''}`}>
                         {trainee.birthplace ? removeVietnameseDiacritics(trainee.birthplace) : "—"}
                       </TableCell>
                       {/* Số hộ chiếu */}
-                      <TableCell className="font-mono text-xs">
+                      <TableCell className={`font-mono text-xs ${!trainee.passport_number ? 'bg-orange-50 text-orange-600' : ''}`}>
                         {trainee.passport_number || "—"}
                       </TableCell>
                       {/* Ngày cấp hộ chiếu */}
-                      <TableCell className="whitespace-nowrap">
+                      <TableCell className={`whitespace-nowrap ${!trainee.passport_date ? 'bg-orange-50 text-orange-600' : ''}`}>
                         {trainee.passport_date 
                           ? format(new Date(trainee.passport_date), "dd/MM/yyyy", { locale: vi })
                           : "—"}
                       </TableCell>
                       {/* Ngày cấp hộ chiếu tiếng Nhật */}
-                      <TableCell className="whitespace-nowrap">
+                      <TableCell className={`whitespace-nowrap ${!trainee.passport_date ? 'bg-orange-50 text-orange-600' : ''}`}>
                         {formatJapaneseDate(trainee.passport_date)}
                       </TableCell>
                       {/* Ngày dự kiến XC */}
-                      <TableCell className="whitespace-nowrap">
+                      <TableCell className={`whitespace-nowrap ${!trainee.expected_entry_month ? 'bg-orange-50 text-orange-600' : ''}`}>
                         {trainee.expected_entry_month || "—"}
                       </TableCell>
                       {/* Ngày dự kiến XC tiếng Nhật */}
-                      <TableCell className="whitespace-nowrap">
+                      <TableCell className={`whitespace-nowrap ${!trainee.expected_entry_month ? 'bg-orange-50 text-orange-600' : ''}`}>
                         {trainee.expected_entry_month 
                           ? formatJapaneseDate(trainee.expected_entry_month)
                           : "—"}
                       </TableCell>
                       {/* Địa chỉ Việt - editable */}
-                      <TableCell className="min-w-[150px]">
+                      <TableCell className={`min-w-[150px] ${!trainee.legal_address_vn ? 'bg-orange-50' : ''}`}>
                         <Input
-                          className="h-7 text-xs"
+                          className={`h-7 text-xs ${!trainee.legal_address_vn ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
                           defaultValue={trainee.legal_address_vn || ""}
                           onBlur={(e) => handleLegalFieldBlur(trainee.id, "legal_address_vn", e.target.value)}
                           placeholder="Nhập địa chỉ VN"
                         />
                       </TableCell>
                       {/* Địa chỉ Nhật - editable */}
-                      <TableCell className="min-w-[150px]">
+                      <TableCell className={`min-w-[150px] ${!trainee.legal_address_jp ? 'bg-orange-50' : ''}`}>
                         <Input
-                          className="h-7 text-xs"
+                          className={`h-7 text-xs ${!trainee.legal_address_jp ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
                           defaultValue={trainee.legal_address_jp || ""}
                           onBlur={(e) => handleLegalFieldBlur(trainee.id, "legal_address_jp", e.target.value)}
                           placeholder="日本住所"
                         />
                       </TableCell>
                       {/* Tên người bảo lãnh VN - editable */}
-                      <TableCell className="min-w-[120px]">
+                      <TableCell className={`min-w-[120px] ${!trainee.guarantor_name_vn ? 'bg-orange-50' : ''}`}>
                         <Input
-                          className="h-7 text-xs"
+                          className={`h-7 text-xs ${!trainee.guarantor_name_vn ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
                           defaultValue={trainee.guarantor_name_vn || ""}
                           onBlur={(e) => handleLegalFieldBlur(trainee.id, "guarantor_name_vn", e.target.value)}
                           placeholder="Tên BL VN"
                         />
                       </TableCell>
                       {/* Tên người bảo lãnh JP - editable */}
-                      <TableCell className="min-w-[120px]">
+                      <TableCell className={`min-w-[120px] ${!trainee.guarantor_name_jp ? 'bg-orange-50' : ''}`}>
                         <Input
-                          className="h-7 text-xs"
+                          className={`h-7 text-xs ${!trainee.guarantor_name_jp ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
                           defaultValue={trainee.guarantor_name_jp || ""}
                           onBlur={(e) => handleLegalFieldBlur(trainee.id, "guarantor_name_jp", e.target.value)}
                           placeholder="保証人名"
                         />
                       </TableCell>
                       {/* SĐT người bảo lãnh - editable */}
-                      <TableCell className="min-w-[100px]">
+                      <TableCell className={`min-w-[100px] ${!trainee.guarantor_phone ? 'bg-orange-50' : ''}`}>
                         <Input
-                          className="h-7 text-xs font-mono"
+                          className={`h-7 text-xs font-mono ${!trainee.guarantor_phone ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
                           defaultValue={trainee.guarantor_phone || ""}
                           onBlur={(e) => handleLegalFieldBlur(trainee.id, "guarantor_phone", e.target.value)}
                           placeholder="SĐT"
                         />
                       </TableCell>
                       {/* Tên trường cấp 3 - manual input */}
-                      <TableCell className="min-w-[180px]">
+                      <TableCell className={`min-w-[180px] ${!trainee.high_school_name ? 'bg-orange-50' : ''}`}>
                         <Input
-                          className="h-7 text-xs"
+                          className={`h-7 text-xs ${!trainee.high_school_name ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
                           defaultValue={trainee.high_school_name || ""}
                           onBlur={(e) => handleLegalFieldBlur(trainee.id, "high_school_name", e.target.value)}
                           placeholder="VD: CHU VAN AN高等学校"
                         />
                       </TableCell>
                       {/* Thời gian học cấp 3 - manual input */}
-                      <TableCell className="min-w-[150px]">
+                      <TableCell className={`min-w-[150px] ${!trainee.high_school_period ? 'bg-orange-50' : ''}`}>
                         <Input
-                          className="h-7 text-xs"
+                          className={`h-7 text-xs ${!trainee.high_school_period ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
                           defaultValue={trainee.high_school_period || ""}
                           onBlur={(e) => handleLegalFieldBlur(trainee.id, "high_school_period", e.target.value)}
                           placeholder="2002年09月~2005年06月"
                         />
                       </TableCell>
                       {/* Trường chứng chỉ JP - manual input */}
-                      <TableCell className="min-w-[220px]">
+                      <TableCell className={`min-w-[220px] ${!trainee.jp_certificate_school ? 'bg-orange-50' : ''}`}>
                         <Input
-                          className="h-7 text-xs"
+                          className={`h-7 text-xs ${!trainee.jp_certificate_school ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
                           defaultValue={trainee.jp_certificate_school || ""}
                           onBlur={(e) => handleLegalFieldBlur(trainee.id, "jp_certificate_school", e.target.value)}
                           placeholder="VD: QUANG TRUNG専門学校"
                         />
                       </TableCell>
                       {/* Thời gian học chứng chỉ JP - manual input */}
-                      <TableCell className="min-w-[150px]">
+                      <TableCell className={`min-w-[150px] ${!trainee.jp_certificate_period ? 'bg-orange-50' : ''}`}>
                         <Input
-                          className="h-7 text-xs"
+                          className={`h-7 text-xs ${!trainee.jp_certificate_period ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
                           defaultValue={trainee.jp_certificate_period || ""}
                           onBlur={(e) => handleLegalFieldBlur(trainee.id, "jp_certificate_period", e.target.value)}
                           placeholder="2002年09月~2005年06月"
                         />
                       </TableCell>
                       {/* Tên trường JP 1 - manual input */}
-                      <TableCell className="min-w-[180px]">
+                      <TableCell className={`min-w-[180px] ${!trainee.jp_school_1 ? 'bg-orange-50' : ''}`}>
                         <Input
-                          className="h-7 text-xs"
+                          className={`h-7 text-xs ${!trainee.jp_school_1 ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
                           defaultValue={trainee.jp_school_1 || ""}
                           onBlur={(e) => handleLegalFieldBlur(trainee.id, "jp_school_1", e.target.value)}
                           placeholder="Tên trường JP 1"
                         />
                       </TableCell>
                       {/* Khóa học JP 1 - manual input */}
-                      <TableCell className="min-w-[150px]">
+                      <TableCell className={`min-w-[150px] ${!trainee.jp_course_1 ? 'bg-orange-50' : ''}`}>
                         <Input
-                          className="h-7 text-xs"
+                          className={`h-7 text-xs ${!trainee.jp_course_1 ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
                           defaultValue={trainee.jp_course_1 || ""}
                           onBlur={(e) => handleLegalFieldBlur(trainee.id, "jp_course_1", e.target.value)}
                           placeholder="2002年09月~2005年06月"
                         />
                       </TableCell>
                       {/* Tên trường JP 2 - manual input */}
-                      <TableCell className="min-w-[180px]">
+                      <TableCell className={`min-w-[180px] ${!trainee.jp_school_2 ? 'bg-orange-50' : ''}`}>
                         <Input
-                          className="h-7 text-xs"
+                          className={`h-7 text-xs ${!trainee.jp_school_2 ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
                           defaultValue={trainee.jp_school_2 || ""}
                           onBlur={(e) => handleLegalFieldBlur(trainee.id, "jp_school_2", e.target.value)}
                           placeholder="Tên trường JP 2"
                         />
                       </TableCell>
                       {/* Khóa học JP 2 - manual input */}
-                      <TableCell className="min-w-[150px]">
+                      <TableCell className={`min-w-[150px] ${!trainee.jp_course_2 ? 'bg-orange-50' : ''}`}>
                         <Input
-                          className="h-7 text-xs"
+                          className={`h-7 text-xs ${!trainee.jp_course_2 ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
                           defaultValue={trainee.jp_course_2 || ""}
                           onBlur={(e) => handleLegalFieldBlur(trainee.id, "jp_course_2", e.target.value)}
                           placeholder="2002年09月~2005年06月"
