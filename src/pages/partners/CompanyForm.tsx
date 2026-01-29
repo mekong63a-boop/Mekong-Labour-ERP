@@ -208,40 +208,42 @@ export default function CompanyForm() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-primary">
-                  Tên công ty <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                  placeholder="Tên công ty"
-                  className="bg-amber-50/50 border-primary/20"
-                  required
-                />
-              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-primary">
+                    Tên công ty phiên âm <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, name: e.target.value }))
+                    }
+                    placeholder="VD: Chugoku Mokuzai"
+                    className="bg-amber-50/50 border-primary/20"
+                    required
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label className="text-primary">
-                  Tên tiếng Nhật <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  value={formData.name_japanese}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, name_japanese: e.target.value }))
-                  }
-                  placeholder="会社名"
-                  className={`bg-amber-50/50 border-primary/20 ${isNameJpDuplicate ? 'border-destructive' : ''}`}
-                  required
-                />
-                {isCheckingNameJp && (
-                  <span className="text-xs text-muted-foreground">Đang kiểm tra...</span>
-                )}
-                {isNameJpDuplicate && !isCheckingNameJp && (
-                  <span className="text-xs text-destructive">{getDuplicateErrorMessage('companies', 'name_japanese')}</span>
-                )}
+                <div className="space-y-2">
+                  <Label className="text-primary">
+                    Tên công ty tiếng Nhật <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    value={formData.name_japanese}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, name_japanese: e.target.value }))
+                    }
+                    placeholder="中国木材株式会社"
+                    className={`bg-amber-50/50 border-primary/20 ${isNameJpDuplicate ? 'border-destructive' : ''}`}
+                    required
+                  />
+                  {isCheckingNameJp && (
+                    <span className="text-xs text-muted-foreground">Đang kiểm tra...</span>
+                  )}
+                  {isNameJpDuplicate && !isCheckingNameJp && (
+                    <span className="text-xs text-destructive">⚠️ Tên công ty tiếng Nhật đã tồn tại!</span>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">
