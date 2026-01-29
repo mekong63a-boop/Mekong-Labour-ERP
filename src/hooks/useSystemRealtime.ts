@@ -242,6 +242,12 @@ export function useManualRefresh() {
 
     // Absent/late widget on EducationDashboard (date-param queries)
     queryClient.invalidateQueries({ queryKey: ["absent-late-attendance"] });
+
+    // CRITICAL: default staleTime=2m => invalidate có thể chưa kéo lại ngay tùy trạng thái.
+    // Refetch các query đang active để số liệu cập nhật tức thì (không cần điều hướng ra/vào).
+    queryClient.refetchQueries({ queryKey: ["education-stats"], type: "active" });
+    queryClient.refetchQueries({ queryKey: ["education-interview-stats"], type: "active" });
+    queryClient.refetchQueries({ queryKey: ["classes"], type: "active" });
   };
 
   const refreshAll = () => {
