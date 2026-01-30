@@ -460,15 +460,30 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     }
   }, [isEditMode, trainee]);
 
+  // CRITICAL: Các stage trước xuất cảnh - nếu đổi về đây thì phải xóa departure_date
+  const PRE_DEPARTURE_STAGES = ["Chưa đậu", "Đậu phỏng vấn", "Nộp hồ sơ", "OTIT", "Nyukan", "COE"];
+  
   const updateField = (field: keyof FormData, value: string) => {
     setFormData((prev) => {
       const newData = { ...prev, [field]: value };
       
-      // Auto-change simple_status to "Đang ở Nhật" when progression_stage changes to "Xuất cảnh" or later stages
+      // Logic xử lý khi thay đổi progression_stage
       if (field === "progression_stage") {
         const japanStages = ["Xuất cảnh", "Đang làm việc"];
+        
+        // Auto-change simple_status to "Đang ở Nhật" when progression_stage changes to "Xuất cảnh" or later stages
         if (japanStages.includes(value)) {
           newData.simple_status = "Đang ở Nhật";
+        }
+        
+        // CRITICAL: Khi đổi về các stage TRƯỚC xuất cảnh, tự động xóa departure_date
+        // Điều này đảm bảo học viên có thể được gán lớp/KTX lại
+        if (PRE_DEPARTURE_STAGES.includes(value)) {
+          newData.departure_date = "";
+          newData.absconded_date = "";
+          newData.early_return_date = "";
+          newData.early_return_reason = "";
+          newData.return_date = "";
         }
       }
       
