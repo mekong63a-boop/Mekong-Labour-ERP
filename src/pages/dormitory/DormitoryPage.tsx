@@ -66,7 +66,7 @@ import {
   useAddResident,
   useCheckOutResident,
   useRemoveResident,
-  useAvailableTrainees,
+  useAvailableTraineesForDormitory,
   useTraineesInOtherDormitories,
   useTransferResident,
   useTraineeDormitoryHistory,
@@ -118,7 +118,7 @@ export default function DormitoryPage() {
   // Queries
   const { data: dormitories, isLoading: isLoadingDorms } = useDormitoriesWithCount();
   const { data: residents, isLoading: isLoadingResidents } = useDormitoryResidents(selectedDormitory);
-  const { data: availableTrainees } = useAvailableTrainees();
+  const { data: availableTrainees } = useAvailableTraineesForDormitory();
   const { data: transferableTrainees } = useTraineesInOtherDormitories(selectedDormitory);
   const { data: traineeHistory, isLoading: isLoadingHistory } = useTraineeDormitoryHistory(historyTraineeId);
   const { data: searchResults, isLoading: isSearching } = useSearchTraineeDormitory(debouncedSearch);

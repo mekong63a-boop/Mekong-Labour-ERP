@@ -35,15 +35,16 @@ export interface DormitoryResident {
     photo_url: string | null;
     phone: string | null;
     class_id: string | null;
-    departure_date: string | null;
+    simple_status: string | null;
     progression_stage: string | null;
   };
   dormitory?: Dormitory;
   from_dormitory?: Dormitory;
 }
 
-// Học viên đã xuất cảnh - loại khỏi danh sách hiển thị nhưng giữ lịch sử
-const DEPARTED_STAGES = ["Xuất cảnh", "Đang làm việc", "Bỏ trốn", "Về trước hạn", "Hoàn thành hợp đồng"];
+// BUSINESS RULE: Chỉ học viên "Đang học" với các stage này mới hiển thị trong danh sách hoạt động
+const ASSIGNABLE_STAGES = ["Chưa đậu", "Đậu phỏng vấn", "Nộp hồ sơ", "OTIT", "Nyukan", "COE"] as const;
+type AssignableStage = typeof ASSIGNABLE_STAGES[number];
 
 // Hook to get all dormitories
 export function useDormitories() {
@@ -81,7 +82,7 @@ export function useDormitoriesWithCount() {
 }
 
 // Hook to get residents of a specific dormitory
-// SYSTEM RULE: Loại bỏ học viên đã xuất cảnh khỏi danh sách hiển thị
+// BUSINESS RULE: Chỉ hiển thị học viên "Đang học" với progression_stage từ Chưa đậu -> COE
 export function useDormitoryResidents(dormitoryId: string | null) {
   return useQuery({
     queryKey: ["dormitory-residents", dormitoryId],
@@ -92,7 +93,7 @@ export function useDormitoryResidents(dormitoryId: string | null) {
         .from("dormitory_residents")
         .select(`
           *,
-          trainee:trainees(id, trainee_code, full_name, photo_url, phone, class_id, departure_date, progression_stage),
+          trainee:trainees(id, trainee_code, full_name, photo_url, phone, class_id, simple_status, progression_stage),
           from_dormitory:dormitories!dormitory_residents_from_dormitory_id_fkey(id, name)
         `)
         .eq("dormitory_id", dormitoryId)
@@ -100,14 +101,14 @@ export function useDormitoryResidents(dormitoryId: string | null) {
 
       if (error) throw error;
       
-      // Filter học viên đã xuất cảnh ra khỏi danh sách hiển thị
+      // Filter: chỉ giữ học viên "Đang học" với stage phù hợp
       const filtered = (data || []).filter(r => {
         const trainee = r.trainee;
         if (!trainee) return true;
-        // Loại bỏ nếu có departure_date hoặc progression_stage thuộc DEPARTED_STAGES
-        if (trainee.departure_date) return false;
-        if (trainee.progression_stage && DEPARTED_STAGES.includes(trainee.progression_stage)) return false;
-        return true;
+        // Chỉ hiển thị nếu simple_status = "Đang học" VÀ progression_stage trong ASSIGNABLE_STAGES
+        const isActive = trainee.simple_status === "Đang học" && 
+          trainee.progression_stage && (ASSIGNABLE_STAGES as readonly string[]).includes(trainee.progression_stage);
+        return isActive;
       });
       
       return filtered as DormitoryResident[];
@@ -494,7 +495,8 @@ export function useRemoveResident() {
 }
 
 // Hook to get trainees not in any dormitory (for adding to dormitory)
-export function useAvailableTrainees() {
+// BUSINESS RULE: simple_status = "Đang học" VÀ progression_stage từ Chưa đậu -> COE
+export function useAvailableTraineesForDormitory() {
   return useQuery({
     queryKey: ["available-trainees-for-dormitory"],
     queryFn: async () => {
@@ -508,14 +510,14 @@ export function useAvailableTrainees() {
 
       const occupiedTraineeIds = residents?.map((r) => r.trainee_id) || [];
 
-      // Get trainees in dormitory stage or trained stage
-      let query = supabase
+      // Get trainees "Đang học" với các stage phù hợp
+      const { data, error } = await supabase
         .from("trainees")
         .select("id, trainee_code, full_name, photo_url, phone")
-        .in("progression_stage", ["Đậu phỏng vấn", "Nộp hồ sơ", "OTIT", "Nyukan", "COE"])
+        .eq("simple_status", "Đang học")
+        .in("progression_stage", ASSIGNABLE_STAGES)
         .order("full_name", { ascending: true });
-
-      const { data, error } = await query;
+        
       if (error) throw error;
 
       // Filter out trainees already in dormitory
