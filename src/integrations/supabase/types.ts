@@ -2764,6 +2764,12 @@ export type Database = {
         Args: { filters?: Json; selected_columns: Json }
         Returns: Json
       }
+      get_confirmed_user_ids: {
+        Args: never
+        Returns: {
+          user_id: string
+        }[]
+      }
       get_department_counts: {
         Args: never
         Returns: {

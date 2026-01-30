@@ -166,10 +166,18 @@ export default function DepartmentsContent() {
     return "staff";
   };
 
-  // Fetch ALL users with their roles
+  // Fetch ALL users with their roles - CHỈ LẤY USER ĐÃ XÁC NHẬN EMAIL
+  // SYSTEM RULE: User chưa confirm email không hiển thị trong hệ thống phân quyền
   const { data: allUsersWithRoles = [], isLoading: loadingAllUsers, refetch: refetchAllUsers } = useQuery({
     queryKey: ["all-users-with-roles"],
     queryFn: async () => {
+      // Lấy danh sách user_id đã xác nhận email từ RPC function
+      const { data: confirmedUsers, error: confirmedError } = await supabase
+        .rpc("get_confirmed_user_ids");
+      if (confirmedError) throw confirmedError;
+      
+      const confirmedUserIds = new Set((confirmedUsers || []).map((u: { user_id: string }) => u.user_id));
+      
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("user_id, email, full_name, created_at")
@@ -181,19 +189,22 @@ export default function DepartmentsContent() {
         .select("id, user_id, role, is_primary_admin, is_senior_staff");
       if (rolesError) throw rolesError;
 
-      return profiles.map((p) => {
-        const userRole = roles.find((r) => r.user_id === p.user_id);
-        return {
-          user_id: p.user_id,
-          email: p.email,
-          full_name: p.full_name,
-          role: userRole?.role || null,
-          is_senior_staff: userRole?.is_senior_staff ?? false,
-          role_id: userRole?.id || null,
-          is_primary_admin: userRole?.is_primary_admin || false,
-          created_at: p.created_at,
-        } as UserWithRole;
-      });
+      // Chỉ lấy profiles của user đã xác nhận email
+      return profiles
+        .filter((p) => confirmedUserIds.has(p.user_id))
+        .map((p) => {
+          const userRole = roles.find((r) => r.user_id === p.user_id);
+          return {
+            user_id: p.user_id,
+            email: p.email,
+            full_name: p.full_name,
+            role: userRole?.role || null,
+            is_senior_staff: userRole?.is_senior_staff ?? false,
+            role_id: userRole?.id || null,
+            is_primary_admin: userRole?.is_primary_admin || false,
+            created_at: p.created_at,
+          } as UserWithRole;
+        });
     },
     enabled: canManage,
   });
