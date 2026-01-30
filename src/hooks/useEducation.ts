@@ -71,21 +71,21 @@ export function useClasses() {
         .order("created_at", { ascending: false });
       if (classesError) throw classesError;
       
-      // Get student counts per class - CHỈ đếm học viên CHƯA xuất cảnh
+      // Get student counts per class - CHỈ đếm học viên ĐANG HỌC với stage phù hợp
       const { data: traineesData, error: traineesError } = await supabase
         .from("trainees")
-        .select("class_id, progression_stage, departure_date")
+        .select("class_id, progression_stage, simple_status")
         .not("class_id", "is", null);
       if (traineesError) throw traineesError;
       
-      // Count students per class - loại bỏ học viên đã xuất cảnh
+      // Count students per class - chỉ đếm học viên đang học với stage phù hợp
       const studentCounts: Record<string, number> = {};
       traineesData?.forEach(t => {
         if (t.class_id) {
-          // Bỏ qua học viên đã xuất cảnh
-          const isDeparted = t.departure_date || 
-            (t.progression_stage && DEPARTED_STAGES.includes(t.progression_stage));
-          if (!isDeparted) {
+          // Chỉ đếm học viên đang học với stage từ Chưa đậu -> COE
+          const isActive = t.simple_status === "Đang học" && 
+            t.progression_stage && (ASSIGNABLE_STAGES as readonly string[]).includes(t.progression_stage);
+          if (isActive) {
             studentCounts[t.class_id] = (studentCounts[t.class_id] || 0) + 1;
           }
         }
@@ -288,15 +288,11 @@ export function useDeleteClass() {
   });
 }
 
-// Available trainees (not in any class AND not departed)
-// CRITICAL: Học viên đã xuất cảnh KHÔNG được phép gán vào lớp học
-const DEPARTED_STAGES = [
-  "Xuất cảnh",
-  "Đang làm việc",
-  "Bỏ trốn",
-  "Về trước hạn",
-  "Hoàn thành hợp đồng",
-];
+// Available trainees (not in any class AND eligible for assignment)
+// BUSINESS RULE: Học viên có simple_status = "Đang học" VÀ progression_stage từ Chưa đậu -> COE
+// KHÔNG dựa vào departure_date
+const ASSIGNABLE_STAGES = ["Chưa đậu", "Đậu phỏng vấn", "Nộp hồ sơ", "OTIT", "Nyukan", "COE"] as const;
+type AssignableStage = typeof ASSIGNABLE_STAGES[number];
 
 export function useAvailableTrainees() {
   return useQuery({
@@ -304,16 +300,13 @@ export function useAvailableTrainees() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trainees")
-        .select("id, trainee_code, full_name, class_id, progression_stage, departure_date")
+        .select("id, trainee_code, full_name, class_id, progression_stage, simple_status")
         .is("class_id", null)
-        .is("departure_date", null) // Loại bỏ học viên đã có ngày xuất cảnh
+        .eq("simple_status", "Đang học") // Chỉ học viên đang học
+        .in("progression_stage", ASSIGNABLE_STAGES) // Các stage có thể gán lớp
         .order("full_name");
       if (error) throw error;
-      
-      // Double-check: loại bỏ học viên có progression_stage là xuất cảnh/đã đi
-      return data?.filter(t => 
-        !t.progression_stage || !DEPARTED_STAGES.includes(t.progression_stage)
-      ) || [];
+      return data || [];
     },
   });
 }
