@@ -26,6 +26,7 @@ import { useKatakanaConverter } from "@/hooks/useKatakanaConverter";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useDataMasking } from "@/hooks/useSecureData";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { EducationHistoryForm, EducationItem } from "@/components/trainees/forms/EducationHistoryForm";
 import { WorkHistoryForm, WorkItem } from "@/components/trainees/forms/WorkHistoryForm";
 import { FamilyMembersForm, FamilyItem } from "@/components/trainees/forms/FamilyMembersForm";
@@ -83,6 +84,7 @@ interface FormData {
   cccd_place: string;
   passport_number: string;
   passport_date: string;
+  passport_place: string;
   ethnicity: string;
   religion: string;
   policy_category: string;
@@ -102,7 +104,7 @@ interface FormData {
   vision_left: string;
   vision_right: string;
   dominant_hand: string;
-  hobbies: string;
+  hobbies: string[];  // Changed to array for multi-select
   weight: string;
   smoking: string;
   tattoo: string;
@@ -220,6 +222,45 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     },
   });
 
+  // Fetch hobbies from database
+  const { data: hobbiesOptions = [] } = useQuery({
+    queryKey: ["hobbies"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("hobbies")
+        .select("*")
+        .order("name");
+      if (error) throw error;
+      return data?.map((s) => s.name) || [];
+    },
+  });
+
+  // Fetch CCCD places from database
+  const { data: cccdPlaces = [] } = useQuery({
+    queryKey: ["cccd-places"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cccd_places")
+        .select("*")
+        .order("name");
+      if (error) throw error;
+      return data?.map((s) => s.name) || [];
+    },
+  });
+
+  // Fetch passport places from database
+  const { data: passportPlaces = [] } = useQuery({
+    queryKey: ["passport-places"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("passport_places")
+        .select("*")
+        .order("name");
+      if (error) throw error;
+      return data?.map((s) => s.name) || [];
+    },
+  });
+
   // Fetch existing trainee data if editing
   const { data: trainee, isLoading: isLoadingTrainee } = useTrainee(traineeId || "");
   const updateTraineeMutation = useUpdateTrainee();
@@ -245,6 +286,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     cccd_place: "",
     passport_number: "",
     passport_date: "",
+    passport_place: "",
     ethnicity: "",
     religion: "",
     policy_category: "",
@@ -264,7 +306,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     vision_left: "",
     vision_right: "",
     dominant_hand: "",
-    hobbies: "",
+    hobbies: [],  // Array for multi-select
     weight: "",
     smoking: "",
     tattoo: "",
@@ -330,6 +372,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         cccd_place: trainee.cccd_place || "",
         passport_number: trainee.passport_number || "",
         passport_date: trainee.passport_date || "",
+        passport_place: (trainee as any).passport_place || "",
         ethnicity: trainee.ethnicity || "",
         religion: (trainee as any).religion || "",
         policy_category: (trainee as any).policy_category || "",
@@ -349,7 +392,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         vision_left: trainee.vision_left?.toString() || "",
         vision_right: trainee.vision_right?.toString() || "",
         dominant_hand: trainee.dominant_hand || "",
-        hobbies: trainee.hobbies || "",
+        hobbies: trainee.hobbies ? trainee.hobbies.split(", ").filter(Boolean) : [],
         weight: trainee.weight?.toString() || "",
         smoking: trainee.smoking || "",
         tattoo: trainee.tattoo ? "Có" : "Không",
@@ -574,6 +617,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     cccd_place: formData.cccd_place || null,
     passport_number: formData.passport_number || null,
     passport_date: formData.passport_date || null,
+    passport_place: formData.passport_place || null,
     ethnicity: formData.ethnicity || null,
     religion: formData.religion || null,
     policy_category: formData.policy_category || null,
@@ -593,7 +637,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     vision_left: formData.vision_left ? parseFloat(formData.vision_left) : null,
     vision_right: formData.vision_right ? parseFloat(formData.vision_right) : null,
     dominant_hand: formData.dominant_hand || null,
-    hobbies: formData.hobbies || null,
+    hobbies: formData.hobbies.length > 0 ? formData.hobbies.join(", ") : null,
     weight: formData.weight ? parseFloat(formData.weight) : null,
     smoking: formData.smoking || null,
     tattoo: formData.tattoo === "Có",
@@ -1124,7 +1168,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   </div>
 
                   {/* Third Row - Documents (sensitive fields) */}
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-6 gap-3">
                     <div>
                       <Label className="text-xs text-muted-foreground">
                         Số CCCD/CMND
@@ -1150,6 +1194,17 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                       />
                     </div>
                     <div>
+                      <Label className="text-xs text-muted-foreground">Nơi cấp CCCD</Label>
+                      <SearchableSelect
+                        options={cccdPlaces.length > 0 ? cccdPlaces : ["Cục Cảnh sát QLHC về TTXH"]}
+                        value={formData.cccd_place}
+                        onValueChange={(v) => updateField("cccd_place", v)}
+                        placeholder="Chọn nơi cấp"
+                        searchPlaceholder="Tìm nơi cấp..."
+                        emptyText="Không tìm thấy."
+                      />
+                    </div>
+                    <div>
                       <Label className="text-xs text-muted-foreground">
                         Số hộ chiếu
                         {!canEditSensitiveFields && isEditMode && <span className="text-xs text-orange-500 ml-1">(bảo mật)</span>}
@@ -1171,6 +1226,17 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                         value={formData.passport_date}
                         onChange={(e) => updateField("passport_date", e.target.value)}
                         className={getInputClass(formData.passport_date)}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Nơi cấp HC</Label>
+                      <SearchableSelect
+                        options={passportPlaces.length > 0 ? passportPlaces : ["Cục Quản lý Xuất nhập cảnh"]}
+                        value={formData.passport_place}
+                        onValueChange={(v) => updateField("passport_place", v)}
+                        placeholder="Chọn nơi cấp"
+                        searchPlaceholder="Tìm nơi cấp..."
+                        emptyText="Không tìm thấy."
                       />
                     </div>
                   </div>
@@ -1416,11 +1482,13 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                     </div>
                     <div className="col-span-2">
                       <Label className="text-xs text-muted-foreground">Sở thích</Label>
-                      <Input
-                        placeholder="Nghe nhạc, thể thao..."
+                      <MultiSelect
+                        options={hobbiesOptions.length > 0 ? hobbiesOptions : []}
                         value={formData.hobbies}
-                        onChange={(e) => updateField("hobbies", e.target.value)}
-                        className={getInputClass(formData.hobbies)}
+                        onValueChange={(v) => setFormData(prev => ({ ...prev, hobbies: v }))}
+                        placeholder="Chọn sở thích..."
+                        searchPlaceholder="Tìm sở thích..."
+                        emptyText="Không tìm thấy."
                       />
                     </div>
                   </div>

@@ -72,7 +72,7 @@ export function PersonalInfoTab({ trainee }: PersonalInfoTabProps) {
         <CardHeader>
           <CardTitle className="text-lg">Giấy tờ tùy thân</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <CardContent className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div>
             <Label className="text-muted-foreground text-xs">Số CCCD</Label>
             <p className="font-mono">{maskCCCD(trainee.cccd_number)}</p>
@@ -92,6 +92,10 @@ export function PersonalInfoTab({ trainee }: PersonalInfoTabProps) {
           <div>
             <Label className="text-muted-foreground text-xs">Ngày cấp Passport</Label>
             <p>{formatDate(trainee.passport_date)}</p>
+          </div>
+          <div>
+            <Label className="text-muted-foreground text-xs">Nơi cấp Passport</Label>
+            <p>{(trainee as any).passport_place || "—"}</p>
           </div>
         </CardContent>
       </Card>
