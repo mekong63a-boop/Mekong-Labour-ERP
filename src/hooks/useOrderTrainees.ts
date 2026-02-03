@@ -22,6 +22,7 @@ const ACTIVE_STATUSES = ["Đang học", "Đăng ký mới", "Bảo lưu"];
 export function useOrderTraineeCounts() {
   return useQuery({
     queryKey: ["order-trainee-counts"],
+    staleTime: 0, // Always refetch to get latest data
     queryFn: async () => {
       // Lấy tất cả orders
       const { data: orders, error: ordersError } = await supabase
@@ -115,6 +116,7 @@ export function useOrderTrainees(orderId: string | null, orderData?: {
 }) {
   return useQuery({
     queryKey: ["order-trainees", orderId, orderData?.company_id, orderData?.expected_interview_date],
+    staleTime: 0, // Always refetch to get latest data
     queryFn: async () => {
       if (!orderId || !orderData) return [];
       if (!orderData.company_id || !orderData.expected_interview_date) return [];
