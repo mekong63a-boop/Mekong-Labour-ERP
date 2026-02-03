@@ -108,6 +108,27 @@ export type Database = {
         }
         Relationships: []
       }
+      cccd_places: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       class_teachers: {
         Row: {
           class_id: string
@@ -732,6 +753,27 @@ export type Database = {
         }
         Relationships: []
       }
+      hobbies: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       interview_history: {
         Row: {
           company_id: string | null
@@ -1153,6 +1195,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      passport_places: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       policy_categories: {
         Row: {
