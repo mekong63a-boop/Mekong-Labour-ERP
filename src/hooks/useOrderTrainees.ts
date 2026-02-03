@@ -11,12 +11,14 @@ export interface OrderTrainee {
   interview_count: number;
 }
 
-// Các trạng thái được phép tham gia đơn hàng phỏng vấn
-// CHỈ học viên "Chưa đậu" mới được gán vào đơn hàng để phỏng vấn
-const ELIGIBLE_STAGES_FOR_ORDER = ["Chưa đậu"];
+// Học viên eligible cho đơn hàng = CHƯA ĐẬU PHỎNG VẤN
+// progression_stage = "Chưa đậu" hoặc null (chưa có kết quả phỏng vấn)
+// simple_status = "Đang học", "Đăng ký mới", "Bảo lưu" (đang hoạt động, không phải nghỉ học)
+const NOT_PASSED_YET_STAGES = ["Chưa đậu"];
+const ACTIVE_STATUSES = ["Đang học", "Đăng ký mới", "Bảo lưu"];
 
 // Hook để lấy số lượng học viên tham gia mỗi đơn tuyển
-// CHỈ đếm học viên có trạng thái "Chưa đậu" (eligible for interview)
+// CHỈ đếm học viên chưa đậu phỏng vấn và đang hoạt động
 export function useOrderTraineeCounts() {
   return useQuery({
     queryKey: ["order-trainee-counts"],
@@ -42,21 +44,38 @@ export function useOrderTraineeCounts() {
       
       if (allTraineeIds.length === 0) return {};
 
-      // Lấy thông tin progression_stage của tất cả học viên liên quan
+      // Lấy thông tin progression_stage và simple_status của tất cả học viên liên quan
       const { data: trainees, error: traineesError } = await supabase
         .from("trainees")
-        .select("id, progression_stage")
+        .select("id, progression_stage, simple_status")
         .in("id", allTraineeIds);
 
       if (traineesError) throw traineesError;
 
-      // Tạo map trainee_id -> progression_stage
-      const traineeStageMap: Record<string, string | null> = {};
+      // Tạo map trainee_id -> trainee info
+      const traineeMap: Record<string, { progression_stage: string | null; simple_status: string | null }> = {};
       trainees?.forEach(t => {
-        traineeStageMap[t.id] = t.progression_stage;
+        traineeMap[t.id] = {
+          progression_stage: t.progression_stage,
+          simple_status: t.simple_status
+        };
       });
 
-      // Đếm số học viên cho mỗi đơn hàng - CHỈ đếm học viên "Chưa đậu"
+      // Hàm kiểm tra học viên eligible (chưa đậu phỏng vấn và đang hoạt động)
+      const isEligible = (traineeId: string) => {
+        const trainee = traineeMap[traineeId];
+        if (!trainee) return false;
+        
+        // Chưa đậu phỏng vấn: progression_stage = "Chưa đậu" hoặc null
+        const notPassedYet = !trainee.progression_stage || NOT_PASSED_YET_STAGES.includes(trainee.progression_stage);
+        
+        // Đang hoạt động: simple_status nằm trong danh sách active
+        const isActive = trainee.simple_status && ACTIVE_STATUSES.includes(trainee.simple_status);
+        
+        return notPassedYet && isActive;
+      };
+
+      // Đếm số học viên cho mỗi đơn hàng - CHỈ đếm eligible
       const counts: Record<string, number> = {};
       
       orders.forEach(order => {
@@ -73,12 +92,8 @@ export function useOrderTraineeCounts() {
             interview.company_id === order.company_id &&
             interview.interview_date === order.expected_interview_date;
           
-          if (isMatch && interview.trainee_id) {
-            // Chỉ đếm học viên có trạng thái "Chưa đậu" hoặc null
-            const stage = traineeStageMap[interview.trainee_id];
-            if (!stage || ELIGIBLE_STAGES_FOR_ORDER.includes(stage)) {
-              matchingTrainees.add(interview.trainee_id);
-            }
+          if (isMatch && interview.trainee_id && isEligible(interview.trainee_id)) {
+            matchingTrainees.add(interview.trainee_id);
           }
         });
         
@@ -91,7 +106,7 @@ export function useOrderTraineeCounts() {
 }
 
 // Hook để lấy danh sách học viên tham gia một đơn tuyển cụ thể
-// CHỈ hiển thị học viên "Chưa đậu" (eligible for interview)
+// CHỈ hiển thị học viên chưa đậu phỏng vấn và đang hoạt động
 export function useOrderTrainees(orderId: string | null, orderData?: {
   company_id: string | null;
   union_id: string | null;
@@ -105,7 +120,6 @@ export function useOrderTrainees(orderId: string | null, orderData?: {
       if (!orderData.company_id || !orderData.expected_interview_date) return [];
 
       // Lấy danh sách interview_history khớp với đơn hàng này
-      // Chỉ match theo company_id và interview_date vì union_id và job_category_id có thể null
       const { data: interviews, error } = await supabase
         .from("interview_history")
         .select("trainee_id")
@@ -119,23 +133,29 @@ export function useOrderTrainees(orderId: string | null, orderData?: {
       const traineeIds = [...new Set(interviews.map(i => i.trainee_id))];
       if (traineeIds.length === 0) return [];
 
-      // Lấy thông tin chi tiết học viên - CHỈ lấy học viên "Chưa đậu"
+      // Lấy thông tin chi tiết học viên
       const { data: trainees, error: traineesError } = await supabase
         .from("trainees")
-        .select("id, trainee_code, full_name, birth_date, birthplace, phone, progression_stage")
+        .select("id, trainee_code, full_name, birth_date, birthplace, phone, progression_stage, simple_status")
         .in("id", traineeIds);
 
       if (traineesError) throw traineesError;
       if (!trainees || trainees.length === 0) return [];
 
-      // Filter: CHỈ giữ lại học viên "Chưa đậu" hoặc null (eligible for interview)
-      const eligibleTrainees = trainees.filter(
-        t => !t.progression_stage || ELIGIBLE_STAGES_FOR_ORDER.includes(t.progression_stage)
-      );
+      // Filter: CHỈ giữ lại học viên chưa đậu phỏng vấn và đang hoạt động
+      const eligibleTrainees = trainees.filter(t => {
+        // Chưa đậu phỏng vấn: progression_stage = "Chưa đậu" hoặc null
+        const notPassedYet = !t.progression_stage || NOT_PASSED_YET_STAGES.includes(t.progression_stage);
+        
+        // Đang hoạt động: simple_status nằm trong danh sách active
+        const isActive = t.simple_status && ACTIVE_STATUSES.includes(t.simple_status);
+        
+        return notPassedYet && isActive;
+      });
 
       if (eligibleTrainees.length === 0) return [];
 
-      // Lấy số lần tham gia phỏng vấn của mỗi học viên (từ interview_history)
+      // Lấy số lần tham gia phỏng vấn của mỗi học viên
       const eligibleIds = eligibleTrainees.map(t => t.id);
       const { data: allInterviews, error: allInterviewsError } = await supabase
         .from("interview_history")
