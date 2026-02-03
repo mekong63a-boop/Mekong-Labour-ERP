@@ -736,9 +736,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       if (projectData.contract_term) {
         (traineeData as any).contract_term = parseFloat(projectData.contract_term);
       }
-      if (projectData.interview_date) {
-        (traineeData as any).interview_pass_date = projectData.interview_date;
-      }
+      // NOTE: interview_pass_date chỉ được cập nhật khi progression_stage = "Đậu phỏng vấn"
+      // KHÔNG tự động copy từ interview_date (ngày PV dự kiến)
 
       const maybeLogInterviewHistory = async (targetTraineeId: string) => {
         const toNull = (v?: string) => (v && v.trim() !== "" ? v : null);
