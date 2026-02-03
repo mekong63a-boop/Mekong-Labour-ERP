@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { Languages, Heart, FileText } from "lucide-react";
+import { Languages, Heart, FileText, Smile, CreditCard, Plane } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import VocabularyTab from "./tabs/VocabularyTab";
 import KatakanaTab from "./tabs/KatakanaTab";
 import ReferralSourcesTab from "./tabs/ReferralSourcesTab";
 import ReligionsTab from "./tabs/ReligionsTab";
 import PolicyCategoriesTab from "./tabs/PolicyCategoriesTab";
+import HobbiesTab from "./tabs/HobbiesTab";
+import CCCDPlacesTab from "./tabs/CCCDPlacesTab";
+import PassportPlacesTab from "./tabs/PassportPlacesTab";
 
 const GlossaryPage = () => {
   const [activeTab, setActiveTab] = useState("vocabulary");
@@ -61,6 +64,27 @@ const GlossaryPage = () => {
             <FileText className="h-4 w-4 mr-2" />
             Diện chính sách
           </TabsTrigger>
+          <TabsTrigger
+            value="hobbies"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground bg-muted text-muted-foreground px-4 py-2 rounded-full"
+          >
+            <Smile className="h-4 w-4 mr-2" />
+            Sở thích
+          </TabsTrigger>
+          <TabsTrigger
+            value="cccd-places"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground bg-muted text-muted-foreground px-4 py-2 rounded-full"
+          >
+            <CreditCard className="h-4 w-4 mr-2" />
+            Nơi cấp CCCD
+          </TabsTrigger>
+          <TabsTrigger
+            value="passport-places"
+            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground bg-muted text-muted-foreground px-4 py-2 rounded-full"
+          >
+            <Plane className="h-4 w-4 mr-2" />
+            Nơi cấp hộ chiếu
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="vocabulary" className="mt-6">
@@ -77,6 +101,15 @@ const GlossaryPage = () => {
         </TabsContent>
         <TabsContent value="policy" className="mt-6">
           <PolicyCategoriesTab />
+        </TabsContent>
+        <TabsContent value="hobbies" className="mt-6">
+          <HobbiesTab />
+        </TabsContent>
+        <TabsContent value="cccd-places" className="mt-6">
+          <CCCDPlacesTab />
+        </TabsContent>
+        <TabsContent value="passport-places" className="mt-6">
+          <PassportPlacesTab />
         </TabsContent>
       </Tabs>
     </div>
