@@ -35,7 +35,6 @@ import {
   useMonthlyCombined,
   useTraineeBySource,
   useTraineeByCompany,
-  useAvailableYears,
   useMonthlyPassed,
 } from "@/hooks/useDashboardTrainee";
 
@@ -49,39 +48,73 @@ const iconColorClasses = {
 
 export default function TraineeDashboard() {
   const currentYear = new Date().getFullYear();
-  // Separate year filters for each chart
-  const [recruitmentYear, setRecruitmentYear] = useState<number>(currentYear);
-  const [departureYear, setDepartureYear] = useState<number>(currentYear);
-  const [passedYear, setPassedYear] = useState<number>(currentYear);
-  const [companyYear, setCompanyYear] = useState<number>(currentYear);
 
   // Single Source - PostgreSQL views
   const { data: kpis, isLoading: loadingKPIs } = useTraineeKPIs();
   const { data: monthlyCombined, isLoading: loadingMonthly } = useMonthlyCombined();
   const { data: sourceData, isLoading: loadingSource } = useTraineeBySource();
   const { data: companyData, isLoading: loadingCompany } = useTraineeByCompany();
-  const { data: availableYears } = useAvailableYears();
   const { data: monthlyPassed, isLoading: loadingPassed } = useMonthlyPassed();
 
   // SYSTEM RULE: activeOrders từ kpis view (đã tính sẵn ở DB)
   const activeOrders = kpis?.active_orders || 0;
 
-  // Generate year options từ dữ liệu thực tế (các năm có học viên) - lấy từ DB view
-  const yearOptions = useMemo(() => {
+  // Tính các năm có dữ liệu thực sự cho từng loại biểu đồ
+  const recruitmentYears = useMemo(() => {
+    if (!monthlyCombined) return [currentYear];
     const years = new Set<number>();
-    // Thêm các năm từ DB view
-    if (availableYears) {
-      availableYears.forEach((item) => {
-        if (item.year) {
-          years.add(item.year);
-        }
-      });
-    }
-    // Luôn thêm năm hiện tại
-    years.add(currentYear);
-    // Convert to array và sort giảm dần
-    return Array.from(years).sort((a, b) => b - a);
-  }, [availableYears, currentYear]);
+    monthlyCombined.forEach(item => {
+      if (item.month_date && item.recruitment > 0) {
+        years.add(new Date(item.month_date).getFullYear());
+      }
+    });
+    return years.size > 0 ? Array.from(years).sort((a, b) => b - a) : [currentYear];
+  }, [monthlyCombined, currentYear]);
+
+  const departureYears = useMemo(() => {
+    if (!monthlyCombined) return [currentYear];
+    const years = new Set<number>();
+    monthlyCombined.forEach(item => {
+      if (item.month_date && item.departure > 0) {
+        years.add(new Date(item.month_date).getFullYear());
+      }
+    });
+    return years.size > 0 ? Array.from(years).sort((a, b) => b - a) : [currentYear];
+  }, [monthlyCombined, currentYear]);
+
+  const passedYears = useMemo(() => {
+    if (!monthlyPassed) return [currentYear];
+    const years = new Set<number>();
+    monthlyPassed.forEach(item => {
+      if (item.month_date && item.passed_count > 0) {
+        years.add(new Date(item.month_date).getFullYear());
+      }
+    });
+    return years.size > 0 ? Array.from(years).sort((a, b) => b - a) : [currentYear];
+  }, [monthlyPassed, currentYear]);
+
+  const companyYears = useMemo(() => {
+    if (!companyData) return [currentYear];
+    const years = new Set<number>();
+    companyData.forEach(item => {
+      if (item.year && item.count > 0) {
+        years.add(item.year);
+      }
+    });
+    return years.size > 0 ? Array.from(years).sort((a, b) => b - a) : [currentYear];
+  }, [companyData, currentYear]);
+
+  // State cho bộ lọc năm - mặc định là năm có dữ liệu mới nhất
+  const [recruitmentYear, setRecruitmentYear] = useState<number | null>(null);
+  const [departureYear, setDepartureYear] = useState<number | null>(null);
+  const [passedYear, setPassedYear] = useState<number | null>(null);
+  const [companyYear, setCompanyYear] = useState<number | null>(null);
+
+  // Đặt giá trị mặc định khi dữ liệu load xong
+  const effectiveRecruitmentYear = recruitmentYear ?? recruitmentYears[0] ?? currentYear;
+  const effectiveDepartureYear = departureYear ?? departureYears[0] ?? currentYear;
+  const effectivePassedYear = passedYear ?? passedYears[0] ?? currentYear;
+  const effectiveCompanyYear = companyYear ?? companyYears[0] ?? currentYear;
 
   // SYSTEM RULE: Recruitment chart data - LỌC THEO recruitmentYear
   const recruitmentChartData = useMemo(() => {
@@ -101,7 +134,7 @@ export default function TraineeDashboard() {
         const itemYear = itemDate.getFullYear();
         const itemMonth = itemDate.getMonth() + 1;
         
-        if (itemYear === recruitmentYear) {
+        if (itemYear === effectiveRecruitmentYear) {
           const templateItem = template.find((t) => t.monthNum === itemMonth);
           if (templateItem) {
             templateItem.recruitment = item.recruitment || 0;
@@ -111,7 +144,7 @@ export default function TraineeDashboard() {
     });
     
     return template;
-  }, [monthlyCombined, recruitmentYear]);
+  }, [monthlyCombined, effectiveRecruitmentYear]);
 
   // SYSTEM RULE: Departure chart data - LỌC THEO departureYear
   const departureChartData = useMemo(() => {
@@ -131,7 +164,7 @@ export default function TraineeDashboard() {
         const itemYear = itemDate.getFullYear();
         const itemMonth = itemDate.getMonth() + 1;
         
-        if (itemYear === departureYear) {
+        if (itemYear === effectiveDepartureYear) {
           const templateItem = template.find((t) => t.monthNum === itemMonth);
           if (templateItem) {
             templateItem.departure = item.departure || 0;
@@ -141,7 +174,7 @@ export default function TraineeDashboard() {
     });
     
     return template;
-  }, [monthlyCombined, departureYear]);
+  }, [monthlyCombined, effectiveDepartureYear]);
 
   // SYSTEM RULE: Passed interview chart data - LỌC THEO passedYear
   const passedChartData = useMemo(() => {
@@ -161,7 +194,7 @@ export default function TraineeDashboard() {
         const itemYear = itemDate.getFullYear();
         const itemMonth = itemDate.getMonth() + 1;
         
-        if (itemYear === passedYear) {
+        if (itemYear === effectivePassedYear) {
           const templateItem = template.find((t) => t.monthNum === itemMonth);
           if (templateItem) {
             templateItem.passed = item.passed_count || 0;
@@ -171,7 +204,7 @@ export default function TraineeDashboard() {
     });
     
     return template;
-  }, [monthlyPassed, passedYear]);
+  }, [monthlyPassed, effectivePassedYear]);
 
   // Calculate growth rate from KPIs
   const growthPercent = useMemo(() => {
@@ -197,18 +230,18 @@ export default function TraineeDashboard() {
       }));
   }, [sourceData]);
 
-  // Top 10 công ty tuyển dụng trong năm - LỌC THEO companyYear
+  // Top 10 công ty tuyển dụng trong năm - LỌC THEO effectiveCompanyYear
   const companyChartData = useMemo(() => {
     if (!companyData) return [];
     return companyData
-      .filter(c => c.company_name && c.year === companyYear && c.count > 0)
+      .filter(c => c.company_name && c.year === effectiveCompanyYear && c.count > 0)
       .sort((a, b) => b.count - a.count)
       .slice(0, 10)
       .map(c => ({
         name: c.company_name || "Không xác định",
         value: c.count,
       }));
-  }, [companyData, companyYear]);
+  }, [companyData, effectiveCompanyYear]);
 
   // Calculate studying count - use status_studying from KPIs
   const studyingCount = useMemo(() => {
@@ -387,14 +420,14 @@ export default function TraineeDashboard() {
               </span>
             </div>
             <Select
-              value={recruitmentYear.toString()}
+              value={effectiveRecruitmentYear.toString()}
               onValueChange={(v) => setRecruitmentYear(parseInt(v))}
             >
               <SelectTrigger className="w-[90px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {yearOptions.map((y) => (
+                {recruitmentYears.map((y) => (
                   <SelectItem key={y} value={y.toString()}>
                     {y}
                   </SelectItem>
@@ -445,14 +478,14 @@ export default function TraineeDashboard() {
               </span>
             </div>
             <Select
-              value={passedYear.toString()}
+              value={effectivePassedYear.toString()}
               onValueChange={(v) => setPassedYear(parseInt(v))}
             >
               <SelectTrigger className="w-[90px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {yearOptions.map((y) => (
+                {passedYears.map((y) => (
                   <SelectItem key={y} value={y.toString()}>
                     {y}
                   </SelectItem>
@@ -503,14 +536,14 @@ export default function TraineeDashboard() {
               </span>
             </div>
             <Select
-              value={departureYear.toString()}
+              value={effectiveDepartureYear.toString()}
               onValueChange={(v) => setDepartureYear(parseInt(v))}
             >
               <SelectTrigger className="w-[90px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {yearOptions.map((y) => (
+                {departureYears.map((y) => (
                   <SelectItem key={y} value={y.toString()}>
                     {y}
                   </SelectItem>
@@ -605,16 +638,16 @@ export default function TraineeDashboard() {
       {/* Top 10 công ty tuyển dụng trong năm */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base font-semibold">Top 10 công ty tuyển dụng trong năm {companyYear}</CardTitle>
+          <CardTitle className="text-base font-semibold">Top 10 công ty tuyển dụng trong năm {effectiveCompanyYear}</CardTitle>
           <Select
-            value={companyYear.toString()}
+            value={effectiveCompanyYear.toString()}
             onValueChange={(v) => setCompanyYear(parseInt(v))}
           >
             <SelectTrigger className="w-[100px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {yearOptions.map((y) => (
+              {companyYears.map((y) => (
                 <SelectItem key={y} value={y.toString()}>
                   {y}
                 </SelectItem>
@@ -627,7 +660,7 @@ export default function TraineeDashboard() {
             <Skeleton className="h-64 w-full" />
           ) : companyChartData.length === 0 ? (
             <div className="h-64 flex items-center justify-center text-muted-foreground">
-              Không có dữ liệu công ty trong năm {companyYear}
+              Không có dữ liệu công ty trong năm {effectiveCompanyYear}
             </div>
           ) : (
             <div className="h-80">
