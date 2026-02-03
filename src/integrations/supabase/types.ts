@@ -1672,6 +1672,7 @@ export type Database = {
           parent_phone_2: string | null
           passport_date: string | null
           passport_number: string | null
+          passport_place: string | null
           permanent_address: string | null
           phone: string | null
           photo_url: string | null
@@ -1767,6 +1768,7 @@ export type Database = {
           parent_phone_2?: string | null
           passport_date?: string | null
           passport_number?: string | null
+          passport_place?: string | null
           permanent_address?: string | null
           phone?: string | null
           photo_url?: string | null
@@ -1862,6 +1864,7 @@ export type Database = {
           parent_phone_2?: string | null
           passport_date?: string | null
           passport_number?: string | null
+          passport_place?: string | null
           permanent_address?: string | null
           phone?: string | null
           photo_url?: string | null
