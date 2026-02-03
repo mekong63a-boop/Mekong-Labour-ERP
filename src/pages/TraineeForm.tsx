@@ -792,14 +792,22 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         toast({ title: "Thêm học viên thành công" });
       }
 
-      // Save history data for new trainees
-      if (!isEditMode && newTraineeId) {
+      // Save history data for both new and edit mode
+      const targetTraineeId = isEditMode ? traineeId : newTraineeId;
+      
+      if (targetTraineeId) {
+        // For edit mode: delete existing then insert new
+        // For new mode: just insert
+        
         // Save education history
+        if (isEditMode) {
+          await supabase.from("education_history").delete().eq("trainee_id", targetTraineeId);
+        }
         if (educationItems.length > 0) {
           const eduData = educationItems
             .filter(item => item.school_name)
             .map(item => ({
-              trainee_id: newTraineeId,
+              trainee_id: targetTraineeId,
               school_name: item.school_name,
               level: item.level || null,
               major: item.major || null,
@@ -812,11 +820,14 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         }
         
         // Save work history
+        if (isEditMode) {
+          await supabase.from("work_history").delete().eq("trainee_id", targetTraineeId);
+        }
         if (workItems.length > 0) {
           const workData = workItems
             .filter(item => item.company_name)
             .map(item => ({
-              trainee_id: newTraineeId,
+              trainee_id: targetTraineeId,
               company_name: item.company_name,
               position: item.position || null,
               start_date: item.start_date || null,
@@ -828,11 +839,14 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         }
         
         // Save family members
+        if (isEditMode) {
+          await supabase.from("family_members").delete().eq("trainee_id", targetTraineeId);
+        }
         if (familyItems.length > 0) {
           const familyData = familyItems
             .filter(item => item.full_name)
             .map(item => ({
-              trainee_id: newTraineeId,
+              trainee_id: targetTraineeId,
               relationship: item.relationship || "Khác",
               full_name: item.full_name,
               gender: item.gender || null,
@@ -847,11 +861,14 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         }
         
         // Save japan relatives
+        if (isEditMode) {
+          await supabase.from("japan_relatives").delete().eq("trainee_id", targetTraineeId);
+        }
         if (japanRelativeItems.length > 0) {
           const japanData = japanRelativeItems
             .filter(item => item.full_name)
             .map(item => ({
-              trainee_id: newTraineeId,
+              trainee_id: targetTraineeId,
               full_name: item.full_name,
               relationship: item.relationship || null,
               age: item.age ? parseInt(item.age) : null,
@@ -864,9 +881,10 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
           }
         }
         
-        // Save interview history if there's interview data
-        await maybeLogInterviewHistory(newTraineeId);
-
+        // Save interview history if there's interview data (only for new trainees)
+        if (!isEditMode) {
+          await maybeLogInterviewHistory(targetTraineeId);
+        }
       }
 
       navigate("/trainees");

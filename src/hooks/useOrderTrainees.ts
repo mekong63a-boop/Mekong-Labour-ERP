@@ -61,7 +61,11 @@ export function useOrderTraineeCounts() {
   });
 }
 
+// Các trạng thái đã xuất cảnh - học viên ở đây không được phép gán vào đơn hàng phỏng vấn
+const DEPARTED_STAGES = ["Xuất cảnh", "Đang làm việc", "Bỏ trốn", "Về trước hạn", "Hoàn thành hợp đồng"];
+
 // Hook để lấy danh sách học viên tham gia một đơn tuyển cụ thể
+// CHỈ hiển thị học viên chưa xuất cảnh (dựa trên progression_stage)
 export function useOrderTrainees(orderId: string | null, orderData?: {
   company_id: string | null;
   union_id: string | null;
@@ -89,20 +93,28 @@ export function useOrderTrainees(orderId: string | null, orderData?: {
       const traineeIds = [...new Set(interviews.map(i => i.trainee_id))];
       if (traineeIds.length === 0) return [];
 
-      // Lấy thông tin chi tiết học viên
+      // Lấy thông tin chi tiết học viên - LOẠI TRỪ học viên đã xuất cảnh
       const { data: trainees, error: traineesError } = await supabase
         .from("trainees")
-        .select("id, trainee_code, full_name, birth_date, birthplace, phone")
+        .select("id, trainee_code, full_name, birth_date, birthplace, phone, progression_stage")
         .in("id", traineeIds);
 
       if (traineesError) throw traineesError;
       if (!trainees || trainees.length === 0) return [];
 
+      // Filter: chỉ giữ lại học viên CHƯA xuất cảnh
+      const eligibleTrainees = trainees.filter(
+        t => !t.progression_stage || !DEPARTED_STAGES.includes(t.progression_stage)
+      );
+
+      if (eligibleTrainees.length === 0) return [];
+
       // Lấy số lần tham gia phỏng vấn của mỗi học viên (từ interview_history)
+      const eligibleIds = eligibleTrainees.map(t => t.id);
       const { data: allInterviews, error: allInterviewsError } = await supabase
         .from("interview_history")
         .select("trainee_id")
-        .in("trainee_id", traineeIds);
+        .in("trainee_id", eligibleIds);
 
       if (allInterviewsError) throw allInterviewsError;
 
@@ -113,7 +125,7 @@ export function useOrderTrainees(orderId: string | null, orderData?: {
       });
 
       // Kết hợp dữ liệu
-      const result: OrderTrainee[] = trainees.map(trainee => ({
+      const result: OrderTrainee[] = eligibleTrainees.map(trainee => ({
         id: trainee.id,
         trainee_code: trainee.trainee_code,
         full_name: trainee.full_name,
