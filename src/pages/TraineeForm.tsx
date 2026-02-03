@@ -31,7 +31,7 @@ import { WorkHistoryForm, WorkItem } from "@/components/trainees/forms/WorkHisto
 import { FamilyMembersForm, FamilyItem } from "@/components/trainees/forms/FamilyMembersForm";
 import { JapanRelativesForm, JapanRelativeItem } from "@/components/trainees/forms/JapanRelativesForm";
 import { ProjectInterviewForm } from "@/components/trainees/forms/ProjectInterviewForm";
-import { useEducationHistory, useWorkHistory, useFamilyMembers, useJapanRelatives } from "@/hooks/useTraineeHistory";
+import { useEducationHistory, useWorkHistory, useFamilyMembers, useJapanRelatives, useInterviewHistory } from "@/hooks/useTraineeHistory";
 import { useDuplicateCheck, getDuplicateErrorMessage } from "@/hooks/useDuplicateCheck";
 
 // Photo file states removed - no more draft system
@@ -229,6 +229,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   const { data: workHistoryData } = useWorkHistory(traineeId || "");
   const { data: familyMembersData } = useFamilyMembers(traineeId || "");
   const { data: japanRelativesData } = useJapanRelatives(traineeId || "");
+  const { data: interviewHistoryData } = useInterviewHistory(traineeId || "");
 
   const [formData, setFormData] = useState<FormData>({
     trainee_code: "",
@@ -445,20 +446,23 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     }
   }, [isEditMode, japanRelativesData]);
 
-  // Load project data from trainee when editing
+  // Load project data from trainee and interview history when editing
   useEffect(() => {
     if (isEditMode && trainee) {
+      // Lấy interview history mới nhất để load dữ liệu
+      const latestInterview = interviewHistoryData?.[0]; // Đã được sắp xếp theo interview_date DESC
+      
       setProjectData({
         order_id: "",  // Order is not stored on trainee directly
-        interview_date: trainee.interview_pass_date || "",
-        expected_entry_month: trainee.expected_entry_month || "",
-        receiving_company_id: trainee.receiving_company_id || "",
-        union_id: trainee.union_id || "",
-        job_category_id: trainee.job_category_id || "",
+        interview_date: latestInterview?.interview_date || "",
+        expected_entry_month: latestInterview?.expected_entry_month || trainee.expected_entry_month || "",
+        receiving_company_id: latestInterview?.company_id || trainee.receiving_company_id || "",
+        union_id: latestInterview?.union_id || trainee.union_id || "",
+        job_category_id: latestInterview?.job_category_id || trainee.job_category_id || "",
         contract_term: trainee.contract_term?.toString() || "",
       });
     }
-  }, [isEditMode, trainee]);
+  }, [isEditMode, trainee, interviewHistoryData]);
 
   // CRITICAL: Các stage trước xuất cảnh - nếu đổi về đây thì phải xóa departure_date
   const PRE_DEPARTURE_STAGES = ["Chưa đậu", "Đậu phỏng vấn", "Nộp hồ sơ", "OTIT", "Nyukan", "COE"];
