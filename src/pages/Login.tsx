@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, LogIn, UserPlus, Shield, Sparkles } from "lucide-react";
+import { Loader2, LogIn, UserPlus, Shield, Sparkles, Mail } from "lucide-react";
 import mekongLogo from "@/assets/mekong-logo.png";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -34,6 +34,8 @@ export default function Login() {
   
   const [isLoading, setIsLoading] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
+  const [isResendingEmail, setIsResendingEmail] = useState(false);
+  const [showResendOption, setShowResendOption] = useState(false);
   
   // Login form state
   const [loginEmail, setLoginEmail] = useState("");
@@ -48,13 +50,24 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setShowResendOption(false);
 
     const { error } = await signIn(loginEmail, loginPassword);
 
     if (error) {
+      // Check if error is "Email not confirmed"
+      const isEmailNotConfirmed = error.message?.toLowerCase().includes("email not confirmed") ||
+                                   error.message?.toLowerCase().includes("email_not_confirmed");
+      
+      if (isEmailNotConfirmed) {
+        setShowResendOption(true);
+      }
+      
       toast({
         title: "Đăng nhập thất bại",
-        description: error.message,
+        description: isEmailNotConfirmed 
+          ? "Email chưa được xác nhận. Vui lòng kiểm tra hộp thư (bao gồm Spam) hoặc gửi lại email xác nhận."
+          : error.message,
         variant: "destructive",
       });
       setIsLoading(false);
@@ -122,6 +135,47 @@ export default function Login() {
     }
 
     setIsLoading(false);
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!loginEmail) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập email để gửi lại xác nhận",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsResendingEmail(true);
+    
+    const redirectUrl = window.location.hostname === "localhost" 
+      ? window.location.origin 
+      : "https://erpmekong.lovable.app";
+
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: loginEmail,
+      options: {
+        emailRedirectTo: `${redirectUrl}/login`,
+      },
+    });
+
+    if (error) {
+      toast({
+        title: "Lỗi",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Đã gửi email",
+        description: "Vui lòng kiểm tra hộp thư (bao gồm thư mục Spam) và click vào link xác nhận.",
+      });
+      setShowResendOption(false);
+    }
+
+    setIsResendingEmail(false);
   };
 
   const handleAssignAdmin = async () => {
@@ -310,6 +364,34 @@ export default function Login() {
                         </>
                       )}
                     </Button>
+                    
+                    {/* Resend confirmation email option */}
+                    {showResendOption && (
+                      <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                        <p className="text-amber-200 text-sm mb-3">
+                          Email chưa được xác nhận? Click để gửi lại email xác nhận.
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleResendConfirmation}
+                          disabled={isResendingEmail}
+                          className="w-full h-10 bg-amber-500/20 border-amber-500/40 text-amber-100 hover:bg-amber-500/30 hover:text-white rounded-lg"
+                        >
+                          {isResendingEmail ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Đang gửi...
+                            </>
+                          ) : (
+                            <>
+                              <Mail className="mr-2 h-4 w-4" />
+                              Gửi lại email xác nhận
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </form>
                 </TabsContent>
 
