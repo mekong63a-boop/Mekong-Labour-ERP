@@ -3196,6 +3196,12 @@ export type Database = {
         | "departed"
         | "post_departure"
         | "archived"
+        | "registered"
+        | "enrolled"
+        | "training"
+        | "interview_passed"
+        | "document_processing"
+        | "terminated"
       user_account_status: "pending" | "active" | "suspended" | "deleted"
       user_role: "admin" | "staff"
     }
@@ -3390,6 +3396,12 @@ export const Constants = {
         "departed",
         "post_departure",
         "archived",
+        "registered",
+        "enrolled",
+        "training",
+        "interview_passed",
+        "document_processing",
+        "terminated",
       ],
       user_account_status: ["pending", "active", "suspended", "deleted"],
       user_role: ["admin", "staff"],
