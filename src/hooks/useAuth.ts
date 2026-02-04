@@ -192,11 +192,16 @@ export function useAuthState(): AuthContextType {
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
+    // Use production URL for email confirmation redirect
+    const redirectUrl = window.location.hostname === "localhost" 
+      ? window.location.origin 
+      : "https://erpmekong.lovable.app";
+    
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${redirectUrl}/login`,
         data: {
           full_name: fullName,
         },
