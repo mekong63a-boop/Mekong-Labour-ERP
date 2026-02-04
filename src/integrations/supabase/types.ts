@@ -1033,6 +1033,111 @@ export type Database = {
         }
         Relationships: []
       }
+      master_stage_transitions: {
+        Row: {
+          auto_side_effects: string[] | null
+          condition_description: string | null
+          created_at: string | null
+          from_stage: string
+          id: number
+          requires_fields: string[] | null
+          to_stage: string
+        }
+        Insert: {
+          auto_side_effects?: string[] | null
+          condition_description?: string | null
+          created_at?: string | null
+          from_stage: string
+          id?: number
+          requires_fields?: string[] | null
+          to_stage: string
+        }
+        Update: {
+          auto_side_effects?: string[] | null
+          condition_description?: string | null
+          created_at?: string | null
+          from_stage?: string
+          id?: number
+          requires_fields?: string[] | null
+          to_stage?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "master_stage_transitions_from_stage_fkey"
+            columns: ["from_stage"]
+            isOneToOne: false
+            referencedRelation: "master_trainee_stages"
+            referencedColumns: ["stage_code"]
+          },
+          {
+            foreignKeyName: "master_stage_transitions_to_stage_fkey"
+            columns: ["to_stage"]
+            isOneToOne: false
+            referencedRelation: "master_trainee_stages"
+            referencedColumns: ["stage_code"]
+          },
+        ]
+      }
+      master_terminated_reasons: {
+        Row: {
+          description: string | null
+          id: number
+          reason_code: string
+          reason_name: string
+          reason_name_jp: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: number
+          reason_code: string
+          reason_name: string
+          reason_name_jp?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: number
+          reason_code?: string
+          reason_name?: string
+          reason_name_jp?: string | null
+        }
+        Relationships: []
+      }
+      master_trainee_stages: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: number
+          is_terminal: boolean | null
+          order_index: number
+          stage_code: string
+          stage_name: string
+          stage_name_jp: string | null
+          ui_color: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          is_terminal?: boolean | null
+          order_index: number
+          stage_code: string
+          stage_name: string
+          stage_name_jp?: string | null
+          ui_color?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: number
+          is_terminal?: boolean | null
+          order_index?: number
+          stage_code?: string
+          stage_name?: string
+          stage_name_jp?: string | null
+          ui_color?: string | null
+        }
+        Relationships: []
+      }
       menus: {
         Row: {
           created_at: string | null
@@ -2986,11 +3091,24 @@ export type Database = {
         Args: { _identifier: string; _ip_address?: string; _success: boolean }
         Returns: undefined
       }
+      rpc_auto_checkout_dormitory: {
+        Args: { p_trainee_id: string }
+        Returns: undefined
+      }
+      rpc_auto_create_dormitory_pending: {
+        Args: { p_trainee_id: string }
+        Returns: undefined
+      }
+      rpc_get_allowed_transitions: {
+        Args: { p_trainee_id: string }
+        Returns: Json
+      }
+      rpc_get_stage_timeline: { Args: { p_trainee_id: string }; Returns: Json }
       rpc_transition_trainee_stage: {
         Args: {
           p_reason?: string
           p_sub_status?: string
-          p_to_stage: Database["public"]["Enums"]["trainee_workflow_stage"]
+          p_to_stage: string
           p_trainee_id: string
         }
         Returns: Json
