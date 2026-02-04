@@ -2988,6 +2988,15 @@ export type Database = {
         Args: { _identifier: string; _ip_address?: string; _success: boolean }
         Returns: undefined
       }
+      rpc_transition_trainee_stage: {
+        Args: {
+          p_reason?: string
+          p_sub_status?: string
+          p_to_stage: Database["public"]["Enums"]["trainee_workflow_stage"]
+          p_trainee_id: string
+        }
+        Returns: Json
+      }
       save_department_menu_permissions: {
         Args: { _assigned_by?: string; _department: string; _permissions: Json }
         Returns: undefined
