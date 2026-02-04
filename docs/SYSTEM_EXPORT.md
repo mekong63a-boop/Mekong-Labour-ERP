@@ -55,44 +55,71 @@
 | `enrollment_history` | Lịch sử chuyển lớp | CASCADE |
 | `dormitory_residents` | Ở KTX | CASCADE |
 
-### 2.3. Trạng thái học viên
+### 2.3. Trạng thái học viên (ĐÃ CHUẨN HÓA)
 
-#### Cột `progression_stage` (ENUM `progression_stage`)
+> **⚠️ QUAN TRỌNG:** Kể từ 04/02/2026, hệ thống áp dụng mô hình **"1 học viên = 1 luồng trạng thái"**.
+> 
+> - **Nguồn duy nhất:** `trainee_workflow.current_stage`
+> - **Các cột `trainees.simple_status` và `trainees.progression_stage`:** Tự động đồng bộ qua trigger, KHÔNG nhập tay
+> - **RPC duy nhất:** `rpc_transition_trainee_stage(p_trainee_id, p_to_stage, p_sub_status, p_reason)`
 
-| Giá trị DB | Hiển thị UI |
-|-----------|-------------|
-| `Chưa đậu` | Chưa đậu |
-| `Đậu phỏng vấn` | Đậu phỏng vấn |
-| `Nộp hồ sơ` | Nộp hồ sơ |
-| `OTIT` | OTIT |
-| `Nyukan` | Nyukan |
-| `COE` | COE |
-| `Visa` | Visa |
-| `Xuất cảnh` | Xuất cảnh |
-| `Đang làm việc` | Đang làm việc |
-| `Hoàn thành hợp đồng` | Hoàn thành hợp đồng |
-| `Bỏ trốn` | Bỏ trốn |
-| `Về trước hạn` | Về trước hạn |
+#### Cột CHÍNH: `trainee_workflow.current_stage` (ENUM `trainee_workflow_stage`)
 
-#### Cột `trainee_workflow.current_stage` (ENUM `trainee_workflow_stage`)
+| Giá trị DB | Mô tả | Mapping → simple_status | Mapping → progression_stage |
+|-----------|-------|------------------------|----------------------------|
+| `recruited` | Đã tuyển dụng | Đang học | Chưa đậu |
+| `trained` | Đang đào tạo | Đang học | Chưa đậu |
+| `dormitory` | Đang ở KTX | Đang học | Chưa đậu |
+| `visa_processing` | Đang xử lý visa | Đang học | Nộp hồ sơ |
+| `ready_to_depart` | Sẵn sàng xuất cảnh | Đang học | COE |
+| `departed` | Đã xuất cảnh | Đã xuất cảnh | Xuất cảnh |
+| `post_departure` | Sau xuất cảnh | Đã xuất cảnh | Đang làm việc |
+| `archived` | Lưu trữ | Lưu trữ | Hoàn thành hợp đồng |
 
-| Giá trị DB | Mô tả |
-|-----------|-------|
-| `recruited` | Đã tuyển dụng |
-| `trained` | Đang đào tạo |
-| `dormitory` | Đang ở KTX |
-| `visa_processing` | Đang xử lý visa |
-| `ready_to_depart` | Sẵn sàng xuất cảnh |
-| `departed` | Đã xuất cảnh |
-| `post_departure` | Sau xuất cảnh |
-| `archived` | Lưu trữ |
+#### Cột PHỤ (readonly): `trainees.progression_stage` (ENUM `progression_stage`)
 
-#### Cột `simple_status` (ENUM `simple_status`)
+| Giá trị DB | Hiển thị UI | Ghi chú |
+|-----------|-------------|---------|
+| `Chưa đậu` | Chưa đậu | Tự động đồng bộ |
+| `Đậu phỏng vấn` | Đậu phỏng vấn | Tự động đồng bộ |
+| `Nộp hồ sơ` | Nộp hồ sơ | Tự động đồng bộ |
+| `OTIT` | OTIT | Tự động đồng bộ |
+| `Nyukan` | Nyukan | Tự động đồng bộ |
+| `COE` | COE | Tự động đồng bộ |
+| `Xuất cảnh` | Xuất cảnh | Tự động đồng bộ |
+| `Đang làm việc` | Đang làm việc | Tự động đồng bộ |
+| `Hoàn thành hợp đồng` | Hoàn thành HĐ/ về nước | Tự động đồng bộ |
+| `Bỏ trốn` | Bỏ trốn | Tự động đồng bộ |
+| `Về trước hạn` | Về trước hạn | Tự động đồng bộ |
 
-| Giá trị DB | Mô tả |
-|-----------|-------|
-| `ChuaDau` | Chưa đậu phỏng vấn |
-| `DaDau` | Đã đậu phỏng vấn |
+#### Cột PHỤ (readonly): `trainees.simple_status` (ENUM `simple_status`)
+
+| Giá trị DB | Mô tả | Ghi chú |
+|-----------|-------|---------|
+| `Đang học` | Đang trong chương trình | Tự động đồng bộ |
+| `Đã xuất cảnh` | Đã rời Việt Nam | Tự động đồng bộ |
+| `Hoàn thành` | Hoàn thành hợp đồng | Tự động đồng bộ |
+| `Về nước sớm` | Về trước hạn | Tự động đồng bộ |
+| `Bỏ trốn` | Bỏ trốn | Tự động đồng bộ |
+| `Lưu trữ` | Lưu trữ | Tự động đồng bộ |
+
+#### Sử dụng RPC để chuyển trạng thái
+
+```sql
+-- Ví dụ: Chuyển học viên sang giai đoạn "departed"
+SELECT rpc_transition_trainee_stage(
+  'trainee-uuid',
+  'departed',        -- to_stage
+  NULL,              -- sub_status (optional)
+  'Xuất cảnh ngày 01/02/2026'  -- reason (optional)
+);
+```
+
+**Kết quả:**
+- Update `trainee_workflow.current_stage` = 'departed'
+- Insert record vào `trainee_workflow_history`
+- Trigger tự động sync `trainees.simple_status` = 'Đã xuất cảnh'
+- Trigger tự động sync `trainees.progression_stage` = 'Xuất cảnh'
 
 ---
 

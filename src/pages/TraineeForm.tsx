@@ -1673,175 +1673,126 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   <CardTitle className="text-base font-semibold">Trạng thái</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* simple_status: READONLY - được đồng bộ từ trainee_workflow */}
                   <div>
-                    <Label className="text-xs text-muted-foreground">Trạng thái</Label>
-                    <Select
+                    <Label className="text-xs text-muted-foreground">Trạng thái (tự động)</Label>
+                    <Input
                       value={formData.simple_status}
-                      onValueChange={(v) => updateField("simple_status", v)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Chọn" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SIMPLE_STATUSES.map((s) => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      readOnly
+                      disabled
+                      className="bg-muted cursor-not-allowed"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Được đồng bộ tự động từ luồng trạng thái
+                    </p>
                   </div>
                   
-                  {/* Conditional date fields based on simple_status */}
-                  {formData.simple_status === "Đang học" && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Ngày nhập học</Label>
-                      <Input
-                        type="date"
-                        value={formData.entry_date}
-                        onChange={(e) => updateField("entry_date", e.target.value)}
-                      />
-                    </div>
-                  )}
-                  {formData.simple_status === "Bảo lưu" && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Ngày bảo lưu</Label>
-                      <Input
-                        type="date"
-                        value={formData.reserve_date}
-                        onChange={(e) => updateField("reserve_date", e.target.value)}
-                      />
-                    </div>
-                  )}
-                  {formData.simple_status === "Dừng chương trình" && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Ngày dừng chương trình</Label>
-                      <Input
-                        type="date"
-                        value={formData.stop_date}
-                        onChange={(e) => updateField("stop_date", e.target.value)}
-                      />
-                    </div>
-                  )}
-                  {formData.simple_status === "Hủy" && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Ngày hủy</Label>
-                      <Input
-                        type="date"
-                        value={formData.cancel_date}
-                        onChange={(e) => updateField("cancel_date", e.target.value)}
-                      />
-                    </div>
-                  )}
-
+                  {/* progression_stage: READONLY - được đồng bộ từ trainee_workflow */}
                   <div>
-                    <Label className="text-xs text-muted-foreground">Tình trạng hiện tại</Label>
-                    <Select
-                      value={formData.progression_stage}
-                      onValueChange={(v) => updateField("progression_stage", v)}
-                    >
-                      <SelectTrigger className={getSelectClass(formData.progression_stage)}>
-                        <SelectValue placeholder="Chọn" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PROGRESSION_STAGES.map((s) => (
-                          <SelectItem key={s} value={s}>{PROGRESSION_STAGE_LABELS[s] || s}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label className="text-xs text-muted-foreground">Giai đoạn (tự động)</Label>
+                    <Input
+                      value={PROGRESSION_STAGE_LABELS[formData.progression_stage] || formData.progression_stage}
+                      readOnly
+                      disabled
+                      className="bg-muted cursor-not-allowed"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Sử dụng menu "Chuyển trạng thái" để thay đổi
+                    </p>
                   </div>
 
-                  {/* Conditional date fields based on progression_stage */}
-                  {/* Note: "Đậu phỏng vấn" no longer shows date here as it's already in "Dự án và Phỏng vấn" tab */}
-                  {formData.progression_stage === "Nộp hồ sơ" && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Ngày nộp HS</Label>
-                      <Input
-                        type="date"
-                        value={formData.document_submission_date}
-                        onChange={(e) => updateField("document_submission_date", e.target.value)}
-                      />
-                    </div>
-                  )}
-                  {formData.progression_stage === "OTIT" && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Ngày vào OTIT</Label>
-                      <Input
-                        type="date"
-                        value={formData.otit_entry_date}
-                        onChange={(e) => updateField("otit_entry_date", e.target.value)}
-                      />
-                    </div>
-                  )}
-                  {formData.progression_stage === "Nyukan" && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Ngày vào Nyukan</Label>
-                      <Input
-                        type="date"
-                        value={formData.nyukan_entry_date}
-                        onChange={(e) => updateField("nyukan_entry_date", e.target.value)}
-                      />
-                    </div>
-                  )}
-                  {formData.progression_stage === "COE" && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Ngày có COE</Label>
-                      <Input
-                        type="date"
-                        value={formData.coe_date}
-                        onChange={(e) => updateField("coe_date", e.target.value)}
-                      />
-                    </div>
-                  )}
-                  {formData.progression_stage === "Xuất cảnh" && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Ngày xuất cảnh</Label>
-                      <Input
-                        type="date"
-                        value={formData.departure_date}
-                        onChange={(e) => updateField("departure_date", e.target.value)}
-                      />
-                    </div>
-                  )}
-                  {formData.progression_stage === "Bỏ trốn" && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Ngày bỏ trốn</Label>
-                      <Input
-                        type="date"
-                        value={formData.absconded_date}
-                        onChange={(e) => updateField("absconded_date", e.target.value)}
-                      />
-                    </div>
-                  )}
-                  {formData.progression_stage === "Hoàn thành hợp đồng" && (
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Ngày hoàn thành HĐ</Label>
-                      <Input
-                        type="date"
-                        value={formData.return_date}
-                        onChange={(e) => updateField("return_date", e.target.value)}
-                      />
-                    </div>
-                  )}
-                  {formData.progression_stage === "Về trước hạn" && (
-                    <>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Ngày về nước trước hạn</Label>
-                        <Input
-                          type="date"
-                          value={formData.early_return_date}
-                          onChange={(e) => updateField("early_return_date", e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Lý do về trước hạn</Label>
-                        <Textarea
-                          placeholder="Nhập lý do..."
-                          value={formData.early_return_reason}
-                          onChange={(e) => updateField("early_return_reason", e.target.value)}
-                          className="min-h-16"
-                        />
-                      </div>
-                    </>
-                  )}
+                  {/* Date fields - luôn hiển thị để nhập liệu */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Ngày nhập học</Label>
+                    <Input
+                      type="date"
+                      value={formData.entry_date}
+                      onChange={(e) => updateField("entry_date", e.target.value)}
+                    />
+                  </div>
+
+                  {/* Date fields - hiển thị tất cả để nhập liệu khi cần */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Ngày nộp HS</Label>
+                    <Input
+                      type="date"
+                      value={formData.document_submission_date}
+                      onChange={(e) => updateField("document_submission_date", e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Ngày vào OTIT</Label>
+                    <Input
+                      type="date"
+                      value={formData.otit_entry_date}
+                      onChange={(e) => updateField("otit_entry_date", e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Ngày vào Nyukan</Label>
+                    <Input
+                      type="date"
+                      value={formData.nyukan_entry_date}
+                      onChange={(e) => updateField("nyukan_entry_date", e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Ngày có COE</Label>
+                    <Input
+                      type="date"
+                      value={formData.coe_date}
+                      onChange={(e) => updateField("coe_date", e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Ngày xuất cảnh</Label>
+                    <Input
+                      type="date"
+                      value={formData.departure_date}
+                      onChange={(e) => updateField("departure_date", e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Ngày bỏ trốn</Label>
+                    <Input
+                      type="date"
+                      value={formData.absconded_date}
+                      onChange={(e) => updateField("absconded_date", e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Ngày hoàn thành HĐ</Label>
+                    <Input
+                      type="date"
+                      value={formData.return_date}
+                      onChange={(e) => updateField("return_date", e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Ngày về nước trước hạn</Label>
+                    <Input
+                      type="date"
+                      value={formData.early_return_date}
+                      onChange={(e) => updateField("early_return_date", e.target.value)}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Lý do về trước hạn</Label>
+                    <Textarea
+                      placeholder="Nhập lý do..."
+                      value={formData.early_return_reason}
+                      onChange={(e) => updateField("early_return_reason", e.target.value)}
+                      className="min-h-16"
+                    />
+                  </div>
 
                   <div>
                     <Label className="text-xs text-muted-foreground">Ngày đăng ký</Label>
