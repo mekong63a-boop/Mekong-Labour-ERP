@@ -2784,6 +2784,15 @@ export type Database = {
         }
         Relationships: []
       }
+      v_trainees_registered_monthly: {
+        Row: {
+          month: number | null
+          total_registered: number | null
+          year: number | null
+          year_month: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       assign_first_admin: { Args: { _user_id: string }; Returns: boolean }
