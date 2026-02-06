@@ -145,3 +145,18 @@ export const useAvailableYears = () => useQuery({
   queryFn: () => queryView("dashboard_available_years") as Promise<YearData[]>,
   staleTime: 60 * 1000, // 1 minute - years don't change often
 });
+
+// SINGLE SOURCE: Post-departure stats từ view Sau xuất cảnh
+export interface PostDepartureStatsData {
+  year: string;
+  working: number;
+  early_return: number;
+  absconded: number;
+  completed: number;
+  total: number;
+}
+export const usePostDepartureStats = () => useQuery({
+  queryKey: ["post-departure-stats-by-year"],
+  queryFn: () => queryView("post_departure_stats_by_year") as Promise<PostDepartureStatsData[]>,
+  staleTime: 30 * 1000,
+});

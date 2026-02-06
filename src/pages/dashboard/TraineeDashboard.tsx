@@ -36,6 +36,7 @@ import {
   useTraineeBySource,
   useTraineeByCompany,
   useMonthlyPassed,
+  usePostDepartureStats,
 } from "@/hooks/useDashboardTrainee";
 
 // Icon color classes
@@ -55,9 +56,19 @@ export default function TraineeDashboard() {
   const { data: sourceData, isLoading: loadingSource } = useTraineeBySource();
   const { data: companyData, isLoading: loadingCompany } = useTraineeByCompany();
   const { data: monthlyPassed, isLoading: loadingPassed } = useMonthlyPassed();
+  
+  // SINGLE SOURCE: Xuất cảnh từ menu Sau xuất cảnh
+  const { data: postDepartureStats, isLoading: loadingPostDeparture } = usePostDepartureStats();
 
   // SYSTEM RULE: activeOrders từ kpis view (đã tính sẵn ở DB)
   const activeOrders = kpis?.active_orders || 0;
+  
+  // SINGLE SOURCE: Tính xuất cảnh năm nay từ post_departure_stats_by_year
+  const departedThisYear = useMemo(() => {
+    if (!postDepartureStats) return 0;
+    const currentYearData = postDepartureStats.find(s => s.year === currentYear.toString());
+    return currentYearData?.total || 0;
+  }, [postDepartureStats, currentYear]);
 
   // Tính các năm có dữ liệu thực sự cho từng loại biểu đồ
   const recruitmentYears = useMemo(() => {
@@ -342,40 +353,27 @@ export default function TraineeDashboard() {
           </CardContent>
         </Card>
 
-        {/* Trainees Departed */}
+        {/* Trainees Departed - SINGLE SOURCE từ menu Sau xuất cảnh */}
         <Card>
           <CardContent className="p-5">
-            {loadingKPIs ? (
+            {loadingPostDeparture ? (
               <div className="space-y-3">
                 <Skeleton className="h-12 w-12 rounded-2xl" />
                 <Skeleton className="h-8 w-20" />
               </div>
             ) : (
-              <div className="flex gap-4">
-                <div className="space-y-3 flex-1">
-                  <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", iconColorClasses.purple)}>
-                    <Plane className="h-6 w-6" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-2xl font-bold text-foreground">
-                      {kpis?.departed_this_year || 0}
-                    </div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Xuất cảnh năm nay
-                    </p>
-                    <p className="text-xs text-muted-foreground">Đã xuất cảnh năm {new Date().getFullYear()}</p>
-                  </div>
+              <div className="space-y-3">
+                <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", iconColorClasses.purple)}>
+                  <Plane className="h-6 w-6" />
                 </div>
-                {/* Gender breakdown */}
-                <div className="flex flex-col justify-center gap-1 min-w-[60px]">
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm font-semibold text-blue-600">{kpis?.departed_male || 0}</span>
-                    <span className="text-xs text-muted-foreground">Nam</span>
+                <div className="space-y-1">
+                  <div className="text-2xl font-bold text-foreground">
+                    {departedThisYear}
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm font-semibold text-red-500">{kpis?.departed_female || 0}</span>
-                    <span className="text-xs text-muted-foreground">Nữ</span>
-                  </div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Xuất cảnh năm nay
+                  </p>
+                  <p className="text-xs text-muted-foreground">Đã xuất cảnh năm {currentYear}</p>
                 </div>
               </div>
             )}
