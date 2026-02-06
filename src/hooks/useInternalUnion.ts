@@ -191,6 +191,7 @@ export const useCreateUnionTransaction = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['union-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['union-stats'] });
       toast.success('Thêm giao dịch thành công!');
     },
     onError: (error: Error) => {
@@ -213,6 +214,7 @@ export const useDeleteUnionTransaction = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['union-transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['union-stats'] });
       toast.success('Xóa giao dịch thành công!');
     },
     onError: (error: Error) => {
