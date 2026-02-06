@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAllowedTransitions, useTransitionStage, useTerminatedReasons } from "@/hooks/useStageTransition";
+import { useAllowedTransitions, useTransitionStage, useTerminatedReasons, useMasterStages } from "@/hooks/useStageTransition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowRight, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowRight, AlertTriangle, CheckCircle2, Loader2, Settings2 } from "lucide-react";
+import { useCanAction } from "@/hooks/useMenuPermissions";
 
 interface StageTransitionPanelProps {
   traineeId: string;
@@ -38,7 +39,11 @@ const stageColorMap: Record<string, string> = {
 export function StageTransitionPanel({ traineeId, traineeName }: StageTransitionPanelProps) {
   const { data, isLoading } = useAllowedTransitions(traineeId);
   const { data: terminatedReasons } = useTerminatedReasons();
+  const { data: masterStages } = useMasterStages();
   const transitionMutation = useTransitionStage();
+  
+  // Check if user can edit stage directly (via trainees update permission)
+  const { hasPermission: canEditStage } = useCanAction("trainees", "update");
 
   const [selectedTransition, setSelectedTransition] = useState<{
     to_stage: string;
@@ -48,11 +53,31 @@ export function StageTransitionPanel({ traineeId, traineeName }: StageTransition
   const [reason, setReason] = useState("");
   const [subStatus, setSubStatus] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [directSelectMode, setDirectSelectMode] = useState(false);
+  const [selectedStage, setSelectedStage] = useState<string>("");
 
   const handleSelectTransition = (transition: typeof selectedTransition) => {
     setSelectedTransition(transition);
     setReason("");
     setSubStatus("");
+    setDirectSelectMode(false);
+    setDialogOpen(true);
+  };
+
+  // Handle direct stage selection from dropdown
+  const handleDirectStageSelect = (stageCode: string) => {
+    const stage = masterStages?.find(s => s.stage_code === stageCode);
+    if (!stage) return;
+    
+    setSelectedStage(stageCode);
+    setSelectedTransition({
+      to_stage: stageCode,
+      stage_name: stage.stage_name,
+      requires_fields: null, // Direct mode skips validation (admin override)
+    });
+    setReason("");
+    setSubStatus("");
+    setDirectSelectMode(true);
     setDialogOpen(true);
   };
 
@@ -68,6 +93,7 @@ export function StageTransitionPanel({ traineeId, traineeName }: StageTransition
 
     setDialogOpen(false);
     setSelectedTransition(null);
+    setSelectedStage("");
   };
 
   if (isLoading) {
@@ -95,6 +121,9 @@ export function StageTransitionPanel({ traineeId, traineeName }: StageTransition
     );
   }
 
+  // Filter out current stage from master stages list
+  const availableStages = masterStages?.filter(s => s.stage_code !== current_stage) || [];
+
   return (
     <>
       <Card>
@@ -104,35 +133,78 @@ export function StageTransitionPanel({ traineeId, traineeName }: StageTransition
             Chuyển trạng thái
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          {transitions && transitions.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {transitions.map((transition) => (
-                <Button
-                  key={transition.to_stage}
-                  variant="outline"
-                  size="sm"
-                  className={`${stageColorMap[transition.ui_color] || stageColorMap.gray} border`}
-                  onClick={() => handleSelectTransition(transition)}
-                  disabled={transitionMutation.isPending}
-                >
-                  {transition.stage_name}
-                  {transition.requires_fields && transition.requires_fields.length > 0 && (
-                    <AlertTriangle className="h-3 w-3 ml-1 text-amber-600" />
-                  )}
-                </Button>
-              ))}
+        <CardContent className="space-y-4">
+          {/* Quick transitions - workflow-based */}
+          {transitions && transitions.length > 0 && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-2">Chuyển nhanh:</p>
+              <div className="flex flex-wrap gap-2">
+                {transitions.map((transition) => (
+                  <Button
+                    key={transition.to_stage}
+                    variant="outline"
+                    size="sm"
+                    className={`${stageColorMap[transition.ui_color] || stageColorMap.gray} border`}
+                    onClick={() => handleSelectTransition(transition)}
+                    disabled={transitionMutation.isPending}
+                  >
+                    {transition.stage_name}
+                    {transition.requires_fields && transition.requires_fields.length > 0 && (
+                      <AlertTriangle className="h-3 w-3 ml-1 text-amber-600" />
+                    )}
+                  </Button>
+                ))}
+              </div>
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Không có chuyển đổi khả dụng từ trạng thái hiện tại
+          )}
+          
+          {transitions && transitions.some(t => t.requires_fields && t.requires_fields.length > 0) && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3 text-amber-600" />
+              Có điều kiện yêu cầu trước khi chuyển
             </p>
           )}
 
-          {transitions && transitions.some(t => t.requires_fields && t.requires_fields.length > 0) && (
-            <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3 text-amber-600" />
-              Có điều kiện yêu cầu trước khi chuyển
+          {/* Direct stage selection - for authorized users */}
+          {canEditStage && (
+            <div className="pt-3 border-t">
+              <div className="flex items-center gap-2 mb-2">
+                <Settings2 className="h-4 w-4 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">Chọn giai đoạn trực tiếp (Admin):</p>
+              </div>
+              <Select 
+                value={selectedStage} 
+                onValueChange={handleDirectStageSelect}
+                disabled={transitionMutation.isPending}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Chọn giai đoạn bất kỳ..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableStages.map((stage) => (
+                    <SelectItem key={stage.stage_code} value={stage.stage_code}>
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant="outline" 
+                          className={`${stageColorMap[stage.ui_color] || stageColorMap.gray} text-xs`}
+                        >
+                          {stage.order_index}
+                        </Badge>
+                        {stage.stage_name}
+                        {stage.stage_name_jp && (
+                          <span className="text-muted-foreground text-xs">({stage.stage_name_jp})</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {(!transitions || transitions.length === 0) && !canEditStage && (
+            <p className="text-sm text-muted-foreground">
+              Không có chuyển đổi khả dụng từ trạng thái hiện tại
             </p>
           )}
         </CardContent>
@@ -149,12 +221,17 @@ export function StageTransitionPanel({ traineeId, traineeName }: StageTransition
             <DialogDescription>
               Chuyển {traineeName ? `"${traineeName}"` : "học viên"} sang trạng thái{" "}
               <Badge variant="secondary">{selectedTransition?.stage_name}</Badge>
+              {directSelectMode && (
+                <span className="block mt-2 text-amber-600 text-xs">
+                  ⚠️ Chế độ Admin - bỏ qua kiểm tra điều kiện
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {/* Required fields warning */}
-            {selectedTransition?.requires_fields && selectedTransition.requires_fields.length > 0 && (
+            {/* Required fields warning - only for workflow transitions */}
+            {!directSelectMode && selectedTransition?.requires_fields && selectedTransition.requires_fields.length > 0 && (
               <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
                 <p className="text-sm font-medium text-amber-800 flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4" />
@@ -189,7 +266,7 @@ export function StageTransitionPanel({ traineeId, traineeName }: StageTransition
 
             {/* Reason input */}
             <div className="space-y-2">
-              <Label>Ghi chú (tùy chọn)</Label>
+              <Label>Ghi chú {directSelectMode ? "(khuyến nghị điền lý do)" : "(tùy chọn)"}</Label>
               <Textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
