@@ -490,22 +490,21 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     }
   }, [japanRelativesData, japanLoaded]);
 
-  // Sync project interview data - load from latest interview history
+  // Sync project interview data - load from trainees table (draft fields only)
   useEffect(() => {
-    if (interviewData && interviewData.length > 0 && !projectLoaded) {
-      const latestInterview = interviewData[0]; // Already sorted by created_at DESC
+    if (trainee && !projectLoaded) {
       setProjectInterviewData({
-        order_id: "", // Order is not stored in interview_history directly
-        interview_date: latestInterview.interview_date || "",
-        expected_entry_month: latestInterview.expected_entry_month || "",
-        receiving_company_id: latestInterview.company_id || "",
-        union_id: latestInterview.union_id || "",
-        job_category_id: latestInterview.job_category_id || "",
-        contract_term: "",
+        order_id: "",
+        interview_date: "", // Draft: empty until finalized
+        expected_entry_month: trainee.expected_entry_month || "",
+        receiving_company_id: trainee.receiving_company_id || "",
+        union_id: trainee.union_id || "",
+        job_category_id: trainee.job_category_id || "",
+        contract_term: trainee.contract_term ? String(trainee.contract_term) : "",
       });
       setProjectLoaded(true);
     }
-  }, [interviewData, projectLoaded]);
+  }, [trainee, projectLoaded]);
 
   // Handle field changes
   const updateField = useCallback((field: keyof FormData, value: any) => {
@@ -1512,7 +1511,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         <TabsContent value="project" className="space-y-6">
           <ProjectInterviewForm 
             data={projectInterviewData} 
-            onChange={setProjectInterviewData} 
+            onChange={setProjectInterviewData}
+            traineeId={traineeId}
           />
         </TabsContent>
 
