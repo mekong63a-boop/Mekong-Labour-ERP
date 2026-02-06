@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -153,6 +153,7 @@ export default function TraineeForm() {
 function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("personal");
   const { convertToKatakana } = useKatakanaConverter();
@@ -428,9 +429,15 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     }
   }, [isEditMode, trainee]);
 
-  // Load education history
+  // Flags to ensure we only load history data once (prevent overwriting user input)
+  const [educationLoaded, setEducationLoaded] = useState(false);
+  const [workLoaded, setWorkLoaded] = useState(false);
+  const [familyLoaded, setFamilyLoaded] = useState(false);
+  const [japanLoaded, setJapanLoaded] = useState(false);
+
+  // Load education history (only once when data first arrives)
   useEffect(() => {
-    if (isEditMode && educationHistoryData) {
+    if (isEditMode && educationHistoryData && !educationLoaded) {
       setEducationItems(educationHistoryData.map(item => ({
         id: item.id,
         level: item.level || "",
@@ -441,12 +448,13 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         end_month: "",
         end_year: item.end_year?.toString() || "",
       })));
+      setEducationLoaded(true);
     }
-  }, [isEditMode, educationHistoryData]);
+  }, [isEditMode, educationHistoryData, educationLoaded]);
 
-  // Load work history
+  // Load work history (only once when data first arrives)
   useEffect(() => {
-    if (isEditMode && workHistoryData) {
+    if (isEditMode && workHistoryData && !workLoaded) {
       setWorkItems(workHistoryData.map(item => ({
         id: item.id,
         company_name: item.company_name || "",
@@ -455,12 +463,13 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         start_date: item.start_date || "",
         end_date: item.end_date || "",
       })));
+      setWorkLoaded(true);
     }
-  }, [isEditMode, workHistoryData]);
+  }, [isEditMode, workHistoryData, workLoaded]);
 
-  // Load family members
+  // Load family members (only once when data first arrives)
   useEffect(() => {
-    if (isEditMode && familyMembersData) {
+    if (isEditMode && familyMembersData && !familyLoaded) {
       setFamilyItems(familyMembersData.map(item => ({
         id: item.id,
         relationship: item.relationship || "",
@@ -471,12 +480,13 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         occupation: item.occupation || "",
         income: item.income || "",
       })));
+      setFamilyLoaded(true);
     }
-  }, [isEditMode, familyMembersData]);
+  }, [isEditMode, familyMembersData, familyLoaded]);
 
-  // Load japan relatives
+  // Load japan relatives (only once when data first arrives)
   useEffect(() => {
-    if (isEditMode && japanRelativesData) {
+    if (isEditMode && japanRelativesData && !japanLoaded) {
       setJapanRelativeItems(japanRelativesData.map(item => ({
         id: item.id,
         full_name: item.full_name || "",
@@ -486,8 +496,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         address_japan: item.address_japan || "",
         residence_status: item.residence_status || "",
       })));
+      setJapanLoaded(true);
     }
-  }, [isEditMode, japanRelativesData]);
+  }, [isEditMode, japanRelativesData, japanLoaded]);
 
   // Load project data from trainee and interview history when editing
   useEffect(() => {
@@ -933,6 +944,14 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
           await maybeLogInterviewHistory(targetTraineeId);
         }
       }
+
+      // Invalidate queries to ensure fresh data on next load
+      await queryClient.invalidateQueries({ queryKey: ["education-history"] });
+      await queryClient.invalidateQueries({ queryKey: ["work-history"] });
+      await queryClient.invalidateQueries({ queryKey: ["family-members"] });
+      await queryClient.invalidateQueries({ queryKey: ["japan-relatives"] });
+      await queryClient.invalidateQueries({ queryKey: ["interview-history"] });
+      await queryClient.invalidateQueries({ queryKey: ["trainee"] });
 
       navigate("/trainees");
     } catch (error: any) {
