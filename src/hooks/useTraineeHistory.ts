@@ -8,8 +8,8 @@ export type WorkHistory = Tables<"work_history">;
 export type FamilyMember = Tables<"family_members">;
 export type JapanRelative = Tables<"japan_relatives">;
 
-// Interview History
-export function useInterviewHistory(traineeId: string) {
+// Interview History - explicitly specify FK names to avoid PostgREST PGRST201 ambiguity
+export function useInterviewHistory(traineeId: string | undefined) {
   return useQuery({
     queryKey: ["interview-history", traineeId],
     queryFn: async () => {
@@ -17,11 +17,11 @@ export function useInterviewHistory(traineeId: string) {
         .from("interview_history")
         .select(`
           *,
-          companies:company_id(id, name, name_japanese),
-          unions:union_id(id, name, name_japanese),
-          job_categories:job_category_id(id, name, name_japanese)
+          companies:companies!fk_interview_company(id, name, name_japanese),
+          unions:unions!fk_interview_union(id, name, name_japanese),
+          job_categories:job_categories!fk_interview_job_category(id, name, name_japanese)
         `)
-        .eq("trainee_id", traineeId)
+        .eq("trainee_id", traineeId!)
         .order("interview_date", { ascending: false });
       if (error) throw error;
       return data;
