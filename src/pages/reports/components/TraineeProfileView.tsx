@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -34,6 +35,9 @@ import {
   Activity,
   History,
   Home,
+  ArrowRight,
+  GitBranch,
+  FileSearch,
 } from "lucide-react";
 import { TraineeProfile } from "../hooks/useTraineeProfile";
 import { formatVietnameseDate } from "@/lib/vietnamese-utils";
@@ -120,12 +124,21 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
     (profile.progression_stage && DEPARTED_STAGES.includes(profile.progression_stage));
 
   const stageLabels: Record<string, string> = {
-    trained: "Đào tạo",
-    dormitory: "Ký túc xá",
+    registered: "Đăng ký",
+    enrolled: "Nhập học",
+    training: "Đào tạo",
+    interview_passed: "Đậu phỏng vấn",
+    document_processing: "Xử lý hồ sơ",
     ready_to_depart: "Sẵn sàng xuất cảnh",
     departed: "Đã xuất cảnh",
     post_departure: "Sau xuất cảnh",
-    archived: "Lưu trữ",
+    terminated: "Kết thúc",
+  };
+
+  // Helper to get stage label
+  const getStageLabel = (stage: string | null) => {
+    if (!stage) return "—";
+    return stageLabels[stage] || stage;
   };
 
   const handleExportPDF = async () => {
@@ -276,7 +289,7 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                 <InfoRow label="SĐT phụ huynh 2" value={profile.parent_phone_2} icon={Phone} />
               </div>
               {!profile.can_view_pii && (
-                <p className="text-xs text-amber-600 mt-2">
+                <p className="text-xs text-warning mt-2">
                   ⚠️ Thông tin nhạy cảm đã được ẩn do quyền truy cập
                 </p>
               )}
@@ -783,6 +796,89 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                   ))}
                 </div>
               </Section>
+            )}
+
+            {/* Workflow History - Lịch sử chuyển đổi giai đoạn */}
+            {profile.workflow_history && profile.workflow_history.length > 0 && (
+              <>
+                <Section title="Lịch sử giai đoạn" icon={GitBranch}>
+                  <div className="space-y-2">
+                    {profile.workflow_history.map((wh) => (
+                      <div key={wh.id} className="p-2 bg-muted/50 rounded text-sm border-l-2 border-primary/30">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {wh.from_stage ? (
+                              <>
+                                <Badge variant="outline" className="text-xs">
+                                  {getStageLabel(wh.from_stage)}
+                                </Badge>
+                                <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                              </>
+                            ) : null}
+                            <Badge className="text-xs">
+                              {getStageLabel(wh.to_stage)}
+                            </Badge>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDate(wh.created_at)}
+                          </span>
+                        </div>
+                        {wh.sub_status && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Trạng thái phụ: {wh.sub_status}
+                          </p>
+                        )}
+                        {wh.reason && (
+                          <p className="text-xs mt-1 italic">{wh.reason}</p>
+                        )}
+                        {wh.department_name && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Phòng ban: {wh.department_name}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </Section>
+                <Separator />
+              </>
+            )}
+
+            {/* Audit Logs - Nhật ký thay đổi */}
+            {profile.audit_logs && profile.audit_logs.length > 0 && (
+              <>
+                <Section title="Nhật ký hệ thống" icon={FileSearch}>
+                  <div className="rounded-md border overflow-hidden max-h-64 overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="text-xs py-2">Thời gian</TableHead>
+                          <TableHead className="text-xs py-2">Hành động</TableHead>
+                          <TableHead className="text-xs py-2">Mô tả</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {profile.audit_logs.map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell className="text-xs py-1.5 whitespace-nowrap">
+                              {formatDate(log.created_at)}
+                            </TableCell>
+                            <TableCell className="text-xs py-1.5">
+                              <Badge variant="outline" className="text-xs">
+                                {log.action}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs py-1.5 text-muted-foreground">
+                              {log.description}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </Section>
+                <Separator />
+              </>
             )}
 
             {/* General Notes */}
