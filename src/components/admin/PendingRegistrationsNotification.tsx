@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, UserPlus, Check, X, ExternalLink, Clock } from "lucide-react";
+import { Bell, UserPlus, ExternalLink, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -9,10 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import {
-  usePendingRegistrations,
-  useMarkRegistrationRead,
-} from "@/hooks/usePendingRegistrations";
+import { usePendingRegistrations } from "@/hooks/usePendingRegistrations";
 import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -20,7 +17,6 @@ import { useNavigate } from "react-router-dom";
 export function PendingRegistrationsNotification() {
   const { registrations, unreadCount, isPrimaryAdmin, isLoading } =
     usePendingRegistrations();
-  const markRead = useMarkRegistrationRead();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
@@ -28,10 +24,6 @@ export function PendingRegistrationsNotification() {
   if (!isPrimaryAdmin) {
     return null;
   }
-
-  const handleMarkRead = async (id: string) => {
-    await markRead.mutateAsync(id);
-  };
 
   const handleGoToAdmin = () => {
     setOpen(false);
@@ -61,11 +53,11 @@ export function PendingRegistrationsNotification() {
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
             <UserPlus className="h-4 w-4 text-primary" />
-            <h4 className="font-semibold text-sm">Đăng ký mới</h4>
+            <h4 className="font-semibold text-sm">Chờ cấp quyền</h4>
           </div>
           {unreadCount > 0 && (
             <Badge variant="secondary" className="text-xs">
-              {unreadCount} chưa đọc
+              {unreadCount} tài khoản
             </Badge>
           )}
         </div>
@@ -77,16 +69,14 @@ export function PendingRegistrationsNotification() {
             </div>
           ) : registrations.length === 0 ? (
             <div className="p-4 text-center text-sm text-muted-foreground">
-              Không có đăng ký mới
+              Không có tài khoản chờ cấp quyền
             </div>
           ) : (
             <div className="divide-y">
               {registrations.map((reg) => (
                 <div
-                  key={reg.id}
-                  className={`p-3 hover:bg-muted/50 transition-colors ${
-                    !reg.is_read ? "bg-primary/5" : ""
-                  }`}
+                  key={reg.user_id}
+                  className="p-3 hover:bg-muted/50 transition-colors bg-primary/5"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
@@ -99,24 +89,14 @@ export function PendingRegistrationsNotification() {
                       <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
                         <span>
-                          {formatDistanceToNow(new Date(reg.registered_at), {
+                          Xác thực{" "}
+                          {formatDistanceToNow(new Date(reg.email_confirmed_at), {
                             addSuffix: true,
                             locale: vi,
                           })}
                         </span>
                       </div>
                     </div>
-                    {!reg.is_read && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 shrink-0"
-                        onClick={() => handleMarkRead(reg.id)}
-                        title="Đánh dấu đã đọc"
-                      >
-                        <Check className="h-3 w-3" />
-                      </Button>
-                    )}
                   </div>
                 </div>
               ))}
