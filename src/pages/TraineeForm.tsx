@@ -72,6 +72,32 @@ const PROGRESSION_STAGE_LABELS: Record<string, string> = {
   "Hoàn thành hợp đồng": "Hoàn thành HĐ/ về nước"
 };
 
+// Japanese language certificate options
+const JAPANESE_CERTIFICATES = [
+  "JLPT N4",
+  "JLPT N3",
+  "NAT-Test 4Q",
+  "JFT-Basic A2"
+];
+
+// Specified Skilled Worker (SSW) certificate options
+const SSW_CERTIFICATES = [
+  "介護技能特定技能1号",
+  "介護日本語特定技能1号",
+  "外食業特定技能1号",
+  "飲食料品製造業特定技能1号",
+  "農業技能測定試験1号 (耕種農業)",
+  "農業技能測定試験1号 (畜産農業)",
+  "自動車整備分野特定技能1号",
+  "宿泊分野特定技能1号",
+  "自動車運送業分野特定技能１号（トラック）",
+  "自動車運送業分野特定技能１号（タクシー）",
+  "自動車運送業分野特定技能１号（バス）",
+  "建設分野特定技能1号評価試験（土木）",
+  "建設分野特定技能1号評価試験（建築）",
+  "建設分野特定技能1号評価試験（ライフライン・設備）"
+];
+
 interface FormData {
   trainee_code: string;
   full_name: string;
@@ -144,6 +170,9 @@ interface FormData {
   early_return_reason: string;
   return_date: string;
   prior_residence_status: string;
+  // Certificates - multi-select
+  japanese_certificate: string[];
+  ssw_certificate: string[];
 }
 
 interface TraineeFormContentProps {
@@ -321,6 +350,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     early_return_reason: "",
     return_date: "",
     prior_residence_status: "",
+    // Certificates - multi-select
+    japanese_certificate: [],
+    ssw_certificate: [],
   });
 
   // Real-time duplicate check for trainee code
@@ -408,6 +440,13 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         early_return_reason: trainee.early_return_reason || "",
         return_date: trainee.return_date || "",
         prior_residence_status: (trainee as any).prior_residence_status || "",
+        // Certificates - multi-select
+        japanese_certificate: (trainee as any).japanese_certificate 
+          ? (trainee as any).japanese_certificate.split(", ").filter(Boolean) 
+          : [],
+        ssw_certificate: (trainee as any).ssw_certificate 
+          ? (trainee as any).ssw_certificate.split(", ").filter(Boolean) 
+          : [],
       });
     }
   }, [isEditMode, trainee]);
@@ -581,6 +620,14 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       ? formData.hobbies.join(", ") 
       : formData.hobbies;
 
+    const japaneseCertString = Array.isArray(formData.japanese_certificate) 
+      ? formData.japanese_certificate.join(", ") 
+      : formData.japanese_certificate;
+
+    const sswCertString = Array.isArray(formData.ssw_certificate) 
+      ? formData.ssw_certificate.join(", ") 
+      : formData.ssw_certificate;
+
     // Valid progression stages from enum
     const validProgressionStages = [
       "Chưa đậu", "Đậu phỏng vấn", "Nộp hồ sơ", "OTIT", "Nyukan", "COE", "Visa",
@@ -661,6 +708,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       early_return_reason: formData.early_return_reason || null,
       return_date: formData.return_date || null,
       prior_residence_status: formData.prior_residence_status || null,
+      japanese_certificate: japaneseCertString || null,
+      ssw_certificate: sswCertString || null,
     };
   };
 
@@ -1518,6 +1567,37 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   value={formData.hobbies}
                   onValueChange={(selected) => updateField("hobbies", selected)}
                   placeholder="Chọn sở thích..."
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Certificates */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Chứng chỉ tiếng Nhật</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <MultiSelect
+                  options={JAPANESE_CERTIFICATES}
+                  value={formData.japanese_certificate}
+                  onValueChange={(selected) => updateField("japanese_certificate", selected)}
+                  placeholder="Chọn chứng chỉ..."
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Chứng chỉ đặc định</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <MultiSelect
+                  options={SSW_CERTIFICATES}
+                  value={formData.ssw_certificate}
+                  onValueChange={(selected) => updateField("ssw_certificate", selected)}
+                  placeholder="Chọn chứng chỉ..."
                 />
               </CardContent>
             </Card>

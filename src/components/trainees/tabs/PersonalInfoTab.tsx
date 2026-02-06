@@ -285,6 +285,14 @@ export function PersonalInfoTab({ trainee }: PersonalInfoTabProps) {
             <p>{trainee.hobbies || "—"}</p>
           </div>
           <div>
+            <Label className="text-muted-foreground text-xs">Chứng chỉ tiếng Nhật</Label>
+            <p>{(trainee as any).japanese_certificate || "—"}</p>
+          </div>
+          <div>
+            <Label className="text-muted-foreground text-xs">Chứng chỉ đặc định</Label>
+            <p>{(trainee as any).ssw_certificate || "—"}</p>
+          </div>
+          <div className="col-span-2 md:col-span-3">
             <Label className="text-muted-foreground text-xs">Ghi chú</Label>
             <p>{trainee.notes || "—"}</p>
           </div>
