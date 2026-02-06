@@ -2946,6 +2946,28 @@ export type Database = {
         }
         Relationships: []
       }
+      v_trainee_interview_count: {
+        Row: {
+          interview_count: number | null
+          trainee_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_history_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_history_trainee_id_fkey"
+            columns: ["trainee_id"]
+            isOneToOne: false
+            referencedRelation: "trainees_with_workflow"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_trainees_registered_monthly: {
         Row: {
           month: number | null
@@ -2998,6 +3020,14 @@ export type Database = {
       export_trainees_report: {
         Args: { filters?: Json; selected_columns: Json }
         Returns: Json
+      }
+      finalize_interview_draft: {
+        Args: {
+          p_interview_date: string
+          p_result?: string
+          p_trainee_id: string
+        }
+        Returns: string
       }
       get_confirmed_user_ids: {
         Args: never

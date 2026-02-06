@@ -4,9 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ProjectInterviewFormProps {
   data: {
@@ -19,9 +22,13 @@ interface ProjectInterviewFormProps {
     contract_term: string;
   };
   onChange: (data: any) => void;
+  traineeId?: string; // For finalize action
 }
 
-export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormProps) {
+export function ProjectInterviewForm({ data, onChange, traineeId }: ProjectInterviewFormProps) {
+  const queryClient = useQueryClient();
+  const [isFinalizing, setIsFinalizing] = useState(false);
+
   // Fetch orders with full details
   const { data: orders = [] } = useQuery({
     queryKey: ["orders-select-full"],
@@ -48,6 +55,33 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
       return data || [];
     },
   });
+
+  // Finalize interview draft into history
+  const handleFinalizeInterview = async () => {
+    if (!traineeId || !data.interview_date) {
+      toast.error("Vui lòng nhập ngày phỏng vấn");
+      return;
+    }
+
+    setIsFinalizing(true);
+    try {
+      const { error } = await supabase.rpc("finalize_interview_draft", {
+        p_trainee_id: traineeId,
+        p_interview_date: data.interview_date,
+        p_result: null, // Placeholder, will be updated via workflow
+      });
+
+      if (error) throw error;
+
+      toast.success("Đã lưu lịch sử phỏng vấn");
+      queryClient.invalidateQueries({ queryKey: ["interview-history", traineeId] });
+    } catch (error) {
+      console.error("Error finalizing interview:", error);
+      toast.error("Không thể lưu lịch sử phỏng vấn");
+    } finally {
+      setIsFinalizing(false);
+    }
+  };
 
   // Fetch companies - sorted by code descending (same as Partners)
   const { data: companies = [] } = useQuery({
@@ -307,7 +341,21 @@ export function ProjectInterviewForm({ data, onChange }: ProjectInterviewFormPro
               placeholder="Chọn ngành nghề"
               emptyText="Không có ngành nghề"
             />
-          </div>
+           </div>
+
+          {/* Finalize Button */}
+          {traineeId && data.interview_date && (
+            <div className="md:col-span-3 flex gap-2 pt-2">
+              <Button
+                onClick={handleFinalizeInterview}
+                disabled={isFinalizing}
+                variant="default"
+                className="flex-1"
+              >
+                {isFinalizing ? "Đang lưu..." : "Lưu lịch sử phỏng vấn"}
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
