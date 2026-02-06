@@ -734,10 +734,18 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
 
   // Handle form submit
   const handleSubmit = async () => {
-    if (!formData.trainee_code || !formData.full_name) {
+    // Validate required fields
+    const missingFields: string[] = [];
+    if (!formData.trainee_code) missingFields.push("Mã học viên");
+    if (!formData.full_name) missingFields.push("Họ và tên");
+    if (!formData.birth_date) missingFields.push("Ngày sinh");
+    if (!formData.source) missingFields.push("Nguồn giới thiệu");
+    if (!formData.gender) missingFields.push("Giới tính");
+
+    if (missingFields.length > 0) {
       toast({
-        title: "Lỗi",
-        description: "Vui lòng nhập mã học viên và họ tên",
+        title: "Thiếu thông tin bắt buộc",
+        description: `Vui lòng nhập: ${missingFields.join(", ")}`,
         variant: "destructive",
       });
       return;
@@ -903,7 +911,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>Mã học viên *</Label>
+                  <Label>Mã học viên <span className="text-destructive">*</span></Label>
                   <Input
                     value={formData.trainee_code}
                     onChange={(e) => updateField("trainee_code", e.target.value)}
@@ -916,7 +924,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Họ và tên *</Label>
+                  <Label>Họ và tên <span className="text-destructive">*</span></Label>
                   <Input
                     value={formData.full_name}
                     onChange={(e) => {
@@ -954,7 +962,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Ngày sinh</Label>
+                  <Label>Ngày sinh <span className="text-destructive">*</span></Label>
                   <Input
                     type="date"
                     value={formData.birth_date}
@@ -975,7 +983,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Giới tính</Label>
+                  <Label>Giới tính <span className="text-destructive">*</span></Label>
                   <Select value={formData.gender} onValueChange={(v) => updateField("gender", v)}>
                     <SelectTrigger className={getInputClass(formData.gender)}>
                       <SelectValue placeholder="Chọn giới tính" />
@@ -1152,7 +1160,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Nguồn giới thiệu</Label>
+                  <Label>Nguồn giới thiệu <span className="text-destructive">*</span></Label>
                   <SearchableSelect
                     options={referralSources.map(s => ({ value: s.name, label: s.name }))}
                     value={formData.source}
