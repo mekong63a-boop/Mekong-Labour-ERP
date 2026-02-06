@@ -936,10 +936,10 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Loại hình</Label>
+                  <Label>Đối tượng</Label>
                   <Select value={formData.trainee_type} onValueChange={(v) => updateField("trainee_type", v)}>
                     <SelectTrigger className={getInputClass(formData.trainee_type)}>
-                      <SelectValue placeholder="Chọn loại hình" />
+                      <SelectValue placeholder="Chọn đối tượng" />
                     </SelectTrigger>
                     <SelectContent>
                       {TRAINEE_TYPES.map((type) => (
@@ -1223,39 +1223,58 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
             </Card>
           </div>
 
-          {/* Address */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Địa chỉ</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Địa chỉ hiện tại</Label>
+          {/* Address & Notes */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Địa chỉ</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Địa chỉ hiện tại</Label>
+                  <Textarea
+                    value={formData.current_address}
+                    onChange={(e) => updateField("current_address", e.target.value)}
+                    placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành"
+                    className={getInputClass(formData.current_address)}
+                    rows={2}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Địa chỉ thường trú (trước sáp nhập)</Label>
+                  <Textarea
+                    value={formData.permanent_address}
+                    onChange={(e) => updateField("permanent_address", e.target.value)}
+                    placeholder="Theo sổ hộ khẩu cũ"
+                    rows={2}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Địa chỉ thường trú (sau sáp nhập)</Label>
+                  <Textarea
+                    value={formData.permanent_address_new}
+                    onChange={(e) => updateField("permanent_address_new", e.target.value)}
+                    placeholder="Theo địa giới hành chính mới"
+                    rows={2}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Ghi chú</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <Textarea
-                  value={formData.current_address}
-                  onChange={(e) => updateField("current_address", e.target.value)}
-                  placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành"
-                  className={getInputClass(formData.current_address)}
+                  value={formData.notes}
+                  onChange={(e) => updateField("notes", e.target.value)}
+                  placeholder="Ghi chú thêm về học viên..."
+                  rows={8}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label>Địa chỉ thường trú (trước sáp nhập)</Label>
-                <Textarea
-                  value={formData.permanent_address}
-                  onChange={(e) => updateField("permanent_address", e.target.value)}
-                  placeholder="Theo sổ hộ khẩu cũ"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Địa chỉ thường trú (sau sáp nhập)</Label>
-                <Textarea
-                  value={formData.permanent_address_new}
-                  onChange={(e) => updateField("permanent_address_new", e.target.value)}
-                  placeholder="Theo địa giới hành chính mới"
-                />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Tab 2: Health */}
@@ -1477,20 +1496,6 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
             </Card>
           </div>
 
-          {/* Notes */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Ghi chú</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                value={formData.notes}
-                onChange={(e) => updateField("notes", e.target.value)}
-                placeholder="Ghi chú thêm về học viên..."
-                rows={4}
-              />
-            </CardContent>
-          </Card>
         </TabsContent>
 
         {/* Tab 3: History */}
