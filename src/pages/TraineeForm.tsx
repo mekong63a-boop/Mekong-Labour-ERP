@@ -468,7 +468,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         gender: item.gender || "",
         full_name: item.full_name || "",
         birth_year: item.birth_year?.toString() || "",
-        living_status: "",
+        location: item.location || "", // Map DB column correctly
         occupation: item.occupation || "",
         income: item.income || "",
       }));
@@ -702,6 +702,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         full_name: item.full_name,
         gender: item.gender || null,
         birth_year: item.birth_year ? parseInt(item.birth_year) : null,
+        location: item.location || null, // Save to correct DB column
         occupation: item.occupation || null,
         income: item.income || null,
       }));
