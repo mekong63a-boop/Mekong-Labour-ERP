@@ -16,7 +16,11 @@ import {
   TrendingUp,
   TrendingDown,
   CheckCircle,
+  Building2,
 } from "lucide-react";
+
+// SINGLE SOURCE: KTX stats từ menu KTX
+import { useDormitoryGenderStats } from "@/hooks/useDormitory";
 import {
   BarChart,
   Bar,
@@ -45,6 +49,7 @@ const iconColorClasses = {
   green: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
   orange: "bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400",
   purple: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
+  cyan: "bg-cyan-100 text-cyan-600 dark:bg-cyan-950 dark:text-cyan-400",
 };
 
 export default function TraineeDashboard() {
@@ -59,6 +64,9 @@ export default function TraineeDashboard() {
   
   // SINGLE SOURCE: Xuất cảnh từ menu Sau xuất cảnh
   const { data: postDepartureStats, isLoading: loadingPostDeparture } = usePostDepartureStats();
+  
+  // SINGLE SOURCE: KTX từ menu KTX
+  const { data: dormitoryStats, isLoading: loadingDormitory } = useDormitoryGenderStats();
 
   // SYSTEM RULE: activeOrders từ kpis view (đã tính sẵn ở DB)
   const activeOrders = kpis?.active_orders || 0;
@@ -263,7 +271,7 @@ export default function TraineeDashboard() {
   return (
     <div className="space-y-6">
       {/* KPI Cards Row - Display only, no navigation */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Total Trainees */}
         <Card>
           <CardContent className="p-5">
@@ -399,6 +407,46 @@ export default function TraineeDashboard() {
                     Đơn tuyển dụng mới
                   </p>
                   <p className="text-xs text-muted-foreground">Cần bổ sung</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Dormitory Residents - SINGLE SOURCE từ menu KTX */}
+        <Card>
+          <CardContent className="p-5">
+            {loadingDormitory ? (
+              <div className="space-y-3">
+                <Skeleton className="h-12 w-12 rounded-2xl" />
+                <Skeleton className="h-8 w-20" />
+              </div>
+            ) : (
+              <div className="flex gap-4">
+                <div className="space-y-3 flex-1">
+                  <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", iconColorClasses.cyan)}>
+                    <Building2 className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-2xl font-bold text-foreground">
+                      {dormitoryStats?.total_residents || 0}
+                    </div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Học viên KTX
+                    </p>
+                    <p className="text-xs text-muted-foreground">Đang ở ký túc xá</p>
+                  </div>
+                </div>
+                {/* Gender breakdown */}
+                <div className="flex flex-col justify-center gap-1 min-w-[60px]">
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-semibold text-blue-600">{dormitoryStats?.male_count || 0}</span>
+                    <span className="text-xs text-muted-foreground">Nam</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-semibold text-red-500">{dormitoryStats?.female_count || 0}</span>
+                    <span className="text-xs text-muted-foreground">Nữ</span>
+                  </div>
                 </div>
               </div>
             )}
