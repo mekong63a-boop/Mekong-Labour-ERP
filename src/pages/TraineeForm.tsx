@@ -177,6 +177,18 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   const [japanRelativeItems, setJapanRelativeItems] = useState<JapanRelativeItem[]>([]);
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
   const [pendingLineQRFile, setPendingLineQRFile] = useState<File | null>(null);
+  
+  // Project & Interview state
+  const [projectInterviewData, setProjectInterviewData] = useState({
+    order_id: "",
+    interview_date: "",
+    expected_entry_month: "",
+    receiving_company_id: "",
+    union_id: "",
+    job_category_id: "",
+    contract_term: "",
+  });
+  const [projectLoaded, setProjectLoaded] = useState(false);
 
   // Hooks
   const { data: trainee } = useTrainee(traineeId || "");
@@ -407,6 +419,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   const { data: workData } = useWorkHistory(traineeId);
   const { data: familyData } = useFamilyMembers(traineeId);
   const { data: japanRelativesData } = useJapanRelatives(traineeId);
+  const { data: interviewData } = useInterviewHistory(traineeId);
 
   // Sync education history data - map DB types to form types
   useEffect(() => {
@@ -476,6 +489,23 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       setJapanLoaded(true);
     }
   }, [japanRelativesData, japanLoaded]);
+
+  // Sync project interview data - load from latest interview history
+  useEffect(() => {
+    if (interviewData && interviewData.length > 0 && !projectLoaded) {
+      const latestInterview = interviewData[0]; // Already sorted by created_at DESC
+      setProjectInterviewData({
+        order_id: "", // Order is not stored in interview_history directly
+        interview_date: latestInterview.interview_date || "",
+        expected_entry_month: latestInterview.expected_entry_month || "",
+        receiving_company_id: latestInterview.company_id || "",
+        union_id: latestInterview.union_id || "",
+        job_category_id: latestInterview.job_category_id || "",
+        contract_term: "",
+      });
+      setProjectLoaded(true);
+    }
+  }, [interviewData, projectLoaded]);
 
   // Handle field changes
   const updateField = useCallback((field: keyof FormData, value: any) => {
@@ -685,6 +715,29 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       }));
       await supabase.from("japan_relatives").insert(japanData);
     }
+
+    // Interview history - only save if there's meaningful data
+    if (projectInterviewData.receiving_company_id || projectInterviewData.interview_date || projectInterviewData.job_category_id) {
+      // Insert new interview record (don't delete old ones - preserve history)
+      await supabase.from("interview_history").insert({
+        trainee_id: traineeId,
+        company_id: projectInterviewData.receiving_company_id || null,
+        union_id: projectInterviewData.union_id || null,
+        job_category_id: projectInterviewData.job_category_id || null,
+        interview_date: projectInterviewData.interview_date || null,
+        expected_entry_month: projectInterviewData.expected_entry_month || null,
+        result: null, // Result will be updated via workflow
+      });
+
+      // Also update trainee's direct fields
+      await supabase.from("trainees").update({
+        receiving_company_id: projectInterviewData.receiving_company_id || null,
+        union_id: projectInterviewData.union_id || null,
+        job_category_id: projectInterviewData.job_category_id || null,
+        expected_entry_month: projectInterviewData.expected_entry_month || null,
+        contract_term: projectInterviewData.contract_term ? parseInt(projectInterviewData.contract_term) : null,
+      }).eq("id", traineeId);
+    }
   };
 
   // Handle form submit
@@ -819,10 +872,11 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full grid grid-cols-4 mb-6">
+        <TabsList className="w-full grid grid-cols-5 mb-6">
           <TabsTrigger value="personal">Thông tin cá nhân</TabsTrigger>
           <TabsTrigger value="health">Sức khỏe</TabsTrigger>
           <TabsTrigger value="history">Lý lịch</TabsTrigger>
+          <TabsTrigger value="project">Dự án & Phỏng vấn</TabsTrigger>
           <TabsTrigger value="status">Trạng thái</TabsTrigger>
         </TabsList>
 
@@ -1465,7 +1519,15 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
           <JapanRelativesForm items={japanRelativeItems} onChange={setJapanRelativeItems} />
         </TabsContent>
 
-        {/* Tab 4: Status */}
+        {/* Tab 4: Project & Interview */}
+        <TabsContent value="project" className="space-y-6">
+          <ProjectInterviewForm 
+            data={projectInterviewData} 
+            onChange={setProjectInterviewData} 
+          />
+        </TabsContent>
+
+        {/* Tab 5: Status */}
         <TabsContent value="status" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
