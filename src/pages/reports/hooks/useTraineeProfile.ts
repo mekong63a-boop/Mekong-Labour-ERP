@@ -83,6 +83,26 @@ export interface EnrollmentHistoryRecord {
   notes: string | null;
   from_class: string | null;
   to_class: string | null;
+  class_id: string | null;
+}
+
+export interface WorkflowHistoryRecord {
+  id: string;
+  from_stage: string | null;
+  to_stage: string;
+  sub_status: string | null;
+  reason: string | null;
+  changed_by: string | null;
+  created_at: string;
+  department_name: string | null;
+}
+
+export interface AuditLogRecord {
+  id: string;
+  action: string;
+  table_name: string;
+  description: string;
+  created_at: string;
 }
 
 export interface InterviewHistoryRecord {
@@ -245,6 +265,8 @@ export interface TraineeProfile {
   japan_relatives: JapanRelativeRecord[];
   dormitory_history: DormitoryHistoryRecord[];
   enrollment_history: EnrollmentHistoryRecord[];
+  workflow_history: WorkflowHistoryRecord[];
+  audit_logs: AuditLogRecord[];
   
   can_view_pii: boolean;
   error?: string;
