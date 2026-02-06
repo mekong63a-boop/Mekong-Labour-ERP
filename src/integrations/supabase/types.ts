@@ -1821,6 +1821,7 @@ export type Database = {
           phone: string | null
           photo_url: string | null
           policy_category: string | null
+          prior_residence_status: string | null
           progression_stage:
             | Database["public"]["Enums"]["progression_stage"]
             | null
@@ -1925,6 +1926,7 @@ export type Database = {
           phone?: string | null
           photo_url?: string | null
           policy_category?: string | null
+          prior_residence_status?: string | null
           progression_stage?:
             | Database["public"]["Enums"]["progression_stage"]
             | null
@@ -2029,6 +2031,7 @@ export type Database = {
           phone?: string | null
           photo_url?: string | null
           policy_category?: string | null
+          prior_residence_status?: string | null
           progression_stage?:
             | Database["public"]["Enums"]["progression_stage"]
             | null

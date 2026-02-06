@@ -143,6 +143,7 @@ interface FormData {
   early_return_date: string;
   early_return_reason: string;
   return_date: string;
+  prior_residence_status: string;
 }
 
 interface TraineeFormContentProps {
@@ -319,6 +320,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     early_return_date: "",
     early_return_reason: "",
     return_date: "",
+    prior_residence_status: "",
   });
 
   // Real-time duplicate check for trainee code
@@ -405,6 +407,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         early_return_date: trainee.early_return_date || "",
         early_return_reason: trainee.early_return_reason || "",
         return_date: trainee.return_date || "",
+        prior_residence_status: (trainee as any).prior_residence_status || "",
       });
     }
   }, [isEditMode, trainee]);
@@ -653,6 +656,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       early_return_date: formData.early_return_date || null,
       early_return_reason: formData.early_return_reason || null,
       return_date: formData.return_date || null,
+      prior_residence_status: formData.prior_residence_status || null,
     };
   };
 
@@ -1219,6 +1223,14 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                     />
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <Label>Đã từng xin tư cách lưu trú (在留資格申請歴)</Label>
+                  <Input
+                    value={formData.prior_residence_status}
+                    onChange={(e) => updateField("prior_residence_status", e.target.value)}
+                    placeholder="VD: 技能実習1号 / 留学 / なし"
+                  />
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -1559,6 +1571,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                     type="date"
                     value={formData.registration_date}
                     onChange={(e) => updateField("registration_date", e.target.value)}
+                    disabled={!isAdmin}
+                    className={!isAdmin ? "bg-muted cursor-not-allowed" : ""}
                   />
                 </div>
 
