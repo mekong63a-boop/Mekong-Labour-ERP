@@ -1792,6 +1792,7 @@ export type Database = {
           id: string
           interview_count: number | null
           interview_pass_date: string | null
+          japanese_certificate: string | null
           job_category_id: string | null
           jp_certificate_period: string | null
           jp_certificate_school: string | null
@@ -1835,6 +1836,7 @@ export type Database = {
           simple_status: Database["public"]["Enums"]["simple_status"] | null
           smoking: string | null
           source: string | null
+          ssw_certificate: string | null
           stop_date: string | null
           tattoo: boolean | null
           tattoo_description: string | null
@@ -1897,6 +1899,7 @@ export type Database = {
           id?: string
           interview_count?: number | null
           interview_pass_date?: string | null
+          japanese_certificate?: string | null
           job_category_id?: string | null
           jp_certificate_period?: string | null
           jp_certificate_school?: string | null
@@ -1940,6 +1943,7 @@ export type Database = {
           simple_status?: Database["public"]["Enums"]["simple_status"] | null
           smoking?: string | null
           source?: string | null
+          ssw_certificate?: string | null
           stop_date?: string | null
           tattoo?: boolean | null
           tattoo_description?: string | null
@@ -2002,6 +2006,7 @@ export type Database = {
           id?: string
           interview_count?: number | null
           interview_pass_date?: string | null
+          japanese_certificate?: string | null
           job_category_id?: string | null
           jp_certificate_period?: string | null
           jp_certificate_school?: string | null
@@ -2045,6 +2050,7 @@ export type Database = {
           simple_status?: Database["public"]["Enums"]["simple_status"] | null
           smoking?: string | null
           source?: string | null
+          ssw_certificate?: string | null
           stop_date?: string | null
           tattoo?: boolean | null
           tattoo_description?: string | null
