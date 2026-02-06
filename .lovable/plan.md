@@ -1,183 +1,206 @@
 
 
-## Mục tiêu
-Triển khai mô hình **Draft → Finalize** cho **Project & Interview**, với các yêu cầu sau:
-1. **Draft fields** sống trong bảng `trainees` (bao gồm `interview_date`)
-2. Bấm nút **Lưu/Cập nhật thông tin** chỉ cập nhật draft, **không insert history**
-3. **Lịch sử phỏng vấn** chỉ được ghi vào `interview_history` khi bấm **"Lưu lịch sử phỏng vấn"** (via RPC `finalize_interview_draft`)
-4. Fix lỗi PostgREST embed (PGRST201) bằng cách chỉ rõ FK names
-5. Thêm error UI khi query `interview_history` fail
-6. Refetch queries sau khi finalize thành công
+## Tổng quan
+Thêm 2 trường mới vào hồ sơ học viên với khả năng chọn nhiều mục (Multi-select):
+1. **Chứng chỉ tiếng Nhật** (JLPT N4, JLPT N3, NAT-Test 4Q, JFT-Basic A2)
+2. **Chứng chỉ đặc định** (14 loại chứng chỉ kỹ năng đặc định tiếng Nhật)
+
+Cả 2 trường hoạt động giống như trường **Sở thích** hiện tại - cho phép chọn nhiều mục.
 
 ---
 
-## Vấn đề hiện tại
+## Thiết kế kỹ thuật
 
-### 1. Lỗi PostgREST Embed (PGRST201)
-- File: `src/hooks/useTraineeHistory.ts`, line 18-22
-- Nguyên nhân: Các FK từ `interview_history` → `companies`, `unions`, `job_categories` không được chỉ rõ, Supabase không biết FK nào cần dùng
-- Hệ quả: Query fail → `data = undefined` → `ProjectInterviewTab` hiển thị "Chưa có lịch sử" thay vì hiển thị error
+### 1. Database Migration
+Thêm 2 cột mới vào bảng `trainees`:
 
-### 2. Ngày phỏng vấn không được lưu
-- File: `src/pages/TraineeForm.tsx`, line 727-737 (`saveHistoryItems()`)
-- Nguyên nhân:
-  - Phần Project/Interview bị wrap trong `if (projectInterviewData.receiving_company_id || projectInterviewData.job_category_id)` → chỉ lưu nếu có company/job_category
-  - **Không lưu `interview_date`** vào bảng `trainees`
-  - Load draft từ `interviewData?.[0]?.interview_date` (history) thay vì `trainee.interview_date` (draft)
+| Cột | Kiểu | Mô tả |
+|-----|------|-------|
+| `japanese_certificate` | `text` | Lưu dạng comma-separated (VD: "JLPT N4, JLPT N3") |
+| `ssw_certificate` | `text` | Lưu dạng comma-separated cho chứng chỉ đặc định |
 
-### 3. Số lần phỏng vấn luôn 0
-- File: `src/components/trainees/tabs/ProjectInterviewTab.tsx`, line 135
-- Hệ quả: `interviews.length = 0` vì query history fail (PGRST201)
+**SQL Migration:**
+```sql
+ALTER TABLE trainees 
+  ADD COLUMN japanese_certificate text,
+  ADD COLUMN ssw_certificate text;
 
-### 4. Không có error state khi query history fail
-- File: `src/hooks/useTraineeHistory.ts`, `ProjectInterviewTab.tsx`
-- Nguyên nhân: Hook throw error nhưng UI không handle, chỉ show skeleton/empty state
+COMMENT ON COLUMN trainees.japanese_certificate IS 'Chứng chỉ tiếng Nhật (JLPT, NAT-Test, JFT)';
+COMMENT ON COLUMN trainees.ssw_certificate IS 'Chứng chỉ đặc định (Specified Skilled Worker certificates)';
+```
 
----
+### 2. Danh sách các option
 
-## Giải pháp thiết kế
+**Chứng chỉ tiếng Nhật:**
+- JLPT N4
+- JLPT N3
+- NAT-Test 4Q
+- JFT-Basic A2
 
-### A) Fix Hook useInterviewHistory (useTraineeHistory.ts)
-Thay đổi embed select để chỉ rõ FK names:
+**Chứng chỉ đặc định (SSW):**
+- 介護技能特定技能1号
+- 介護日本語特定技能1号
+- 外食業特定技能1号
+- 飲食料品製造業特定技能1号
+- 農業技能測定試験1号 (耕種農業)
+- 農業技能測定試験1号 (畜産農業)
+- 自動車整備分野特定技能1号
+- 宿泊分野特定技能1号
+- 自動車運送業分野特定技能１号（トラック）
+- 自動車運送業分野特定技能１号（タクシー）
+- 自動車運送業分野特定技能１号（バス）
+- 建設分野特定技能1号評価試験（土木）
+- 建設分野特定技能1号評価試験（建築）
+- 建設分野特定技能1号評価試験（ライフライン・設備）
+
+### 3. Cập nhật TraineeForm.tsx
+
+**a) Thêm constant arrays cho options:**
 ```typescript
-// TỪ:
-select(`
-  *,
-  companies:company_id(id, name, name_japanese),
-  unions:union_id(id, name, name_japanese),
-  job_categories:job_category_id(id, name, name_japanese)
-`)
+const JAPANESE_CERTIFICATES = [
+  "JLPT N4", 
+  "JLPT N3", 
+  "NAT-Test 4Q", 
+  "JFT-Basic A2"
+];
 
-// THÀNH:
-select(`
-  *,
-  companies:companies!fk_interview_company(id, name, name_japanese),
-  unions:unions!fk_interview_union(id, name, name_japanese),
-  job_categories:job_categories!fk_interview_job_category(id, name, name_japanese)
-`)
+const SSW_CERTIFICATES = [
+  "介護技能特定技能1号",
+  "介護日本語特定技能1号",
+  "外食業特定技能1号",
+  "飲食料品製造業特定技能1号",
+  "農業技能測定試験1号 (耕種農業)",
+  "農業技能測定試験1号 (畜産農業)",
+  "自動車整備分野特定技能1号",
+  "宿泊分野特定技能1号",
+  "自動車運送業分野特定技能１号（トラック）",
+  "自動車運送業分野特定技能１号（タクシー）",
+  "自動車運送業分野特定技能１号（バス）",
+  "建設分野特定技能1号評価試験（土木）",
+  "建設分野特定技能1号評価試験（建築）",
+  "建設分野特定技能1号評価試験（ライフライン・設備）"
+];
 ```
 
-### B) Update ProjectInterviewTab để hiển thị error state
-Thêm kiểm tra `error` từ hook và hiển thị message tương ứng:
+**b) Cập nhật FormData interface (line ~75):**
 ```typescript
-if (isLoading) → hiển thị skeleton
-if (error) → hiển thị "Không tải được lịch sử" (thay vì "Chưa có lịch sử")
-if (!interviews || interviews.length === 0) → hiển thị "Chưa có lịch sử"
+interface FormData {
+  // ... existing fields
+  japanese_certificate: string[];  // Multi-select
+  ssw_certificate: string[];       // Multi-select
+}
 ```
 
-### C) Update saveHistoryItems() để lưu interview_date draft
-**Trong TraineeForm.tsx**, phần Project/Interview (line 727-737):
-- **Bỏ điều kiện** `if (projectInterviewData.receiving_company_id || ...)`
-- **Luôn update** `trainees` với tất cả draft fields, bao gồm:
-  - `interview_date` (NEW)
-  - `receiving_company_id`
-  - `union_id`
-  - `job_category_id`
-  - `expected_entry_month`
-  - `contract_term`
-- **Không gọi RPC finalize** trong save này
-
-### D) Update load project interview data
-**Trong TraineeForm.tsx**, phần init data (line 498-513):
-- Ưu tiên load `trainee.interview_date` (draft) từ bảng `trainees`
-- Fallback sang `interviewData?.[0]?.interview_date` chỉ nếu draft rỗng (tuỳ chọn, để giữ "ngày gần nhất")
-
-### E) Ensure query refetch sau finalize
-**Trong ProjectInterviewForm.tsx**, `handleFinalizeInterview()` (line 76-79):
-- Đã có logic refetch queries → ✅ không cần thay đổi
-- Verify rằng refetch sau finalize successful
-
----
-
-## Chi tiết triển khai
-
-### File 1: `src/hooks/useTraineeHistory.ts`
-**Dòng 18-22**: Thay select embed từ `company_id(...)` → `companies!fk_interview_company(...)`
-- Làm tương tự cho `unions!fk_interview_union(...)` và `job_categories!fk_interview_job_category(...)`
-
-**Thêm error state** (tuỳ chọn): Có thể refactor hook để return `{ data, error, isLoading }` để caller có thể handle error
-
-### File 2: `src/components/trainees/tabs/ProjectInterviewTab.tsx`
-**Dòng 32**: Destructure thêm `error` từ hook
+**c) Cập nhật initialFormData (line ~293):**
 ```typescript
-const { data: interviews, isLoading, error } = useInterviewHistory(trainee.id);
+japanese_certificate: [],
+ssw_certificate: [],
 ```
 
-**Dòng 273-279**: Update conditional render:
+**d) Cập nhật load trainee data (line ~378):**
 ```typescript
-{isLoading ? (
-  <Skeleton className="h-20 w-full" />
-) : error ? (
-  <p className="text-muted-foreground text-center py-8 text-red-600">
-    Không tải được lịch sử phỏng vấn
-  </p>
-) : !interviews || interviews.length === 0 ? (
-  <p className="text-muted-foreground text-center py-8">
-    Chưa có lịch sử phỏng vấn
-  </p>
-) : (
-  // ... render interviews
-)}
+japanese_certificate: trainee.japanese_certificate 
+  ? trainee.japanese_certificate.split(", ").filter(Boolean) 
+  : [],
+ssw_certificate: trainee.ssw_certificate 
+  ? trainee.ssw_certificate.split(", ").filter(Boolean) 
+  : [],
 ```
 
-### File 3: `src/pages/TraineeForm.tsx`
+**e) Cập nhật buildTraineeData (line ~579):**
+```typescript
+const japaneseCertString = Array.isArray(formData.japanese_certificate) 
+  ? formData.japanese_certificate.join(", ") 
+  : formData.japanese_certificate;
 
-**Dòng 498-513** (init project interview data):
-- Thay từ:
-  ```typescript
-  interview_date: interviewData?.[0]?.interview_date || "",
-  ```
-- Sang:
-  ```typescript
-  interview_date: trainee.interview_date || interviewData?.[0]?.interview_date || "",
-  ```
-- Ưu tiên `trainee.interview_date` (draft) trước, fallback sang history
+const sswCertString = Array.isArray(formData.ssw_certificate) 
+  ? formData.ssw_certificate.join(", ") 
+  : formData.ssw_certificate;
 
-**Dòng 727-737** (saveHistoryItems - Project/Interview):
-- Bỏ điều kiện `if (projectInterviewData.receiving_company_id || projectInterviewData.job_category_id)`
-- **Luôn update** trainees với tất cả fields:
-  ```typescript
-  await supabase.from("trainees").update({
-    interview_date: projectInterviewData.interview_date || null,
-    receiving_company_id: projectInterviewData.receiving_company_id || null,
-    union_id: projectInterviewData.union_id || null,
-    job_category_id: projectInterviewData.job_category_id || null,
-    expected_entry_month: projectInterviewData.expected_entry_month || null,
-    contract_term: projectInterviewData.contract_term ? parseFloat(projectInterviewData.contract_term) : null,
-  }).eq("id", traineeId);
-  ```
+return {
+  // ... existing fields
+  japanese_certificate: japaneseCertString || null,
+  ssw_certificate: sswCertString || null,
+};
+```
+
+**f) Thêm UI components (sau phần Sở thích, line ~1524):**
+```tsx
+{/* Chứng chỉ */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <Card>
+    <CardHeader>
+      <CardTitle className="text-lg">Chứng chỉ tiếng Nhật</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <MultiSelect
+        options={JAPANESE_CERTIFICATES}
+        value={formData.japanese_certificate}
+        onValueChange={(selected) => updateField("japanese_certificate", selected)}
+        placeholder="Chọn chứng chỉ..."
+      />
+    </CardContent>
+  </Card>
+
+  <Card>
+    <CardHeader>
+      <CardTitle className="text-lg">Chứng chỉ đặc định</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <MultiSelect
+        options={SSW_CERTIFICATES}
+        value={formData.ssw_certificate}
+        onValueChange={(selected) => updateField("ssw_certificate", selected)}
+        placeholder="Chọn chứng chỉ..."
+      />
+    </CardContent>
+  </Card>
+</div>
+```
+
+### 4. Cập nhật PersonalInfoTab.tsx (hiển thị read-only)
+
+Thêm phần hiển thị chứng chỉ trong tab "Thông tin khác":
+```tsx
+<div>
+  <Label className="text-muted-foreground text-xs">Chứng chỉ tiếng Nhật</Label>
+  <p>{(trainee as any).japanese_certificate || "—"}</p>
+</div>
+<div>
+  <Label className="text-muted-foreground text-xs">Chứng chỉ đặc định</Label>
+  <p>{(trainee as any).ssw_certificate || "—"}</p>
+</div>
+```
 
 ---
 
-## Mô hình hóa luồng (sau triển khai)
+## Luồng xử lý dữ liệu
 
-```
-DRAFT (user input) → [bấm Lưu] → trainees.interview_date + draft fields
-                  ↓
-        [bấm Lưu lịch sử phỏng vấn] → finalize_interview_draft RPC
-                  ↓
-        insert interview_history + update interview_count (trigger)
+```text
+Form (Multi-select array) → join(", ") → DB (text column)
+                           ↓
+DB (text column) → split(", ") → Form (Multi-select array)
 ```
 
 ---
 
-## Tiêu chí nghiệm thu (E2E test)
-1. Vào edit trainee → tab **Dự án & Phỏng vấn**
-2. Nhập **Ngày phỏng vấn** (đơn giản, không chọn order)
-3. Bấm **Lưu/Cập nhật thông tin** → ngày phỏng vấn lưu được
-4. Reload trang → ngày phỏng vấn vẫn còn (lấy từ `trainees.interview_date`)
-5. Bấm **Lưu lịch sử phỏng vấn** → lịch sử xuất hiện 1 dòng, "Số lần phỏng vấn" = 1
-6. Reload lại → lịch sử vẫn là 1 (không bị lặp)
-7. Test error state: (tuỳ chọn) tạm disable FK constraint để trigger PGRST201 → UI hiển thị "Không tải được..."
+## Files cần chỉnh sửa
+
+| File | Thay đổi |
+|------|---------|
+| **Migration SQL** | Thêm 2 cột mới vào bảng trainees |
+| `src/pages/TraineeForm.tsx` | Thêm constants, FormData fields, load/save logic, UI components |
+| `src/components/trainees/tabs/PersonalInfoTab.tsx` | Hiển thị chứng chỉ trong tab read-only |
 
 ---
 
-## Tóm tắt thay đổi
-| File | Dòng | Thay đổi |
-|------|------|---------|
-| `useTraineeHistory.ts` | 20-22 | Fix embed FK name: `!fk_interview_company`, `!fk_interview_union`, `!fk_interview_job_category` |
-| `ProjectInterviewTab.tsx` | 32 | Destructure `error` từ hook |
-| `ProjectInterviewTab.tsx` | 273-279 | Thêm error state rendering |
-| `TraineeForm.tsx` | 504 | Ưu tiên load `trainee.interview_date` |
-| `TraineeForm.tsx` | 727-737 | Bỏ `if` condition, luôn update draft, thêm `interview_date` |
+## Tiêu chí nghiệm thu
+
+1. Mở form học viên → tab Thông tin cá nhân
+2. Thấy 2 card mới: "Chứng chỉ tiếng Nhật" và "Chứng chỉ đặc định"
+3. Click vào dropdown → hiển thị danh sách options
+4. Chọn nhiều mục → các mục được hiển thị dạng badge
+5. Bấm X trên badge → xóa mục đó
+6. Bấm Lưu → reload trang → dữ liệu vẫn còn
+7. Vào trang xem chi tiết (TraineeDetail) → thấy chứng chỉ hiển thị đúng
 
