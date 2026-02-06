@@ -45,15 +45,12 @@ departed ────┬── post_departure (Đến Nhật) [yêu cầu: entry
 
 post_departure ── terminated (Kết thúc hợp đồng)
 
-# PHỤC HỒI TỪ TERMINATED (Linh hoạt cho Admin)
-terminated ──┬── registered (Làm lại từ đầu)
-             ├── enrolled (Nhập học lại) [yêu cầu: class_id] → auto tạo KTX
-             ├── training (Tiếp tục đào tạo) [yêu cầu: class_id] → auto tạo KTX
-             ├── interview_passed (Đậu phỏng vấn) [yêu cầu: receiving_company_id] → auto tạo KTX
-             ├── document_processing (Xử lý hồ sơ) [yêu cầu: receiving_company_id] → auto tạo KTX
-             ├── ready_to_depart (Sẵn sàng xuất cảnh) [yêu cầu: receiving_company_id, visa_date, coe_date] → auto tạo KTX
-             ├── departed (Đã xuất cảnh) [yêu cầu: departure_date]
-             └── post_departure (Đang ở Nhật) [yêu cầu: departure_date, entry_date]
+# PHỤC HỒI VÀ CHUYỂN LINH HOẠT (Admin Mode)
+# Từ bất kỳ stage nào có thể chuyển sang bất kỳ stage nào
+# Quyền kiểm soát qua permission "trainees.update"
+# Side-effects tự động vẫn được áp dụng (KTX, reset fields)
+
+* ──────────────► * (Linh hoạt hoàn toàn cho Admin)
 ```
 
 ### TERMINATED SUB-STATUS
