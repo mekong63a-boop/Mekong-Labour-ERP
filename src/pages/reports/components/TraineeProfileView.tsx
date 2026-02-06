@@ -271,7 +271,6 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                 <InfoRow label="Tôn giáo" value={profile.religion} />
                 <InfoRow label="Tình trạng hôn nhân" value={profile.marital_status} />
                 <InfoRow label="Trình độ học vấn" value={profile.education_level} />
-                <InfoRow label="Tình trạng hiện tại" value={profile.current_situation} />
                 <InfoRow label="Diện chính sách" value={profile.policy_category} />
                 <InfoRow label="Nguồn tuyển" value={profile.source} />
               </div>

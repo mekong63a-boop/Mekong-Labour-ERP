@@ -275,11 +275,7 @@ export function PersonalInfoTab({ trainee }: PersonalInfoTabProps) {
         <CardHeader>
           <CardTitle className="text-lg">Thông tin khác</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div>
-            <Label className="text-muted-foreground text-xs">Tình trạng hiện tại</Label>
-            <p>{trainee.current_situation || "—"}</p>
-          </div>
+        <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div>
             <Label className="text-muted-foreground text-xs">Nguồn tuyển dụng</Label>
             <p>{trainee.source || "—"}</p>
@@ -288,7 +284,7 @@ export function PersonalInfoTab({ trainee }: PersonalInfoTabProps) {
             <Label className="text-muted-foreground text-xs">Sở thích</Label>
             <p>{trainee.hobbies || "—"}</p>
           </div>
-          <div className="col-span-2">
+          <div>
             <Label className="text-muted-foreground text-xs">Ghi chú</Label>
             <p>{trainee.notes || "—"}</p>
           </div>
