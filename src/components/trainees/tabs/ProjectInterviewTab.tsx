@@ -29,7 +29,7 @@ interface ProjectInterviewTabProps {
 }
 
 export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
-  const { data: interviews, isLoading } = useInterviewHistory(trainee.id);
+  const { data: interviews, isLoading, error } = useInterviewHistory(trainee.id);
   const { isPrimaryAdmin } = useUserRole();
   const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -273,6 +273,10 @@ export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
         <CardContent>
           {isLoading ? (
             <Skeleton className="h-20 w-full" />
+          ) : error ? (
+            <p className="text-destructive text-center py-8">
+              Không tải được lịch sử phỏng vấn. Vui lòng thử lại sau.
+            </p>
           ) : !interviews || interviews.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
               Chưa có lịch sử phỏng vấn

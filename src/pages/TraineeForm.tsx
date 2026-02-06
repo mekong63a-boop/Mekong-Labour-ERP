@@ -494,14 +494,15 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     }
   }, [japanRelativesData, japanLoaded]);
 
-  // Sync project interview data - load from trainees table (draft fields only)
+  // Sync project interview data - load draft from trainees table
+  // interview_date draft now lives in trainees table, not history
   useEffect(() => {
     if (trainee && !projectLoaded) {
       setProjectInterviewData({
         order_id: "",
-        // Draft: show latest interview date from interview_history (Single Source of Truth)
-        // If there is no history yet, keep empty and user can input then finalize.
-        interview_date: interviewData?.[0]?.interview_date || "",
+        // Draft: prioritize trainee.interview_date (draft in trainees table)
+        // Fallback to latest history only if draft is empty
+        interview_date: (trainee as any).interview_date || interviewData?.[0]?.interview_date || "",
         expected_entry_month: trainee.expected_entry_month || "",
         receiving_company_id: trainee.receiving_company_id || "",
         union_id: trainee.union_id || "",
@@ -724,17 +725,17 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       await supabase.from("japan_relatives").insert(japanData);
     }
 
-    // Project/Interview: Only update trainee's direct fields (draft mode)
-    // interview_history is managed by Orders module and DB triggers
-    if (projectInterviewData.receiving_company_id || projectInterviewData.job_category_id) {
-      await supabase.from("trainees").update({
-        receiving_company_id: projectInterviewData.receiving_company_id || null,
-        union_id: projectInterviewData.union_id || null,
-        job_category_id: projectInterviewData.job_category_id || null,
-        expected_entry_month: projectInterviewData.expected_entry_month || null,
-        contract_term: projectInterviewData.contract_term ? parseInt(projectInterviewData.contract_term) : null,
-      }).eq("id", traineeId);
-    }
+    // Project/Interview: Always update trainee's draft fields (Draft mode)
+    // interview_history is ONLY written when clicking "Lưu lịch sử phỏng vấn" via finalize_interview_draft RPC
+    // No condition - always save draft fields including interview_date
+    await supabase.from("trainees").update({
+      interview_date: projectInterviewData.interview_date || null,
+      receiving_company_id: projectInterviewData.receiving_company_id || null,
+      union_id: projectInterviewData.union_id || null,
+      job_category_id: projectInterviewData.job_category_id || null,
+      expected_entry_month: projectInterviewData.expected_entry_month || null,
+      contract_term: projectInterviewData.contract_term ? parseFloat(projectInterviewData.contract_term) : null,
+    }).eq("id", traineeId);
   };
 
   // Handle form submit
