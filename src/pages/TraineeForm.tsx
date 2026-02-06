@@ -561,6 +561,23 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         }
       }
       
+      // BUSINESS RULE: Xóa date không liên quan khi đổi simple_status
+      // Đảm bảo dữ liệu sạch - không giữ date của trạng thái cũ
+      if (field === "simple_status") {
+        // Xóa reserve_date khi không phải Bảo lưu
+        if (value !== "Bảo lưu") {
+          newData.reserve_date = "";
+        }
+        // Xóa cancel_date khi không phải Hủy
+        if (value !== "Hủy") {
+          newData.cancel_date = "";
+        }
+        // Xóa stop_date khi không phải Dừng chương trình
+        if (value !== "Dừng chương trình") {
+          newData.stop_date = "";
+        }
+      }
+      
       return newData;
     });
     if (errors[field]) {
