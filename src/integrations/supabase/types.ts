@@ -1816,6 +1816,7 @@ export type Database = {
           passport_number: string | null
           passport_place: string | null
           permanent_address: string | null
+          permanent_address_new: string | null
           phone: string | null
           photo_url: string | null
           policy_category: string | null
@@ -1916,6 +1917,7 @@ export type Database = {
           passport_number?: string | null
           passport_place?: string | null
           permanent_address?: string | null
+          permanent_address_new?: string | null
           phone?: string | null
           photo_url?: string | null
           policy_category?: string | null
@@ -2016,6 +2018,7 @@ export type Database = {
           passport_number?: string | null
           passport_place?: string | null
           permanent_address?: string | null
+          permanent_address_new?: string | null
           phone?: string | null
           photo_url?: string | null
           policy_category?: string | null

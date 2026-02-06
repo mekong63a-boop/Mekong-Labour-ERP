@@ -95,6 +95,7 @@ interface FormData {
   current_address: string;
   email: string;
   permanent_address: string;
+  permanent_address_new: string;
   facebook: string;
   parent_phone_1: string;
   parent_phone_1_relation: string;
@@ -302,6 +303,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     current_address: "",
     email: "",
     permanent_address: "",
+    permanent_address_new: "",
     facebook: "",
     parent_phone_1: "",
     parent_phone_1_relation: "",
@@ -392,6 +394,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         current_address: trainee.current_address || "",
         email: trainee.email || "",
         permanent_address: trainee.permanent_address || "",
+        permanent_address_new: (trainee as any).permanent_address_new || "",
         facebook: trainee.facebook || "",
         parent_phone_1: trainee.parent_phone_1 || "",
         parent_phone_1_relation: (trainee as any).parent_phone_1_relation || "",
@@ -651,6 +654,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     current_address: formData.current_address || null,
     email: formData.email || null,
     permanent_address: formData.permanent_address || null,
+    permanent_address_new: formData.permanent_address_new || null,
     facebook: formData.facebook || null,
     parent_phone_1: formData.parent_phone_1 || null,
     parent_phone_1_relation: formData.parent_phone_1_relation || null,
@@ -1445,14 +1449,25 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-xs text-muted-foreground">Địa chỉ thường trú</Label>
+                      <Label className="text-xs text-muted-foreground">Địa chỉ thường trú (trước sáp nhập)</Label>
                       <Input
-                        placeholder="Địa chỉ thường trú (hộ khẩu)"
+                        placeholder="Địa chỉ thường trú cũ"
                         value={formData.permanent_address}
                         onChange={(e) => handleAddressChange("permanent_address", e.target.value)}
                         className={getInputClass(formData.permanent_address)}
                       />
                     </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Địa chỉ thường trú (sau sáp nhập)</Label>
+                      <Input
+                        placeholder="Địa chỉ thường trú mới"
+                        value={formData.permanent_address_new}
+                        onChange={(e) => handleAddressChange("permanent_address_new", e.target.value)}
+                        className={getInputClass(formData.permanent_address_new)}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label className="text-xs text-muted-foreground">Kết nối khác (Facebook, Viber...)</Label>
                       <Input
