@@ -9,7 +9,7 @@ import { PersonalInfoTab } from "@/components/trainees/tabs/PersonalInfoTab";
 import { PersonalHistoryTab } from "@/components/trainees/tabs/PersonalHistoryTab";
 import { ProjectInterviewTab } from "@/components/trainees/tabs/ProjectInterviewTab";
 import { StageTimeline } from "@/components/trainees/StageTimeline";
-import { StageTransitionPanel } from "@/components/trainees/StageTransitionPanel";
+
 import { useStageTimeline } from "@/hooks/useStageTransition";
 export default function TraineeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -107,8 +107,6 @@ export default function TraineeDetail() {
         </Button>
       </div>
 
-      {/* Stage Transition Panel - Actions based on current stage */}
-      <StageTransitionPanel traineeId={trainee.id} traineeName={trainee.full_name} />
 
       {/* Tabs - Single Source View */}
       <Tabs defaultValue="personal" className="w-full">
