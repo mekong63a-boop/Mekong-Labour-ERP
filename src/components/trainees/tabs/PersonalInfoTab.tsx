@@ -120,11 +120,24 @@ export function PersonalInfoTab({ trainee }: PersonalInfoTabProps) {
           </div>
           <div>
             <Label className="text-muted-foreground text-xs">SĐT Phụ huynh 1</Label>
-            <p>{maskPhone(trainee.parent_phone_1)}</p>
+            <p>
+              {(trainee as any).parent_phone_1_relation && <span className="text-primary font-medium">{(trainee as any).parent_phone_1_relation}: </span>}
+              {maskPhone(trainee.parent_phone_1)}
+            </p>
           </div>
           <div>
             <Label className="text-muted-foreground text-xs">SĐT Phụ huynh 2</Label>
-            <p>{maskPhone(trainee.parent_phone_2)}</p>
+            <p>
+              {(trainee as any).parent_phone_2_relation && <span className="text-primary font-medium">{(trainee as any).parent_phone_2_relation}: </span>}
+              {maskPhone(trainee.parent_phone_2)}
+            </p>
+          </div>
+          <div>
+            <Label className="text-muted-foreground text-xs">SĐT Phụ huynh 3</Label>
+            <p>
+              {(trainee as any).parent_phone_3_relation && <span className="text-primary font-medium">{(trainee as any).parent_phone_3_relation}: </span>}
+              {maskPhone((trainee as any).parent_phone_3)}
+            </p>
           </div>
           {(trainee as any).line_qr_url && (
             <div className="col-span-2">
