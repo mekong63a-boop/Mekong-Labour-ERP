@@ -449,6 +449,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         id: item.id,
         company_name: item.company_name || "",
         position: item.position || "",
+        income: (item as any).income || "",
         company_name_japanese: "",
         start_date: item.start_date || "",
         end_date: item.end_date || "",
@@ -683,6 +684,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         trainee_id: traineeId,
         company_name: item.company_name,
         position: item.position || null,
+        income: item.income || null,
         start_date: item.start_date || null,
         end_date: item.end_date || null,
       }));
@@ -1531,6 +1533,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
           <ProjectInterviewForm 
             data={projectInterviewData} 
             onChange={setProjectInterviewData}
+            onInterviewDateChange={(date) => updateField("interview_pass_date", date)}
             traineeId={traineeId}
           />
         </TabsContent>

@@ -329,6 +329,7 @@ export default function TraineeList() {
           <TableRow className="bg-muted/50">
             {baseColumns}
             <TableHead className="w-32">Trạng thái</TableHead>
+            <TableHead className="w-28">Tình trạng</TableHead>
             <TableHead>Công ty</TableHead>
             <TableHead>Nghiệp đoàn</TableHead>
             <TableHead className="w-20 text-center">Thao tác</TableHead>
@@ -512,6 +513,9 @@ export default function TraineeList() {
               <Badge className={getStatusBadgeClass(trainee.progression_stage)}>
                 {trainee.progression_stage || "Chưa đậu"}
               </Badge>
+            </TableCell>
+            <TableCell>
+              <Badge variant="outline">{trainee.simple_status || "Đăng ký mới"}</Badge>
             </TableCell>
             <TableCell className="text-sm">{isNotPassed ? "—" : getCompanyName(trainee.receiving_company)}</TableCell>
             <TableCell className="text-sm">{isNotPassed ? "—" : getUnionName(trainee.union)}</TableCell>

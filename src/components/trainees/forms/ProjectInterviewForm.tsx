@@ -22,10 +22,11 @@ interface ProjectInterviewFormProps {
     contract_term: string;
   };
   onChange: (data: any) => void;
+  onInterviewDateChange?: (date: string) => void; // Callback to sync interview_pass_date
   traineeId?: string; // For finalize action
 }
 
-export function ProjectInterviewForm({ data, onChange, traineeId }: ProjectInterviewFormProps) {
+export function ProjectInterviewForm({ data, onChange, onInterviewDateChange, traineeId }: ProjectInterviewFormProps) {
   const queryClient = useQueryClient();
   const [isFinalizing, setIsFinalizing] = useState(false);
 
@@ -174,21 +175,30 @@ export function ProjectInterviewForm({ data, onChange, traineeId }: ProjectInter
 
   const updateField = (field: string, value: string) => {
     onChange({ ...data, [field]: value });
+    // Auto-sync interview_pass_date when interview_date changes
+    if (field === "interview_date" && onInterviewDateChange) {
+      onInterviewDateChange(value);
+    }
   };
 
   // Handle order selection - force fill all fields from order
   const handleOrderSelect = (orderId: string) => {
     const order = orders.find((o: any) => o.id === orderId);
     if (order) {
+      const interviewDate = order.expected_interview_date || data.interview_date;
       onChange({
         ...data,
         order_id: orderId,
         receiving_company_id: order.company_id || data.receiving_company_id,
         union_id: order.union_id || data.union_id,
         job_category_id: order.job_category_id || data.job_category_id,
-        interview_date: order.expected_interview_date || data.interview_date,
+        interview_date: interviewDate,
         contract_term: order.contract_term ? order.contract_term.toString() : data.contract_term,
       });
+      // Also sync interview_pass_date when order is selected
+      if (order.expected_interview_date && onInterviewDateChange) {
+        onInterviewDateChange(interviewDate);
+      }
     } else {
       updateField("order_id", orderId);
     }
