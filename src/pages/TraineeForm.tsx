@@ -818,9 +818,10 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         await saveHistoryItems(finalTraineeId);
       }
 
-      // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: ["trainees"] });
-      queryClient.invalidateQueries({ queryKey: ["trainee", traineeId] });
+      // Invalidate and refetch queries to ensure UI reflects latest data
+      await queryClient.invalidateQueries({ queryKey: ["trainees"] });
+      await queryClient.invalidateQueries({ queryKey: ["trainee", traineeId] });
+      await queryClient.refetchQueries({ queryKey: ["trainee", traineeId] });
 
       toast({
         title: "Thành công",
@@ -1533,7 +1534,6 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
           <ProjectInterviewForm 
             data={projectInterviewData} 
             onChange={setProjectInterviewData}
-            onInterviewDateChange={(date) => updateField("interview_pass_date", date)}
             traineeId={traineeId}
           />
         </TabsContent>
