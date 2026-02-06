@@ -311,9 +311,11 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   // Real-time duplicate check for trainee code
   const { isDuplicate: isCodeDuplicate, isChecking: isCheckingCode } = useDuplicateCheck(
     formData.trainee_code,
-    "trainees",
-    "trainee_code",
-    isEditMode ? traineeId : undefined
+    {
+      table: "trainees",
+      field: "trainee_code",
+      currentId: isEditMode ? traineeId : undefined,
+    }
   );
 
   // Populate form with trainee data when editing
@@ -400,33 +402,79 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   const [japanLoaded, setJapanLoaded] = useState(false);
 
   // Load related data
-  useEducationHistory(traineeId, (items) => {
-    if (!educationLoaded) {
-      setEducationItems(items);
+  const { data: educationData } = useEducationHistory(traineeId);
+  const { data: workData } = useWorkHistory(traineeId);
+  const { data: familyData } = useFamilyMembers(traineeId);
+  const { data: japanRelativesData } = useJapanRelatives(traineeId);
+
+  // Sync education history data - map DB types to form types
+  useEffect(() => {
+    if (educationData && !educationLoaded) {
+      const mapped = educationData.map(item => ({
+        id: item.id,
+        level: item.level || "",
+        school_name: item.school_name || "",
+        major: item.major || "",
+        start_month: "",
+        start_year: item.start_year?.toString() || "",
+        end_month: "",
+        end_year: item.end_year?.toString() || "",
+      }));
+      setEducationItems(mapped);
       setEducationLoaded(true);
     }
-  });
+  }, [educationData, educationLoaded]);
 
-  useWorkHistory(traineeId, (items) => {
-    if (!workLoaded) {
-      setWorkItems(items);
+  // Sync work history data - map DB types to form types
+  useEffect(() => {
+    if (workData && !workLoaded) {
+      const mapped = workData.map(item => ({
+        id: item.id,
+        company_name: item.company_name || "",
+        position: item.position || "",
+        company_name_japanese: "",
+        start_date: item.start_date || "",
+        end_date: item.end_date || "",
+      }));
+      setWorkItems(mapped);
       setWorkLoaded(true);
     }
-  });
+  }, [workData, workLoaded]);
 
-  useFamilyMembers(traineeId, (items) => {
-    if (!familyLoaded) {
-      setFamilyItems(items);
+  // Sync family members data - map DB types to form types
+  useEffect(() => {
+    if (familyData && !familyLoaded) {
+      const mapped = familyData.map(item => ({
+        id: item.id,
+        relationship: item.relationship || "",
+        gender: item.gender || "",
+        full_name: item.full_name || "",
+        birth_year: item.birth_year?.toString() || "",
+        living_status: "",
+        occupation: item.occupation || "",
+        income: item.income || "",
+      }));
+      setFamilyItems(mapped);
       setFamilyLoaded(true);
     }
-  });
+  }, [familyData, familyLoaded]);
 
-  useJapanRelatives(traineeId, (items) => {
-    if (!japanLoaded) {
-      setJapanRelativeItems(items);
+  // Sync japan relatives data - map DB types to form types
+  useEffect(() => {
+    if (japanRelativesData && !japanLoaded) {
+      const mapped = japanRelativesData.map(item => ({
+        id: item.id,
+        full_name: item.full_name || "",
+        relationship: item.relationship || "",
+        age: item.age?.toString() || "",
+        gender: item.gender || "",
+        address_japan: item.address_japan || "",
+        residence_status: item.residence_status || "",
+      }));
+      setJapanRelativeItems(mapped);
       setJapanLoaded(true);
     }
-  });
+  }, [japanRelativesData, japanLoaded]);
 
   // Handle field changes
   const updateField = useCallback((field: keyof FormData, value: any) => {
