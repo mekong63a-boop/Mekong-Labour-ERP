@@ -831,12 +831,38 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       let newTraineeId: string | undefined;
 
       if (isEditMode && traineeId) {
+        // Lưu trạng thái cũ trước khi update để kiểm tra chuyển đổi
+        const oldStatus = trainee?.simple_status;
+        const newStatus = formData.simple_status;
+        
         await updateTraineeMutation.mutateAsync({
           id: traineeId,
           updates: traineeData,
         });
 
         await maybeLogInterviewHistory(traineeId);
+
+        // BUSINESS RULE: Auto-checkout KTX khi chuyển từ "Đang học" sang "Bảo lưu"
+        // Lưu lại lịch sử với ngày checkout = ngày chuyển trạng thái
+        if (oldStatus === "Đang học" && newStatus === "Bảo lưu") {
+          const { data: activeResident } = await supabase
+            .from("dormitory_residents")
+            .select("id")
+            .eq("trainee_id", traineeId)
+            .eq("status", "Đang ở")
+            .maybeSingle();
+          
+          if (activeResident) {
+            await supabase
+              .from("dormitory_residents")
+              .update({
+                status: "Đã rời",
+                check_out_date: format(new Date(), "yyyy-MM-dd"),
+                transfer_reason: "Tự động: Chuyển trạng thái sang Bảo lưu",
+              })
+              .eq("id", activeResident.id);
+          }
+        }
 
         toast({ title: "Cập nhật học viên thành công" });
       } else {
