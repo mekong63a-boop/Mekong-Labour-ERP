@@ -1,219 +1,183 @@
 
-## Thiết Kế Lại Dashboard Theo Mẫu Tham Khảo
 
-Dựa trên hình mẫu bạn cung cấp, Dashboard mới sẽ có giao diện hiện đại hơn với các thành phần được bố trí khoa học và trực quan.
-
----
-
-## Phân Tích Hình Mẫu
-
-Theo hình ảnh tham khảo, Dashboard mới bao gồm:
-
-**1. Header mới với:**
-- Tiêu đề "Bảng điều khiển"
-- Thanh tìm kiếm nhanh ở giữa
-- Icon thông báo (chuông)
-- Thông tin user góc phải (Avatar, tên, role)
-
-**2. 4 KPI Cards ngang hàng với style mới:**
-- Tổng số học viên (icon màu xanh dương, có chỉ số % tăng trưởng)
-- Học viên hiện tại (icon màu xanh lá)
-- Học viên tại Nhật (dạng "124 / 150" - tỷ lệ xuất cảnh thành công)
-- Đơn tuyển dụng mới (icon màu cam)
-
-**3. Biểu đồ "Tình hình tuyển dụng & Xuất cảnh" (Cột kép xanh/xanh dương):**
-- Trục X: Tháng 1 → Tháng 7
-- 2 loại cột: Tuyển dụng (xanh lá) và Xuất cảnh (xanh dương)
-- Có dropdown chọn năm
-- Hiển thị số liệu trực tiếp trên cột
-
-**4. Biểu đồ Donut "Cơ cấu ngành nghề" bên phải:**
-- Hiển thị tỷ lệ các ngành: Thực phẩm, Xây dựng, Cơ khí, May mặc
-- Legend phía dưới với số lượng cụ thể
-
-**5. Thanh tiến độ "Tiến độ hồ sơ học tập":**
-- Progress bar hiển thị % hoàn thiện hồ sơ
-- Thời gian cập nhật lần cuối
-
-**6. Card "Chỉ tiêu năm 2024":**
-- Hiển thị dạng "500 / 1000"
-- Tiến độ đạt chỉ tiêu
+## Mục tiêu
+Triển khai mô hình **Draft → Finalize** cho **Project & Interview**, với các yêu cầu sau:
+1. **Draft fields** sống trong bảng `trainees` (bao gồm `interview_date`)
+2. Bấm nút **Lưu/Cập nhật thông tin** chỉ cập nhật draft, **không insert history**
+3. **Lịch sử phỏng vấn** chỉ được ghi vào `interview_history` khi bấm **"Lưu lịch sử phỏng vấn"** (via RPC `finalize_interview_draft`)
+4. Fix lỗi PostgREST embed (PGRST201) bằng cách chỉ rõ FK names
+5. Thêm error UI khi query `interview_history` fail
+6. Refetch queries sau khi finalize thành công
 
 ---
 
-## Chi Tiết Kỹ Thuật
+## Vấn đề hiện tại
 
-### 1. MainLayout - Thêm Header mới
+### 1. Lỗi PostgREST Embed (PGRST201)
+- File: `src/hooks/useTraineeHistory.ts`, line 18-22
+- Nguyên nhân: Các FK từ `interview_history` → `companies`, `unions`, `job_categories` không được chỉ rõ, Supabase không biết FK nào cần dùng
+- Hệ quả: Query fail → `data = undefined` → `ProjectInterviewTab` hiển thị "Chưa có lịch sử" thay vì hiển thị error
 
-**File:** `src/components/layout/MainLayout.tsx`
+### 2. Ngày phỏng vấn không được lưu
+- File: `src/pages/TraineeForm.tsx`, line 727-737 (`saveHistoryItems()`)
+- Nguyên nhân:
+  - Phần Project/Interview bị wrap trong `if (projectInterviewData.receiving_company_id || projectInterviewData.job_category_id)` → chỉ lưu nếu có company/job_category
+  - **Không lưu `interview_date`** vào bảng `trainees`
+  - Load draft từ `interviewData?.[0]?.interview_date` (history) thay vì `trainee.interview_date` (draft)
 
-**Thay đổi:**
-- Thêm thanh tìm kiếm nhanh ở header
-- Thêm icon thông báo (Bell)
-- Thêm Avatar và thông tin user (tên, role) góc phải
-- Giữ nguyên nút "Làm mới dữ liệu"
+### 3. Số lần phỏng vấn luôn 0
+- File: `src/components/trainees/tabs/ProjectInterviewTab.tsx`, line 135
+- Hệ quả: `interviews.length = 0` vì query history fail (PGRST201)
 
-```text
-┌───────────────────────────────────────────────────────────────────┐
-│ ☰  Bảng điều khiển     │ 🔍 Tìm kiếm nhanh...  │ 🔔  👤 Admin User │
-│                        │                        │      Chủ quản HT  │
-└───────────────────────────────────────────────────────────────────┘
-```
+### 4. Không có error state khi query history fail
+- File: `src/hooks/useTraineeHistory.ts`, `ProjectInterviewTab.tsx`
+- Nguyên nhân: Hook throw error nhưng UI không handle, chỉ show skeleton/empty state
 
-### 2. TraineeDashboard - Redesign hoàn toàn
+---
 
-**File:** `src/pages/dashboard/TraineeDashboard.tsx`
+## Giải pháp thiết kế
 
-**Thay đổi chính:**
-
-#### 2.1. KPI Cards với style mới
-```text
-┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
-│ 👥 TỔNG SỐ HV   │ │ 🎓 HỌC VIÊN      │ │ 📍 HV TẠI NHẬT   │ │ 📋 ĐƠN TUYỂN    │
-│     142         │ │ HIỆN TẠI: 45     │ │    124 / 150     │ │ DỤNG MỚI: 08    │
-│ Học viên toàn HT│ │ Đang đào tạo     │ │ Tỷ lệ xuất cảnh  │ │ Cần bổ sung     │
-│           ↑12%  │ │           ↑12%   │ │           ↑12%   │ │           ↑12%  │
-└──────────────────┘ └──────────────────┘ └──────────────────┘ └──────────────────┘
-```
-
-- Icon lớn với background tròn, màu sắc tương ứng (xanh dương, xanh lá, cam, tím)
-- Chỉ số tăng trưởng (%) so với tháng/năm trước
-- Subtitle mô tả ngắn gọn
-
-#### 2.2. Biểu đồ chính - Grouped Bar Chart
-- **Tuyển dụng vs Xuất cảnh theo tháng**
-- Màu xanh lá (#22C55E) cho Tuyển dụng
-- Màu xanh dương (#3B82F6) cho Xuất cảnh
-- Dropdown chọn năm phía trên góc phải
-- Labels số liệu hiển thị trực tiếp trên cột
-
-#### 2.3. Biểu đồ Donut - Cơ cấu ngành nghề
-- Lấy dữ liệu từ `job_categories` liên kết với `trainees.job_category_id`
-- Hiển thị tỷ lệ % các ngành nghề
-- Legend ở dưới với số lượng cụ thể
-- Màu sắc: Cam, Đỏ, Xanh đậm, Xanh dương
-
-#### 2.4. Thanh tiến độ - Hoàn thiện hồ sơ
-- Tính tỷ lệ học viên có đầy đủ thông tin
-- Hiển thị % và progress bar
-- Thời gian cập nhật cuối
-
-#### 2.5. Card Chỉ tiêu năm
-- Tổng hợp từ `orders.quantity` (chỉ tiêu)
-- So sánh với số đã xuất cảnh (đạt được)
-
-### 3. Hooks mới cần tạo
-
-**File:** `src/hooks/useDashboardStats.ts`
-
+### A) Fix Hook useInterviewHistory (useTraineeHistory.ts)
+Thay đổi embed select để chỉ rõ FK names:
 ```typescript
-// Hook lấy thống kê theo ngành nghề
-export const useTraineeByJobCategory = () => {...}
+// TỪ:
+select(`
+  *,
+  companies:company_id(id, name, name_japanese),
+  unions:union_id(id, name, name_japanese),
+  job_categories:job_category_id(id, name, name_japanese)
+`)
 
-// Hook tính % tăng trưởng so với kỳ trước
-export const useGrowthRate = () => {...}
-
-// Hook tính chỉ tiêu năm (từ orders)
-export const useYearlyTarget = () => {...}
-
-// Hook tính tỷ lệ hoàn thiện hồ sơ
-export const useProfileCompletionRate = () => {...}
+// THÀNH:
+select(`
+  *,
+  companies:companies!fk_interview_company(id, name, name_japanese),
+  unions:unions!fk_interview_union(id, name, name_japanese),
+  job_categories:job_categories!fk_interview_job_category(id, name, name_japanese)
+`)
 ```
 
-### 4. CSS/Styling updates
+### B) Update ProjectInterviewTab để hiển thị error state
+Thêm kiểm tra `error` từ hook và hiển thị message tương ứng:
+```typescript
+if (isLoading) → hiển thị skeleton
+if (error) → hiển thị "Không tải được lịch sử" (thay vì "Chưa có lịch sử")
+if (!interviews || interviews.length === 0) → hiển thị "Chưa có lịch sử"
+```
 
-**File:** `src/index.css`
+### C) Update saveHistoryItems() để lưu interview_date draft
+**Trong TraineeForm.tsx**, phần Project/Interview (line 727-737):
+- **Bỏ điều kiện** `if (projectInterviewData.receiving_company_id || ...)`
+- **Luôn update** `trainees` với tất cả draft fields, bao gồm:
+  - `interview_date` (NEW)
+  - `receiving_company_id`
+  - `union_id`
+  - `job_category_id`
+  - `expected_entry_month`
+  - `contract_term`
+- **Không gọi RPC finalize** trong save này
 
-Thêm các class mới:
-```css
-/* KPI Card with colored icon */
-.kpi-icon-box {
-  @apply w-14 h-14 rounded-2xl flex items-center justify-center;
-}
+### D) Update load project interview data
+**Trong TraineeForm.tsx**, phần init data (line 498-513):
+- Ưu tiên load `trainee.interview_date` (draft) từ bảng `trainees`
+- Fallback sang `interviewData?.[0]?.interview_date` chỉ nếu draft rỗng (tuỳ chọn, để giữ "ngày gần nhất")
 
-.kpi-icon-blue { @apply bg-blue-100 text-blue-600; }
-.kpi-icon-green { @apply bg-green-100 text-green-600; }
-.kpi-icon-orange { @apply bg-orange-100 text-orange-600; }
-.kpi-icon-purple { @apply bg-purple-100 text-purple-600; }
+### E) Ensure query refetch sau finalize
+**Trong ProjectInterviewForm.tsx**, `handleFinalizeInterview()` (line 76-79):
+- Đã có logic refetch queries → ✅ không cần thay đổi
+- Verify rằng refetch sau finalize successful
 
-/* Growth indicator */
-.growth-positive { @apply text-green-600 text-sm font-medium; }
-.growth-negative { @apply text-red-600 text-sm font-medium; }
+---
+
+## Chi tiết triển khai
+
+### File 1: `src/hooks/useTraineeHistory.ts`
+**Dòng 18-22**: Thay select embed từ `company_id(...)` → `companies!fk_interview_company(...)`
+- Làm tương tự cho `unions!fk_interview_union(...)` và `job_categories!fk_interview_job_category(...)`
+
+**Thêm error state** (tuỳ chọn): Có thể refactor hook để return `{ data, error, isLoading }` để caller có thể handle error
+
+### File 2: `src/components/trainees/tabs/ProjectInterviewTab.tsx`
+**Dòng 32**: Destructure thêm `error` từ hook
+```typescript
+const { data: interviews, isLoading, error } = useInterviewHistory(trainee.id);
+```
+
+**Dòng 273-279**: Update conditional render:
+```typescript
+{isLoading ? (
+  <Skeleton className="h-20 w-full" />
+) : error ? (
+  <p className="text-muted-foreground text-center py-8 text-red-600">
+    Không tải được lịch sử phỏng vấn
+  </p>
+) : !interviews || interviews.length === 0 ? (
+  <p className="text-muted-foreground text-center py-8">
+    Chưa có lịch sử phỏng vấn
+  </p>
+) : (
+  // ... render interviews
+)}
+```
+
+### File 3: `src/pages/TraineeForm.tsx`
+
+**Dòng 498-513** (init project interview data):
+- Thay từ:
+  ```typescript
+  interview_date: interviewData?.[0]?.interview_date || "",
+  ```
+- Sang:
+  ```typescript
+  interview_date: trainee.interview_date || interviewData?.[0]?.interview_date || "",
+  ```
+- Ưu tiên `trainee.interview_date` (draft) trước, fallback sang history
+
+**Dòng 727-737** (saveHistoryItems - Project/Interview):
+- Bỏ điều kiện `if (projectInterviewData.receiving_company_id || projectInterviewData.job_category_id)`
+- **Luôn update** trainees với tất cả fields:
+  ```typescript
+  await supabase.from("trainees").update({
+    interview_date: projectInterviewData.interview_date || null,
+    receiving_company_id: projectInterviewData.receiving_company_id || null,
+    union_id: projectInterviewData.union_id || null,
+    job_category_id: projectInterviewData.job_category_id || null,
+    expected_entry_month: projectInterviewData.expected_entry_month || null,
+    contract_term: projectInterviewData.contract_term ? parseFloat(projectInterviewData.contract_term) : null,
+  }).eq("id", traineeId);
+  ```
+
+---
+
+## Mô hình hóa luồng (sau triển khai)
+
+```
+DRAFT (user input) → [bấm Lưu] → trainees.interview_date + draft fields
+                  ↓
+        [bấm Lưu lịch sử phỏng vấn] → finalize_interview_draft RPC
+                  ↓
+        insert interview_history + update interview_count (trigger)
 ```
 
 ---
 
-## Bố Cục Dashboard Mới
-
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              HEADER                                         │
-│  ☰  Bảng điều khiển    🔍 Tìm kiếm nhanh...        🔔  👤 Admin User       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
-│  │ Tổng số HV  │ │ HV hiện tại │ │ HV tại Nhật │ │ Đơn TĐ mới  │           │
-│  │    142      │ │     45      │ │  124/150    │ │     08      │           │
-│  │       ↑12%  │ │       ↑12%  │ │       ↑12%  │ │       ↑12%  │           │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘           │
-│                                                                             │
-│  ┌────────────────────────────────────────┐ ┌──────────────────────────┐   │
-│  │     Tình hình tuyển dụng & Xuất cảnh   │ │    Cơ cấu ngành nghề    │   │
-│  │             Năm 2024 ▼                 │ │                          │   │
-│  │    ┌──┐  ┌──┐                          │ │        🍩 Donut         │   │
-│  │    │██│  │██│ ┌──┐  ┌──┐  ┌──┐  ┌──┐  │ │                          │   │
-│  │    │██│  │██│ │██│  │██│  │██│  │██│  │ │  ● Thực phẩm    400      │   │
-│  │    └──┘  └──┘ └──┘  └──┘  └──┘  └──┘  │ │  ● Xây dựng     300      │   │
-│  │    T1    T2    T3    T4    T5    T6   │ │  ● Cơ khí       300      │   │
-│  │    ■ Tuyển dụng  ■ Xuất cảnh          │ │  ● May mặc      200      │   │
-│  └────────────────────────────────────────┘ └──────────────────────────┘   │
-│                                                                             │
-│  ┌────────────────────────────────────────┐ ┌──────────────────────────┐   │
-│  │  Tiến độ hồ sơ học tập                 │ │  Chỉ tiêu năm 2024       │   │
-│  │                       Cập nhật 09:00   │ │                 500/1000 │   │
-│  │  Hoàn thiện hồ sơ           82%        │ │  ██████████░░░░░░░░░░░░░ │   │
-│  │  ████████████████████░░░░░░            │ │                          │   │
-│  └────────────────────────────────────────┘ └──────────────────────────┘   │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+## Tiêu chí nghiệm thu (E2E test)
+1. Vào edit trainee → tab **Dự án & Phỏng vấn**
+2. Nhập **Ngày phỏng vấn** (đơn giản, không chọn order)
+3. Bấm **Lưu/Cập nhật thông tin** → ngày phỏng vấn lưu được
+4. Reload trang → ngày phỏng vấn vẫn còn (lấy từ `trainees.interview_date`)
+5. Bấm **Lưu lịch sử phỏng vấn** → lịch sử xuất hiện 1 dòng, "Số lần phỏng vấn" = 1
+6. Reload lại → lịch sử vẫn là 1 (không bị lặp)
+7. Test error state: (tuỳ chọn) tạm disable FK constraint để trigger PGRST201 → UI hiển thị "Không tải được..."
 
 ---
 
-## Các File Cần Chỉnh Sửa
+## Tóm tắt thay đổi
+| File | Dòng | Thay đổi |
+|------|------|---------|
+| `useTraineeHistory.ts` | 20-22 | Fix embed FK name: `!fk_interview_company`, `!fk_interview_union`, `!fk_interview_job_category` |
+| `ProjectInterviewTab.tsx` | 32 | Destructure `error` từ hook |
+| `ProjectInterviewTab.tsx` | 273-279 | Thêm error state rendering |
+| `TraineeForm.tsx` | 504 | Ưu tiên load `trainee.interview_date` |
+| `TraineeForm.tsx` | 727-737 | Bỏ `if` condition, luôn update draft, thêm `interview_date` |
 
-| File | Thay đổi |
-|------|----------|
-| `src/components/layout/MainLayout.tsx` | Thêm search box, notification bell, user info vào header |
-| `src/pages/dashboard/TraineeDashboard.tsx` | Redesign hoàn toàn layout và components |
-| `src/hooks/useDashboardTrainee.ts` | Thêm hooks mới cho job category stats, growth rate |
-| `src/index.css` | Thêm CSS classes cho KPI cards mới |
-
----
-
-## Dữ Liệu Cần Truy Vấn Thêm
-
-1. **Thống kê theo ngành nghề:**
-   - Query `trainees` GROUP BY `job_category_id`
-   - JOIN với `job_categories` để lấy tên ngành
-
-2. **Tỷ lệ tăng trưởng:**
-   - So sánh số liệu tháng này vs tháng trước
-   - Công thức: `((this_month - last_month) / last_month) * 100`
-
-3. **Chỉ tiêu năm:**
-   - SUM(`orders.quantity`) cho năm hiện tại
-   - So với COUNT trainees đã xuất cảnh trong năm
-
-4. **Tỷ lệ hoàn thiện hồ sơ:**
-   - Đếm số trường bắt buộc đã điền / tổng số trường bắt buộc
-
----
-
-## Lưu Ý Quan Trọng
-
-- Giữ nguyên logic KPI hiện tại (click để xem chi tiết)
-- Không thay đổi DashboardDetailList (trang chi tiết)
-- Responsive design cho tablet/mobile
-- Tuân thủ màu sắc brand Mekong (xanh lá chủ đạo #006633)
-- Giữ nguyên bộ lọc năm/tháng hiện có
