@@ -67,33 +67,22 @@ const TEST_CATEGORIES = [
   { value: "Nghe sơ cấp 2", label: "Nghe SC2" },
 ];
 
-// CRITICAL: Các stage đã xuất cảnh - học viên với stage này sẽ bị loại khỏi danh sách lớp
-const DEPARTED_STAGES = [
-  "Xuất cảnh",
-  "Đang làm việc",
-  "Bỏ trốn",
-  "Về trước hạn",
-  "Hoàn thành hợp đồng",
-];
+// BUSINESS RULE: Chỉ học viên có simple_status = "Đang học" mới hiển thị trong danh sách lớp
 
 // Hook to get detailed students with birthplace
-// SYSTEM RULE: Tự động loại bỏ học viên đã xuất cảnh khỏi danh sách hiển thị
+// SYSTEM RULE: Chỉ hiển thị học viên có simple_status = "Đang học"
 function useClassStudentsDetailed(classId: string) {
   return useQuery({
     queryKey: ["class-students-detailed", classId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("trainees")
-        .select("id, trainee_code, full_name, birth_date, birthplace, progression_stage, departure_date")
+        .select("id, trainee_code, full_name, birth_date, birthplace, simple_status, progression_stage")
         .eq("class_id", classId)
+        .eq("simple_status", "Đang học") // Chỉ lấy học viên đang học
         .order("full_name");
       if (error) throw error;
-      
-      // Lọc bỏ học viên đã xuất cảnh (có departure_date hoặc progression_stage nằm trong DEPARTED_STAGES)
-      return data?.filter(t => 
-        !t.departure_date && 
-        (!t.progression_stage || !DEPARTED_STAGES.includes(t.progression_stage))
-      ) || [];
+      return data || [];
     },
     enabled: !!classId,
   });

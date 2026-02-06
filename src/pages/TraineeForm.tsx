@@ -842,9 +842,15 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
 
         await maybeLogInterviewHistory(traineeId);
 
-        // BUSINESS RULE: Auto-checkout KTX khi chuyển từ "Đang học" sang "Bảo lưu"
-        // Lưu lại lịch sử với ngày checkout = ngày chuyển trạng thái
-        if (oldStatus === "Đang học" && newStatus === "Bảo lưu") {
+        // BUSINESS RULE: Auto-out khỏi KTX và Lớp học khi chuyển từ "Đang học" sang các trạng thái không học
+        // Các trạng thái cần auto-out: Bảo lưu, Dừng chương trình, Hủy, Rời công ty, Đang ở Nhật
+        const NON_STUDYING_STATUSES = ["Bảo lưu", "Dừng chương trình", "Hủy", "Rời công ty", "Đang ở Nhật", "Không học"];
+        
+        if (oldStatus === "Đang học" && NON_STUDYING_STATUSES.includes(newStatus)) {
+          const today = format(new Date(), "yyyy-MM-dd");
+          const reasonText = `Tự động: Chuyển trạng thái sang ${newStatus}`;
+          
+          // 1. Auto-checkout KTX
           const { data: activeResident } = await supabase
             .from("dormitory_residents")
             .select("id")
@@ -857,10 +863,31 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
               .from("dormitory_residents")
               .update({
                 status: "Đã rời",
-                check_out_date: format(new Date(), "yyyy-MM-dd"),
-                transfer_reason: "Tự động: Chuyển trạng thái sang Bảo lưu",
+                check_out_date: today,
+                transfer_reason: reasonText,
               })
               .eq("id", activeResident.id);
+          }
+          
+          // 2. Auto-out khỏi lớp học và lưu enrollment_history
+          const oldClassId = trainee?.class_id;
+          if (oldClassId) {
+            // Lưu enrollment_history trước khi xóa class_id
+            await supabase
+              .from("enrollment_history")
+              .insert({
+                trainee_id: traineeId,
+                action_type: "Rời lớp",
+                class_id: oldClassId,
+                action_date: today,
+                notes: reasonText,
+              });
+            
+            // Xóa class_id
+            await supabase
+              .from("trainees")
+              .update({ class_id: null })
+              .eq("id", traineeId);
           }
         }
 
