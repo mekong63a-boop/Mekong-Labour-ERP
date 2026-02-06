@@ -716,20 +716,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       await supabase.from("japan_relatives").insert(japanData);
     }
 
-    // Interview history - only save if there's meaningful data
-    if (projectInterviewData.receiving_company_id || projectInterviewData.interview_date || projectInterviewData.job_category_id) {
-      // Insert new interview record (don't delete old ones - preserve history)
-      await supabase.from("interview_history").insert({
-        trainee_id: traineeId,
-        company_id: projectInterviewData.receiving_company_id || null,
-        union_id: projectInterviewData.union_id || null,
-        job_category_id: projectInterviewData.job_category_id || null,
-        interview_date: projectInterviewData.interview_date || null,
-        expected_entry_month: projectInterviewData.expected_entry_month || null,
-        result: null, // Result will be updated via workflow
-      });
-
-      // Also update trainee's direct fields
+    // Project/Interview: Only update trainee's direct fields (draft mode)
+    // interview_history is managed by Orders module and DB triggers
+    if (projectInterviewData.receiving_company_id || projectInterviewData.job_category_id) {
       await supabase.from("trainees").update({
         receiving_company_id: projectInterviewData.receiving_company_id || null,
         union_id: projectInterviewData.union_id || null,
