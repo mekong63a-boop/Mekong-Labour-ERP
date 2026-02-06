@@ -870,40 +870,34 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
 
         {/* Tab 1: Personal Info */}
         <TabsContent value="personal" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Photo & QR Column */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Ảnh</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <PhotoUpload
-                  currentPhotoUrl={formData.photo_url}
-                  onPhotoChange={(url, file) => {
-                    if (file) setPendingPhotoFile(file);
-                    if (url) updateField("photo_url", url);
-                  }}
-                  traineeCode={formData.trainee_code || "new"}
-                  previewOnly={!isEditMode}
-                />
-                <LineQRUpload
-                  currentQRUrl={formData.line_qr_url}
-                  onQRChange={(url, file) => {
-                    if (file) setPendingLineQRFile(file);
-                    if (url) updateField("line_qr_url", url);
-                  }}
-                  traineeCode={formData.trainee_code || "new"}
-                  previewOnly={!isEditMode}
-                />
-              </CardContent>
-            </Card>
-
+          <div className="grid grid-cols-1 gap-6">
             {/* Basic Info */}
-            <Card className="md:col-span-2">
-              <CardHeader>
+            <Card>
+              <CardHeader className="flex flex-row items-start justify-between pb-4">
                 <CardTitle className="text-lg">Thông tin cơ bản</CardTitle>
+                {/* Compact Photo & QR */}
+                <div className="flex items-start gap-3">
+                  <PhotoUpload
+                    currentPhotoUrl={formData.photo_url}
+                    onPhotoChange={(url, file) => {
+                      if (file) setPendingPhotoFile(file);
+                      if (url) updateField("photo_url", url);
+                    }}
+                    traineeCode={formData.trainee_code || "new"}
+                    previewOnly={!isEditMode}
+                  />
+                  <LineQRUpload
+                    currentQRUrl={formData.line_qr_url}
+                    onQRChange={(url, file) => {
+                      if (file) setPendingLineQRFile(file);
+                      if (url) updateField("line_qr_url", url);
+                    }}
+                    traineeCode={formData.trainee_code || "new"}
+                    previewOnly={!isEditMode}
+                  />
+                </div>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Mã học viên *</Label>
                   <Input
