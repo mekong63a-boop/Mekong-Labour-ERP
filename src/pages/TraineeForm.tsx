@@ -427,9 +427,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         shoe_size: (trainee as any).shoe_size || "",
         // Status-related dates
         entry_date: trainee.entry_date || "",
-        reserve_date: "",
-        stop_date: "",
-        cancel_date: "",
+        reserve_date: (trainee as any).reserve_date || "",
+        stop_date: (trainee as any).stop_date || "",
+        cancel_date: (trainee as any).cancel_date || "",
         // Progression stage dates
         interview_pass_date: trainee.interview_pass_date || "",
         document_submission_date: trainee.document_submission_date || "",
@@ -693,6 +693,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     coe_date: formData.coe_date || null,
     departure_date: formData.departure_date || null,
     entry_date: formData.entry_date || null,
+    reserve_date: formData.reserve_date || null,
+    stop_date: formData.stop_date || null,
+    cancel_date: formData.cancel_date || null,
     absconded_date: formData.absconded_date || null,
     early_return_date: formData.early_return_date || null,
     early_return_reason: formData.early_return_reason || null,
@@ -1875,6 +1878,42 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                       </SelectContent>
                     </Select>
                   </div>
+                  
+                  {/* Ngày bảo lưu - hiển thị khi trạng thái là Bảo lưu */}
+                  {formData.simple_status === "Bảo lưu" && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ngày bảo lưu</Label>
+                      <Input
+                        type="date"
+                        value={formData.reserve_date}
+                        onChange={(e) => updateField("reserve_date", e.target.value)}
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Ngày hủy - hiển thị khi trạng thái là Hủy */}
+                  {formData.simple_status === "Hủy" && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ngày hủy</Label>
+                      <Input
+                        type="date"
+                        value={formData.cancel_date}
+                        onChange={(e) => updateField("cancel_date", e.target.value)}
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Ngày dừng chương trình - hiển thị khi trạng thái là Dừng chương trình */}
+                  {formData.simple_status === "Dừng chương trình" && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Ngày dừng chương trình</Label>
+                      <Input
+                        type="date"
+                        value={formData.stop_date}
+                        onChange={(e) => updateField("stop_date", e.target.value)}
+                      />
+                    </div>
+                  )}
                   
                   {/* progression_stage: Editable */}
                   <div>
