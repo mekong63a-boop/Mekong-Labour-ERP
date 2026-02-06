@@ -75,6 +75,8 @@ export function ProjectInterviewForm({ data, onChange, traineeId }: ProjectInter
 
       toast.success("Đã lưu lịch sử phỏng vấn");
       queryClient.invalidateQueries({ queryKey: ["interview-history", traineeId] });
+      queryClient.invalidateQueries({ queryKey: ["trainee", traineeId] });
+      queryClient.invalidateQueries({ queryKey: ["trainees"] });
     } catch (error) {
       console.error("Error finalizing interview:", error);
       toast.error("Không thể lưu lịch sử phỏng vấn");

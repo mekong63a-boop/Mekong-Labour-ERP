@@ -499,7 +499,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     if (trainee && !projectLoaded) {
       setProjectInterviewData({
         order_id: "",
-        interview_date: "", // Draft: empty until finalized
+        // Draft: show latest interview date from interview_history (Single Source of Truth)
+        // If there is no history yet, keep empty and user can input then finalize.
+        interview_date: interviewData?.[0]?.interview_date || "",
         expected_entry_month: trainee.expected_entry_month || "",
         receiving_company_id: trainee.receiving_company_id || "",
         union_id: trainee.union_id || "",
@@ -508,7 +510,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       });
       setProjectLoaded(true);
     }
-  }, [trainee, projectLoaded]);
+  }, [trainee, projectLoaded, interviewData]);
 
   // Handle field changes
   const updateField = useCallback((field: keyof FormData, value: any) => {
