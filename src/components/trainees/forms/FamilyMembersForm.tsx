@@ -16,7 +16,11 @@ const RELATIONSHIPS = [
   "Ông ngoại", "Bà ngoại", "Cô", "Dì", "Chú", "Bác", "Khác"
 ];
 const GENDERS = ["Nam", "Nữ"];
-const LIVING_STATUS = ["Sống chung", "Sống riêng"];
+// O = Sống chung, X = Sống riêng (theo yêu cầu nghiệp vụ)
+const LIVING_STATUS = [
+  { value: "O", label: "O (Sống chung)" },
+  { value: "X", label: "X (Sống riêng)" },
+];
 
 export interface FamilyItem {
   id?: string;
@@ -24,7 +28,7 @@ export interface FamilyItem {
   gender: string;
   full_name: string;
   birth_year: string;
-  living_status: string;
+  location: string; // Renamed from living_status to match DB column
   occupation: string;
   income: string;
 }
@@ -38,7 +42,7 @@ export function FamilyMembersForm({ items, onChange }: FamilyMembersFormProps) {
   const addItem = () => {
     onChange([
       ...items,
-      { relationship: "", gender: "", full_name: "", birth_year: "", living_status: "", occupation: "", income: "" },
+      { relationship: "", gender: "", full_name: "", birth_year: "", location: "", occupation: "", income: "" },
     ]);
   };
 
@@ -151,15 +155,15 @@ export function FamilyMembersForm({ items, onChange }: FamilyMembersFormProps) {
               </div>
               <div className="col-span-2">
                 <Select
-                  value={item.living_status}
-                  onValueChange={(v) => updateItem(index, "living_status", v)}
+                  value={item.location}
+                  onValueChange={(v) => updateItem(index, "location", v)}
                 >
-                  <SelectTrigger className={item.living_status ? "" : "input-empty"}>
+                  <SelectTrigger className={item.location ? "" : "input-empty"}>
                     <SelectValue placeholder="Chọn" />
                   </SelectTrigger>
                   <SelectContent>
                     {LIVING_STATUS.map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
