@@ -1807,7 +1807,11 @@ export type Database = {
           otit_entry_date: string | null
           pants_size: string | null
           parent_phone_1: string | null
+          parent_phone_1_relation: string | null
           parent_phone_2: string | null
+          parent_phone_2_relation: string | null
+          parent_phone_3: string | null
+          parent_phone_3_relation: string | null
           passport_date: string | null
           passport_number: string | null
           passport_place: string | null
@@ -1903,7 +1907,11 @@ export type Database = {
           otit_entry_date?: string | null
           pants_size?: string | null
           parent_phone_1?: string | null
+          parent_phone_1_relation?: string | null
           parent_phone_2?: string | null
+          parent_phone_2_relation?: string | null
+          parent_phone_3?: string | null
+          parent_phone_3_relation?: string | null
           passport_date?: string | null
           passport_number?: string | null
           passport_place?: string | null
@@ -1999,7 +2007,11 @@ export type Database = {
           otit_entry_date?: string | null
           pants_size?: string | null
           parent_phone_1?: string | null
+          parent_phone_1_relation?: string | null
           parent_phone_2?: string | null
+          parent_phone_2_relation?: string | null
+          parent_phone_3?: string | null
+          parent_phone_3_relation?: string | null
           passport_date?: string | null
           passport_number?: string | null
           passport_place?: string | null

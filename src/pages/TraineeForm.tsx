@@ -47,6 +47,7 @@ const ETHNICITIES = ["Kinh", "Tày", "Thái", "Mường", "Khmer", "Nùng", "H'M
 const BLOOD_GROUPS = ["A", "B", "AB", "O"];
 const DOMINANT_HANDS = ["Tay phải", "Tay trái", "Cả hai"];
 const YES_NO = ["Có", "Không"];
+const PARENT_RELATIONS = ["Cha", "Mẹ", "Anh", "Chị", "Em", "Ông", "Bà", "Cô", "Dì", "Chú", "Bác", "Vợ", "Chồng", "Khác"];
 const SMOKING_OPTIONS = ["Không", "Thỉnh thoảng", "Thường xuyên"];
 const DRINKING_OPTIONS = ["Không", "Thỉnh thoảng", "Thường xuyên"];
 const PROVINCES = [
@@ -96,7 +97,11 @@ interface FormData {
   permanent_address: string;
   facebook: string;
   parent_phone_1: string;
+  parent_phone_1_relation: string;
   parent_phone_2: string;
+  parent_phone_2_relation: string;
+  parent_phone_3: string;
+  parent_phone_3_relation: string;
   simple_status: string;
   progression_stage: string;
   registration_date: string;
@@ -299,7 +304,11 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     permanent_address: "",
     facebook: "",
     parent_phone_1: "",
+    parent_phone_1_relation: "",
     parent_phone_2: "",
+    parent_phone_2_relation: "",
+    parent_phone_3: "",
+    parent_phone_3_relation: "",
     simple_status: "Đăng ký mới",
     progression_stage: "Chưa đậu",
     registration_date: format(new Date(), "yyyy-MM-dd"),
@@ -385,7 +394,11 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         permanent_address: trainee.permanent_address || "",
         facebook: trainee.facebook || "",
         parent_phone_1: trainee.parent_phone_1 || "",
+        parent_phone_1_relation: (trainee as any).parent_phone_1_relation || "",
         parent_phone_2: trainee.parent_phone_2 || "",
+        parent_phone_2_relation: (trainee as any).parent_phone_2_relation || "",
+        parent_phone_3: (trainee as any).parent_phone_3 || "",
+        parent_phone_3_relation: (trainee as any).parent_phone_3_relation || "",
         simple_status: trainee.simple_status || "Đăng ký mới",
         progression_stage: trainee.progression_stage || "Chưa đậu",
         registration_date: trainee.registration_date || format(new Date(), "yyyy-MM-dd"),
@@ -640,7 +653,11 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     permanent_address: formData.permanent_address || null,
     facebook: formData.facebook || null,
     parent_phone_1: formData.parent_phone_1 || null,
+    parent_phone_1_relation: formData.parent_phone_1_relation || null,
     parent_phone_2: formData.parent_phone_2 || null,
+    parent_phone_2_relation: formData.parent_phone_2_relation || null,
+    parent_phone_3: formData.parent_phone_3 || null,
+    parent_phone_3_relation: formData.parent_phone_3_relation || null,
     simple_status: formData.simple_status as any,
     progression_stage: formData.progression_stage as any || null,
     registration_date: formData.registration_date || null,
@@ -1446,37 +1463,116 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-4 gap-3">
-                    <div>
-                      <Label className="text-xs text-muted-foreground">
-                        SĐT Phụ huynh 1
-                        {!canEditSensitiveFields && isEditMode && formData.parent_phone_1 && <span className="text-xs text-orange-500 ml-1">(bảo mật)</span>}
-                      </Label>
-                      <Input
-                        placeholder="0901234567"
-                        value={!canEditSensitiveFields && isEditMode && formData.parent_phone_1
-                          ? formData.parent_phone_1.replace(/(.{4})(.*)(.{3})/, "$1***$3")
-                          : formData.parent_phone_1}
-                        onChange={(e) => updateField("parent_phone_1", e.target.value)}
-                        className={getInputClass(formData.parent_phone_1)}
-                        disabled={!canEditSensitiveFields && isEditMode && !!formData.parent_phone_1}
-                      />
+                  {/* SĐT Phụ huynh với dropdown quan hệ */}
+                  <div className="grid grid-cols-6 gap-3">
+                    {/* SĐT Phụ huynh 1 */}
+                    <div className="col-span-2 flex gap-2">
+                      <div className="w-24 flex-shrink-0">
+                        <Label className="text-xs text-muted-foreground">Quan hệ 1</Label>
+                        <Select
+                          value={formData.parent_phone_1_relation}
+                          onValueChange={(v) => updateField("parent_phone_1_relation", v)}
+                        >
+                          <SelectTrigger className={getSelectClass(formData.parent_phone_1_relation)}>
+                            <SelectValue placeholder="Chọn" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PARENT_RELATIONS.map((r) => (
+                              <SelectItem key={r} value={r}>{r}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex-1">
+                        <Label className="text-xs text-muted-foreground">
+                          SĐT Phụ huynh 1
+                          {!canEditSensitiveFields && isEditMode && formData.parent_phone_1 && <span className="text-xs text-orange-500 ml-1">(bảo mật)</span>}
+                        </Label>
+                        <Input
+                          placeholder="0901234567"
+                          value={!canEditSensitiveFields && isEditMode && formData.parent_phone_1
+                            ? formData.parent_phone_1.replace(/(.{4})(.*)(.{3})/, "$1***$3")
+                            : formData.parent_phone_1}
+                          onChange={(e) => updateField("parent_phone_1", e.target.value)}
+                          className={getInputClass(formData.parent_phone_1)}
+                          disabled={!canEditSensitiveFields && isEditMode && !!formData.parent_phone_1}
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">
-                        SĐT Phụ huynh 2
-                        {!canEditSensitiveFields && isEditMode && formData.parent_phone_2 && <span className="text-xs text-orange-500 ml-1">(bảo mật)</span>}
-                      </Label>
-                      <Input
-                        placeholder="0901234567"
-                        value={!canEditSensitiveFields && isEditMode && formData.parent_phone_2
-                          ? formData.parent_phone_2.replace(/(.{4})(.*)(.{3})/, "$1***$3")
-                          : formData.parent_phone_2}
-                        onChange={(e) => updateField("parent_phone_2", e.target.value)}
-                        className={getInputClass(formData.parent_phone_2)}
-                        disabled={!canEditSensitiveFields && isEditMode && !!formData.parent_phone_2}
-                      />
+                    
+                    {/* SĐT Phụ huynh 2 */}
+                    <div className="col-span-2 flex gap-2">
+                      <div className="w-24 flex-shrink-0">
+                        <Label className="text-xs text-muted-foreground">Quan hệ 2</Label>
+                        <Select
+                          value={formData.parent_phone_2_relation}
+                          onValueChange={(v) => updateField("parent_phone_2_relation", v)}
+                        >
+                          <SelectTrigger className={getSelectClass(formData.parent_phone_2_relation)}>
+                            <SelectValue placeholder="Chọn" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PARENT_RELATIONS.map((r) => (
+                              <SelectItem key={r} value={r}>{r}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex-1">
+                        <Label className="text-xs text-muted-foreground">
+                          SĐT Phụ huynh 2
+                          {!canEditSensitiveFields && isEditMode && formData.parent_phone_2 && <span className="text-xs text-orange-500 ml-1">(bảo mật)</span>}
+                        </Label>
+                        <Input
+                          placeholder="0901234567"
+                          value={!canEditSensitiveFields && isEditMode && formData.parent_phone_2
+                            ? formData.parent_phone_2.replace(/(.{4})(.*)(.{3})/, "$1***$3")
+                            : formData.parent_phone_2}
+                          onChange={(e) => updateField("parent_phone_2", e.target.value)}
+                          className={getInputClass(formData.parent_phone_2)}
+                          disabled={!canEditSensitiveFields && isEditMode && !!formData.parent_phone_2}
+                        />
+                      </div>
                     </div>
+                    
+                    {/* SĐT Phụ huynh 3 */}
+                    <div className="col-span-2 flex gap-2">
+                      <div className="w-24 flex-shrink-0">
+                        <Label className="text-xs text-muted-foreground">Quan hệ 3</Label>
+                        <Select
+                          value={formData.parent_phone_3_relation}
+                          onValueChange={(v) => updateField("parent_phone_3_relation", v)}
+                        >
+                          <SelectTrigger className={getSelectClass(formData.parent_phone_3_relation)}>
+                            <SelectValue placeholder="Chọn" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PARENT_RELATIONS.map((r) => (
+                              <SelectItem key={r} value={r}>{r}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex-1">
+                        <Label className="text-xs text-muted-foreground">
+                          SĐT Phụ huynh 3
+                          {!canEditSensitiveFields && isEditMode && formData.parent_phone_3 && <span className="text-xs text-orange-500 ml-1">(bảo mật)</span>}
+                        </Label>
+                        <Input
+                          placeholder="0901234567"
+                          value={!canEditSensitiveFields && isEditMode && formData.parent_phone_3
+                            ? formData.parent_phone_3.replace(/(.{4})(.*)(.{3})/, "$1***$3")
+                            : formData.parent_phone_3}
+                          onChange={(e) => updateField("parent_phone_3", e.target.value)}
+                          className={getInputClass(formData.parent_phone_3)}
+                          disabled={!canEditSensitiveFields && isEditMode && !!formData.parent_phone_3}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Line QR riêng một dòng */}
+                  <div className="grid grid-cols-6 gap-3">
                     <div className="col-span-2">
                       <Label className="text-xs text-muted-foreground">Line QR</Label>
                       <div className="mt-1">
