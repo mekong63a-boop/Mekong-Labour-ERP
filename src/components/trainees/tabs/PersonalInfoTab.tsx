@@ -165,8 +165,12 @@ export function PersonalInfoTab({ trainee }: PersonalInfoTabProps) {
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label className="text-muted-foreground text-xs">Địa chỉ thường trú</Label>
+            <Label className="text-muted-foreground text-xs">Địa chỉ thường trú (trước sáp nhập)</Label>
             <p>{maskAddress(trainee.permanent_address)}</p>
+          </div>
+          <div>
+            <Label className="text-muted-foreground text-xs">Địa chỉ thường trú (sau sáp nhập)</Label>
+            <p>{maskAddress((trainee as any).permanent_address_new)}</p>
           </div>
           <div>
             <Label className="text-muted-foreground text-xs">Địa chỉ hiện tại</Label>
