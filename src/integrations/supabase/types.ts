@@ -3024,6 +3024,16 @@ export type Database = {
         }[]
       }
       get_pending_registration_count: { Args: never; Returns: number }
+      get_pending_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          email_confirmed_at: string
+          full_name: string
+          user_email: string
+          user_id: string
+        }[]
+      }
       get_trainee_full_profile: {
         Args: { p_trainee_code: string }
         Returns: Json
