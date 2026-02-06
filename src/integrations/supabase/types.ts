@@ -2393,6 +2393,7 @@ export type Database = {
           created_at: string
           end_date: string | null
           id: string
+          income: string | null
           position: string | null
           start_date: string | null
           trainee_id: string
@@ -2402,6 +2403,7 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          income?: string | null
           position?: string | null
           start_date?: string | null
           trainee_id: string
@@ -2411,6 +2413,7 @@ export type Database = {
           created_at?: string
           end_date?: string | null
           id?: string
+          income?: string | null
           position?: string | null
           start_date?: string | null
           trainee_id?: string

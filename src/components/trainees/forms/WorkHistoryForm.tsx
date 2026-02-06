@@ -7,6 +7,7 @@ export interface WorkItem {
   id?: string;
   company_name: string;
   position: string;
+  income: string;
   company_name_japanese: string;
   start_date: string;
   end_date: string;
@@ -21,7 +22,7 @@ export function WorkHistoryForm({ items, onChange }: WorkHistoryFormProps) {
   const addItem = () => {
     onChange([
       ...items,
-      { company_name: "", position: "", company_name_japanese: "", start_date: "", end_date: "" },
+      { company_name: "", position: "", income: "", company_name_japanese: "", start_date: "", end_date: "" },
     ]);
   };
 
@@ -60,8 +61,9 @@ export function WorkHistoryForm({ items, onChange }: WorkHistoryFormProps) {
       <CardContent className="space-y-2">
         {/* Header */}
         <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-1">
-          <div className="col-span-3">Công ty</div>
+          <div className="col-span-2">Công ty</div>
           <div className="col-span-2">Công việc</div>
+          <div className="col-span-1">Thu nhập</div>
           <div className="col-span-3">Công ty (tiếng Nhật)</div>
           <div className="col-span-2">Ngày bắt đầu</div>
           <div className="col-span-1">Ngày kết thúc</div>
@@ -76,7 +78,7 @@ export function WorkHistoryForm({ items, onChange }: WorkHistoryFormProps) {
         ) : (
           items.map((item, index) => (
             <div key={index} className="grid grid-cols-12 gap-2 items-center">
-              <div className="col-span-3">
+              <div className="col-span-2">
                 <Input
                   placeholder="Tên công ty"
                   value={item.company_name}
@@ -90,6 +92,14 @@ export function WorkHistoryForm({ items, onChange }: WorkHistoryFormProps) {
                   value={item.position}
                   onChange={(e) => updateItem(index, "position", e.target.value)}
                   className={getInputClass(item.position)}
+                />
+              </div>
+              <div className="col-span-1">
+                <Input
+                  placeholder="VD: 5 triệu"
+                  value={item.income}
+                  onChange={(e) => updateItem(index, "income", e.target.value)}
+                  className={getInputClass(item.income)}
                 />
               </div>
               <div className="col-span-3">
