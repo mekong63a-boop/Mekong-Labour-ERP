@@ -23,6 +23,7 @@ export interface TraineeListItem {
   simple_status: SimpleStatus | null;
   trainee_type: TraineeType | null;
   entry_date: string | null;
+  registration_date: string | null;
   interview_pass_date: string | null;
   document_submission_date: string | null;
   otit_entry_date: string | null;
@@ -53,6 +54,7 @@ interface TraineeRaw {
   simple_status: SimpleStatus | null;
   trainee_type: TraineeType | null;
   entry_date: string | null;
+  registration_date: string | null;
   interview_pass_date: string | null;
   document_submission_date: string | null;
   otit_entry_date: string | null;
@@ -161,6 +163,7 @@ export function useTraineesPaginated({
           simple_status,
           trainee_type,
           entry_date,
+          registration_date,
           interview_pass_date,
           document_submission_date,
           otit_entry_date,
@@ -240,6 +243,7 @@ export function useTraineesPaginated({
         simple_status: trainee.simple_status,
         trainee_type: trainee.trainee_type,
         entry_date: trainee.entry_date,
+        registration_date: trainee.registration_date,
         interview_pass_date: trainee.interview_pass_date,
         document_submission_date: trainee.document_submission_date,
         otit_entry_date: trainee.otit_entry_date,

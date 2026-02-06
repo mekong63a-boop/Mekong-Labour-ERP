@@ -314,8 +314,17 @@ export default function TraineeList() {
             <TableHead className="w-20 text-center">Thao tác</TableHead>
           </TableRow>
         );
+      case "Chưa đậu":
+        return (
+          <TableRow className="bg-muted/50">
+            {baseColumns}
+            <TableHead className="w-32">Tình trạng</TableHead>
+            <TableHead className="w-28">Ngày đăng ký</TableHead>
+            <TableHead className="w-20 text-center">Thao tác</TableHead>
+          </TableRow>
+        );
       default:
-        // Default columns for "Tất cả" and "Chưa đậu"
+        // Default columns for "Tất cả"
         return (
           <TableRow className="bg-muted/50">
             {baseColumns}
@@ -482,21 +491,19 @@ export default function TraineeList() {
             {actionColumn}
           </>
         );
-      case "Hoàn thành hợp đồng":
+      case "Chưa đậu":
         return (
           <>
             {baseColumns}
-            <TableCell className="text-sm">{formatDate(trainee.departure_date)}</TableCell>
-            <TableCell className="text-sm">{getCompanyName(trainee.receiving_company)}</TableCell>
-            <TableCell className="text-sm">{getUnionName(trainee.union)}</TableCell>
-            <TableCell className="text-sm">{getJobCategoryName(trainee.job_category)}</TableCell>
-            <TableCell className="text-sm text-green-600 font-medium">{formatDate(trainee.return_date)}</TableCell>
+            <TableCell>
+              <Badge variant="outline">{trainee.simple_status || "Đăng ký mới"}</Badge>
+            </TableCell>
+            <TableCell className="text-sm">{formatDate(trainee.registration_date)}</TableCell>
             {actionColumn}
           </>
         );
       default:
-        // Default columns for "Tất cả" and "Chưa đậu"
-        // Nếu trạng thái là "Chưa đậu" hoặc chưa có trạng thái thì ẩn công ty và nghiệp đoàn
+        // Default columns for "Tất cả"
         const isNotPassed = !trainee.progression_stage || trainee.progression_stage === "Chưa đậu";
         return (
           <>
