@@ -1,6 +1,6 @@
 # STATE MACHINE - TRAINEE WORKFLOW
 
-## Cập nhật: 2026-02-04
+## Cập nhật: 2026-02-06
 
 ### STAGE CHUẨN (9 stages)
 
@@ -14,7 +14,7 @@
 | 6 | `ready_to_depart` | Sẵn sàng xuất cảnh | 出国準備完了 | ❌ |
 | 7 | `departed` | Đã xuất cảnh | 出国済み | ❌ |
 | 8 | `post_departure` | Sau xuất cảnh | 出国後 | ❌ |
-| 9 | `terminated` | Kết thúc | 終了 | ✅ |
+| 9 | `terminated` | Dừng chương trình | 終了 | ❌ |
 
 ### TRANSITIONS CHO PHÉP
 
@@ -44,6 +44,16 @@ departed ────┬── post_departure (Đến Nhật) [yêu cầu: entry
              └── terminated
 
 post_departure ── terminated (Kết thúc hợp đồng)
+
+# PHỤC HỒI TỪ TERMINATED (Linh hoạt cho Admin)
+terminated ──┬── registered (Làm lại từ đầu)
+             ├── enrolled (Nhập học lại) [yêu cầu: class_id] → auto tạo KTX
+             ├── training (Tiếp tục đào tạo) [yêu cầu: class_id] → auto tạo KTX
+             ├── interview_passed (Đậu phỏng vấn) [yêu cầu: receiving_company_id] → auto tạo KTX
+             ├── document_processing (Xử lý hồ sơ) [yêu cầu: receiving_company_id] → auto tạo KTX
+             ├── ready_to_depart (Sẵn sàng xuất cảnh) [yêu cầu: receiving_company_id, visa_date, coe_date] → auto tạo KTX
+             ├── departed (Đã xuất cảnh) [yêu cầu: departure_date]
+             └── post_departure (Đang ở Nhật) [yêu cầu: departure_date, entry_date]
 ```
 
 ### TERMINATED SUB-STATUS
@@ -65,6 +75,8 @@ post_departure ── terminated (Kết thúc hợp đồng)
 |------------|-------------|
 | `* → enrolled` | Tạo `dormitory_residents` với status='pending' |
 | `* → terminated/departed` | Checkout KTX (set check_out_date, status='checked_out') |
+| `terminated → enrolled/training/interview_passed/document_processing/ready_to_depart` | Tạo KTX pending + Reset departure fields |
+| `terminated → registered` | Reset departure fields |
 
 ### RPC FUNCTIONS
 
@@ -86,6 +98,7 @@ rpc_get_stage_timeline(p_trainee_id)
 3. **Mọi chuyển đổi qua RPC**: Không update trực tiếp database từ frontend
 4. **Side-effects tự động**: Database trigger xử lý, không phải frontend
 5. **History đầy đủ**: Mọi chuyển đổi được log trong trainee_workflow_history
+6. **Linh hoạt phục hồi**: Từ 'Dừng chương trình' có thể quay lại bất kỳ giai đoạn nào
 
 ### DATABASE TABLES
 
