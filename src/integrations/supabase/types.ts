@@ -1749,6 +1749,7 @@ export type Database = {
           birth_date: string | null
           birthplace: string | null
           blood_group: string | null
+          cancel_date: string | null
           cccd_date: string | null
           cccd_number: string | null
           cccd_place: string | null
@@ -1826,12 +1827,14 @@ export type Database = {
           receiving_company_id: string | null
           registration_date: string | null
           religion: string | null
+          reserve_date: string | null
           return_date: string | null
           shirt_size: string | null
           shoe_size: string | null
           simple_status: Database["public"]["Enums"]["simple_status"] | null
           smoking: string | null
           source: string | null
+          stop_date: string | null
           tattoo: boolean | null
           tattoo_description: string | null
           temp_address: string | null
@@ -1850,6 +1853,7 @@ export type Database = {
           birth_date?: string | null
           birthplace?: string | null
           blood_group?: string | null
+          cancel_date?: string | null
           cccd_date?: string | null
           cccd_number?: string | null
           cccd_place?: string | null
@@ -1927,12 +1931,14 @@ export type Database = {
           receiving_company_id?: string | null
           registration_date?: string | null
           religion?: string | null
+          reserve_date?: string | null
           return_date?: string | null
           shirt_size?: string | null
           shoe_size?: string | null
           simple_status?: Database["public"]["Enums"]["simple_status"] | null
           smoking?: string | null
           source?: string | null
+          stop_date?: string | null
           tattoo?: boolean | null
           tattoo_description?: string | null
           temp_address?: string | null
@@ -1951,6 +1957,7 @@ export type Database = {
           birth_date?: string | null
           birthplace?: string | null
           blood_group?: string | null
+          cancel_date?: string | null
           cccd_date?: string | null
           cccd_number?: string | null
           cccd_place?: string | null
@@ -2028,12 +2035,14 @@ export type Database = {
           receiving_company_id?: string | null
           registration_date?: string | null
           religion?: string | null
+          reserve_date?: string | null
           return_date?: string | null
           shirt_size?: string | null
           shoe_size?: string | null
           simple_status?: Database["public"]["Enums"]["simple_status"] | null
           smoking?: string | null
           source?: string | null
+          stop_date?: string | null
           tattoo?: boolean | null
           tattoo_description?: string | null
           temp_address?: string | null
