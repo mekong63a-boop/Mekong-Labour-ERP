@@ -158,7 +158,6 @@ export interface TraineeProfile {
   religion: string | null;
   marital_status: string | null;
   education_level: string | null;
-  current_situation: string | null;
   policy_category: string | null;
   
   // Physical attributes

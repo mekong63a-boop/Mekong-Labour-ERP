@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Trainee } from "@/types/trainee";
 import { Database } from "@/integrations/supabase/types";
@@ -34,6 +33,8 @@ export function useTrainees() {
       if (error) throw error;
       return data as Trainee[];
     },
+    // Tối ưu: giữ cache lâu hơn, chỉ refetch khi cần
+    staleTime: 30000, // 30 giây - dữ liệu vẫn fresh trong 30s
   });
 }
 
@@ -55,9 +56,15 @@ export function useTrainee(id: string) {
       return data as Trainee;
     },
     enabled: !!id,
+    staleTime: 30000, // 30 giây
   });
 }
 
+/**
+ * Hook cập nhật trainee với OPTIMISTIC UPDATE
+ * Cập nhật cache ngay lập tức, không cần refetch toàn bộ danh sách
+ * Đây là chiến lược tối ưu cho hàng triệu bản ghi
+ */
 export function useUpdateTrainee() {
   const queryClient = useQueryClient();
 
@@ -73,9 +80,59 @@ export function useUpdateTrainee() {
       if (error) throw error;
       return data;
     },
+    // OPTIMISTIC UPDATE: Cập nhật cache ngay lập tức
+    onMutate: async ({ id, updates }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["trainee", id] });
+      await queryClient.cancelQueries({ queryKey: ["trainees"] });
+
+      // Snapshot previous values
+      const previousTrainee = queryClient.getQueryData<Trainee>(["trainee", id]);
+      const previousTrainees = queryClient.getQueryData<Trainee[]>(["trainees"]);
+
+      // Optimistically update single trainee cache
+      if (previousTrainee) {
+        queryClient.setQueryData<Trainee>(["trainee", id], {
+          ...previousTrainee,
+          ...updates,
+          updated_at: new Date().toISOString(),
+        } as Trainee);
+      }
+
+      // Optimistically update list cache (chỉ update 1 item, không refetch)
+      if (previousTrainees) {
+        queryClient.setQueryData<Trainee[]>(["trainees"], 
+          previousTrainees.map(t => 
+            t.id === id 
+              ? { ...t, ...updates, updated_at: new Date().toISOString() } as Trainee
+              : t
+          )
+        );
+      }
+
+      return { previousTrainee, previousTrainees };
+    },
+    // Nếu mutation thành công - chỉ update với data thực từ server
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["trainees"] });
-      queryClient.invalidateQueries({ queryKey: ["trainee", data.id] });
+      // Chỉ update cache với data thật, không invalidate
+      queryClient.setQueryData<Trainee>(["trainee", data.id], data as Trainee);
+      
+      // Update trong list
+      const trainees = queryClient.getQueryData<Trainee[]>(["trainees"]);
+      if (trainees) {
+        queryClient.setQueryData<Trainee[]>(["trainees"],
+          trainees.map(t => t.id === data.id ? data as Trainee : t)
+        );
+      }
+    },
+    // Nếu mutation thất bại - rollback về giá trị cũ
+    onError: (err, { id }, context) => {
+      if (context?.previousTrainee) {
+        queryClient.setQueryData(["trainee", id], context.previousTrainee);
+      }
+      if (context?.previousTrainees) {
+        queryClient.setQueryData(["trainees"], context.previousTrainees);
+      }
     },
   });
 }
@@ -91,10 +148,32 @@ export function useDeleteTrainee() {
         .eq("id", id);
 
       if (error) throw error;
+      return id;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["trainees"] });
+    // Optimistic delete
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["trainees"] });
+      
+      const previousTrainees = queryClient.getQueryData<Trainee[]>(["trainees"]);
+      
+      if (previousTrainees) {
+        queryClient.setQueryData<Trainee[]>(["trainees"],
+          previousTrainees.filter(t => t.id !== id)
+        );
+      }
+      
+      return { previousTrainees };
+    },
+    onSuccess: (id) => {
+      // Xóa cache của trainee đó
+      queryClient.removeQueries({ queryKey: ["trainee", id] });
+      // Invalidate stage counts
       queryClient.invalidateQueries({ queryKey: ["trainee-stage-counts"] });
+    },
+    onError: (err, id, context) => {
+      if (context?.previousTrainees) {
+        queryClient.setQueryData(["trainees"], context.previousTrainees);
+      }
     },
   });
 }
