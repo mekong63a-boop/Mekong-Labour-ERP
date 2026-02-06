@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, RefreshCw, Search, MapPin, Briefcase, Calendar, Trash2 } from "lucide-react";
-import { format } from "date-fns";
+import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 import { useCanAction } from "@/hooks/useMenuPermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -194,7 +194,7 @@ export default function OrderList() {
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span>
                           {order.expected_interview_date
-                            ? format(new Date(order.expected_interview_date), "dd/MM/yyyy")
+                            ? formatVietnameseDate(order.expected_interview_date)
                             : "-"}
                         </span>
                       </div>

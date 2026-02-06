@@ -9,7 +9,7 @@ import { useUpdateTrainee } from "@/hooks/useTrainees";
 import { useToast } from "@/hooks/use-toast";
 import { useDataMasking } from "@/hooks/useSecureData";
 import { useAuth } from "@/hooks/useAuth";
-import { format } from "date-fns";
+import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 
 interface BasicInfoSectionProps {
   trainee: Trainee;
@@ -50,14 +50,7 @@ export function BasicInfoSection({ trainee }: BasicInfoSectionProps) {
     }
   };
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return "—";
-    try {
-      return format(new Date(dateStr), "dd/MM/yyyy");
-    } catch {
-      return "—";
-    }
-  };
+  const formatDate = formatVietnameseDate;
 
   if (!isEditing) {
     return (

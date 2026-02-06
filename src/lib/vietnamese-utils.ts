@@ -14,6 +14,50 @@ export function removeVietnameseDiacritics(str: string): string {
 }
 
 /**
+ * Format date to Vietnamese format: DD/MM/YYYY
+ * This function ensures consistent date display across the system
+ * regardless of the user's PC regional settings
+ */
+export function formatVietnameseDate(dateStr: string | null): string {
+  if (!dateStr) return "—";
+  
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "—";
+    
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    
+    return `${day}/${month}/${year}`;
+  } catch {
+    return "—";
+  }
+}
+
+/**
+ * Format date with time to Vietnamese format: DD/MM/YYYY HH:mm
+ */
+export function formatVietnameseDatetime(dateStr: string | null): string {
+  if (!dateStr) return "—";
+  
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "—";
+    
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  } catch {
+    return "—";
+  }
+}
+
+/**
  * Format date to Japanese format: 1997年04月13日
  */
 export function formatJapaneseDate(dateStr: string | null): string {

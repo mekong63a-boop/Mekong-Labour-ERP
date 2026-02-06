@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Eye } from "lucide-react";
-import { format } from "date-fns";
+import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 
 // Filter type definitions
 type FilterType = 
@@ -320,14 +320,7 @@ export default function DashboardDetailList() {
     return "Đang ở Nhật";
   };
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return "—";
-    try {
-      return format(new Date(dateStr), "dd/MM/yyyy");
-    } catch {
-      return "—";
-    }
-  };
+  const formatDate = formatVietnameseDate;
 
   // Extract province from birthplace
   const getProvince = (birthplace: string | null) => {

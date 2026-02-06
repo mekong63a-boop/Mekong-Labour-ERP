@@ -92,6 +92,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useCanAction } from "@/hooks/useMenuPermissions";
 import { format } from "date-fns";
+import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 
 const LEVELS = ["N5", "N4", "N3", "N2", "N1"];
 const TARGET_AUDIENCES = ["Thực tập sinh", "Kỹ năng đặc định", "Kỹ sư", "Du học sinh", "Khác"];
@@ -307,14 +308,7 @@ export default function ClassList() {
     setIsDeleteDialogOpen(true);
   };
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return "—";
-    try {
-      return format(new Date(dateStr), "dd/MM/yyyy");
-    } catch {
-      return "—";
-    }
-  };
+  const formatDate = formatVietnameseDate;
 
   const handleAction = (action: string, classData: Class) => {
     setSelectedClass(classData);

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useClassStudents, useTraineeReviews, useCreateReview, useDeleteReview } from "@/hooks/useEducation";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { formatVietnameseDatetime } from "@/lib/vietnamese-utils";
 import { Trash2, Star, AlertTriangle } from "lucide-react";
 
 interface ReviewsDialogProps {
@@ -245,7 +245,7 @@ export function ReviewsDialog({ open, onOpenChange, classId, className }: Review
                               <p className="text-sm text-red-600 mt-1">Lý do: {review.blacklist_reason}</p>
                             )}
                             <p className="text-xs text-muted-foreground mt-1">
-                              {format(new Date(review.created_at), "dd/MM/yyyy HH:mm")}
+                              {formatVietnameseDatetime(review.created_at)}
                             </p>
                           </div>
                           <Button

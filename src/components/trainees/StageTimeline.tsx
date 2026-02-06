@@ -3,8 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, ArrowRight, User, AlertCircle } from "lucide-react";
-import { format } from "date-fns";
-import { vi } from "date-fns/locale";
+import { formatVietnameseDatetime } from "@/lib/vietnamese-utils";
 
 interface StageTimelineProps {
   traineeId: string;
@@ -88,7 +87,7 @@ export function StageTimeline({ traineeId }: StageTimelineProps) {
             </div>
             {current.transitioned_at && (
               <p className="text-xs text-muted-foreground mt-2">
-                Cập nhật: {format(new Date(current.transitioned_at), "dd/MM/yyyy HH:mm", { locale: vi })}
+                Cập nhật: {formatVietnameseDatetime(current.transitioned_at)}
               </p>
             )}
           </div>
@@ -128,7 +127,7 @@ export function StageTimeline({ traineeId }: StageTimelineProps) {
 
                 <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                   <span>
-                    {format(new Date(entry.changed_at), "dd/MM/yyyy HH:mm", { locale: vi })}
+                    {formatVietnameseDatetime(entry.changed_at)}
                   </span>
                   {entry.changed_by && (
                     <span className="flex items-center gap-1">

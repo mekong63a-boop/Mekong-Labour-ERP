@@ -15,7 +15,7 @@ import { useUpdateTrainee } from "@/hooks/useTrainees";
 import { useToast } from "@/hooks/use-toast";
 import { Constants } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
-import { format } from "date-fns";
+import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 
 interface LegalSectionProps {
   trainee: Trainee;
@@ -54,14 +54,7 @@ export function LegalSection({ trainee }: LegalSectionProps) {
     }
   };
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return "—";
-    try {
-      return format(new Date(dateStr), "dd/MM/yyyy");
-    } catch {
-      return "—";
-    }
-  };
+  const formatDate = formatVietnameseDate;
 
   if (!isEditing) {
     return (

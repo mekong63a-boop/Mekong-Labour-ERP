@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Eye, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 
 interface CompanyTrainee {
   id: string;
@@ -173,7 +173,7 @@ export default function CompanyTraineesModal({
                       </TableCell>
                       <TableCell>
                         {trainee.birth_date
-                          ? format(new Date(trainee.birth_date), "dd/MM/yyyy")
+                          ? formatVietnameseDate(trainee.birth_date)
                           : "-"}
                       </TableCell>
                       <TableCell>{getProvince(trainee.birthplace)}</TableCell>
@@ -184,7 +184,7 @@ export default function CompanyTraineesModal({
                       </TableCell>
                       <TableCell>
                         {trainee.departure_date
-                          ? format(new Date(trainee.departure_date), "dd/MM/yyyy")
+                          ? formatVietnameseDate(trainee.departure_date)
                           : "-"}
                       </TableCell>
                       <TableCell>

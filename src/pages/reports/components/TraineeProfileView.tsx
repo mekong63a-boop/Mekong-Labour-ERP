@@ -36,8 +36,7 @@ import {
   Home,
 } from "lucide-react";
 import { TraineeProfile } from "../hooks/useTraineeProfile";
-import { format } from "date-fns";
-import { vi } from "date-fns/locale";
+import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -46,14 +45,7 @@ interface TraineeProfileViewProps {
   onClose: () => void;
 }
 
-const formatDate = (dateStr: string | null) => {
-  if (!dateStr) return "—";
-  try {
-    return format(new Date(dateStr), "dd/MM/yyyy", { locale: vi });
-  } catch {
-    return dateStr;
-  }
-};
+const formatDate = formatVietnameseDate;
 
 const InfoRow = ({ label, value, icon: Icon }: { label: string; value: string | null; icon?: React.ElementType }) => (
   <div className="flex items-start gap-2 py-1">

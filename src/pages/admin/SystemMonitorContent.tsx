@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow, format, subDays, startOfDay, endOfDay } from "date-fns";
 import { vi } from "date-fns/locale";
+import { formatVietnameseDatetime } from "@/lib/vietnamese-utils";
 import { 
   Users, 
   Activity, 
@@ -498,7 +499,7 @@ export default function SystemMonitorContent() {
                         return (
                           <TableRow key={log.id}>
                             <TableCell className="text-xs text-muted-foreground">
-                              {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: vi })}
+                              {formatVietnameseDatetime(log.created_at)}
                             </TableCell>
                             <TableCell>
                               <div>

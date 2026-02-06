@@ -23,7 +23,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Search, Eye, RefreshCw, Trash2 } from "lucide-react";
-import { format, addYears } from "date-fns";
+import { addYears } from "date-fns";
+import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 import { usePagination } from "@/hooks/usePagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTraineesPaginated, TraineeListItem } from "@/hooks/useTraineesPaginated";
@@ -112,21 +113,14 @@ export default function TraineeList() {
     setDeleteDialogOpen(true);
   };
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return "—";
-    try {
-      return format(new Date(dateStr), "dd/MM/yyyy");
-    } catch {
-      return "—";
-    }
-  };
+  const formatDate = formatVietnameseDate;
 
   const getExpectedReturnDate = (departureDate: string | null, contractTerm: number | null) => {
     if (!departureDate || !contractTerm) return "—";
     try {
       const departure = new Date(departureDate);
       const returnDate = addYears(departure, contractTerm);
-      return format(returnDate, "dd/MM/yyyy");
+      return formatVietnameseDate(returnDate.toISOString());
     } catch {
       return "—";
     }

@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useClassStudents, useBulkUpsertTestScores, useTestScores, useTestNames } from "@/hooks/useEducation";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -195,7 +196,7 @@ export function TestScoresDialog({ open, onOpenChange, classId, className }: Tes
                       className="cursor-pointer"
                       onClick={() => handleSelectTest(test.test_name)}
                     >
-                      {test.test_name} ({format(new Date(test.test_date), "dd/MM/yyyy")})
+                      {test.test_name} ({formatVietnameseDate(test.test_date)})
                     </Badge>
                   ))
                 ) : (
