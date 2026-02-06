@@ -21,8 +21,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Building2, Calendar, FileText, CheckCircle, XCircle, Clock, Trash2 } from "lucide-react";
-import { format } from "date-fns";
-import { vi } from "date-fns/locale";
+import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 import { toast } from "sonner";
 
 interface ProjectInterviewTabProps {
@@ -55,14 +54,7 @@ export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
     }
   };
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return "—";
-    try {
-      return format(new Date(dateStr), "dd/MM/yyyy", { locale: vi });
-    } catch {
-      return "—";
-    }
-  };
+  const formatDate = formatVietnameseDate;
 
   // Check if trainee has passed interview (to determine if we should show "Chờ kết quả")
   const hasPassedInterview = trainee.progression_stage && 

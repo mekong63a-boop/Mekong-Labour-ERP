@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
+import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 import { RefreshCw, Users, Trash2 } from "lucide-react";
 
 interface OrderTraineesModalProps {
@@ -65,14 +65,7 @@ export function OrderTraineesModal({
       : undefined
   );
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return "-";
-    try {
-      return format(new Date(dateStr), "dd/MM/yyyy");
-    } catch {
-      return "-";
-    }
-  };
+  const formatDate = formatVietnameseDate;
 
   const handleRemoveClick = (trainee: OrderTrainee) => {
     setTraineeToRemove(trainee);

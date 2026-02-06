@@ -32,7 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Plus, Search, RefreshCw, Trash2, Edit, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 import { useCanAction } from "@/hooks/useMenuPermissions";
 import { Badge } from "@/components/ui/badge";
 
@@ -296,7 +296,7 @@ export default function ViolationsPage() {
                     </p>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {format(new Date(entry.created_at), "dd/MM/yyyy")}
+                    {formatVietnameseDate(entry.created_at)}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-center gap-2">

@@ -29,6 +29,7 @@ import {
 import { Plus, Search, Users, TrendingUp, TrendingDown, Wallet, Pencil, Trash2, Cake } from 'lucide-react';
 import { useCanAction } from '@/hooks/useMenuPermissions';
 import { format, differenceInDays, setYear, isAfter, isBefore } from 'date-fns';
+import { formatVietnameseDate } from '@/lib/vietnamese-utils';
 import {
   useUnionMembers,
   useUnionTransactions,
@@ -415,12 +416,12 @@ const InternalUnionPage = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {member.birth_date ? format(new Date(member.birth_date), 'dd/MM/yyyy') : '-'}
+                          {member.birth_date ? formatVietnameseDate(member.birth_date) : '-'}
                         </TableCell>
                         <TableCell>{member.hometown || '-'}</TableCell>
-                        <TableCell>{format(new Date(member.join_date), 'dd/MM/yyyy')}</TableCell>
+                        <TableCell>{formatVietnameseDate(member.join_date)}</TableCell>
                         <TableCell>
-                          {member.end_date ? format(new Date(member.end_date), 'dd/MM/yyyy') : '-'}
+                          {member.end_date ? formatVietnameseDate(member.end_date) : '-'}
                         </TableCell>
                         <TableCell>{getStatusBadge(member.status)}</TableCell>
                         <TableCell className="text-right">
@@ -487,7 +488,7 @@ const InternalUnionPage = () => {
                   ) : (
                     filteredTransactions.map((transaction) => (
                       <TableRow key={transaction.id}>
-                        <TableCell>{format(new Date(transaction.transaction_date), 'dd/MM/yyyy')}</TableCell>
+                        <TableCell>{formatVietnameseDate(transaction.transaction_date)}</TableCell>
                         <TableCell>
                           <Badge
                             className={

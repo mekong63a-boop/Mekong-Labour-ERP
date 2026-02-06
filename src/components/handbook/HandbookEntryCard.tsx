@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronUp, Pencil, Trash2, FileText, DollarSign, Heart, ExternalLink } from 'lucide-react';
 import { HandbookEntry } from '@/hooks/useHandbook';
-import { format } from 'date-fns';
+import { formatVietnameseDatetime } from '@/lib/vietnamese-utils';
 
 interface HandbookEntryCardProps {
   entry: HandbookEntry;
@@ -165,7 +165,7 @@ export function HandbookEntryCard({
 
             {/* Footer */}
             <div className="text-xs text-muted-foreground pt-2 border-t">
-              Cập nhật: {format(new Date(entry.updated_at), 'dd/MM/yyyy HH:mm')}
+              Cập nhật: {formatVietnameseDatetime(entry.updated_at)}
             </div>
           </CardContent>
         </CollapsibleContent>

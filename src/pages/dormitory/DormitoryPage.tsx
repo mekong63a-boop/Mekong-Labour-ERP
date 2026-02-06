@@ -75,7 +75,7 @@ import {
   Dormitory,
   DormitoryResident,
 } from "@/hooks/useDormitory";
-import { format } from "date-fns";
+import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useCanAccessMenu } from "@/hooks/useMenuPermissions";
 
@@ -379,7 +379,7 @@ export default function DormitoryPage() {
                               <div className="text-sm text-muted-foreground mb-2">
                                 Phòng: {result.currentRecord.room_number || "—"} | 
                                 Giường: {result.currentRecord.bed_number || "—"} | 
-                                Vào ngày: {format(new Date(result.currentRecord.check_in_date), "dd/MM/yyyy")}
+                                Vào ngày: {formatVietnameseDate(result.currentRecord.check_in_date)}
                               </div>
                             )}
 
@@ -404,9 +404,9 @@ export default function DormitoryPage() {
                                         {getStatusBadge(actualStatus)}
                                         <span className="font-medium">{record.dormitory?.name}</span>
                                         <span className="text-muted-foreground">
-                                          ({format(new Date(record.check_in_date), "dd/MM/yyyy")}
+                                        ({formatVietnameseDate(record.check_in_date)}
                                           {record.check_out_date && (
-                                            <> → {format(new Date(record.check_out_date), "dd/MM/yyyy")}</>
+                                            <> → {formatVietnameseDate(record.check_out_date)}</>
                                           )})
                                         </span>
                                         {record.from_dormitory && (
@@ -887,7 +887,7 @@ export default function DormitoryPage() {
                         <TableCell>{res.room_number || "—"}</TableCell>
                         <TableCell>{res.bed_number || "—"}</TableCell>
                         <TableCell className="text-sm">
-                          {format(new Date(res.check_in_date), "dd/MM/yyyy")}
+                          {formatVietnameseDate(res.check_in_date)}
                         </TableCell>
                         <TableCell>
                           {getStatusBadge(res.status)}
@@ -1075,12 +1075,12 @@ export default function DormitoryPage() {
                       <div className="text-sm space-y-1">
                         <p>
                           <span className="text-muted-foreground">Ngày vào:</span>{" "}
-                          {format(new Date(record.check_in_date), "dd/MM/yyyy")}
+                          {formatVietnameseDate(record.check_in_date)}
                         </p>
                         {record.check_out_date && (
                           <p>
                             <span className="text-muted-foreground">Ngày ra:</span>{" "}
-                            {format(new Date(record.check_out_date), "dd/MM/yyyy")}
+                            {formatVietnameseDate(record.check_out_date)}
                           </p>
                         )}
                         {record.transfer_reason && (

@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Trainee } from "@/types/trainee";
 import { useDataMasking } from "@/hooks/useSecureData";
-import { format } from "date-fns";
+import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 import { User, Phone, Mail, MapPin, Heart, Ruler, Scale, Droplets, QrCode, Shirt } from "lucide-react";
 
 interface PersonalInfoTabProps {
@@ -12,14 +12,7 @@ interface PersonalInfoTabProps {
 export function PersonalInfoTab({ trainee }: PersonalInfoTabProps) {
   const { maskPhone, maskCCCD, maskPassport, maskEmail, maskAddress, canViewUnmasked } = useDataMasking();
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return "—";
-    try {
-      return format(new Date(dateStr), "dd/MM/yyyy");
-    } catch {
-      return "—";
-    }
-  };
+  const formatDate = formatVietnameseDate;
 
   return (
     <div className="space-y-6">

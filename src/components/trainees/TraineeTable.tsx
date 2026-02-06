@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Trainee } from "@/types/trainee";
-import { format } from "date-fns";
+import { formatVietnameseDatetime } from "@/lib/vietnamese-utils";
 
 interface TraineeTableProps {
   trainees: Trainee[];
@@ -26,14 +26,7 @@ export function TraineeTable({ trainees }: TraineeTableProps) {
     );
   }
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return "—";
-    try {
-      return format(new Date(dateStr), "dd/MM/yyyy HH:mm");
-    } catch {
-      return "—";
-    }
-  };
+  const formatDate = formatVietnameseDatetime;
 
   return (
     <div className="border rounded-lg">

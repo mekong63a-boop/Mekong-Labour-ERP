@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trainee } from "@/types/trainee";
-import { format } from "date-fns";
+import { formatVietnameseDate, formatVietnameseDatetime } from "@/lib/vietnamese-utils";
 import { Calendar, CheckCircle2, Circle } from "lucide-react";
 
 interface StatusTimelineProps {
@@ -11,21 +11,11 @@ interface StatusTimelineProps {
 export function StatusTimeline({ trainee }: StatusTimelineProps) {
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return null;
-    try {
-      return format(new Date(dateStr), "dd/MM/yyyy");
-    } catch {
-      return null;
-    }
+    const result = formatVietnameseDate(dateStr);
+    return result === "—" ? null : result;
   };
 
-  const formatDateTime = (dateStr: string | null) => {
-    if (!dateStr) return "—";
-    try {
-      return format(new Date(dateStr), "dd/MM/yyyy HH:mm");
-    } catch {
-      return "—";
-    }
-  };
+  const formatDateTime = formatVietnameseDatetime;
 
   // Define timeline milestones
   const milestones = [

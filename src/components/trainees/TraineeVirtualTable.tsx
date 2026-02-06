@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { VirtualTable, VirtualTableColumn } from "@/components/ui/virtual-table";
 import { Trainee } from "@/types/trainee";
-import { format } from "date-fns";
+import { formatVietnameseDatetime } from "@/lib/vietnamese-utils";
 
 /**
  * TRAINEE VIRTUAL TABLE
@@ -25,14 +25,7 @@ export function TraineeVirtualTable({
 }: TraineeVirtualTableProps) {
   const navigate = useNavigate();
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return "—";
-    try {
-      return format(new Date(dateStr), "dd/MM/yyyy HH:mm");
-    } catch {
-      return "—";
-    }
-  };
+  const formatDate = formatVietnameseDatetime;
 
   const columns = useMemo<VirtualTableColumn<Trainee>[]>(() => [
     {
