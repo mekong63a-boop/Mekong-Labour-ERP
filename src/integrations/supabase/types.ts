@@ -1322,6 +1322,39 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_registrations: {
+        Row: {
+          full_name: string | null
+          id: string
+          is_read: boolean | null
+          read_at: string | null
+          read_by: string | null
+          registered_at: string
+          user_email: string
+          user_id: string
+        }
+        Insert: {
+          full_name?: string | null
+          id?: string
+          is_read?: boolean | null
+          read_at?: string | null
+          read_by?: string | null
+          registered_at?: string
+          user_email: string
+          user_id: string
+        }
+        Update: {
+          full_name?: string | null
+          id?: string
+          is_read?: boolean | null
+          read_at?: string | null
+          read_by?: string | null
+          registered_at?: string
+          user_email?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       policy_categories: {
         Row: {
           created_at: string
@@ -2990,6 +3023,7 @@ export type Database = {
           menu_key: string
         }[]
       }
+      get_pending_registration_count: { Args: never; Returns: number }
       get_trainee_full_profile: {
         Args: { p_trainee_code: string }
         Returns: Json

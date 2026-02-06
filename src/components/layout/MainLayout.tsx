@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
-import { Menu, RefreshCw, Bell } from "lucide-react";
+import { Menu, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useSystemRealtime, useManualRefresh } from "@/hooks/useSystemRealtime";
 import { useSessionHeartbeat } from "@/hooks/useSessionHeartbeat";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { PendingRegistrationsNotification } from "@/components/admin/PendingRegistrationsNotification";
 
 // Page title mapping
 const pageTitles: Record<string, string> = {
@@ -96,15 +97,8 @@ export function MainLayout() {
               <RefreshCw className="h-4 w-4" />
             </Button>
             
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-muted-foreground hover:text-foreground relative"
-            >
-              <Bell className="h-4 w-4" />
-              {/* Notification badge */}
-              <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
-            </Button>
+            {/* Thông báo đăng ký mới - CHỈ Primary Admin thấy */}
+            <PendingRegistrationsNotification />
 
             {/* User Info */}
             <div className="flex items-center gap-3 pl-3 border-l">
