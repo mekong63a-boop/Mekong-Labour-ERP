@@ -1692,32 +1692,44 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   <CardTitle className="text-base font-semibold">Trạng thái</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* simple_status: READONLY - được đồng bộ từ trainee_workflow */}
+                  {/* simple_status: Editable */}
                   <div>
-                    <Label className="text-xs text-muted-foreground">Trạng thái (tự động)</Label>
-                    <Input
+                    <Label className="text-xs text-muted-foreground">Trạng thái</Label>
+                    <Select
                       value={formData.simple_status}
-                      readOnly
-                      disabled
-                      className="bg-muted cursor-not-allowed"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Được đồng bộ tự động từ luồng trạng thái
-                    </p>
+                      onValueChange={(value) => updateField("simple_status", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn trạng thái" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SIMPLE_STATUSES.map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   
-                  {/* progression_stage: READONLY - được đồng bộ từ trainee_workflow */}
+                  {/* progression_stage: Editable */}
                   <div>
-                    <Label className="text-xs text-muted-foreground">Giai đoạn (tự động)</Label>
-                    <Input
-                      value={PROGRESSION_STAGE_LABELS[formData.progression_stage] || formData.progression_stage}
-                      readOnly
-                      disabled
-                      className="bg-muted cursor-not-allowed"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Sử dụng menu "Chuyển trạng thái" để thay đổi
-                    </p>
+                    <Label className="text-xs text-muted-foreground">Giai đoạn</Label>
+                    <Select
+                      value={formData.progression_stage}
+                      onValueChange={(value) => updateField("progression_stage", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn giai đoạn" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PROGRESSION_STAGES.map((stage) => (
+                          <SelectItem key={stage} value={stage}>
+                            {PROGRESSION_STAGE_LABELS[stage] || stage}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* Date fields - luôn hiển thị để nhập liệu */}
