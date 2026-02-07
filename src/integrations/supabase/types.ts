@@ -3041,9 +3041,13 @@ export type Database = {
       }
       finalize_interview_draft: {
         Args: {
+          p_company_id?: string
+          p_expected_entry_month?: string
           p_interview_date: string
+          p_job_category_id?: string
           p_result?: string
           p_trainee_id: string
+          p_union_id?: string
         }
         Returns: string
       }

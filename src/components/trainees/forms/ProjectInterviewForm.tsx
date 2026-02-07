@@ -57,6 +57,8 @@ export function ProjectInterviewForm({ data, onChange, traineeId }: ProjectInter
   });
 
   // Finalize interview draft into history
+  // IMPORTANT: Pass partner IDs directly to ensure data is saved correctly
+  // This follows Single Source of Truth principle - form data is passed directly
   const handleFinalizeInterview = async () => {
     if (!traineeId || !data.interview_date) {
       toast.error("Vui lòng nhập ngày phỏng vấn");
@@ -65,10 +67,15 @@ export function ProjectInterviewForm({ data, onChange, traineeId }: ProjectInter
 
     setIsFinalizing(true);
     try {
+      // Pass all partner IDs directly to ensure they are saved with the interview record
       const { error } = await supabase.rpc("finalize_interview_draft", {
         p_trainee_id: traineeId,
         p_interview_date: data.interview_date,
-        p_result: null, // Placeholder, will be updated via workflow
+        p_result: null,
+        p_company_id: data.receiving_company_id || null,
+        p_union_id: data.union_id || null,
+        p_job_category_id: data.job_category_id || null,
+        p_expected_entry_month: data.expected_entry_month || null,
       });
 
       if (error) throw error;
