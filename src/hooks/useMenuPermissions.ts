@@ -28,6 +28,7 @@ export interface MenuPermission {
   can_create: boolean;
   can_update: boolean;
   can_delete: boolean;
+  can_export: boolean;
 }
 
 export interface Menu {
@@ -120,7 +121,7 @@ export function useMenuPermissions() {
         // Fallback: chỉ lấy quyền cá nhân
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('user_menu_permissions')
-          .select('menu_key, can_view, can_create, can_update, can_delete')
+          .select('menu_key, can_view, can_create, can_update, can_delete, can_export')
           .eq('user_id', user.id);
         if (fallbackError) {
           console.error('Error fetching user menu permissions:', fallbackError);
@@ -178,6 +179,7 @@ export function useMenuPermissions() {
                   can_create: newPerm.can_create,
                   can_update: newPerm.can_update,
                   can_delete: newPerm.can_delete,
+                  can_export: newPerm.can_export,
                 };
                 return updated;
               }
@@ -187,6 +189,7 @@ export function useMenuPermissions() {
                 can_create: newPerm.can_create,
                 can_update: newPerm.can_update,
                 can_delete: newPerm.can_delete,
+                can_export: newPerm.can_export,
               }];
             });
           } else if (payload.eventType === 'DELETE') {
@@ -267,6 +270,7 @@ export function useCanAccessMenu(menuKey: string) {
         canCreate: true,
         canUpdate: true,
         canDelete: true,
+        canExport: true,
       };
     }
 
@@ -276,6 +280,7 @@ export function useCanAccessMenu(menuKey: string) {
       canCreate: found?.can_create ?? false,
       canUpdate: found?.can_update ?? false,
       canDelete: found?.can_delete ?? false,
+      canExport: found?.can_export ?? false,
     };
   }, [permissions, menuKey, isPrimaryAdmin]);
 
@@ -289,8 +294,8 @@ export function useCanAccessMenu(menuKey: string) {
 /**
  * Hook kiểm tra một action cụ thể trên một menu
  */
-export function useCanAction(menuKey: string, action: 'view' | 'create' | 'update' | 'delete') {
-  const { canView, canCreate, canUpdate, canDelete, isLoading, isPrimaryAdmin } = useCanAccessMenu(menuKey);
+export function useCanAction(menuKey: string, action: 'view' | 'create' | 'update' | 'delete' | 'export') {
+  const { canView, canCreate, canUpdate, canDelete, canExport, isLoading, isPrimaryAdmin } = useCanAccessMenu(menuKey);
 
   const hasPermission = useMemo(() => {
     if (isPrimaryAdmin) return true;
@@ -300,9 +305,10 @@ export function useCanAction(menuKey: string, action: 'view' | 'create' | 'updat
       case 'create': return canCreate;
       case 'update': return canUpdate;
       case 'delete': return canDelete;
+      case 'export': return canExport;
       default: return false;
     }
-  }, [action, canView, canCreate, canUpdate, canDelete, isPrimaryAdmin]);
+  }, [action, canView, canCreate, canUpdate, canDelete, canExport, isPrimaryAdmin]);
 
   return { hasPermission, isLoading };
 }

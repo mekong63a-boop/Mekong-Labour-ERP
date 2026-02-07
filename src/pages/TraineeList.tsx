@@ -34,7 +34,7 @@ import { useCanAction } from "@/hooks/useMenuPermissions";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { useToast } from "@/hooks/use-toast";
 import { StageTabsGrid, STAGE_TABS } from "@/components/trainees/StageTabsGrid";
-import { ExportButton } from "@/components/ui/export-button";
+import { ExportButtonWithColumns } from "@/components/ui/export-button-with-columns";
 import { EXPORT_CONFIGS } from "@/lib/export-configs";
 
 export default function TraineeList() {
@@ -538,10 +538,10 @@ export default function TraineeList() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <ExportButton
+          <ExportButtonWithColumns
             menuKey="trainees"
             tableName="trainees"
-            columns={EXPORT_CONFIGS.trainees.columns}
+            allColumns={EXPORT_CONFIGS.trainees.columns}
             fileName={EXPORT_CONFIGS.trainees.fileName}
             selectQuery={`
               trainee_code, full_name, birth_date, gender, birthplace,
@@ -553,6 +553,7 @@ export default function TraineeList() {
               job_category:job_categories(name)
             `}
             filters={progressionStage !== 'all' ? { progression_stage: progressionStage } : undefined}
+            title="Xuất danh sách học viên"
           />
           <Button className="gap-2" onClick={() => navigate("/trainees/new")}>
             <Plus className="h-4 w-4" />

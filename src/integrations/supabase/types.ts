@@ -313,6 +313,7 @@ export type Database = {
           assigned_by: string | null
           can_create: boolean | null
           can_delete: boolean | null
+          can_export: boolean | null
           can_update: boolean | null
           can_view: boolean | null
           department: string
@@ -324,6 +325,7 @@ export type Database = {
           assigned_by?: string | null
           can_create?: boolean | null
           can_delete?: boolean | null
+          can_export?: boolean | null
           can_update?: boolean | null
           can_view?: boolean | null
           department: string
@@ -335,6 +337,7 @@ export type Database = {
           assigned_by?: string | null
           can_create?: boolean | null
           can_delete?: boolean | null
+          can_export?: boolean | null
           can_update?: boolean | null
           can_view?: boolean | null
           department?: string
@@ -2262,6 +2265,7 @@ export type Database = {
           assigned_by: string | null
           can_create: boolean | null
           can_delete: boolean | null
+          can_export: boolean | null
           can_update: boolean | null
           can_view: boolean | null
           id: string
@@ -2273,6 +2277,7 @@ export type Database = {
           assigned_by?: string | null
           can_create?: boolean | null
           can_delete?: boolean | null
+          can_export?: boolean | null
           can_update?: boolean | null
           can_view?: boolean | null
           id?: string
@@ -2284,6 +2289,7 @@ export type Database = {
           assigned_by?: string | null
           can_create?: boolean | null
           can_delete?: boolean | null
+          can_export?: boolean | null
           can_update?: boolean | null
           can_view?: boolean | null
           id?: string
@@ -3072,6 +3078,7 @@ export type Database = {
         Returns: {
           can_create: boolean
           can_delete: boolean
+          can_export: boolean
           can_update: boolean
           can_view: boolean
           department: string
@@ -3141,6 +3148,7 @@ export type Database = {
         Returns: {
           can_create: boolean
           can_delete: boolean
+          can_export: boolean
           can_update: boolean
           can_view: boolean
           menu_key: string
@@ -3224,7 +3232,7 @@ export type Database = {
         Returns: Json
       }
       save_department_menu_permissions: {
-        Args: { _assigned_by?: string; _department: string; _permissions: Json }
+        Args: { _assigned_by: string; _department: string; _permissions: Json }
         Returns: undefined
       }
       touch_user_access_version: {

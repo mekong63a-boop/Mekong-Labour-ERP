@@ -28,11 +28,11 @@ interface UseExportExcelOptions {
  */
 export function useExportExcel(options: UseExportExcelOptions) {
   const { menuKey, tableName, columns, fileName, selectQuery, filters } = options;
-  const { canView, isLoading: permissionLoading } = useCanAccessMenu(menuKey);
+  const { canExport, isLoading: permissionLoading } = useCanAccessMenu(menuKey);
   const [isExporting, setIsExporting] = useState(false);
 
   const exportToExcel = useCallback(async () => {
-    if (!canView) {
+    if (!canExport) {
       toast.error('Bạn không có quyền xuất dữ liệu này');
       return;
     }
@@ -104,12 +104,12 @@ export function useExportExcel(options: UseExportExcelOptions) {
     } finally {
       setIsExporting(false);
     }
-  }, [canView, tableName, selectQuery, filters, columns, fileName]);
+  }, [canExport, tableName, selectQuery, filters, columns, fileName]);
 
   return {
     exportToExcel,
     isExporting,
-    canExport: canView && !permissionLoading,
+    canExport: canExport && !permissionLoading,
   };
 }
 

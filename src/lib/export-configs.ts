@@ -117,6 +117,79 @@ const dormitoryColumns: ExportColumn[] = [
   { key: 'notes', label: 'Ghi chú' },
 ];
 
+// Post Departure - Sau xuất cảnh
+const postDepartureColumns: ExportColumn[] = [
+  { key: 'trainee_code', label: 'Mã HV' },
+  { key: 'full_name', label: 'Họ và tên' },
+  { key: 'departure_date', label: 'Ngày xuất cảnh', format: 'date' },
+  { key: 'receiving_company.name', label: 'Công ty tiếp nhận' },
+  { key: 'union.name', label: 'Nghiệp đoàn' },
+  { key: 'job_category.name', label: 'Ngành nghề' },
+  { key: 'current_situation', label: 'Tình trạng hiện tại' },
+  { key: 'contract_end_date', label: 'Ngày hết HĐ', format: 'date' },
+  { key: 'expected_return_date', label: 'Ngày dự kiến về', format: 'date' },
+  { key: 'return_date', label: 'Ngày về thực tế', format: 'date' },
+  { key: 'early_return_date', label: 'Ngày về sớm', format: 'date' },
+  { key: 'early_return_reason', label: 'Lý do về sớm' },
+  { key: 'absconded_date', label: 'Ngày bỏ trốn', format: 'date' },
+];
+
+// Internal Union - Công đoàn nội bộ
+const internalUnionMemberColumns: ExportColumn[] = [
+  { key: 'member_code', label: 'Mã thành viên' },
+  { key: 'full_name', label: 'Họ và tên' },
+  { key: 'birth_date', label: 'Ngày sinh', format: 'date' },
+  { key: 'hometown', label: 'Quê quán' },
+  { key: 'join_date', label: 'Ngày tham gia', format: 'date' },
+  { key: 'end_date', label: 'Ngày kết thúc', format: 'date' },
+  { key: 'status', label: 'Trạng thái' },
+  { key: 'notes', label: 'Ghi chú' },
+];
+
+// Legal - Tình trạng hồ sơ
+const legalColumns: ExportColumn[] = [
+  { key: 'trainee_code', label: 'Mã HV' },
+  { key: 'full_name', label: 'Họ và tên' },
+  { key: 'cccd_number', label: 'Số CCCD' },
+  { key: 'passport_number', label: 'Số hộ chiếu' },
+  { key: 'document_status', label: 'Tình trạng hồ sơ' },
+  { key: 'document_submission_date', label: 'Ngày nộp hồ sơ', format: 'date' },
+  { key: 'coe_date', label: 'Ngày COE', format: 'date' },
+  { key: 'visa_date', label: 'Ngày Visa', format: 'date' },
+  { key: 'nyukan_entry_date', label: 'Ngày nhập cảnh', format: 'date' },
+];
+
+// Handbook - Cẩm nang tư vấn
+const handbookColumns: ExportColumn[] = [
+  { key: 'title', label: 'Tiêu đề' },
+  { key: 'category', label: 'Danh mục' },
+  { key: 'content', label: 'Nội dung' },
+  { key: 'support_policy', label: 'Chính sách hỗ trợ' },
+  { key: 'cost_info', label: 'Thông tin chi phí' },
+  { key: 'is_published', label: 'Đã xuất bản' },
+  { key: 'created_at', label: 'Ngày tạo', format: 'date' },
+];
+
+// Violations / Blacklist
+const violationsColumns: ExportColumn[] = [
+  { key: 'trainee.trainee_code', label: 'Mã HV' },
+  { key: 'trainee.full_name', label: 'Họ và tên' },
+  { key: 'content', label: 'Nội dung vi phạm' },
+  { key: 'blacklist_reason', label: 'Lý do blacklist' },
+  { key: 'is_blacklisted', label: 'Blacklist' },
+  { key: 'created_at', label: 'Ngày tạo', format: 'date' },
+];
+
+// Teachers - Giáo viên
+const teacherColumns: ExportColumn[] = [
+  { key: 'code', label: 'Mã GV' },
+  { key: 'full_name', label: 'Họ và tên' },
+  { key: 'email', label: 'Email' },
+  { key: 'phone', label: 'Điện thoại' },
+  { key: 'specialty', label: 'Chuyên môn' },
+  { key: 'status', label: 'Trạng thái' },
+];
+
 export const EXPORT_CONFIGS = {
   trainees: {
     menuKey: 'trainees',
@@ -155,6 +228,36 @@ export const EXPORT_CONFIGS = {
     menuKey: 'dormitories',
     fileName: 'danh-sach-ky-tuc-xa',
     columns: dormitoryColumns,
+  },
+  post_departure: {
+    menuKey: 'post_departure',
+    fileName: 'danh-sach-sau-xuat-canh',
+    columns: postDepartureColumns,
+  },
+  internal_union: {
+    menuKey: 'internal_union',
+    fileName: 'danh-sach-cong-doan-noi-bo',
+    columns: internalUnionMemberColumns,
+  },
+  legal: {
+    menuKey: 'legal',
+    fileName: 'tinh-trang-ho-so',
+    columns: legalColumns,
+  },
+  handbook: {
+    menuKey: 'handbook',
+    fileName: 'cam-nang-tu-van',
+    columns: handbookColumns,
+  },
+  violations: {
+    menuKey: 'violations',
+    fileName: 'danh-sach-vi-pham',
+    columns: violationsColumns,
+  },
+  teachers: {
+    menuKey: 'education',
+    fileName: 'danh-sach-giao-vien',
+    columns: teacherColumns,
   },
 };
 

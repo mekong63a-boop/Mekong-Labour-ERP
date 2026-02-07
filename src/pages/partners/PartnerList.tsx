@@ -46,7 +46,7 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import CompanyTraineesModal from "./CompanyTraineesModal";
-import { ExportButton } from "@/components/ui/export-button";
+import { ExportButtonWithColumns } from "@/components/ui/export-button-with-columns";
 import { EXPORT_CONFIGS } from "@/lib/export-configs";
 
 type TabType = "companies" | "unions" | "job_categories";
@@ -273,11 +273,12 @@ export default function PartnerList() {
               className="pl-9 border-primary/20 bg-primary/5"
             />
           </div>
-          <ExportButton
+          <ExportButtonWithColumns
             menuKey="partners"
             tableName={activeTab === 'companies' ? 'companies' : activeTab === 'unions' ? 'unions' : 'job_categories'}
-            columns={EXPORT_CONFIGS.partners.tabs[activeTab].columns}
+            allColumns={EXPORT_CONFIGS.partners.tabs[activeTab].columns}
             fileName={EXPORT_CONFIGS.partners.tabs[activeTab].fileName}
+            title={`Xuất danh sách ${activeTab === 'companies' ? 'công ty' : activeTab === 'unions' ? 'nghiệp đoàn' : 'ngành nghề'}`}
           />
           {canCreate && (
             <Button onClick={handleAdd} className="bg-primary hover:bg-primary/90">
