@@ -913,44 +913,61 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
 
   return (
     <div className="p-4 md:p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate("/trainees")}
-            className="p-2 hover:bg-muted rounded-lg transition"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold">
-              {isEditMode ? "Chỉnh sửa hồ sơ" : "Thêm hồ sơ mới"}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {isEditMode ? "Cập nhật thông tin học viên" : "Tạo hồ sơ học viên mới"}
-            </p>
-          </div>
-        </div>
-        <Button onClick={handleSubmit} disabled={isSubmitting || isCodeDuplicate}>
-          {isSubmitting ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : (
-            <Save className="h-4 w-4 mr-2" />
-          )}
-          Lưu
-        </Button>
-      </div>
-
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full grid grid-cols-5 mb-6">
-          <TabsTrigger value="personal">Thông tin cá nhân</TabsTrigger>
-          <TabsTrigger value="health">Sức khỏe</TabsTrigger>
-          <TabsTrigger value="history">Lý lịch</TabsTrigger>
-          <TabsTrigger value="project">Dự án & Phỏng vấn</TabsTrigger>
-          <TabsTrigger value="status">Trạng thái</TabsTrigger>
-        </TabsList>
+        {/* Sticky Header with trainee info */}
+        <div className="sticky top-0 z-20 bg-background pb-2 -mx-4 md:-mx-6 px-4 md:px-6 border-b">
+          <div className="py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate("/trainees")}
+                className="p-2 hover:bg-muted rounded-lg transition"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h1 className="text-2xl font-bold">
+                    {isEditMode ? "Chỉnh sửa hồ sơ" : "Thêm hồ sơ mới"}
+                  </h1>
+                  {/* Display trainee code and name in edit mode */}
+                  {isEditMode && (formData.trainee_code || formData.full_name) && (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-md border border-primary/20">
+                      <span className="font-mono text-sm font-semibold text-primary">
+                        {formData.trainee_code}
+                      </span>
+                      <span className="text-muted-foreground">—</span>
+                      <span className="font-medium text-foreground">
+                        {formData.full_name}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {isEditMode ? "Cập nhật thông tin học viên" : "Tạo hồ sơ học viên mới"}
+                </p>
+              </div>
+            </div>
+            <Button onClick={handleSubmit} disabled={isSubmitting || isCodeDuplicate}>
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Lưu
+            </Button>
+          </div>
+
+          <TabsList className="w-full grid grid-cols-5">
+            <TabsTrigger value="personal">Thông tin cá nhân</TabsTrigger>
+            <TabsTrigger value="health">Sức khỏe</TabsTrigger>
+            <TabsTrigger value="history">Lý lịch</TabsTrigger>
+            <TabsTrigger value="project">Dự án & Phỏng vấn</TabsTrigger>
+            <TabsTrigger value="status">Trạng thái</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Tab 1: Personal Info */}
-        <TabsContent value="personal" className="space-y-6">
+        <TabsContent value="personal" className="space-y-6 mt-4">
           <div className="grid grid-cols-1 gap-6">
             {/* Basic Info */}
             <Card>
