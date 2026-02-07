@@ -369,7 +369,6 @@ export default function PostDeparturePage() {
             tableName="trainees"
             allColumns={EXPORT_CONFIGS.post_departure.columns}
             fileName={EXPORT_CONFIGS.post_departure.fileName}
-            selectQuery="trainee_code, full_name, departure_date, receiving_company:companies(name), union:unions(name), job_category:job_categories(name), current_situation, contract_end_date, expected_return_date, return_date, early_return_date, early_return_reason, absconded_date"
             filters={{ progression_stage: ['Xuất cảnh', 'Đang làm việc', 'Hoàn thành hợp đồng', 'Bỏ trốn', 'Về trước hạn'] }}
             title="Xuất danh sách sau xuất cảnh"
           />

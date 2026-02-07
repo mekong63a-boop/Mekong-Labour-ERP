@@ -89,6 +89,44 @@ export function ExportButtonWithColumns({
     }
   };
 
+  // Helper: Convert column keys to Supabase select format
+  // e.g., "receiving_company.name" -> "receiving_company:companies!fk_trainees_company(name)"
+  const buildSelectQuery = (columns: ExportColumn[]): string => {
+    const nestedRelations: Record<string, { fk: string; fields: string[] }> = {
+      'receiving_company': { fk: 'companies!fk_trainees_company', fields: [] },
+      'union': { fk: 'unions!fk_trainees_union', fields: [] },
+      'job_category': { fk: 'job_categories!fk_trainees_job_category', fields: [] },
+      'trainee': { fk: 'trainees', fields: [] },
+      'member': { fk: 'union_members', fields: [] },
+    };
+
+    const directFields: string[] = [];
+    
+    columns.forEach(col => {
+      if (col.key.includes('.')) {
+        const [relation, field] = col.key.split('.');
+        if (nestedRelations[relation]) {
+          nestedRelations[relation].fields.push(field);
+        } else {
+          // Unknown relation, try generic format
+          directFields.push(`${relation}(${field})`);
+        }
+      } else {
+        directFields.push(col.key);
+      }
+    });
+
+    // Build relation queries
+    const relationQueries: string[] = [];
+    Object.entries(nestedRelations).forEach(([relation, config]) => {
+      if (config.fields.length > 0) {
+        relationQueries.push(`${relation}:${config.fk}(${config.fields.join(', ')})`);
+      }
+    });
+
+    return [...directFields, ...relationQueries].join(', ');
+  };
+
   const exportToExcel = useCallback(async () => {
     if (!canExport) {
       toast.error('Bạn không có quyền xuất dữ liệu này');
@@ -102,10 +140,9 @@ export function ExportButtonWithColumns({
 
     setIsExporting(true);
     try {
-      // Build query - nếu selectQuery không được cung cấp, tự động tạo từ allColumns
+      // Build query - tự động tạo selectQuery từ columns được chọn
       const columnsToExport = allColumns.filter(c => selectedColumns.has(c.key));
-      const autoSelectQuery = columnsToExport.map(c => c.key).join(', ');
-      const finalSelectQuery = selectQuery || autoSelectQuery;
+      const finalSelectQuery = selectQuery || buildSelectQuery(columnsToExport);
       
       let query = (supabase.from(tableName as any) as any).select(finalSelectQuery);
 
@@ -113,7 +150,12 @@ export function ExportButtonWithColumns({
       if (filters) {
         Object.entries(filters).forEach(([key, value]) => {
           if (value && value !== 'all') {
-            query = query.eq(key, value);
+            // Handle array values with .in() instead of .eq()
+            if (Array.isArray(value)) {
+              query = query.in(key, value);
+            } else {
+              query = query.eq(key, value);
+            }
           }
         });
       }
