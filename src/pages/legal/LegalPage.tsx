@@ -489,7 +489,6 @@ export default function LegalPage() {
               tableName="trainees"
               allColumns={EXPORT_CONFIGS.legal.columns}
               fileName={`ho-so-${selectedCompanyBatch?.code || 'cty'}-${exportDocStatus === 'all' ? 'tat-ca' : exportDocStatus}`}
-              selectQuery="trainee_code, full_name, furigana, gender, birth_date, birthplace, passport_number, passport_date, expected_entry_month, legal_address_vn, legal_address_jp, guarantor_name_vn, guarantor_name_jp, guarantor_phone, high_school_name, high_school_period, jp_certificate_school, jp_certificate_period, document_status, receiving_company:companies!fk_trainees_company(name)"
               filters={{
                 receiving_company_id: selectedCompanyBatch?.company_id || '',
                 progression_stage: 'Đậu phỏng vấn',

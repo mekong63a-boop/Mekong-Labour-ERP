@@ -102,8 +102,12 @@ export function ExportButtonWithColumns({
 
     setIsExporting(true);
     try {
-      // Build query - cast to any to handle dynamic table names
-      let query = (supabase.from(tableName as any) as any).select(selectQuery || '*');
+      // Build query - nếu selectQuery không được cung cấp, tự động tạo từ allColumns
+      const columnsToExport = allColumns.filter(c => selectedColumns.has(c.key));
+      const autoSelectQuery = columnsToExport.map(c => c.key).join(', ');
+      const finalSelectQuery = selectQuery || autoSelectQuery;
+      
+      let query = (supabase.from(tableName as any) as any).select(finalSelectQuery);
 
       // Apply filters from UI state
       if (filters) {
@@ -134,9 +138,7 @@ export function ExportButtonWithColumns({
         return;
       }
 
-      // Get only selected columns
-      const columnsToExport = allColumns.filter(c => selectedColumns.has(c.key));
-
+      // Get only selected columns (already filtered above)
       // Transform data to Excel format
       const excelData = allData.map(row => {
         const excelRow: Record<string, any> = {};
