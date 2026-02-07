@@ -1830,6 +1830,7 @@ export type Database = {
           progression_stage:
             | Database["public"]["Enums"]["progression_stage"]
             | null
+          ptl_date: string | null
           receiving_company_id: string | null
           registration_date: string | null
           religion: string | null
@@ -1939,6 +1940,7 @@ export type Database = {
           progression_stage?:
             | Database["public"]["Enums"]["progression_stage"]
             | null
+          ptl_date?: string | null
           receiving_company_id?: string | null
           registration_date?: string | null
           religion?: string | null
@@ -2048,6 +2050,7 @@ export type Database = {
           progression_stage?:
             | Database["public"]["Enums"]["progression_stage"]
             | null
+          ptl_date?: string | null
           receiving_company_id?: string | null
           registration_date?: string | null
           religion?: string | null
