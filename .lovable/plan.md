@@ -1,169 +1,190 @@
 
-## TRIỂN KHAI: Tự động cập nhật dữ liệu giữa các Menu
+## Bảo mật Supabase: Fix Security Definer Views + Search Path + Leaked Password
 
-### Tổng quan vấn đề
-Hiện tại khi người dùng cập nhật thông tin học viên (TraineeForm), các menu khác (Đơn hàng, Đối tác, Xuất cảnh) **không tự động cập nhật** dữ liệu vì:
-1. **Orders**: Query key `order-trainee-counts` không được invalidate sau khi save trainee
-2. **Partners**: Không có realtime invalidation → phải reload trang thủ công để cập nhật "Số HV"
-3. **Post-Departure**: Query key `post-departure-trainees` không được invalidate khi `progression_stage` thay đổi
+### Tóm tắt vấn đề hiện tại
+Từ security scan, dự án có 3 vấn đề chính cần xử lý:
 
-### Chi tiết từng thay đổi
-
-#### File 1: `src/hooks/useSystemRealtime.ts` (Lines 60-82)
-**Vấn đề hiện tại:** Khi trainee thay đổi, chỉ queue invalidation cho trainees, dashboard, education, dormitory. Thiếu Orders và Post-Departure.
-
-**Thay đổi:**
-- Thêm `queueInvalidation(REALTIME_GROUPS.ORDERS, QUERY_KEY_BUNDLES.orders, false)` sau line 73
-  - Mục đích: Khi trainee thay đổi (progression_stage, receiving_company_id, v.v.), tự động refresh `order-trainee-counts` để hiển thị số ứng viên chính xác
-- Thêm `queueInvalidation(REALTIME_GROUPS.POST_DEPARTURE, [...], false)` sau đó
-  - Query keys cần invalidate: `["post-departure-trainees"]`, `["post-departure-stats-by-year"]`, `["post-departure-by-type"]`
-
-**Lý do:** Các thay đổi này được cấu hình đầy đủ trong `QUERY_KEY_BUNDLES` (useRealtimeDebounce.ts), nhưng `REALTIME_GROUPS` chưa có `POST_DEPARTURE`.
+1. **SUPA_security_definer_view (ERROR)**: Các views sử dụng SECURITY DEFINER có thể bypass RLS policies
+2. **SUPA_function_search_path_mutable (WARN)**: Một số functions thiếu `SET search_path = public`, dễ bị injection attacks
+3. **SUPA_auth_leaked_password_protection (WARN)**: Leaked Password Protection chưa được bật trong Supabase Auth Settings
 
 ---
 
-#### File 2: `src/hooks/useRealtimeDebounce.ts` (Lines 132-209)
-**Vấn đề:** Thiếu group `POST_DEPARTURE` trong `REALTIME_GROUPS`.
+### 1. Fix SECURITY DEFINER Views (Chuyển sang SECURITY INVOKER)
 
-**Thay đổi:**
-- Thêm vào `REALTIME_GROUPS` (line 132-139):
-  ```typescript
-  POST_DEPARTURE: 'post-departure',
-  ```
+**Vấn đề:** 
+- Dashboard views hiện sử dụng mặc định (implicit SECURITY DEFINER từ cách tạo cũ)
+- SECURITY DEFINER có nghĩa view chạy với quyền của người tạo (thường là admin), bypass RLS của user thực tế
 
-- Thêm vào `QUERY_KEY_BUNDLES` (line 199 sau orders):
-  ```typescript
-  postDeparture: [
-    ["post-departure-trainees"],
-    ["post-departure-stats-by-year"],
-    ["post-departure-by-type"],
-    ["post-departure-kpi-cards"],
-  ],
-  ```
-
-**Lý do:** Định nghĩa tập hợp query keys cho post-departure để tái sử dụng trong realtime invalidation.
-
----
-
-#### File 3: `src/pages/TraineeForm.tsx` (Lines 875-883)
-**Vấn đề hiện tại:**
-```typescript
-await queryClient.invalidateQueries({ queryKey: ["trainees"] });
-// ... (chỉ invalidate trainees, không invalidate orders + post-departure)
-
-toast({
-  title: "Thành công",
-  description: isEditMode ? "Đã cập nhật hồ sơ" : "Đã tạo hồ sơ mới",
-});
+**Danh sách 11 Dashboard Views cần fix:**
+```
+1. dashboard_trainee_kpis
+2. dashboard_trainee_by_stage
+3. dashboard_trainee_by_status
+4. dashboard_trainee_by_type
+5. dashboard_trainee_monthly
+6. dashboard_trainee_by_source
+7. dashboard_trainee_by_birthplace
+8. dashboard_trainee_by_gender
+9. dashboard_trainee_departures_monthly
+10. dashboard_trainee_passed_monthly
+11. dashboard_monthly_combined
+12. dashboard_monthly_passed
+13. dashboard_trainee_by_company (và các view khác liên quan)
 ```
 
-**Thay đổi:** Mở rộng invalidation scope để bao gồm orders + post-departure:
-```typescript
-await queryClient.invalidateQueries({ queryKey: ["trainees"] });
-await queryClient.invalidateQueries({ queryKey: ["order-trainee-counts"] });
-await queryClient.invalidateQueries({ queryKey: ["post-departure-trainees"] });
-await queryClient.invalidateQueries({ queryKey: ["post-departure-stats-by-year"] });
-// Hoặc sử dụng QUERY_KEY_BUNDLES (cách tốt hơn):
-QUERY_KEY_BUNDLES.orders.forEach(key => {
-  await queryClient.invalidateQueries({ queryKey: key });
-});
-QUERY_KEY_BUNDLES.postDeparture.forEach(key => {
-  await queryClient.invalidateQueries({ queryKey: key });
-});
+**Giải pháp:**
+- Chuyển tất cả sang `security_invoker = true` (hoặc `security_invoker = on`)
+- Các views này query từ bảng đã có RLS policies → user chỉ thấy dữ liệu theo quyền của họ → tự động bảo vệ
+
+**SQL Migration Pattern:**
+```sql
+DROP VIEW IF EXISTS public.dashboard_trainee_kpis;
+CREATE OR REPLACE VIEW public.dashboard_trainee_kpis
+WITH (security_invoker = true) AS
+SELECT ... (nội dung view hiện tại)
 ```
 
-**Lý do:** Khi save trainee, cần refresh orders (vì receiving_company_id, progression_stage có thể thay đổi) và post-departure (vì progression_stage thay đổi).
+**Tác động:** ✅ No Breaking Changes
+- Với `security_invoker = true`, view sẽ áp dụng RLS policies của user đó
+- Kết quả không thay đổi với user có quyền xem hết dữ liệu (admin)
+- Với user restricted, view sẽ tự động filter dữ liệu theo quyền → thêm security layer
 
 ---
 
-#### File 4: `src/pages/partners/PartnerList.tsx` 
-**Vấn đề hiện tại:** 
-- Component sử dụng `useEffect` để tính toán "Số HV" dựa trên danh sách trainees
-- Khi trainee thay đổi, component không biết được → phải reload trang thủ công
-- Lý do là `useEffect` chỉ chạy khi component mount, không lắng nghe trainees updates
+### 2. Fix Function Search Path (Thêm SET search_path = public)
 
-**Hai lựa chọn giải quyết:**
+**Vấn đề:**
+Một số functions (trigger functions, helper functions) thiếu `SET search_path = public`:
+```
+- ensure_single_manager_per_department() - dòng 83
+- mask_phone, mask_cccd, mask_passport, mask_email - trigger functions
+- get_trainee_full_profile - đã có, OK
+- sync_trainee_status_from_workflow - dòng 36, OK
+```
 
-**Option A (Nhanh hơn - Recommended):** Thêm vào realtime invalidation trong `useSystemRealtime.ts`
-- Khi trainees thay đổi, queue invalidation cho `["companies"]`, `["unions"]`, `["job_categories"]`
-- PartnerList sẽ tự động refetch và recompute "Số HV"
-- Không cần sửa PartnerList, chỉ sửa useSystemRealtime
+**Giải pháp:**
+Thêm `SET search_path = public` vào các function chưa có:
+```sql
+CREATE OR REPLACE FUNCTION public.ensure_single_manager_per_department()
+RETURNS TRIGGER 
+LANGUAGE plpgsql 
+SECURITY DEFINER 
+SET search_path = public  -- ← ADD THIS
+AS $$
+  ...
+$$;
+```
 
-**Option B (Cấu trúc tốt nhất - Khuyên dùng cho tương lai):** Tạo PostgreSQL View
-- Tạo view `company_trainee_counts` trên Supabase
-- View tính toán số học viên đã đậu PV (progression_stage != 'Chưa đậu') theo company_id
-- PartnerList query trực tiếp từ view thay vì dùng useEffect
-- Lợi điểm: Dữ liệu luôn chính xác, không cần recompute ở client, tối ưu cho quy mô lớn
-
-**Chọn: Option A + kỹ thuật chuẩn bị Option B**
-- Thêm invalidation `["companies"]`, `["unions"]` vào realtime handler khi trainees thay đổi
-- Comment lại: "TODO: Chuyển sang PostgreSQL View công ty_learning_viên_counts để tối ưu hiệu suất"
-
----
-
-### Tóm tắt chi tiết thay đổi
-
-| File | Dòng | Thay đổi |
-|------|------|---------|
-| **useRealtimeDebounce.ts** | 139 | Thêm `POST_DEPARTURE: 'post-departure'` vào `REALTIME_GROUPS` |
-| **useRealtimeDebounce.ts** | 209 | Thêm bundle `postDeparture: [...]` vào `QUERY_KEY_BUNDLES` |
-| **useSystemRealtime.ts** | 73-82 | Thêm `queueInvalidation` cho ORDERS và POST_DEPARTURE khi trainees thay đổi |
-| **useSystemRealtime.ts** | 310-315 | Thêm `["company-trainee-counts"]`, `["union-trainee-counts"]` vào refreshPartners() |
-| **TraineeForm.tsx** | 875-883 | Thêm invalidation cho `order-trainee-counts` + `post-departure-*` queries sau save |
+**Tác động:** ✅ No Breaking Changes
+- Chỉ là cài đặt bảo mật, không thay đổi logic
+- Ngăn chặn search path injection attacks (attacker không thể tạo schema/function khác để hijack)
 
 ---
 
-### Mô hình hóa luồng sau triển khai
+### 3. Bật Leaked Password Protection (Thủ công trên Supabase Dashboard)
 
-```text
-Người dùng cập nhật trainee (TraineeForm)
-         ↓
-   [Bấm Lưu]
-         ↓
-  Update trainees table
-         ↓
-Realtime trigger → useSystemRealtime.ts:
-  - Invalidate TRAINEES queries
-  - Invalidate DASHBOARD queries
-  - Invalidate EDUCATION queries
-  - Invalidate DORMITORY queries
-  - [NEW] Invalidate ORDERS queries ← order-trainee-counts refresh
-  - [NEW] Invalidate POST_DEPARTURE queries ← post-departure-trainees refresh
-  - [NEW] Invalidate PARTNERS queries ← companies/unions refresh
-         ↓
-Dashboard, Orders, Partners, Post-Departure tự động cập nhật
-         ↓
-React Query refetch → UI re-render
+**Vấn đề:**
+Supabase Auth Settings chưa bật kiểm tra "leaked passwords" từ Have I Been Pwned database.
+
+**Giải pháp (thủ công):**
+Vào Supabase Dashboard → Authentication → Settings → Tìm "Leaked Password Protection" → Bật nó
+
+**Tác động:** ✅ Bảo mật tương lai
+- Nếu user đặt password đã bị leak, Supabase sẽ từ chối
+- Thêm 1 layer bảo vệ dữ liệu tài khoản user
+
+---
+
+### Plan Triển khai (Trình tự)
+
+#### **PHASE 1: Tạo SQL Migration cho Dashboard Views** (10 min)
+- Tạo migration file `20260207_fix_security_views.sql`
+- Chứa DROP + CREATE 11-15 dashboard views với `security_invoker = true`
+- Tuân thủ thứ tự dependency (views có FK phải tạo sau)
+
+#### **PHASE 2: Tạo SQL Migration cho Function Search Paths** (5 min)
+- Tạo migration file `20260207_fix_function_search_paths.sql`
+- Thêm `SET search_path = public` cho các functions còn thiếu:
+  - ensure_single_manager_per_department()
+  - trigger functions (mask_phone, mask_cccd, v.v.)
+  - Bất kỳ SECURITY DEFINER function nào thiếu
+
+#### **PHASE 3: Bật Leaked Password Protection** (2 min, thủ công)
+- User vào Supabase Dashboard
+- Authentication → Settings → Leaked Password Protection → Bật
+- Hoặc dùng Supabase CLI: `supabase env list` → copy project URL → vào dashboard web
+
+---
+
+### Tiêu chí nghiệm thu (QA)
+
+1. **Security Definer Views:**
+   - Chạy security scan lại → không có "Security Definer View" errors
+   - Vào Dashboard → biểu đồ vẫn hiển thị đúng
+   - Test role-based filtering: User staff chỉ thấy dữ liệu phòng ban của họ
+
+2. **Function Search Paths:**
+   - Security scan → không có "Function Search Path Mutable" warnings
+   - Trigger `ensure_single_manager_per_department` vẫn hoạt động (chỉ 1 manager per dept)
+
+3. **Leaked Password Protection:**
+   - Supabase Dashboard → Authentication → Settings → Xác nhận "Leaked Password Protection: ON"
+
+---
+
+### Technical Details (Nếu cần tham khảo)
+
+**Mô phỏng logic:**
+```
+SECURITY DEFINER (cũ):
+  SELECT * FROM dashboard_trainee_kpis
+  → Query chạy với quyền của creator (admin)
+  → Trả về TẤT CẢ dữ liệu (không filter theo user)
+
+SECURITY INVOKER (mới):
+  SELECT * FROM dashboard_trainee_kpis
+  → Query chạy với quyền của người query (staff/admin)
+  → RLS policies tự động lọc:
+     - Admin → thấy tất cả
+     - Staff phòng A → chỉ thấy học viên phòng A
+```
+
+**Ví dụ SET search_path:**
+```sql
+-- Trước (không bảo vệ):
+CREATE OR REPLACE FUNCTION public.ensure_single_manager_per_department()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+  DELETE FROM public.department_members WHERE ...
+  -- Attacker tạo public.department_members ở schema khác → bị hack
+$$;
+
+-- Sau (bảo vệ):
+CREATE OR REPLACE FUNCTION public.ensure_single_manager_per_department()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+  DELETE FROM public.department_members WHERE ...
+  -- Attacker tạo schema/function khác → bị ignore (search_path fixed = public)
+$$;
 ```
 
 ---
 
-### Tiêu chí nghiệm thu (E2E Testing)
+### Files cần sửa (Tóm tắt)
 
-1. **Test Orders:**
-   - Vào TraineeForm → chọn một đơn hàng (receiving_company_id)
-   - Bấm Lưu → vào menu Đơn hàng
-   - Xác nhận: Số lượng ứng viên của đơn hàng đó cập nhật tức thì (không cần reload)
-
-2. **Test Partners:**
-   - Vào TraineeForm → cập nhật receiving_company_id
-   - Bấm Lưu → vào menu Đối tác → tab Công ty
-   - Xác nhận: Cột "Số HV" của công ty đó cập nhật tức thì
-
-3. **Test Post-Departure:**
-   - Vào TraineeForm → cập nhật progression_stage thành "Xuất cảnh" + departure_date
-   - Bấm Lưu → vào menu Sau xuất cảnh
-   - Xác nhận: Số liệu KPI "Thực tập sinh", "TTS số 3" v.v. cập nhật tức thì, không cần reload
-
-4. **Test Dashboard:**
-   - Tạo học viên mới
-   - Bấm Lưu → vào Dashboard
-   - Xác nhận: KPI "Học viên đang đào tạo", "Học viên hiện tại" cập nhật tức thì
+| Phase | Loại | Chi tiết |
+|-------|------|---------|
+| **Phase 1** | SQL Migration | `supabase/migrations/20260207_*.sql` - Tạo views với `security_invoker = true` |
+| **Phase 2** | SQL Migration | `supabase/migrations/20260207_*.sql` - Thêm `SET search_path` vào functions |
+| **Phase 3** | Thủ công | Supabase Dashboard → Auth Settings → Bật Leaked Password Protection |
 
 ---
 
-### Lưu ý kỹ thuật
+### Dự kiến rủi ro & giảm nhẹ
 
-1. **Debounce Logic:** Tất cả invalidations vẫn tuân thủ debounce 500ms từ `useRealtimeDebounce`, tránh query storm
-2. **Manual Refresh:** `useManualRefresh().refreshAll()` đã cover hết, không cần sửa
-3. **Partners View (Future):** Nên xem xét tạo PostgreSQL View để thay thế useEffect, tối ưu hóa cho quy mô hàng triệu trainees
+| Rủi ro | Khả năng | Giảm nhẹ |
+|--------|----------|---------|
+| Dashboard hiển thị sai sau fix security_invoker | **Thấp** | RLS policies đã được kiểm tra → logic không đổi |
+| Trigger functions fail nếu thêm SET search_path | **Rất thấp** | Chỉ là cài đặt, không thay đổi logic function |
+| Performance degrade | **Không** | security_invoker không ảnh hưởng hiệu suất |
+| User không thể login nếu bật Leaked Password Protection | **Rất thấp** | Chỉ ảnh hưởng user có password bị leak trước đó |
+
