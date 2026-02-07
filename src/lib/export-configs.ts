@@ -155,7 +155,7 @@ const internalUnionTransactionColumns: ExportColumn[] = [
   { key: 'description', label: 'Mô tả' },
 ];
 
-// Legal - Tình trạng hồ sơ (chi tiết đầy đủ)
+// Legal - Tình trạng hồ sơ (chi tiết đầy đủ - phải khớp với bảng trong LegalPage)
 const legalColumns: ExportColumn[] = [
   { key: 'trainee_code', label: 'Mã HV' },
   { key: 'full_name', label: 'Họ và tên' },
@@ -165,16 +165,20 @@ const legalColumns: ExportColumn[] = [
   { key: 'birthplace', label: 'Nơi sinh' },
   { key: 'passport_number', label: 'Số hộ chiếu' },
   { key: 'passport_date', label: 'Ngày cấp HC', format: 'date' },
-  { key: 'expected_entry_month', label: 'Tháng dự kiến XC' },
-  { key: 'legal_address_vn', label: 'Địa chỉ VN' },
-  { key: 'legal_address_jp', label: 'Địa chỉ JP' },
-  { key: 'guarantor_name_vn', label: 'Tên BL (VN)' },
-  { key: 'guarantor_name_jp', label: 'Tên BL (JP)' },
-  { key: 'guarantor_phone', label: 'SĐT bảo lãnh' },
-  { key: 'high_school_name', label: 'Trường cấp 3' },
-  { key: 'high_school_period', label: 'Thời gian học C3' },
-  { key: 'jp_certificate_school', label: 'Trường CC JP' },
+  { key: 'expected_entry_month', label: 'Ngày dự kiến XC' },
+  { key: 'legal_address_vn', label: 'Địa chỉ Việt' },
+  { key: 'legal_address_jp', label: 'Địa chỉ Nhật' },
+  { key: 'guarantor_name_vn', label: 'Tên người bảo lãnh VN' },
+  { key: 'guarantor_name_jp', label: 'Tên người bảo lãnh JP' },
+  { key: 'guarantor_phone', label: 'SĐT người bảo lãnh' },
+  { key: 'high_school_name', label: 'Tên trường cấp 3' },
+  { key: 'high_school_period', label: 'Thời gian học' },
+  { key: 'jp_certificate_school', label: 'Trường chứng chỉ JP' },
   { key: 'jp_certificate_period', label: 'Thời gian học CC' },
+  { key: 'jp_school_1', label: 'Tên trường JP 1' },
+  { key: 'jp_course_1', label: 'Khóa học JP 1' },
+  { key: 'jp_school_2', label: 'Tên trường JP 2' },
+  { key: 'jp_course_2', label: 'Khóa học JP 2' },
   { key: 'document_status', label: 'Tình trạng hồ sơ' },
   { key: 'receiving_company.name', label: 'Công ty tiếp nhận' },
 ];
