@@ -1835,6 +1835,9 @@ export type Database = {
           ptl_date: string | null
           ptl_number: string | null
           receiving_company_id: string | null
+          recommending_company_name: string | null
+          recommending_position: string | null
+          recommending_representative: string | null
           registration_date: string | null
           religion: string | null
           reserve_date: string | null
@@ -1951,6 +1954,9 @@ export type Database = {
           ptl_date?: string | null
           ptl_number?: string | null
           receiving_company_id?: string | null
+          recommending_company_name?: string | null
+          recommending_position?: string | null
+          recommending_representative?: string | null
           registration_date?: string | null
           religion?: string | null
           reserve_date?: string | null
@@ -2067,6 +2073,9 @@ export type Database = {
           ptl_date?: string | null
           ptl_number?: string | null
           receiving_company_id?: string | null
+          recommending_company_name?: string | null
+          recommending_position?: string | null
+          recommending_representative?: string | null
           registration_date?: string | null
           religion?: string | null
           reserve_date?: string | null
