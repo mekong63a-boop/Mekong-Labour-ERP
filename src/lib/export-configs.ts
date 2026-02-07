@@ -211,7 +211,7 @@ const classStudentsColumns: ExportColumn[] = [
   { key: 'progression_stage', label: 'Giai đoạn' },
 ];
 
-// Dormitory Residents - Cư dân KTX
+// Dormitory Residents - Học viên KTX
 const dormitoryResidentsColumns: ExportColumn[] = [
   { key: 'trainee.trainee_code', label: 'Mã HV' },
   { key: 'trainee.full_name', label: 'Họ và tên' },

@@ -684,7 +684,7 @@ export default function DormitoryPage() {
                   fileName={`${EXPORT_CONFIGS.dormitory_residents.fileName}-${selectedDormData?.name || 'ktx'}`}
                   selectQuery="trainee:trainees(trainee_code, full_name, phone), room_number, bed_number, check_in_date, check_out_date, status, notes"
                   filters={{ dormitory_id: selectedDormitory }}
-                  title={`Xuất danh sách cư dân - ${selectedDormData?.name || ''}`}
+                  title={`Xuất danh sách học viên KTX - ${selectedDormData?.name || ''}`}
                 />
                 {canUpdate && (
                   <Dialog open={isTransferOpen} onOpenChange={setIsTransferOpen}>
