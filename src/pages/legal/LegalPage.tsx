@@ -107,6 +107,17 @@ interface CompanyTrainee {
   progression_stage: string | null;
   document_status: string | null;
   recommending_company: { name: string; representative: string | null; position: string | null } | null;
+  // Legal document fields
+  dkhd_date: string | null;
+  dkhd_number: string | null;
+  dkhd_code: string | null;
+  tpc_request_date: string | null;
+  tpc_cv_number: string | null;
+  tpc_code: string | null;
+  ptl_number: string | null;
+  ptl_date: string | null;
+  tpc_issue_date: string | null;
+  current_situation: string | null;
 }
 
 const TRAINEE_TYPE_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
@@ -342,7 +353,17 @@ export default function LegalPage() {
           jp_course_2,
           progression_stage,
           document_status,
-          recommending_company:companies!fk_trainees_company(name, representative, position)
+          recommending_company:companies!fk_trainees_company(name, representative, position),
+          dkhd_date,
+          dkhd_number,
+          dkhd_code,
+          tpc_request_date,
+          tpc_cv_number,
+          tpc_code,
+          ptl_number,
+          ptl_date,
+          tpc_issue_date,
+          current_situation
         `)
         .eq("receiving_company_id", selectedCompanyBatch.company_id)
         .eq("progression_stage", 'Đậu phỏng vấn')
@@ -777,24 +798,128 @@ export default function LegalPage() {
                           placeholder="2002年09月~2005年06月"
                         />
                       </TableCell>
-                      {/* Tên công ty tiến cử */}
+                      {/* Tên công ty tiến cử - readonly */}
                       <TableCell className="whitespace-nowrap">
                         {trainee.recommending_company?.name || "—"}
                       </TableCell>
-                      {/* Tên người đại diện */}
+                      {/* Tên người đại diện - readonly */}
                       <TableCell className="whitespace-nowrap">
                         {trainee.recommending_company?.representative || "—"}
                       </TableCell>
-                      {/* Chức vụ */}
+                      {/* Chức vụ - readonly */}
                       <TableCell className="whitespace-nowrap">
                         {trainee.recommending_company?.position || "—"}
                       </TableCell>
-                      {/* Empty cells for remaining columns - to be filled manually */}
-                      {Array.from({ length: 11 }).map((_, cellIdx) => (
-                        <TableCell key={cellIdx} className="text-center">
-                          —
-                        </TableCell>
-                      ))}
+                      {/* Ngày trình ĐKHĐ - date input */}
+                      <TableCell className={`min-w-[130px] ${!trainee.dkhd_date ? 'bg-orange-50' : ''}`}>
+                        <Input
+                          type="date"
+                          className={`h-7 text-xs ${!trainee.dkhd_date ? 'border-orange-300' : ''}`}
+                          defaultValue={trainee.dkhd_date || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "dkhd_date", e.target.value)}
+                        />
+                      </TableCell>
+                      {/* Số ĐKHĐ - text input */}
+                      <TableCell className={`min-w-[100px] ${!trainee.dkhd_number ? 'bg-orange-50' : ''}`}>
+                        <Input
+                          className={`h-7 text-xs ${!trainee.dkhd_number ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
+                          defaultValue={trainee.dkhd_number || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "dkhd_number", e.target.value)}
+                          placeholder="Số ĐKHĐ"
+                        />
+                      </TableCell>
+                      {/* Mã HS ĐKHĐ - text input */}
+                      <TableCell className={`min-w-[100px] ${!trainee.dkhd_code ? 'bg-orange-50' : ''}`}>
+                        <Input
+                          className={`h-7 text-xs ${!trainee.dkhd_code ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
+                          defaultValue={trainee.dkhd_code || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "dkhd_code", e.target.value)}
+                          placeholder="Mã HS"
+                        />
+                      </TableCell>
+                      {/* Ngày gửi xin TPC - date input */}
+                      <TableCell className={`min-w-[130px] ${!trainee.tpc_request_date ? 'bg-orange-50' : ''}`}>
+                        <Input
+                          type="date"
+                          className={`h-7 text-xs ${!trainee.tpc_request_date ? 'border-orange-300' : ''}`}
+                          defaultValue={trainee.tpc_request_date || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "tpc_request_date", e.target.value)}
+                        />
+                      </TableCell>
+                      {/* Số CV xin TPC - text input */}
+                      <TableCell className={`min-w-[100px] ${!trainee.tpc_cv_number ? 'bg-orange-50' : ''}`}>
+                        <Input
+                          className={`h-7 text-xs ${!trainee.tpc_cv_number ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
+                          defaultValue={trainee.tpc_cv_number || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "tpc_cv_number", e.target.value)}
+                          placeholder="Số CV"
+                        />
+                      </TableCell>
+                      {/* Mã HS xin TPC - text input */}
+                      <TableCell className={`min-w-[100px] ${!trainee.tpc_code ? 'bg-orange-50' : ''}`}>
+                        <Input
+                          className={`h-7 text-xs ${!trainee.tpc_code ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
+                          defaultValue={trainee.tpc_code || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "tpc_code", e.target.value)}
+                          placeholder="Mã HS"
+                        />
+                      </TableCell>
+                      {/* Số PTL - text input */}
+                      <TableCell className={`min-w-[100px] ${!trainee.ptl_number ? 'bg-orange-50' : ''}`}>
+                        <Input
+                          className={`h-7 text-xs ${!trainee.ptl_number ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
+                          defaultValue={trainee.ptl_number || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "ptl_number", e.target.value)}
+                          placeholder="Số PTL"
+                        />
+                      </TableCell>
+                      {/* Tình trạng - dropdown */}
+                      <TableCell>
+                        <Select
+                          value={trainee.document_status || 'not_started'}
+                          onValueChange={(value) => handleDocStatusChange(trainee.id, value)}
+                        >
+                          <SelectTrigger className="h-8 w-[120px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {DOCUMENT_STATUS_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                <span className={`px-2 py-0.5 rounded text-xs ${opt.className}`}>
+                                  {opt.label}
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      {/* Ngày cấp PTL - date input */}
+                      <TableCell className={`min-w-[130px] ${!trainee.ptl_date ? 'bg-orange-50' : ''}`}>
+                        <Input
+                          type="date"
+                          className={`h-7 text-xs ${!trainee.ptl_date ? 'border-orange-300' : ''}`}
+                          defaultValue={trainee.ptl_date || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "ptl_date", e.target.value)}
+                        />
+                      </TableCell>
+                      {/* Ngày cấp TPC - date input */}
+                      <TableCell className={`min-w-[130px] ${!trainee.tpc_issue_date ? 'bg-orange-50' : ''}`}>
+                        <Input
+                          type="date"
+                          className={`h-7 text-xs ${!trainee.tpc_issue_date ? 'border-orange-300' : ''}`}
+                          defaultValue={trainee.tpc_issue_date || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "tpc_issue_date", e.target.value)}
+                        />
+                      </TableCell>
+                      {/* Hiện trạng - text input */}
+                      <TableCell className={`min-w-[150px] ${!trainee.current_situation ? 'bg-orange-50' : ''}`}>
+                        <Input
+                          className={`h-7 text-xs ${!trainee.current_situation ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
+                          defaultValue={trainee.current_situation || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "current_situation", e.target.value)}
+                          placeholder="Hiện trạng"
+                        />
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
