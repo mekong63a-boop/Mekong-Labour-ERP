@@ -39,7 +39,7 @@ const traineeColumns: ExportColumn[] = [
   { key: 'passport_number', label: 'Số hộ chiếu' },
   { key: 'progression_stage', label: 'Giai đoạn' },
   { key: 'simple_status', label: 'Trạng thái' },
-  { key: 'trainee_type', label: 'Loại hình' },
+  { key: 'trainee_type', label: 'Đối tượng' },
   { key: 'receiving_company.name', label: 'Công ty tiếp nhận' },
   { key: 'union.name', label: 'Nghiệp đoàn' },
   { key: 'job_category.name', label: 'Ngành nghề' },
