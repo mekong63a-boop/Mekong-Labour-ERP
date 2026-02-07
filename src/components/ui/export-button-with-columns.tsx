@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
 import { useCanAccessMenu } from '@/hooks/useMenuPermissions';
-import { formatVietnameseDate } from '@/lib/vietnamese-utils';
+import { formatVietnameseDate, removeVietnameseDiacritics, formatJapaneseDate } from '@/lib/vietnamese-utils';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -16,12 +16,10 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Download, Loader2, FileSpreadsheet } from 'lucide-react';
+import type { ExportColumn, ComputeType } from '@/lib/export-configs';
 
-export interface ExportColumn {
-  key: string;
-  label: string;
-  format?: 'date' | 'number' | 'currency';
-}
+// Re-export the type for consumers
+export type { ExportColumn };
 
 interface ExportButtonWithColumnsProps {
   menuKey: string;
@@ -41,7 +39,11 @@ interface ExportButtonWithColumnsProps {
  * Nút xuất Excel với dialog chọn cột
  * - Kiểm tra quyền can_export trước khi hiển thị
  * - Cho phép user chọn cột muốn xuất
+ * - Hỗ trợ computed columns (STT, bỏ dấu, format Nhật...)
  * - Phân trang khi xuất lượng lớn
+ * 
+ * NGUYÊN TẮC: 1 luồng, 1 nguồn dữ liệu
+ * Tất cả logic transform/compute nằm ở đây
  */
 export function ExportButtonWithColumns({
   menuKey,
@@ -89,6 +91,41 @@ export function ExportButtonWithColumns({
     }
   };
 
+  /**
+   * Tính toán giá trị cho computed columns
+   */
+  const computeValue = (row: any, computeType: ComputeType, sourceField: string | undefined, rowIndex: number): string => {
+    switch (computeType) {
+      case 'row_index':
+        return String(rowIndex + 1);
+      
+      case 'no_diacritics':
+        if (!sourceField) return '';
+        const sourceVal = getNestedValue(row, sourceField);
+        return removeVietnameseDiacritics(sourceVal || '');
+      
+      case 'japanese_date':
+        if (!sourceField) return '—';
+        const dateVal = getNestedValue(row, sourceField);
+        return formatJapaneseDate(dateVal);
+      
+      case 'japanese_month':
+        if (!sourceField) return '—';
+        const monthVal = getNestedValue(row, sourceField);
+        if (!monthVal) return '—';
+        // Format YYYY-MM -> YYYY年MM月
+        const match = String(monthVal).match(/^(\d{4})-(\d{2})$/);
+        if (match) {
+          return `${match[1]}年${match[2]}月`;
+        }
+        // Fallback to full date format
+        return formatJapaneseDate(monthVal);
+      
+      default:
+        return '';
+    }
+  };
+
   // Helper: Convert column keys to Supabase select format
   // e.g., "receiving_company.name" -> "receiving_company:companies!fk_trainees_company(name)"
   const buildSelectQuery = (columns: ExportColumn[]): string => {
@@ -98,11 +135,22 @@ export function ExportButtonWithColumns({
       'job_category': { fk: 'job_categories!fk_trainees_job_category', fields: [] },
       'trainee': { fk: 'trainees', fields: [] },
       'member': { fk: 'union_members', fields: [] },
+      'company': { fk: 'companies', fields: [] },
     };
 
     const directFields: string[] = [];
+    const computedSourceFields: string[] = [];
     
     columns.forEach(col => {
+      // Skip computed columns (they start with _)
+      if (col.key.startsWith('_')) {
+        // But we need the source field for computation
+        if (col.computeFrom && !col.computeFrom.includes('.')) {
+          computedSourceFields.push(col.computeFrom);
+        }
+        return;
+      }
+      
       if (col.key.includes('.')) {
         const [relation, field] = col.key.split('.');
         if (nestedRelations[relation]) {
@@ -113,6 +161,13 @@ export function ExportButtonWithColumns({
         }
       } else {
         directFields.push(col.key);
+      }
+    });
+
+    // Add computed source fields if not already included
+    computedSourceFields.forEach(field => {
+      if (!directFields.includes(field)) {
+        directFields.push(field);
       }
     });
 
@@ -180,13 +235,17 @@ export function ExportButtonWithColumns({
         return;
       }
 
-      // Get only selected columns (already filtered above)
-      // Transform data to Excel format
-      const excelData = allData.map(row => {
+      // Transform data to Excel format with computed columns support
+      const excelData = allData.map((row, rowIndex) => {
         const excelRow: Record<string, any> = {};
         columnsToExport.forEach(col => {
-          const value = getNestedValue(row, col.key);
-          excelRow[col.label] = formatValue(value, col.format);
+          // Handle computed columns
+          if (col.computeType) {
+            excelRow[col.label] = computeValue(row, col.computeType, col.computeFrom, rowIndex);
+          } else {
+            const value = getNestedValue(row, col.key);
+            excelRow[col.label] = formatValue(value, col.format);
+          }
         });
         return excelRow;
       });
@@ -223,6 +282,9 @@ export function ExportButtonWithColumns({
   const allSelected = selectedColumns.size === allColumns.length;
   const someSelected = selectedColumns.size > 0 && selectedColumns.size < allColumns.length;
 
+  // Check if column is computed (for UI indicator)
+  const isComputedColumn = (col: ExportColumn) => col.computeType !== undefined;
+
   return (
     <>
       <Button
@@ -243,7 +305,7 @@ export function ExportButtonWithColumns({
               <DialogTitle>{title}</DialogTitle>
             </div>
             <DialogDescription>
-              Chọn các cột bạn muốn xuất ra file Excel
+              Chọn các cột bạn muốn xuất ra file Excel ({allColumns.length} cột có sẵn)
             </DialogDescription>
           </DialogHeader>
 
@@ -263,8 +325,8 @@ export function ExportButtonWithColumns({
             </div>
 
             {/* Column list */}
-            <ScrollArea className="h-[300px] border rounded-lg p-2">
-              <div className="space-y-2">
+            <ScrollArea className="h-[350px] border rounded-lg p-2">
+              <div className="space-y-1">
                 {allColumns.map((col) => (
                   <div key={col.key} className="flex items-center gap-2 p-2 hover:bg-muted/50 rounded">
                     <Checkbox
@@ -275,6 +337,9 @@ export function ExportButtonWithColumns({
                     <label htmlFor={col.key} className="text-sm cursor-pointer flex-1">
                       {col.label}
                     </label>
+                    {isComputedColumn(col) && (
+                      <span className="text-xs text-muted-foreground">(tự động)</span>
+                    )}
                     {col.format && (
                       <span className="text-xs text-muted-foreground">
                         ({col.format === 'date' ? 'Ngày' : col.format === 'currency' ? 'Tiền' : 'Số'})
@@ -321,7 +386,7 @@ function getNestedValue(obj: any, path: string): any {
  * Helper: format giá trị theo type
  */
 function formatValue(value: any, format?: string): any {
-  if (value == null || value === '') return '';
+  if (value == null || value === '') return '—';
   
   switch (format) {
     case 'date':
