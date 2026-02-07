@@ -44,10 +44,11 @@ export type ExportColumnFormat = 'date' | 'number' | 'currency';
  * - 'no_diacritics': Bỏ dấu tiếng Việt, viết hoa
  * - 'japanese_date': Format ngày sang tiếng Nhật (YYYY年MM月DD日)
  * - 'japanese_month': Format tháng sang tiếng Nhật (YYYY年MM月)
+ * - 'blank': Cột ảo/placeholder (chưa có trong DB) – xuất '—'
  * 
  * Để thêm loại mới: Cập nhật enum này + logic trong ExportButtonWithColumns
  */
-export type ComputeType = 'row_index' | 'no_diacritics' | 'japanese_date' | 'japanese_month';
+export type ComputeType = 'row_index' | 'no_diacritics' | 'japanese_date' | 'japanese_month' | 'blank';
 
 export interface ExportColumn {
   key: string;        // Tên cột DB hoặc key unique cho computed (bắt đầu '_')
@@ -268,18 +269,20 @@ const legalColumns: ExportColumn[] = [
   { key: 'jp_school_2', label: 'Tên trường JP 2' },
   // 28. Khóa học JP 2
   { key: 'jp_course_2', label: 'Khóa học JP 2' },
-  // 29-39: Các cột pháp lý (có thể chưa có trong DB, để sẵn)
-  { key: 'dkhd_submission_date', label: 'Ngày trình ĐKHĐ', format: 'date' },
-  { key: 'dkhd_number', label: 'Số ĐKHĐ' },
-  { key: 'dkhd_file_code', label: 'Mã HS ĐKHĐ' },
-  { key: 'tpc_request_date', label: 'Ngày gửi xin TPC', format: 'date' },
-  { key: 'tpc_cv_number', label: 'Số CV xin TPC' },
-  { key: 'tpc_file_code', label: 'Mã HS xin TPC' },
-  { key: 'ptl_number', label: 'Số PTL' },
+  // 29-39: Các cột pháp lý (placeholder) - giữ đúng thứ tự hệ thống
+  // NOTE: Hiện tại các cột này CHƯA tồn tại trong bảng trainees => phải để computed 'blank'
+  // Khi Supabase bổ sung cột thật, chỉ cần bỏ computeType và giữ key trùng tên cột DB.
+  { key: 'dkhd_submission_date', label: 'Ngày trình ĐKHĐ', computeType: 'blank' },
+  { key: 'dkhd_number', label: 'Số ĐKHĐ', computeType: 'blank' },
+  { key: 'dkhd_file_code', label: 'Mã HS ĐKHĐ', computeType: 'blank' },
+  { key: 'tpc_request_date', label: 'Ngày gửi xin TPC', computeType: 'blank' },
+  { key: 'tpc_cv_number', label: 'Số CV xin TPC', computeType: 'blank' },
+  { key: 'tpc_file_code', label: 'Mã HS xin TPC', computeType: 'blank' },
+  { key: 'ptl_number', label: 'Số PTL', computeType: 'blank' },
   { key: 'document_status', label: 'Tình trạng' },
-  { key: 'ptl_issue_date', label: 'Ngày cấp PTL', format: 'date' },
-  { key: 'tpc_issue_date', label: 'Ngày cấp TPC', format: 'date' },
-  { key: 'current_status', label: 'Hiện trạng' },
+  { key: 'ptl_issue_date', label: 'Ngày cấp PTL', computeType: 'blank' },
+  { key: 'tpc_issue_date', label: 'Ngày cấp TPC', computeType: 'blank' },
+  { key: 'current_status', label: 'Hiện trạng', computeType: 'blank' },
 ];
 
 // Handbook - Cẩm nang tư vấn

@@ -111,17 +111,20 @@ export function ExportButtonWithColumns({
     switch (computeType) {
       case 'row_index':
         return String(rowIndex + 1);
-      
+
+      case 'blank':
+        return '—';
+
       case 'no_diacritics':
         if (!sourceField) return '';
         const sourceVal = getNestedValue(row, sourceField);
         return removeVietnameseDiacritics(sourceVal || '');
-      
+
       case 'japanese_date':
         if (!sourceField) return '—';
         const dateVal = getNestedValue(row, sourceField);
         return formatJapaneseDate(dateVal);
-      
+
       case 'japanese_month':
         if (!sourceField) return '—';
         const monthVal = getNestedValue(row, sourceField);
@@ -133,7 +136,7 @@ export function ExportButtonWithColumns({
         }
         // Fallback to full date format
         return formatJapaneseDate(monthVal);
-      
+
       default:
         return '';
     }
@@ -154,15 +157,15 @@ export function ExportButtonWithColumns({
     const directFields: string[] = [];
     const computedSourceFields: string[] = [];
     
-    columns.forEach(col => {
-      // Skip computed columns (they start with _)
-      if (col.key.startsWith('_')) {
-        // But we need the source field for computation
-        if (col.computeFrom && !col.computeFrom.includes('.')) {
-          computedSourceFields.push(col.computeFrom);
-        }
-        return;
-      }
+     columns.forEach(col => {
+       // Skip computed columns (they start with _ or have computeType)
+       if (col.key.startsWith('_') || col.computeType) {
+         // But we need the source field for computation
+         if (col.computeFrom && !col.computeFrom.includes('.')) {
+           computedSourceFields.push(col.computeFrom);
+         }
+         return;
+       }
       
       if (col.key.includes('.')) {
         const [relation, field] = col.key.split('.');
