@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Menu, Eye, Plus, Edit, Trash2, Save, User } from "lucide-react";
+import { Loader2, Menu, Eye, Plus, Edit, Trash2, Save, User, FileSpreadsheet } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 /**
@@ -34,6 +34,7 @@ import { useAuth } from "@/hooks/useAuth";
  *    can_create → Thấy nút "Thêm"
  *    can_update → Thấy nút "Sửa"
  *    can_delete → Thấy nút "Xóa"
+ *    can_export → Thấy nút "Xuất Excel"
  * 
  * 4. KHÔNG TICK = KHÔNG TỒN TẠI trong UI và API
  * =====================================================
@@ -55,6 +56,7 @@ interface MenuPermission {
   can_create: boolean;
   can_update: boolean;
   can_delete: boolean;
+  can_export: boolean;
 }
 
 interface MenuInfo {
@@ -127,6 +129,7 @@ export function UserMenuPermissionsModal({
           can_create: false,
           can_update: false,
           can_delete: false,
+          can_export: false,
         };
       });
       
@@ -139,6 +142,7 @@ export function UserMenuPermissionsModal({
             can_create: p.can_create ?? false,
             can_update: p.can_update ?? false,
             can_delete: p.can_delete ?? false,
+            can_export: p.can_export ?? false,
           };
         }
       });
@@ -168,6 +172,7 @@ export function UserMenuPermissionsModal({
           can_create: p.can_create,
           can_update: p.can_update,
           can_delete: p.can_delete,
+          can_export: p.can_export,
           assigned_by: user?.id,
         }));
 
@@ -196,7 +201,7 @@ export function UserMenuPermissionsModal({
 
   const togglePermission = (
     menuKey: string,
-    field: "can_view" | "can_create" | "can_update" | "can_delete"
+    field: "can_view" | "can_create" | "can_update" | "can_delete" | "can_export"
   ) => {
     setLocalPermissions((prev) => {
       const current = prev[menuKey] || {
@@ -205,6 +210,7 @@ export function UserMenuPermissionsModal({
         can_create: false,
         can_update: false,
         can_delete: false,
+        can_export: false,
       };
 
       let updated = { ...current };
@@ -218,6 +224,7 @@ export function UserMenuPermissionsModal({
             can_create: false,
             can_update: false,
             can_delete: false,
+            can_export: false,
           };
         } else {
           updated.can_view = true;
@@ -247,6 +254,7 @@ export function UserMenuPermissionsModal({
           can_create: checked ? newPerms[menu.key]?.can_create ?? false : false,
           can_update: checked ? newPerms[menu.key]?.can_update ?? false : false,
           can_delete: checked ? newPerms[menu.key]?.can_delete ?? false : false,
+          can_export: checked ? newPerms[menu.key]?.can_export ?? false : false,
         };
       });
       setHasChanges(true);
@@ -254,7 +262,7 @@ export function UserMenuPermissionsModal({
     });
   };
 
-  const toggleAllColumn = (field: "can_create" | "can_update" | "can_delete", checked: boolean) => {
+  const toggleAllColumn = (field: "can_create" | "can_update" | "can_delete" | "can_export", checked: boolean) => {
     setLocalPermissions((prev) => {
       const newPerms = { ...prev };
       menus.forEach((menu) => {
@@ -264,6 +272,7 @@ export function UserMenuPermissionsModal({
           can_create: false,
           can_update: false,
           can_delete: false,
+          can_export: false,
         };
         newPerms[menu.key] = {
           ...current,
@@ -285,6 +294,7 @@ export function UserMenuPermissionsModal({
         can_create: false,
         can_update: false,
         can_delete: false,
+        can_export: false,
       }
     );
   };
@@ -351,13 +361,18 @@ export function UserMenuPermissionsModal({
     return menus.every((m) => getPermission(m.key).can_delete);
   }, [menus, localPermissions]);
 
+  const allExportChecked = useMemo(() => {
+    if (menus.length === 0) return false;
+    return menus.every((m) => getPermission(m.key).can_export);
+  }, [menus, localPermissions]);
+
   const selectedCount = useMemo(() => {
     return Object.values(localPermissions).filter(p => p.can_view).length;
   }, [localPermissions]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <User className="h-5 w-5 text-primary" />
@@ -380,54 +395,64 @@ export function UserMenuPermissionsModal({
         ) : (
           <div className="flex-1 overflow-hidden flex flex-col gap-4">
             {/* Header row */}
-            <div className="flex items-center gap-4 p-3 bg-muted rounded-lg text-sm font-medium">
+            <div className="flex items-center gap-3 p-3 bg-muted rounded-lg text-sm font-medium">
               <div className="flex-1 flex items-center gap-2">
                 <Menu className="h-4 w-4" />
                 Menu
               </div>
-              <div className="w-20 text-center flex items-center justify-center gap-1">
+              <div className="w-16 text-center flex items-center justify-center gap-1">
                 <Eye className="h-3 w-3" />
                 <span>Xem</span>
               </div>
-              <div className="w-20 text-center flex items-center justify-center gap-1">
+              <div className="w-16 text-center flex items-center justify-center gap-1">
                 <Plus className="h-3 w-3" />
                 <span>Thêm</span>
               </div>
-              <div className="w-20 text-center flex items-center justify-center gap-1">
+              <div className="w-16 text-center flex items-center justify-center gap-1">
                 <Edit className="h-3 w-3" />
                 <span>Sửa</span>
               </div>
-              <div className="w-20 text-center flex items-center justify-center gap-1">
+              <div className="w-16 text-center flex items-center justify-center gap-1">
                 <Trash2 className="h-3 w-3" />
                 <span>Xóa</span>
+              </div>
+              <div className="w-16 text-center flex items-center justify-center gap-1">
+                <FileSpreadsheet className="h-3 w-3" />
+                <span>Xuất</span>
               </div>
             </div>
 
             {/* Toggle all */}
-            <div className="flex items-center gap-4 p-2 border rounded-lg bg-muted/30">
+            <div className="flex items-center gap-3 p-2 border rounded-lg bg-muted/30">
               <div className="flex-1 font-medium text-sm">Chọn tất cả</div>
-              <div className="w-20 flex justify-center">
+              <div className="w-16 flex justify-center">
                 <Checkbox
                   checked={allViewChecked}
                   onCheckedChange={(checked) => toggleAllView(!!checked)}
                 />
               </div>
-              <div className="w-20 flex justify-center">
+              <div className="w-16 flex justify-center">
                 <Checkbox
                   checked={allCreateChecked}
                   onCheckedChange={(checked) => toggleAllColumn("can_create", !!checked)}
                 />
               </div>
-              <div className="w-20 flex justify-center">
+              <div className="w-16 flex justify-center">
                 <Checkbox
                   checked={allUpdateChecked}
                   onCheckedChange={(checked) => toggleAllColumn("can_update", !!checked)}
                 />
               </div>
-              <div className="w-20 flex justify-center">
+              <div className="w-16 flex justify-center">
                 <Checkbox
                   checked={allDeleteChecked}
                   onCheckedChange={(checked) => toggleAllColumn("can_delete", !!checked)}
+                />
+              </div>
+              <div className="w-16 flex justify-center">
+                <Checkbox
+                  checked={allExportChecked}
+                  onCheckedChange={(checked) => toggleAllColumn("can_export", !!checked)}
                 />
               </div>
             </div>
@@ -443,37 +468,44 @@ export function UserMenuPermissionsModal({
                     <div
                       key={menu.key}
                       className={
-                        "flex items-center gap-4 p-2 hover:bg-muted/50 rounded " +
+                        "flex items-center gap-3 p-2 hover:bg-muted/50 rounded " +
                         (isChild ? "pl-8 text-sm" : "")
                       }
                     >
                       <div className={"flex-1 " + (isChild ? "text-muted-foreground" : "font-medium")}>
                         {isChild ? `└ ${menu.label}` : menu.label}
                       </div>
-                      <div className="w-20 flex justify-center">
+                      <div className="w-16 flex justify-center">
                         <Checkbox
                           checked={perm.can_view}
                           onCheckedChange={() => togglePermission(menu.key, "can_view")}
                         />
                       </div>
-                      <div className="w-20 flex justify-center">
+                      <div className="w-16 flex justify-center">
                         <Checkbox
                           checked={perm.can_create}
                           onCheckedChange={() => togglePermission(menu.key, "can_create")}
                           disabled={!perm.can_view}
                         />
                       </div>
-                      <div className="w-20 flex justify-center">
+                      <div className="w-16 flex justify-center">
                         <Checkbox
                           checked={perm.can_update}
                           onCheckedChange={() => togglePermission(menu.key, "can_update")}
                           disabled={!perm.can_view}
                         />
                       </div>
-                      <div className="w-20 flex justify-center">
+                      <div className="w-16 flex justify-center">
                         <Checkbox
                           checked={perm.can_delete}
                           onCheckedChange={() => togglePermission(menu.key, "can_delete")}
+                          disabled={!perm.can_view}
+                        />
+                      </div>
+                      <div className="w-16 flex justify-center">
+                        <Checkbox
+                          checked={perm.can_export}
+                          onCheckedChange={() => togglePermission(menu.key, "can_export")}
                           disabled={!perm.can_view}
                         />
                       </div>

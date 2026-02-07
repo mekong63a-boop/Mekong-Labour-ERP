@@ -28,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ExportButton } from "@/components/ui/export-button";
+import { ExportButtonWithColumns } from "@/components/ui/export-button-with-columns";
 import { EXPORT_CONFIGS } from "@/lib/export-configs";
 
 export default function OrderList() {
@@ -105,10 +105,10 @@ export default function OrderList() {
           <span className="font-semibold text-primary uppercase">Đơn hàng đang tuyển dụng</span>
         </div>
         <div className="flex items-center gap-2">
-          <ExportButton
+          <ExportButtonWithColumns
             menuKey="orders"
             tableName="orders"
-            columns={EXPORT_CONFIGS.orders.columns}
+            allColumns={EXPORT_CONFIGS.orders.columns}
             fileName={EXPORT_CONFIGS.orders.fileName}
             selectQuery={`
               code, work_address, quantity, gender_requirement, contract_term,
@@ -117,6 +117,7 @@ export default function OrderList() {
               union:unions(name),
               job_category:job_categories(name)
             `}
+            title="Xuất danh sách đơn hàng"
           />
           <Button onClick={handleAdd} className="bg-green-600 hover:bg-green-700 text-white">
             <Plus className="h-4 w-4 mr-2" />
