@@ -31,7 +31,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { LegalExportButton } from '@/components/legal/LegalExportButton';
 import { ExportButtonWithColumns } from '@/components/ui/export-button-with-columns';
 import { EXPORT_CONFIGS } from '@/lib/export-configs';
 
@@ -485,11 +484,17 @@ export default function LegalPage() {
                 <SelectItem value="completed">Đã xong</SelectItem>
               </SelectContent>
             </Select>
-            <LegalExportButton
-              companyId={selectedCompanyBatch?.company_id || ''}
-              companyCode={selectedCompanyBatch?.code || ''}
-              companyName={selectedCompanyBatch?.name || ''}
-              documentStatusFilter={exportDocStatus}
+            <ExportButtonWithColumns
+              menuKey="legal"
+              tableName="trainees"
+              allColumns={EXPORT_CONFIGS.legal.columns}
+              fileName={`ho-so-${selectedCompanyBatch?.code || 'cty'}-${exportDocStatus === 'all' ? 'tat-ca' : exportDocStatus}`}
+              filters={{
+                receiving_company_id: selectedCompanyBatch?.company_id || '',
+                progression_stage: 'Đậu phỏng vấn',
+                ...(exportDocStatus !== 'all' && { document_status: exportDocStatus })
+              }}
+              title={`Xuất hồ sơ - ${selectedCompanyBatch?.name || ''}`}
             />
           </div>
         </div>

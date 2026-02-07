@@ -1,14 +1,31 @@
 /**
  * Cấu hình xuất Excel theo menu
  * Mỗi menu định nghĩa cột xuất với tên tiếng Việt
+ * 
+ * NGUYÊN TẮC: 1 luồng, 1 nguồn dữ liệu
+ * - Tất cả cấu hình cột nằm ở đây
+ * - Computed columns được định nghĩa declarative với computeFrom + computeType
+ * - ExportButtonWithColumns xử lý tất cả logic transform
  */
 
 export type ExportColumnFormat = 'date' | 'number' | 'currency';
+
+/**
+ * Các loại computed column được hỗ trợ:
+ * - 'row_index': STT (số thứ tự)
+ * - 'no_diacritics': Bỏ dấu tiếng Việt, viết hoa
+ * - 'japanese_date': Format ngày sang tiếng Nhật (YYYY年MM月DD日)
+ * - 'japanese_month': Format tháng sang tiếng Nhật (YYYY年MM月)
+ */
+export type ComputeType = 'row_index' | 'no_diacritics' | 'japanese_date' | 'japanese_month';
 
 export interface ExportColumn {
   key: string;
   label: string;
   format?: ExportColumnFormat;
+  // Computed column config
+  computeFrom?: string;  // Source field for computation
+  computeType?: ComputeType;  // Type of computation
 }
 
 export interface ExportConfig {
@@ -160,52 +177,80 @@ const internalUnionTransactionColumns: ExportColumn[] = [
   { key: 'description', label: 'Mô tả' },
 ];
 
-// Legal - Tình trạng hồ sơ (chi tiết đầy đủ - KHỚP ĐÚNG THỨ TỰ VỚI DOCUMENT_COLUMNS trong LegalPage)
-// 'STT', 'Mã HV', 'Họ và tên', 'Họ và tên không dấu', 'Tên phiên âm', 
-// 'Giới tính', 'Ngày tháng năm sinh', 'Ngày sinh tiếng Nhật',
-// 'Nơi sinh', 'Nơi sinh không dấu', 
-// 'Số hộ chiếu', 'Ngày cấp HC', 'Ngày cấp HC (JP)',
-// 'Ngày dự kiến XC', 'Ngày dự kiến XC (JP)',
-// 'Địa chỉ Việt', 'Địa chỉ Nhật',
-// 'Tên người bảo lãnh VN', 'Tên người bảo lãnh JP', 'SĐT người bảo lãnh',
-// 'Tên trường cấp 3', 'Thời gian học',
-// 'Trường chứng chỉ JP', 'Thời gian học CC',
-// 'Tên trường JP 1', 'Khóa học JP 1',
-// 'Tên trường JP 2', 'Khóa học JP 2',
-// 'Ngày trình ĐKHĐ', 'Số ĐKHĐ', 'Mã HS ĐKHĐ',
-// 'Ngày gửi xin TPC', 'Số CV xin TPC', 'Mã HS xin TPC',
-// 'Số PTL', 'Tình trạng', 'Ngày cấp PTL', 'Ngày cấp TPC', 'Hiện trạng'
+/**
+ * Legal - Tình trạng hồ sơ
+ * 39 cột theo đúng thứ tự DOCUMENT_COLUMNS trong LegalPage
+ * Bao gồm cả computed columns với computeFrom + computeType
+ */
 const legalColumns: ExportColumn[] = [
-  // Cột cơ bản - STT sẽ được thêm tự động khi xuất
+  // 1. STT - computed từ row index
+  { key: '_stt', label: 'STT', computeType: 'row_index' },
+  // 2. Mã HV
   { key: 'trainee_code', label: 'Mã HV' },
+  // 3. Họ và tên
   { key: 'full_name', label: 'Họ và tên' },
-  // Họ và tên không dấu - tính toán khi xuất
+  // 4. Họ và tên không dấu - computed
+  { key: '_full_name_nodiac', label: 'Họ và tên không dấu', computeFrom: 'full_name', computeType: 'no_diacritics' },
+  // 5. Tên phiên âm
   { key: 'furigana', label: 'Tên phiên âm' },
+  // 6. Giới tính
   { key: 'gender', label: 'Giới tính' },
+  // 7. Ngày tháng năm sinh
   { key: 'birth_date', label: 'Ngày tháng năm sinh', format: 'date' },
-  // Ngày sinh tiếng Nhật - tính toán khi xuất
+  // 8. Ngày sinh tiếng Nhật - computed
+  { key: '_birth_date_jp', label: 'Ngày sinh tiếng Nhật', computeFrom: 'birth_date', computeType: 'japanese_date' },
+  // 9. Nơi sinh
   { key: 'birthplace', label: 'Nơi sinh' },
-  // Nơi sinh không dấu - tính toán khi xuất
+  // 10. Nơi sinh không dấu - computed
+  { key: '_birthplace_nodiac', label: 'Nơi sinh không dấu', computeFrom: 'birthplace', computeType: 'no_diacritics' },
+  // 11. Số hộ chiếu
   { key: 'passport_number', label: 'Số hộ chiếu' },
+  // 12. Ngày cấp HC
   { key: 'passport_date', label: 'Ngày cấp HC', format: 'date' },
-  // Ngày cấp HC (JP) - tính toán khi xuất
+  // 13. Ngày cấp HC (JP) - computed
+  { key: '_passport_date_jp', label: 'Ngày cấp HC (JP)', computeFrom: 'passport_date', computeType: 'japanese_date' },
+  // 14. Ngày dự kiến XC
   { key: 'expected_entry_month', label: 'Ngày dự kiến XC' },
-  // Ngày dự kiến XC (JP) - tính toán khi xuất
+  // 15. Ngày dự kiến XC (JP) - computed (month format)
+  { key: '_expected_entry_month_jp', label: 'Ngày dự kiến XC (JP)', computeFrom: 'expected_entry_month', computeType: 'japanese_month' },
+  // 16. Địa chỉ Việt
   { key: 'legal_address_vn', label: 'Địa chỉ Việt' },
+  // 17. Địa chỉ Nhật
   { key: 'legal_address_jp', label: 'Địa chỉ Nhật' },
+  // 18. Tên người bảo lãnh VN
   { key: 'guarantor_name_vn', label: 'Tên người bảo lãnh VN' },
+  // 19. Tên người bảo lãnh JP
   { key: 'guarantor_name_jp', label: 'Tên người bảo lãnh JP' },
+  // 20. SĐT người bảo lãnh
   { key: 'guarantor_phone', label: 'SĐT người bảo lãnh' },
+  // 21. Tên trường cấp 3
   { key: 'high_school_name', label: 'Tên trường cấp 3' },
+  // 22. Thời gian học
   { key: 'high_school_period', label: 'Thời gian học' },
+  // 23. Trường chứng chỉ JP
   { key: 'jp_certificate_school', label: 'Trường chứng chỉ JP' },
+  // 24. Thời gian học CC
   { key: 'jp_certificate_period', label: 'Thời gian học CC' },
+  // 25. Tên trường JP 1
   { key: 'jp_school_1', label: 'Tên trường JP 1' },
+  // 26. Khóa học JP 1
   { key: 'jp_course_1', label: 'Khóa học JP 1' },
+  // 27. Tên trường JP 2
   { key: 'jp_school_2', label: 'Tên trường JP 2' },
+  // 28. Khóa học JP 2
   { key: 'jp_course_2', label: 'Khóa học JP 2' },
-  { key: 'document_status', label: 'Tình trạng hồ sơ' },
-  { key: 'receiving_company.name', label: 'Công ty tiếp nhận' },
+  // 29-39: Các cột pháp lý (có thể chưa có trong DB, để sẵn)
+  { key: 'dkhd_submission_date', label: 'Ngày trình ĐKHĐ', format: 'date' },
+  { key: 'dkhd_number', label: 'Số ĐKHĐ' },
+  { key: 'dkhd_file_code', label: 'Mã HS ĐKHĐ' },
+  { key: 'tpc_request_date', label: 'Ngày gửi xin TPC', format: 'date' },
+  { key: 'tpc_cv_number', label: 'Số CV xin TPC' },
+  { key: 'tpc_file_code', label: 'Mã HS xin TPC' },
+  { key: 'ptl_number', label: 'Số PTL' },
+  { key: 'document_status', label: 'Tình trạng' },
+  { key: 'ptl_issue_date', label: 'Ngày cấp PTL', format: 'date' },
+  { key: 'tpc_issue_date', label: 'Ngày cấp TPC', format: 'date' },
+  { key: 'current_status', label: 'Hiện trạng' },
 ];
 
 // Handbook - Cẩm nang tư vấn
