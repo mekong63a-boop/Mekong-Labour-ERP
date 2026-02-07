@@ -1764,6 +1764,7 @@ export type Database = {
           current_address: string | null
           current_situation: string | null
           departure_date: string | null
+          dkhd_code: string | null
           document_status: string | null
           document_submission_date: string | null
           dominant_hand: string | null
@@ -1844,6 +1845,7 @@ export type Database = {
           tattoo: boolean | null
           tattoo_description: string | null
           temp_address: string | null
+          tpc_code: string | null
           trainee_code: string
           trainee_type: Database["public"]["Enums"]["trainee_type"] | null
           union_id: string | null
@@ -1871,6 +1873,7 @@ export type Database = {
           current_address?: string | null
           current_situation?: string | null
           departure_date?: string | null
+          dkhd_code?: string | null
           document_status?: string | null
           document_submission_date?: string | null
           dominant_hand?: string | null
@@ -1951,6 +1954,7 @@ export type Database = {
           tattoo?: boolean | null
           tattoo_description?: string | null
           temp_address?: string | null
+          tpc_code?: string | null
           trainee_code: string
           trainee_type?: Database["public"]["Enums"]["trainee_type"] | null
           union_id?: string | null
@@ -1978,6 +1982,7 @@ export type Database = {
           current_address?: string | null
           current_situation?: string | null
           departure_date?: string | null
+          dkhd_code?: string | null
           document_status?: string | null
           document_submission_date?: string | null
           dominant_hand?: string | null
@@ -2058,6 +2063,7 @@ export type Database = {
           tattoo?: boolean | null
           tattoo_description?: string | null
           temp_address?: string | null
+          tpc_code?: string | null
           trainee_code?: string
           trainee_type?: Database["public"]["Enums"]["trainee_type"] | null
           union_id?: string | null
