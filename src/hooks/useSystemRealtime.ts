@@ -79,6 +79,16 @@ export function useSystemRealtime() {
             ["dormitories-with-count"],
             ["dormitory-gender-stats"],
           ], true);
+          
+          // Queue orders (receiving_company_id, progression_stage changes affect trainee counts)
+          queueInvalidation(REALTIME_GROUPS.ORDERS, QUERY_KEY_BUNDLES.orders, false);
+          
+          // Queue post-departure (progression_stage changes affect departed trainee stats)
+          queueInvalidation(REALTIME_GROUPS.POST_DEPARTURE, QUERY_KEY_BUNDLES.postDeparture, false);
+          
+          // Queue partners (receiving_company_id, union_id changes affect trainee counts)
+          // TODO: Chuyển sang PostgreSQL View để tối ưu hiệu suất cho quy mô lớn
+          queueInvalidation(REALTIME_GROUPS.PARTNERS, QUERY_KEY_BUNDLES.partners, false);
         }
       )
       

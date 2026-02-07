@@ -136,6 +136,8 @@ export const REALTIME_GROUPS = {
   PERMISSIONS: 'permissions',
   DASHBOARD: 'dashboard',
   DORMITORY: 'dormitory',
+  POST_DEPARTURE: 'post-departure',
+  PARTNERS: 'partners',
 } as const;
 
 export const QUERY_KEY_BUNDLES = {
@@ -205,5 +207,18 @@ export const QUERY_KEY_BUNDLES = {
     ["trainees-in-other-dormitories"],
     ["trainee-dormitory-history"],
     ["search-trainee-dormitory"],
+  ],
+  postDeparture: [
+    ["post-departure-trainees"],
+    ["post-departure-stats-by-year"],
+    ["post-departure-by-type"],
+    ["post-departure-kpi-cards"],
+  ],
+  partners: [
+    ["companies"],
+    ["unions"],
+    ["job_categories"],
+    ["company-trainee-counts"],
+    ["union-trainee-counts"],
   ],
 } as const;

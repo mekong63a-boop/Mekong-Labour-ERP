@@ -875,6 +875,21 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       await queryClient.invalidateQueries({ queryKey: ["trainees"] });
       await queryClient.invalidateQueries({ queryKey: ["trainee", traineeId] });
       await queryClient.refetchQueries({ queryKey: ["trainee", traineeId] });
+      
+      // Invalidate Orders queries (receiving_company_id, progression_stage changes)
+      await queryClient.invalidateQueries({ queryKey: ["orders"] });
+      await queryClient.invalidateQueries({ queryKey: ["order-trainee-counts"] });
+      await queryClient.invalidateQueries({ queryKey: ["order-trainees"] });
+      
+      // Invalidate Post-departure queries (progression_stage changes affect stats)
+      await queryClient.invalidateQueries({ queryKey: ["post-departure-trainees"] });
+      await queryClient.invalidateQueries({ queryKey: ["post-departure-stats-by-year"] });
+      await queryClient.invalidateQueries({ queryKey: ["post-departure-by-type"] });
+      await queryClient.invalidateQueries({ queryKey: ["post-departure-kpi-cards"] });
+      
+      // Invalidate Partners queries (receiving_company_id, union_id changes)
+      await queryClient.invalidateQueries({ queryKey: ["companies"] });
+      await queryClient.invalidateQueries({ queryKey: ["unions"] });
 
       toast({
         title: "Thành công",
