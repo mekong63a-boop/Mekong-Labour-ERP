@@ -56,6 +56,7 @@ type DocumentStatusFilter = 'in_progress' | 'completed' | null;
 // Interface cho thống kê phiếu
 interface FormStats {
   total_forms: number;
+  approved_forms: number;
   total_workers: number;
   male_workers: number;
   female_workers: number;
@@ -210,20 +211,27 @@ export default function LegalPage() {
       // Đếm số phiếu (mã unique) và số lao động từ trainees có dkhd_code
       const { data, error } = await supabase
         .from("trainees")
-        .select("dkhd_code, gender")
+        .select("dkhd_code, gender, ptl_date")
         .eq("progression_stage", 'Đậu phỏng vấn')
         .not("dkhd_code", "is", null);
 
       if (error) throw error;
 
       // Tính toán: phiếu = mã unique, lao động = tổng số trainees có mã
-      const uniqueCodes = new Set((data || []).map(t => t.dkhd_code));
       const workers = data || [];
+      const uniqueCodes = new Set(workers.map(t => t.dkhd_code));
+      
+      // Phiếu đã duyệt: mã có ít nhất 1 trainee đã có ptl_date
+      const approvedCodes = new Set(
+        workers.filter(t => t.ptl_date).map(t => t.dkhd_code)
+      );
+      
       const maleCount = workers.filter(t => t.gender === 'Nam').length;
       const femaleCount = workers.filter(t => t.gender === 'Nữ').length;
 
       return {
         total_forms: uniqueCodes.size,
+        approved_forms: approvedCodes.size,
         total_workers: workers.length,
         male_workers: maleCount,
         female_workers: femaleCount,
@@ -238,20 +246,27 @@ export default function LegalPage() {
       // Đếm số phiếu (mã unique) và số lao động từ trainees có tpc_code
       const { data, error } = await supabase
         .from("trainees")
-        .select("tpc_code, gender")
+        .select("tpc_code, gender, ptl_date")
         .eq("progression_stage", 'Đậu phỏng vấn')
         .not("tpc_code", "is", null);
 
       if (error) throw error;
 
       // Tính toán: phiếu = mã unique, lao động = tổng số trainees có mã
-      const uniqueCodes = new Set((data || []).map(t => t.tpc_code));
       const workers = data || [];
+      const uniqueCodes = new Set(workers.map(t => t.tpc_code));
+      
+      // Thư đã duyệt: mã có ít nhất 1 trainee đã có ptl_date
+      const approvedCodes = new Set(
+        workers.filter(t => t.ptl_date).map(t => t.tpc_code)
+      );
+      
       const maleCount = workers.filter(t => t.gender === 'Nam').length;
       const femaleCount = workers.filter(t => t.gender === 'Nữ').length;
 
       return {
         total_forms: uniqueCodes.size,
+        approved_forms: approvedCodes.size,
         total_workers: workers.length,
         male_workers: maleCount,
         female_workers: femaleCount,
@@ -1010,16 +1025,30 @@ export default function LegalPage() {
   const renderDkhdStatsTab = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Tổng số phiếu ĐKHĐ */}
+        {/* Số lượng đăng ký PTL */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Tổng số phiếu ĐKHĐ</CardTitle>
+            <CardTitle className="text-sm font-medium">Số lượng đăng ký PTL</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">{dkhdStats?.total_forms || 0}</div>
             <p className="text-xs text-muted-foreground mt-1">
               Mỗi mã HS ĐKHĐ = 1 phiếu
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Số lượng PTL đã được duyệt */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">PTL đã được duyệt</CardTitle>
+            <FileCheck className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{dkhdStats?.approved_forms || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Có ngày cấp PTL
             </p>
           </CardContent>
         </Card>
@@ -1040,7 +1069,7 @@ export default function LegalPage() {
         </Card>
 
         {/* Tỷ lệ giới tính */}
-        <Card className="md:col-span-2">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Tỷ lệ giới tính</CardTitle>
           </CardHeader>
@@ -1079,16 +1108,30 @@ export default function LegalPage() {
   const renderTpcStatsTab = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Tổng số thư phái cử */}
+        {/* Số lượng đăng ký thư phái cử */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Tổng số Thư phái cử</CardTitle>
+            <CardTitle className="text-sm font-medium">SL đăng ký TPC</CardTitle>
             <Send className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">{tpcStats?.total_forms || 0}</div>
             <p className="text-xs text-muted-foreground mt-1">
               Mỗi mã HS xin TPC = 1 thư
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Số lượng thư phái cử đã được duyệt */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">TPC đã được duyệt</CardTitle>
+            <FileCheck className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{tpcStats?.approved_forms || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Có ngày cấp PTL
             </p>
           </CardContent>
         </Card>
@@ -1109,7 +1152,7 @@ export default function LegalPage() {
         </Card>
 
         {/* Tỷ lệ giới tính */}
-        <Card className="md:col-span-2">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Tỷ lệ giới tính</CardTitle>
           </CardHeader>
