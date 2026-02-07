@@ -106,6 +106,7 @@ interface CompanyTrainee {
   jp_course_2: string | null;
   progression_stage: string | null;
   document_status: string | null;
+  recommending_company: { name: string; representative: string | null; position: string | null } | null;
 }
 
 const TRAINEE_TYPE_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
@@ -135,6 +136,7 @@ const DOCUMENT_COLUMNS = [
   'Trường chứng chỉ JP', 'Thời gian học CC',
   'Tên trường JP 1', 'Khóa học JP 1',
   'Tên trường JP 2', 'Khóa học JP 2',
+  'Tên công ty tiến cử', 'Tên người đại diện', 'Chức vụ',
   'Ngày trình ĐKHĐ', 'Số ĐKHĐ', 'Mã HS ĐKHĐ',
   'Ngày gửi xin TPC', 'Số CV xin TPC', 'Mã HS xin TPC',
   'Số PTL', 'Tình trạng', 'Ngày cấp PTL', 'Ngày cấp TPC', 'Hiện trạng'
@@ -339,7 +341,8 @@ export default function LegalPage() {
           jp_school_2,
           jp_course_2,
           progression_stage,
-          document_status
+          document_status,
+          recommending_company:companies!fk_trainees_company(name, representative, position)
         `)
         .eq("receiving_company_id", selectedCompanyBatch.company_id)
         .eq("progression_stage", 'Đậu phỏng vấn')
@@ -773,6 +776,18 @@ export default function LegalPage() {
                           onBlur={(e) => handleLegalFieldBlur(trainee.id, "jp_course_2", e.target.value)}
                           placeholder="2002年09月~2005年06月"
                         />
+                      </TableCell>
+                      {/* Tên công ty tiến cử */}
+                      <TableCell className="whitespace-nowrap">
+                        {trainee.recommending_company?.name || "—"}
+                      </TableCell>
+                      {/* Tên người đại diện */}
+                      <TableCell className="whitespace-nowrap">
+                        {trainee.recommending_company?.representative || "—"}
+                      </TableCell>
+                      {/* Chức vụ */}
+                      <TableCell className="whitespace-nowrap">
+                        {trainee.recommending_company?.position || "—"}
                       </TableCell>
                       {/* Empty cells for remaining columns - to be filled manually */}
                       {Array.from({ length: 11 }).map((_, cellIdx) => (
