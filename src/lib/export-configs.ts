@@ -1,11 +1,39 @@
 /**
- * Cấu hình xuất Excel theo menu
- * Mỗi menu định nghĩa cột xuất với tên tiếng Việt
+ * =============================================================================
+ * CẤU HÌNH XUẤT EXCEL - SINGLE SOURCE OF TRUTH
+ * =============================================================================
  * 
- * NGUYÊN TẮC: 1 luồng, 1 nguồn dữ liệu
- * - Tất cả cấu hình cột nằm ở đây
- * - Computed columns được định nghĩa declarative với computeFrom + computeType
- * - ExportButtonWithColumns xử lý tất cả logic transform
+ * ██████╗ ██╗   ██╗██╗     ███████╗███████╗
+ * ██╔══██╗██║   ██║██║     ██╔════╝██╔════╝
+ * ██████╔╝██║   ██║██║     █████╗  ███████╗
+ * ██╔══██╗██║   ██║██║     ██╔══╝  ╚════██║
+ * ██║  ██║╚██████╔╝███████╗███████╗███████║
+ * ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚══════╝╚══════╝
+ * 
+ * QUY TẮC BẤT DI BẤT DỊCH - KHÓA VÀ CHỐT
+ * =============================================================================
+ * 
+ * 1. MỘT LUỒNG DỮ LIỆU DUY NHẤT:
+ *    - File này là NGUỒN DUY NHẤT định nghĩa cấu trúc cột xuất Excel
+ *    - Tất cả menu đều dùng ExportButtonWithColumns component
+ *    - KHÔNG TẠO component export riêng cho từng menu
+ * 
+ * 2. COMPUTED COLUMNS (Cột tính toán):
+ *    - Định nghĩa declarative bằng computeFrom + computeType
+ *    - Logic transform nằm tập trung tại ExportButtonWithColumns
+ *    - Ví dụ: STT, bỏ dấu tiếng Việt, format ngày tiếng Nhật
+ * 
+ * 3. KHI THÊM CỘT MỚI:
+ *    - Thêm vào mảng columns tương ứng trong file này
+ *    - Nếu cần transform đặc biệt → định nghĩa computeType mới
+ *    - KHÔNG sửa logic export ở các page riêng lẻ
+ * 
+ * 4. THỨ TỰ CỘT:
+ *    - Thứ tự trong mảng columns = thứ tự xuất file Excel
+ *    - Phải đồng bộ với thứ tự hiển thị trên giao diện
+ * 
+ * CẢNH BÁO: Vi phạm các quy tắc trên sẽ phá vỡ tính nhất quán hệ thống!
+ * =============================================================================
  */
 
 export type ExportColumnFormat = 'date' | 'number' | 'currency';
@@ -16,22 +44,23 @@ export type ExportColumnFormat = 'date' | 'number' | 'currency';
  * - 'no_diacritics': Bỏ dấu tiếng Việt, viết hoa
  * - 'japanese_date': Format ngày sang tiếng Nhật (YYYY年MM月DD日)
  * - 'japanese_month': Format tháng sang tiếng Nhật (YYYY年MM月)
+ * 
+ * Để thêm loại mới: Cập nhật enum này + logic trong ExportButtonWithColumns
  */
 export type ComputeType = 'row_index' | 'no_diacritics' | 'japanese_date' | 'japanese_month';
 
 export interface ExportColumn {
-  key: string;
-  label: string;
-  format?: ExportColumnFormat;
-  // Computed column config
-  computeFrom?: string;  // Source field for computation
-  computeType?: ComputeType;  // Type of computation
+  key: string;        // Tên cột DB hoặc key unique cho computed (bắt đầu '_')
+  label: string;      // Tên hiển thị tiếng Việt
+  format?: ExportColumnFormat;    // Format dữ liệu (date/number/currency)
+  computeFrom?: string;           // Cột nguồn cho computed column
+  computeType?: ComputeType;      // Loại tính toán
 }
 
 export interface ExportConfig {
-  menuKey: string;
-  fileName: string;
-  columns: ExportColumn[];
+  menuKey: string;    // Key menu để kiểm tra quyền
+  fileName: string;   // Tên file xuất (không có extension)
+  columns: ExportColumn[];  // Danh sách cột xuất
 }
 
 export interface PartnerExportConfig {

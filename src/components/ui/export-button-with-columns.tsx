@@ -36,14 +36,27 @@ interface ExportButtonWithColumnsProps {
 }
 
 /**
- * Nút xuất Excel với dialog chọn cột
- * - Kiểm tra quyền can_export trước khi hiển thị
- * - Cho phép user chọn cột muốn xuất
- * - Hỗ trợ computed columns (STT, bỏ dấu, format Nhật...)
- * - Phân trang khi xuất lượng lớn
+ * =============================================================================
+ * EXPORT BUTTON - SINGLE SOURCE OF TRUTH
+ * =============================================================================
  * 
- * NGUYÊN TẮC: 1 luồng, 1 nguồn dữ liệu
- * Tất cả logic transform/compute nằm ở đây
+ * Component CHUNG DUY NHẤT cho xuất Excel toàn hệ thống.
+ * 
+ * QUY TẮC BẤT DI BẤT DỊCH:
+ * -------------------------
+ * 1. TẤT CẢ menu đều dùng component này - KHÔNG tạo component export riêng
+ * 2. Cấu hình cột nằm tại export-configs.ts - KHÔNG hardcode trong page
+ * 3. Logic transform tập trung ở đây - KHÔNG phân tán ra nhiều file
+ * 
+ * CHỨC NĂNG:
+ * - Kiểm tra quyền can_export trước khi hiển thị
+ * - Dialog cho phép user chọn cột muốn xuất
+ * - Hỗ trợ computed columns (STT, bỏ dấu, format Nhật...)
+ * - Phân trang tự động cho dataset lớn (1000 records/page)
+ * - Auto-width cột Excel
+ * 
+ * CẢNH BÁO: Tạo component export riêng cho menu sẽ phá vỡ Single Source of Truth!
+ * =============================================================================
  */
 export function ExportButtonWithColumns({
   menuKey,
