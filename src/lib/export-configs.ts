@@ -269,12 +269,12 @@ const legalColumns: ExportColumn[] = [
   { key: 'jp_school_2', label: 'Tên trường JP 2' },
   // 28. Khóa học JP 2
   { key: 'jp_course_2', label: 'Khóa học JP 2' },
-  // 29. Tên công ty tiến cử
-  { key: 'receiving_company.name', label: 'Tên công ty tiến cử' },
-  // 30. Tên người đại diện
-  { key: 'receiving_company.representative', label: 'Tên người đại diện' },
-  // 31. Chức vụ
-  { key: 'receiving_company.position', label: 'Chức vụ' },
+  // 29. Tên công ty tiến cử (nhập tay)
+  { key: 'recommending_company_name', label: 'Tên công ty tiến cử' },
+  // 30. Tên người đại diện (nhập tay)
+  { key: 'recommending_representative', label: 'Tên người đại diện' },
+  // 31. Chức vụ (nhập tay)
+  { key: 'recommending_position', label: 'Chức vụ' },
   // 32. Ngày trình ĐKHĐ
   { key: 'dkhd_date', label: 'Ngày trình ĐKHĐ', format: 'date' },
   // 33. Số ĐKHĐ

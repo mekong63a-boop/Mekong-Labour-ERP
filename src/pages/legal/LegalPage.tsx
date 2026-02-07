@@ -106,7 +106,10 @@ interface CompanyTrainee {
   jp_course_2: string | null;
   progression_stage: string | null;
   document_status: string | null;
-  recommending_company: { name: string; representative: string | null; position: string | null } | null;
+  // Công ty tiến cử - nhập tay
+  recommending_company_name: string | null;
+  recommending_representative: string | null;
+  recommending_position: string | null;
   // Legal document fields
   dkhd_date: string | null;
   dkhd_number: string | null;
@@ -353,7 +356,9 @@ export default function LegalPage() {
           jp_course_2,
           progression_stage,
           document_status,
-          recommending_company:companies!fk_trainees_company(name, representative, position),
+          recommending_company_name,
+          recommending_representative,
+          recommending_position,
           dkhd_date,
           dkhd_number,
           dkhd_code,
@@ -798,17 +803,32 @@ export default function LegalPage() {
                           placeholder="2002年09月~2005年06月"
                         />
                       </TableCell>
-                      {/* Tên công ty tiến cử - readonly */}
-                      <TableCell className="whitespace-nowrap">
-                        {trainee.recommending_company?.name || "—"}
+                      {/* Tên công ty tiến cử - text input */}
+                      <TableCell className={`min-w-[180px] ${!trainee.recommending_company_name ? 'bg-orange-50' : ''}`}>
+                        <Input
+                          className={`h-7 text-xs ${!trainee.recommending_company_name ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
+                          defaultValue={trainee.recommending_company_name || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "recommending_company_name", e.target.value)}
+                          placeholder="Tên công ty tiến cử"
+                        />
                       </TableCell>
-                      {/* Tên người đại diện - readonly */}
-                      <TableCell className="whitespace-nowrap">
-                        {trainee.recommending_company?.representative || "—"}
+                      {/* Tên người đại diện - text input */}
+                      <TableCell className={`min-w-[150px] ${!trainee.recommending_representative ? 'bg-orange-50' : ''}`}>
+                        <Input
+                          className={`h-7 text-xs ${!trainee.recommending_representative ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
+                          defaultValue={trainee.recommending_representative || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "recommending_representative", e.target.value)}
+                          placeholder="Tên người đại diện"
+                        />
                       </TableCell>
-                      {/* Chức vụ - readonly */}
-                      <TableCell className="whitespace-nowrap">
-                        {trainee.recommending_company?.position || "—"}
+                      {/* Chức vụ - text input */}
+                      <TableCell className={`min-w-[120px] ${!trainee.recommending_position ? 'bg-orange-50' : ''}`}>
+                        <Input
+                          className={`h-7 text-xs ${!trainee.recommending_position ? 'border-orange-300 placeholder:text-orange-400' : ''}`}
+                          defaultValue={trainee.recommending_position || ""}
+                          onBlur={(e) => handleLegalFieldBlur(trainee.id, "recommending_position", e.target.value)}
+                          placeholder="Chức vụ"
+                        />
                       </TableCell>
                       {/* Ngày trình ĐKHĐ - date input */}
                       <TableCell className={`min-w-[130px] ${!trainee.dkhd_date ? 'bg-orange-50' : ''}`}>
