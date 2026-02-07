@@ -134,6 +134,7 @@ export default function PostDeparturePage() {
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [selectedTraineeType, setSelectedTraineeType] = useState<string | null>(null);
   const [showChart, setShowChart] = useState(true);
+  const [exportTraineeType, setExportTraineeType] = useState<string>("all");
 
   // Get year options from actual data
   const yearOptions = useMemo(() => getYearOptionsFromData(trainees), [trainees]);
@@ -363,14 +364,30 @@ export default function PostDeparturePage() {
           <Users className="h-6 w-6 text-primary" />
           <h1 className="text-xl font-bold text-primary">TTS đang ở Nhật</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <Select value={exportTraineeType} onValueChange={setExportTraineeType}>
+            <SelectTrigger className="w-[180px] h-9">
+              <SelectValue placeholder="Chọn đối tượng xuất" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả đối tượng</SelectItem>
+              <SelectItem value="Thực tập sinh">Thực tập sinh</SelectItem>
+              <SelectItem value="TTS số 3">TTS số 3</SelectItem>
+              <SelectItem value="Du học sinh">Du học sinh</SelectItem>
+              <SelectItem value="Kỹ năng đặc định">Kỹ năng đặc định</SelectItem>
+              <SelectItem value="Kỹ sư">Kỹ sư</SelectItem>
+            </SelectContent>
+          </Select>
           <ExportButtonWithColumns
             menuKey="post-departure"
             tableName="trainees"
             allColumns={EXPORT_CONFIGS.post_departure.columns}
-            fileName={EXPORT_CONFIGS.post_departure.fileName}
-            filters={{ progression_stage: ['Xuất cảnh', 'Đang làm việc', 'Hoàn thành hợp đồng', 'Bỏ trốn', 'Về trước hạn'] }}
-            title="Xuất danh sách sau xuất cảnh"
+            fileName={`${EXPORT_CONFIGS.post_departure.fileName}${exportTraineeType !== 'all' ? `-${exportTraineeType.replace(/\s+/g, '-').toLowerCase()}` : ''}`}
+            filters={{ 
+              progression_stage: ['Xuất cảnh', 'Đang làm việc', 'Hoàn thành hợp đồng', 'Bỏ trốn', 'Về trước hạn'],
+              ...(exportTraineeType !== 'all' && { trainee_type: exportTraineeType })
+            }}
+            title={`Xuất danh sách ${exportTraineeType !== 'all' ? exportTraineeType : 'sau xuất cảnh'}`}
           />
           <Button
             variant="outline"
