@@ -196,7 +196,32 @@ const teacherColumns: ExportColumn[] = [
   { key: 'email', label: 'Email' },
   { key: 'phone', label: 'Điện thoại' },
   { key: 'specialty', label: 'Chuyên môn' },
+  { key: 'class_start_date', label: 'Ngày nhận lớp', format: 'date' },
+  { key: 'class_end_date', label: 'Ngày kết thúc', format: 'date' },
   { key: 'status', label: 'Trạng thái' },
+];
+
+// Class Students - Học viên trong lớp
+const classStudentsColumns: ExportColumn[] = [
+  { key: 'trainee_code', label: 'Mã HV' },
+  { key: 'full_name', label: 'Họ và tên' },
+  { key: 'birth_date', label: 'Ngày sinh', format: 'date' },
+  { key: 'birthplace', label: 'Quê quán' },
+  { key: 'simple_status', label: 'Trạng thái' },
+  { key: 'progression_stage', label: 'Giai đoạn' },
+];
+
+// Dormitory Residents - Cư dân KTX
+const dormitoryResidentsColumns: ExportColumn[] = [
+  { key: 'trainee.trainee_code', label: 'Mã HV' },
+  { key: 'trainee.full_name', label: 'Họ và tên' },
+  { key: 'trainee.phone', label: 'SĐT' },
+  { key: 'room_number', label: 'Phòng' },
+  { key: 'bed_number', label: 'Giường' },
+  { key: 'check_in_date', label: 'Ngày vào', format: 'date' },
+  { key: 'check_out_date', label: 'Ngày ra', format: 'date' },
+  { key: 'status', label: 'Trạng thái' },
+  { key: 'notes', label: 'Ghi chú' },
 ];
 
 export const EXPORT_CONFIGS = {
@@ -272,6 +297,16 @@ export const EXPORT_CONFIGS = {
     menuKey: 'education',
     fileName: 'danh-sach-giao-vien',
     columns: teacherColumns,
+  },
+  class_students: {
+    menuKey: 'education',
+    fileName: 'danh-sach-hoc-vien-lop',
+    columns: classStudentsColumns,
+  },
+  dormitory_residents: {
+    menuKey: 'dormitory',
+    fileName: 'danh-sach-cu-dan-ktx',
+    columns: dormitoryResidentsColumns,
   },
 };
 
