@@ -1,190 +1,445 @@
 
-## Bảo mật Supabase: Fix Security Definer Views + Search Path + Leaked Password
+## Triển khai Xuất Excel theo Phân Quyền Menu
 
-### Tóm tắt vấn đề hiện tại
-Từ security scan, dự án có 3 vấn đề chính cần xử lý:
-
-1. **SUPA_security_definer_view (ERROR)**: Các views sử dụng SECURITY DEFINER có thể bypass RLS policies
-2. **SUPA_function_search_path_mutable (WARN)**: Một số functions thiếu `SET search_path = public`, dễ bị injection attacks
-3. **SUPA_auth_leaked_password_protection (WARN)**: Leaked Password Protection chưa được bật trong Supabase Auth Settings
-
----
-
-### 1. Fix SECURITY DEFINER Views (Chuyển sang SECURITY INVOKER)
-
-**Vấn đề:** 
-- Dashboard views hiện sử dụng mặc định (implicit SECURITY DEFINER từ cách tạo cũ)
-- SECURITY DEFINER có nghĩa view chạy với quyền của người tạo (thường là admin), bypass RLS của user thực tế
-
-**Danh sách 11 Dashboard Views cần fix:**
-```
-1. dashboard_trainee_kpis
-2. dashboard_trainee_by_stage
-3. dashboard_trainee_by_status
-4. dashboard_trainee_by_type
-5. dashboard_trainee_monthly
-6. dashboard_trainee_by_source
-7. dashboard_trainee_by_birthplace
-8. dashboard_trainee_by_gender
-9. dashboard_trainee_departures_monthly
-10. dashboard_trainee_passed_monthly
-11. dashboard_monthly_combined
-12. dashboard_monthly_passed
-13. dashboard_trainee_by_company (và các view khác liên quan)
-```
-
-**Giải pháp:**
-- Chuyển tất cả sang `security_invoker = true` (hoặc `security_invoker = on`)
-- Các views này query từ bảng đã có RLS policies → user chỉ thấy dữ liệu theo quyền của họ → tự động bảo vệ
-
-**SQL Migration Pattern:**
-```sql
-DROP VIEW IF EXISTS public.dashboard_trainee_kpis;
-CREATE OR REPLACE VIEW public.dashboard_trainee_kpis
-WITH (security_invoker = true) AS
-SELECT ... (nội dung view hiện tại)
-```
-
-**Tác động:** ✅ No Breaking Changes
-- Với `security_invoker = true`, view sẽ áp dụng RLS policies của user đó
-- Kết quả không thay đổi với user có quyền xem hết dữ liệu (admin)
-- Với user restricted, view sẽ tự động filter dữ liệu theo quyền → thêm security layer
+### Tổng quan
+Xây dựng hệ thống xuất dữ liệu ra Excel linh hoạt, tuân thủ:
+1. **Phân quyền menu**: Chỉ xuất được dữ liệu của menu mà người dùng có quyền xem
+2. **Kiểm soát cột**: Mỗi phòng ban chỉ xuất được các cột phù hợp với nghiệp vụ của họ
+3. **RLS tự động**: Dữ liệu xuất ra tuân thủ Row-Level Security đã có sẵn
+4. **Tối ưu hiệu suất**: Phân trang khi xuất lượng lớn, tránh làm chậm hệ thống
 
 ---
 
-### 2. Fix Function Search Path (Thêm SET search_path = public)
+### Kiến trúc giải pháp
 
-**Vấn đề:**
-Một số functions (trigger functions, helper functions) thiếu `SET search_path = public`:
-```
-- ensure_single_manager_per_department() - dòng 83
-- mask_phone, mask_cccd, mask_passport, mask_email - trigger functions
-- get_trainee_full_profile - đã có, OK
-- sync_trainee_status_from_workflow - dòng 36, OK
-```
-
-**Giải pháp:**
-Thêm `SET search_path = public` vào các function chưa có:
-```sql
-CREATE OR REPLACE FUNCTION public.ensure_single_manager_per_department()
-RETURNS TRIGGER 
-LANGUAGE plpgsql 
-SECURITY DEFINER 
-SET search_path = public  -- ← ADD THIS
-AS $$
-  ...
-$$;
-```
-
-**Tác động:** ✅ No Breaking Changes
-- Chỉ là cài đặt bảo mật, không thay đổi logic
-- Ngăn chặn search path injection attacks (attacker không thể tạo schema/function khác để hijack)
-
----
-
-### 3. Bật Leaked Password Protection (Thủ công trên Supabase Dashboard)
-
-**Vấn đề:**
-Supabase Auth Settings chưa bật kiểm tra "leaked passwords" từ Have I Been Pwned database.
-
-**Giải pháp (thủ công):**
-Vào Supabase Dashboard → Authentication → Settings → Tìm "Leaked Password Protection" → Bật nó
-
-**Tác động:** ✅ Bảo mật tương lai
-- Nếu user đặt password đã bị leak, Supabase sẽ từ chối
-- Thêm 1 layer bảo vệ dữ liệu tài khoản user
-
----
-
-### Plan Triển khai (Trình tự)
-
-#### **PHASE 1: Tạo SQL Migration cho Dashboard Views** (10 min)
-- Tạo migration file `20260207_fix_security_views.sql`
-- Chứa DROP + CREATE 11-15 dashboard views với `security_invoker = true`
-- Tuân thủ thứ tự dependency (views có FK phải tạo sau)
-
-#### **PHASE 2: Tạo SQL Migration cho Function Search Paths** (5 min)
-- Tạo migration file `20260207_fix_function_search_paths.sql`
-- Thêm `SET search_path = public` cho các functions còn thiếu:
-  - ensure_single_manager_per_department()
-  - trigger functions (mask_phone, mask_cccd, v.v.)
-  - Bất kỳ SECURITY DEFINER function nào thiếu
-
-#### **PHASE 3: Bật Leaked Password Protection** (2 min, thủ công)
-- User vào Supabase Dashboard
-- Authentication → Settings → Leaked Password Protection → Bật
-- Hoặc dùng Supabase CLI: `supabase env list` → copy project URL → vào dashboard web
-
----
-
-### Tiêu chí nghiệm thu (QA)
-
-1. **Security Definer Views:**
-   - Chạy security scan lại → không có "Security Definer View" errors
-   - Vào Dashboard → biểu đồ vẫn hiển thị đúng
-   - Test role-based filtering: User staff chỉ thấy dữ liệu phòng ban của họ
-
-2. **Function Search Paths:**
-   - Security scan → không có "Function Search Path Mutable" warnings
-   - Trigger `ensure_single_manager_per_department` vẫn hoạt động (chỉ 1 manager per dept)
-
-3. **Leaked Password Protection:**
-   - Supabase Dashboard → Authentication → Settings → Xác nhận "Leaked Password Protection: ON"
-
----
-
-### Technical Details (Nếu cần tham khảo)
-
-**Mô phỏng logic:**
-```
-SECURITY DEFINER (cũ):
-  SELECT * FROM dashboard_trainee_kpis
-  → Query chạy với quyền của creator (admin)
-  → Trả về TẤT CẢ dữ liệu (không filter theo user)
-
-SECURITY INVOKER (mới):
-  SELECT * FROM dashboard_trainee_kpis
-  → Query chạy với quyền của người query (staff/admin)
-  → RLS policies tự động lọc:
-     - Admin → thấy tất cả
-     - Staff phòng A → chỉ thấy học viên phòng A
-```
-
-**Ví dụ SET search_path:**
-```sql
--- Trước (không bảo vệ):
-CREATE OR REPLACE FUNCTION public.ensure_single_manager_per_department()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
-  DELETE FROM public.department_members WHERE ...
-  -- Attacker tạo public.department_members ở schema khác → bị hack
-$$;
-
--- Sau (bảo vệ):
-CREATE OR REPLACE FUNCTION public.ensure_single_manager_per_department()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-  DELETE FROM public.department_members WHERE ...
-  -- Attacker tạo schema/function khác → bị ignore (search_path fixed = public)
-$$;
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                     FRONTEND (React)                            │
+├─────────────────────────────────────────────────────────────────┤
+│  1. ExportButton (component dùng chung)                         │
+│     - Hiển thị nếu user có quyền xem menu đó                    │
+│     - Props: menuKey, exportConfig, filters                     │
+│                                                                 │
+│  2. useExportExcel (hook)                                       │
+│     - Gọi Supabase query với filters hiện tại                   │
+│     - Phân trang khi > 1000 records                             │
+│     - Chuyển dữ liệu → xlsx → download                          │
+│                                                                 │
+│  3. exportConfigs (cấu hình theo menu)                          │
+│     - Định nghĩa cột nào được xuất cho mỗi menu                 │
+│     - Map tên cột VN cho header Excel                           │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                     SUPABASE (RLS)                              │
+├─────────────────────────────────────────────────────────────────┤
+│  - RLS policies tự động lọc dữ liệu theo quyền user             │
+│  - can_view('trainees') → chỉ trả dữ liệu user được xem         │
+│  - PII masking đã có sẵn cho non-senior staff                   │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### Files cần sửa (Tóm tắt)
+### Chi tiết triển khai
 
-| Phase | Loại | Chi tiết |
-|-------|------|---------|
-| **Phase 1** | SQL Migration | `supabase/migrations/20260207_*.sql` - Tạo views với `security_invoker = true` |
-| **Phase 2** | SQL Migration | `supabase/migrations/20260207_*.sql` - Thêm `SET search_path` vào functions |
-| **Phase 3** | Thủ công | Supabase Dashboard → Auth Settings → Bật Leaked Password Protection |
+#### 1. Cài đặt thư viện SheetJS (xlsx)
+
+Thêm dependency `xlsx` vào project:
+```bash
+npm install xlsx
+```
 
 ---
 
-### Dự kiến rủi ro & giảm nhẹ
+#### 2. Tạo Export Configurations (`src/lib/export-configs.ts`)
 
-| Rủi ro | Khả năng | Giảm nhẹ |
-|--------|----------|---------|
-| Dashboard hiển thị sai sau fix security_invoker | **Thấp** | RLS policies đã được kiểm tra → logic không đổi |
-| Trigger functions fail nếu thêm SET search_path | **Rất thấp** | Chỉ là cài đặt, không thay đổi logic function |
-| Performance degrade | **Không** | security_invoker không ảnh hưởng hiệu suất |
-| User không thể login nếu bật Leaked Password Protection | **Rất thấp** | Chỉ ảnh hưởng user có password bị leak trước đó |
+Định nghĩa cột xuất cho từng menu với tên tiếng Việt:
 
+```typescript
+// Cấu hình xuất Excel theo menu
+export const EXPORT_CONFIGS = {
+  trainees: {
+    menuKey: 'trainees',
+    fileName: 'danh-sach-hoc-vien',
+    columns: [
+      { key: 'trainee_code', label: 'Mã HV' },
+      { key: 'full_name', label: 'Họ và tên' },
+      { key: 'birth_date', label: 'Ngày sinh', format: 'date' },
+      { key: 'gender', label: 'Giới tính' },
+      { key: 'birthplace', label: 'Quê quán' },
+      { key: 'progression_stage', label: 'Giai đoạn' },
+      { key: 'receiving_company.name', label: 'Công ty tiếp nhận' },
+      { key: 'union.name', label: 'Nghiệp đoàn' },
+      { key: 'job_category.name', label: 'Ngành nghề' },
+      // ... các cột khác
+    ]
+  },
+  orders: {
+    menuKey: 'orders',
+    fileName: 'danh-sach-don-hang',
+    columns: [
+      { key: 'code', label: 'Mã đơn hàng' },
+      { key: 'company.name', label: 'Công ty' },
+      { key: 'job_category.name', label: 'Ngành nghề' },
+      { key: 'work_address', label: 'Địa chỉ làm việc' },
+      { key: 'quantity', label: 'Số lượng tuyển' },
+      { key: 'expected_interview_date', label: 'Ngày PV dự kiến', format: 'date' },
+      { key: 'status', label: 'Trạng thái' },
+    ]
+  },
+  partners: {
+    menuKey: 'partners',
+    fileName: 'danh-sach-doi-tac',
+    // Có 3 sub-tabs: companies, unions, job_categories
+    tabs: {
+      companies: {
+        fileName: 'danh-sach-cong-ty',
+        columns: [
+          { key: 'code', label: 'Mã công ty' },
+          { key: 'name', label: 'Tên công ty' },
+          { key: 'name_japanese', label: 'Tên tiếng Nhật' },
+          { key: 'industry', label: 'Ngành nghề' },
+          { key: 'work_address', label: 'Địa chỉ làm việc' },
+          { key: 'representative', label: 'Người phụ trách' },
+          { key: 'status', label: 'Trạng thái' },
+        ]
+      },
+      unions: {
+        fileName: 'danh-sach-nghiep-doan',
+        columns: [
+          { key: 'code', label: 'Mã nghiệp đoàn' },
+          { key: 'name', label: 'Tên nghiệp đoàn' },
+          { key: 'name_japanese', label: 'Tên tiếng Nhật' },
+          { key: 'address', label: 'Địa chỉ' },
+          { key: 'contact_person', label: 'Người liên hệ' },
+          { key: 'phone', label: 'Điện thoại' },
+          { key: 'status', label: 'Trạng thái' },
+        ]
+      },
+      job_categories: {
+        fileName: 'danh-sach-nganh-nghe',
+        columns: [
+          { key: 'code', label: 'Mã ngành' },
+          { key: 'name', label: 'Tên ngành nghề' },
+          { key: 'name_japanese', label: 'Tên tiếng Nhật' },
+          { key: 'category', label: 'Danh mục' },
+          { key: 'description', label: 'Mô tả' },
+          { key: 'status', label: 'Trạng thái' },
+        ]
+      }
+    }
+  },
+  education: {
+    menuKey: 'education',
+    fileName: 'danh-sach-lop-hoc',
+    columns: [
+      { key: 'class_code', label: 'Mã lớp' },
+      { key: 'class_name', label: 'Tên lớp' },
+      { key: 'teacher.name', label: 'Giáo viên' },
+      { key: 'student_count', label: 'Số học viên' },
+      { key: 'status', label: 'Trạng thái' },
+    ]
+  },
+  post_departure: {
+    menuKey: 'post_departure',
+    fileName: 'danh-sach-sau-xuat-canh',
+    columns: [
+      { key: 'trainee_code', label: 'Mã HV' },
+      { key: 'full_name', label: 'Họ và tên' },
+      { key: 'departure_date', label: 'Ngày xuất cảnh', format: 'date' },
+      { key: 'receiving_company.name', label: 'Công ty' },
+      { key: 'current_situation', label: 'Tình trạng hiện tại' },
+      { key: 'expected_return_date', label: 'Ngày dự kiến về', format: 'date' },
+    ]
+  },
+  // ... các menu khác
+};
+```
+
+---
+
+#### 3. Tạo Hook xuất Excel (`src/hooks/useExportExcel.ts`)
+
+```typescript
+import { useCallback, useState } from 'react';
+import * as XLSX from 'xlsx';
+import { supabase } from '@/integrations/supabase/client';
+import { useCanAccessMenu } from '@/hooks/useMenuPermissions';
+import { formatVietnameseDate } from '@/lib/vietnamese-utils';
+import { toast } from 'sonner';
+
+interface ExportColumn {
+  key: string;
+  label: string;
+  format?: 'date' | 'number' | 'currency';
+}
+
+interface UseExportExcelOptions {
+  menuKey: string;
+  tableName: string;
+  columns: ExportColumn[];
+  fileName: string;
+  selectQuery?: string; // Custom select query
+  filters?: Record<string, any>; // Current filters from UI
+}
+
+export function useExportExcel(options: UseExportExcelOptions) {
+  const { menuKey, tableName, columns, fileName, selectQuery, filters } = options;
+  const { canView, isLoading: permissionLoading } = useCanAccessMenu(menuKey);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportToExcel = useCallback(async () => {
+    if (!canView) {
+      toast.error('Bạn không có quyền xuất dữ liệu này');
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      // Build query
+      let query = supabase
+        .from(tableName)
+        .select(selectQuery || '*');
+
+      // Apply filters from UI state
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value && value !== 'all') {
+            query = query.eq(key, value);
+          }
+        });
+      }
+
+      // Fetch all data (với phân trang nếu cần)
+      const PAGE_SIZE = 1000;
+      let allData: any[] = [];
+      let from = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data, error } = await query.range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        
+        allData = [...allData, ...(data || [])];
+        hasMore = data?.length === PAGE_SIZE;
+        from += PAGE_SIZE;
+      }
+
+      if (allData.length === 0) {
+        toast.warning('Không có dữ liệu để xuất');
+        return;
+      }
+
+      // Transform data to Excel format
+      const excelData = allData.map(row => {
+        const excelRow: Record<string, any> = {};
+        columns.forEach(col => {
+          const value = getNestedValue(row, col.key);
+          excelRow[col.label] = formatValue(value, col.format);
+        });
+        return excelRow;
+      });
+
+      // Create workbook and export
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Dữ liệu');
+
+      // Auto-width columns
+      const colWidths = columns.map(col => ({
+        wch: Math.max(col.label.length, 15)
+      }));
+      ws['!cols'] = colWidths;
+
+      // Generate filename with date
+      const dateStr = new Date().toISOString().split('T')[0];
+      const fullFileName = `${fileName}_${dateStr}.xlsx`;
+
+      XLSX.writeFile(wb, fullFileName);
+      toast.success(`Đã xuất ${allData.length} bản ghi`);
+    } catch (error: any) {
+      toast.error('Lỗi khi xuất dữ liệu: ' + error.message);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [canView, tableName, selectQuery, filters, columns, fileName]);
+
+  return {
+    exportToExcel,
+    isExporting,
+    canExport: canView && !permissionLoading,
+  };
+}
+
+// Helper: lấy giá trị từ nested object (vd: 'company.name')
+function getNestedValue(obj: any, path: string): any {
+  return path.split('.').reduce((acc, part) => acc?.[part], obj);
+}
+
+// Helper: format giá trị theo type
+function formatValue(value: any, format?: string): any {
+  if (value == null) return '';
+  if (format === 'date') return formatVietnameseDate(value);
+  if (format === 'currency') return new Intl.NumberFormat('vi-VN').format(value);
+  return value;
+}
+```
+
+---
+
+#### 4. Tạo Component ExportButton (`src/components/ui/export-button.tsx`)
+
+```typescript
+import { Button } from '@/components/ui/button';
+import { Download, Loader2 } from 'lucide-react';
+import { useExportExcel } from '@/hooks/useExportExcel';
+
+interface ExportButtonProps {
+  menuKey: string;
+  tableName: string;
+  columns: Array<{ key: string; label: string; format?: string }>;
+  fileName: string;
+  selectQuery?: string;
+  filters?: Record<string, any>;
+  variant?: 'default' | 'outline' | 'ghost';
+  size?: 'default' | 'sm' | 'lg' | 'icon';
+  label?: string;
+}
+
+export function ExportButton({
+  menuKey,
+  tableName,
+  columns,
+  fileName,
+  selectQuery,
+  filters,
+  variant = 'outline',
+  size = 'sm',
+  label = 'Xuất Excel',
+}: ExportButtonProps) {
+  const { exportToExcel, isExporting, canExport } = useExportExcel({
+    menuKey,
+    tableName,
+    columns,
+    fileName,
+    selectQuery,
+    filters,
+  });
+
+  if (!canExport) return null;
+
+  return (
+    <Button
+      variant={variant}
+      size={size}
+      onClick={exportToExcel}
+      disabled={isExporting}
+    >
+      {isExporting ? (
+        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+      ) : (
+        <Download className="h-4 w-4 mr-2" />
+      )}
+      {label}
+    </Button>
+  );
+}
+```
+
+---
+
+#### 5. Tích hợp vào các trang List
+
+**TraineeList.tsx** - thêm nút xuất:
+```typescript
+// Import
+import { ExportButton } from '@/components/ui/export-button';
+import { EXPORT_CONFIGS } from '@/lib/export-configs';
+
+// Trong JSX, thêm bên cạnh nút "Thêm học viên"
+<ExportButton
+  menuKey="trainees"
+  tableName="trainees"
+  columns={EXPORT_CONFIGS.trainees.columns}
+  fileName={EXPORT_CONFIGS.trainees.fileName}
+  selectQuery={`
+    id, trainee_code, full_name, birth_date, gender, birthplace,
+    progression_stage, simple_status, trainee_type,
+    receiving_company:companies(name),
+    union:unions(name),
+    job_category:job_categories(name)
+  `}
+  filters={{ progression_stage: progressionStage !== 'all' ? progressionStage : undefined }}
+/>
+```
+
+**OrderList.tsx** - thêm nút xuất:
+```typescript
+<ExportButton
+  menuKey="orders"
+  tableName="orders"
+  columns={EXPORT_CONFIGS.orders.columns}
+  fileName={EXPORT_CONFIGS.orders.fileName}
+  selectQuery={`
+    *,
+    company:companies(name),
+    union:unions(name),
+    job_category:job_categories(name)
+  `}
+/>
+```
+
+**PartnerList.tsx** - thêm nút xuất theo tab:
+```typescript
+<ExportButton
+  menuKey="partners"
+  tableName={activeTab === 'companies' ? 'companies' : activeTab === 'unions' ? 'unions' : 'job_categories'}
+  columns={EXPORT_CONFIGS.partners.tabs[activeTab].columns}
+  fileName={EXPORT_CONFIGS.partners.tabs[activeTab].fileName}
+/>
+```
+
+---
+
+### Bảo mật tự động theo RLS
+
+| Tầng | Cơ chế bảo mật | Ghi chú |
+|------|---------------|---------|
+| **Frontend** | `useCanAccessMenu(menuKey)` | Ẩn nút nếu không có quyền xem menu |
+| **Query** | `supabase.from(tableName)` | Query chạy với token của user hiện tại |
+| **Supabase RLS** | `can_view('trainees')` | Chỉ trả dữ liệu user được phép xem |
+| **PII Masking** | Trigger `mask_phone`, `mask_cccd` | Dữ liệu nhạy cảm được mask cho non-senior staff |
+
+---
+
+### Tóm tắt files cần tạo/sửa
+
+| File | Loại | Mô tả |
+|------|------|-------|
+| `package.json` | Sửa | Thêm dependency `xlsx` |
+| `src/lib/export-configs.ts` | Tạo mới | Cấu hình cột xuất cho từng menu |
+| `src/hooks/useExportExcel.ts` | Tạo mới | Hook xử lý logic xuất Excel |
+| `src/components/ui/export-button.tsx` | Tạo mới | Component nút xuất dùng chung |
+| `src/pages/TraineeList.tsx` | Sửa | Thêm ExportButton |
+| `src/pages/orders/OrderList.tsx` | Sửa | Thêm ExportButton |
+| `src/pages/partners/PartnerList.tsx` | Sửa | Thêm ExportButton |
+
+---
+
+### Tiêu chí nghiệm thu (E2E Testing)
+
+1. **Test quyền xuất:**
+   - Đăng nhập user có quyền xem menu Học viên → thấy nút "Xuất Excel"
+   - Đăng nhập user KHÔNG có quyền xem menu Đơn hàng → KHÔNG thấy nút xuất ở trang Đơn hàng
+
+2. **Test dữ liệu xuất:**
+   - Xuất danh sách học viên với filter "Giai đoạn = Đậu phỏng vấn" → file Excel chỉ chứa học viên đã đậu PV
+   - Mở file Excel → kiểm tra các cột header đúng tiếng Việt
+
+3. **Test PII Masking:**
+   - Đăng nhập nhân viên thường (non-senior) → xuất Excel → số điện thoại, CCCD bị mask
+   - Đăng nhập nhân viên cấp cao → xuất Excel → thấy đầy đủ thông tin
+
+4. **Test hiệu suất:**
+   - Xuất 5000+ học viên → hoàn thành trong < 10 giây, không làm đơ UI
