@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/select";
 import { Users, Search, RefreshCw, BarChart3, GraduationCap, Wrench, Briefcase, Plane, Key } from "lucide-react";
 import { format, parseISO, addYears } from "date-fns";
+import { ExportButtonWithColumns } from '@/components/ui/export-button-with-columns';
+import { EXPORT_CONFIGS } from '@/lib/export-configs';
 import { cn } from "@/lib/utils";
 
 import {
@@ -362,6 +364,15 @@ export default function PostDeparturePage() {
           <h1 className="text-xl font-bold text-primary">TTS đang ở Nhật</h1>
         </div>
         <div className="flex gap-2">
+          <ExportButtonWithColumns
+            menuKey="post-departure"
+            tableName="trainees"
+            allColumns={EXPORT_CONFIGS.post_departure.columns}
+            fileName={EXPORT_CONFIGS.post_departure.fileName}
+            selectQuery="trainee_code, full_name, departure_date, receiving_company:companies(name), union:unions(name), job_category:job_categories(name), current_situation, contract_end_date, expected_return_date, return_date, early_return_date, early_return_reason, absconded_date"
+            filters={{ progression_stage: ['Xuất cảnh', 'Đang làm việc', 'Hoàn thành hợp đồng', 'Bỏ trốn', 'Về trước hạn'] }}
+            title="Xuất danh sách sau xuất cảnh"
+          />
           <Button
             variant="outline"
             size="sm"

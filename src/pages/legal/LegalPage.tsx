@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { ExportButtonWithColumns } from '@/components/ui/export-button-with-columns';
+import { EXPORT_CONFIGS } from '@/lib/export-configs';
 
 interface CompanyBatch {
   company_id: string;
@@ -917,16 +919,29 @@ export default function LegalPage() {
             Theo dõi tình trạng hồ sơ các công ty đã tuyển dụng
           </p>
         </div>
-        {viewMode === 'list' && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowStats(!showStats)}
-          >
-            <BarChart3 className="h-4 w-4 mr-2" />
-            {showStats ? "Ẩn thống kê" : "Hiện thống kê"}
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {viewMode === 'list' && (
+            <>
+              <ExportButtonWithColumns
+                menuKey="legal"
+                tableName="trainees"
+                allColumns={EXPORT_CONFIGS.legal.columns}
+                fileName={EXPORT_CONFIGS.legal.fileName}
+                selectQuery="trainee_code, full_name, cccd_number, passport_number, document_status, document_submission_date, coe_date, visa_date, nyukan_entry_date"
+                filters={{ progression_stage: 'Đậu phỏng vấn' }}
+                title="Xuất tình trạng hồ sơ"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowStats(!showStats)}
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                {showStats ? "Ẩn thống kê" : "Hiện thống kê"}
+              </Button>
+            </>
+          )}
+        </div>
       </header>
 
       {viewMode === 'list' && renderListView()}

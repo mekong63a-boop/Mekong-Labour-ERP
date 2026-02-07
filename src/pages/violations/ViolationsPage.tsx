@@ -35,6 +35,8 @@ import { toast } from "sonner";
 import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 import { useCanAction } from "@/hooks/useMenuPermissions";
 import { Badge } from "@/components/ui/badge";
+import { ExportButtonWithColumns } from '@/components/ui/export-button-with-columns';
+import { EXPORT_CONFIGS } from '@/lib/export-configs';
 
 interface BlacklistEntry {
   id: string;
@@ -240,6 +242,15 @@ export default function ViolationsPage() {
             THÊM VÀO BLACKLIST
           </Button>
         )}
+        <ExportButtonWithColumns
+          menuKey="violations"
+          tableName="trainee_reviews"
+          allColumns={EXPORT_CONFIGS.violations.columns}
+          fileName={EXPORT_CONFIGS.violations.fileName}
+          selectQuery="trainee:trainees(trainee_code, full_name), content, blacklist_reason, is_blacklisted, created_at"
+          filters={{ is_blacklisted: true }}
+          title="Xuất danh sách blacklist"
+        />
       </div>
 
       {/* Search */}

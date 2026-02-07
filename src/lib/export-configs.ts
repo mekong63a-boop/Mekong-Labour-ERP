@@ -134,7 +134,7 @@ const postDepartureColumns: ExportColumn[] = [
   { key: 'absconded_date', label: 'Ngày bỏ trốn', format: 'date' },
 ];
 
-// Internal Union - Công đoàn nội bộ
+// Internal Union - Công đoàn nội bộ (Thành viên)
 const internalUnionMemberColumns: ExportColumn[] = [
   { key: 'member_code', label: 'Mã thành viên' },
   { key: 'full_name', label: 'Họ và tên' },
@@ -144,6 +144,15 @@ const internalUnionMemberColumns: ExportColumn[] = [
   { key: 'end_date', label: 'Ngày kết thúc', format: 'date' },
   { key: 'status', label: 'Trạng thái' },
   { key: 'notes', label: 'Ghi chú' },
+];
+
+// Internal Union - Giao dịch công đoàn
+const internalUnionTransactionColumns: ExportColumn[] = [
+  { key: 'transaction_type', label: 'Loại giao dịch' },
+  { key: 'amount', label: 'Số tiền', format: 'currency' },
+  { key: 'transaction_date', label: 'Ngày giao dịch', format: 'date' },
+  { key: 'member.full_name', label: 'Thành viên' },
+  { key: 'description', label: 'Mô tả' },
 ];
 
 // Legal - Tình trạng hồ sơ
@@ -224,20 +233,25 @@ export const EXPORT_CONFIGS = {
     fileName: 'danh-sach-lop-hoc',
     columns: educationColumns,
   },
-  dormitories: {
-    menuKey: 'dormitories',
+  dormitory: {
+    menuKey: 'dormitory',
     fileName: 'danh-sach-ky-tuc-xa',
     columns: dormitoryColumns,
   },
   post_departure: {
-    menuKey: 'post_departure',
+    menuKey: 'post-departure',
     fileName: 'danh-sach-sau-xuat-canh',
     columns: postDepartureColumns,
   },
   internal_union: {
-    menuKey: 'internal_union',
-    fileName: 'danh-sach-cong-doan-noi-bo',
+    menuKey: 'internal-union',
+    fileName: 'danh-sach-thanh-vien-cong-doan',
     columns: internalUnionMemberColumns,
+  },
+  internal_union_transactions: {
+    menuKey: 'internal-union',
+    fileName: 'danh-sach-giao-dich-cong-doan',
+    columns: internalUnionTransactionColumns,
   },
   legal: {
     menuKey: 'legal',

@@ -28,6 +28,8 @@ import {
 } from '@/components/ui/select';
 import { Plus, Search, Users, TrendingUp, TrendingDown, Wallet, Pencil, Trash2, Cake } from 'lucide-react';
 import { useCanAction } from '@/hooks/useMenuPermissions';
+import { ExportButtonWithColumns } from '@/components/ui/export-button-with-columns';
+import { EXPORT_CONFIGS } from '@/lib/export-configs';
 import { format, differenceInDays, setYear, isAfter, isBefore } from 'date-fns';
 import { formatVietnameseDate } from '@/lib/vietnamese-utils';
 import {
@@ -258,6 +260,26 @@ const InternalUnionPage = () => {
           <p className="text-muted-foreground">Quản lý thành viên và tài chính công đoàn</p>
         </div>
         <div className="flex gap-2">
+          {activeTab === 'members' && (
+            <ExportButtonWithColumns
+              menuKey="internal-union"
+              tableName="union_members"
+              allColumns={EXPORT_CONFIGS.internal_union.columns}
+              fileName={EXPORT_CONFIGS.internal_union.fileName}
+              selectQuery="member_code, full_name, birth_date, hometown, join_date, end_date, status, notes"
+              title="Xuất danh sách thành viên công đoàn"
+            />
+          )}
+          {activeTab === 'transactions' && (
+            <ExportButtonWithColumns
+              menuKey="internal-union"
+              tableName="union_transactions"
+              allColumns={EXPORT_CONFIGS.internal_union_transactions.columns}
+              fileName={EXPORT_CONFIGS.internal_union_transactions.fileName}
+              selectQuery="transaction_type, amount, transaction_date, member:union_members(full_name), description"
+              title="Xuất danh sách giao dịch công đoàn"
+            />
+          )}
           {canCreate && (
             <>
               <Button
