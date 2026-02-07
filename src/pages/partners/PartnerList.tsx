@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   useCompanies,
@@ -39,7 +39,6 @@ import {
   Briefcase,
   Plus,
   Search,
-  Download,
   Edit,
   Trash2,
   RefreshCw,
@@ -47,6 +46,8 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import CompanyTraineesModal from "./CompanyTraineesModal";
+import { ExportButton } from "@/components/ui/export-button";
+import { EXPORT_CONFIGS } from "@/lib/export-configs";
 
 type TabType = "companies" | "unions" | "job_categories";
 
@@ -272,6 +273,12 @@ export default function PartnerList() {
               className="pl-9 border-primary/20 bg-primary/5"
             />
           </div>
+          <ExportButton
+            menuKey="partners"
+            tableName={activeTab === 'companies' ? 'companies' : activeTab === 'unions' ? 'unions' : 'job_categories'}
+            columns={EXPORT_CONFIGS.partners.tabs[activeTab].columns}
+            fileName={EXPORT_CONFIGS.partners.tabs[activeTab].fileName}
+          />
           {canCreate && (
             <Button onClick={handleAdd} className="bg-primary hover:bg-primary/90">
               <Plus className="h-4 w-4 mr-2" />

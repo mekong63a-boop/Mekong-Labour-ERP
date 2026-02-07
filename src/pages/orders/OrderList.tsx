@@ -28,6 +28,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ExportButton } from "@/components/ui/export-button";
+import { EXPORT_CONFIGS } from "@/lib/export-configs";
 
 export default function OrderList() {
   const { data: orders, isLoading, refetch } = useOrders();
@@ -102,10 +104,25 @@ export default function OrderList() {
           <span className="text-muted-foreground">/</span>
           <span className="font-semibold text-primary uppercase">Đơn hàng đang tuyển dụng</span>
         </div>
-        <Button onClick={handleAdd} className="bg-green-600 hover:bg-green-700 text-white">
-          <Plus className="h-4 w-4 mr-2" />
-          THÊM ĐƠN HÀNG
-        </Button>
+        <div className="flex items-center gap-2">
+          <ExportButton
+            menuKey="orders"
+            tableName="orders"
+            columns={EXPORT_CONFIGS.orders.columns}
+            fileName={EXPORT_CONFIGS.orders.fileName}
+            selectQuery={`
+              code, work_address, quantity, gender_requirement, contract_term,
+              expected_interview_date, status, notes,
+              company:companies(name),
+              union:unions(name),
+              job_category:job_categories(name)
+            `}
+          />
+          <Button onClick={handleAdd} className="bg-green-600 hover:bg-green-700 text-white">
+            <Plus className="h-4 w-4 mr-2" />
+            THÊM ĐƠN HÀNG
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filter Bar */}

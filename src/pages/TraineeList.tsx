@@ -34,6 +34,8 @@ import { useCanAction } from "@/hooks/useMenuPermissions";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { useToast } from "@/hooks/use-toast";
 import { StageTabsGrid, STAGE_TABS } from "@/components/trainees/StageTabsGrid";
+import { ExportButton } from "@/components/ui/export-button";
+import { EXPORT_CONFIGS } from "@/lib/export-configs";
 
 export default function TraineeList() {
   const [activeTab, setActiveTab] = useState("all");
@@ -536,6 +538,22 @@ export default function TraineeList() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <ExportButton
+            menuKey="trainees"
+            tableName="trainees"
+            columns={EXPORT_CONFIGS.trainees.columns}
+            fileName={EXPORT_CONFIGS.trainees.fileName}
+            selectQuery={`
+              trainee_code, full_name, birth_date, gender, birthplace,
+              phone, cccd_number, passport_number,
+              progression_stage, simple_status, trainee_type,
+              departure_date, entry_date, interview_pass_date, registration_date,
+              receiving_company:companies(name),
+              union:unions(name),
+              job_category:job_categories(name)
+            `}
+            filters={progressionStage !== 'all' ? { progression_stage: progressionStage } : undefined}
+          />
           <Button className="gap-2" onClick={() => navigate("/trainees/new")}>
             <Plus className="h-4 w-4" />
             Thêm mới
