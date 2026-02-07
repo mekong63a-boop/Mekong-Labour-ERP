@@ -53,6 +53,8 @@ import { ArrowLeft, Search, History, BookOpen, Calendar, Trash2, ArrowRightLeft 
 import { format, parseISO } from "date-fns";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
+import { ExportButtonWithColumns } from "@/components/ui/export-button-with-columns";
+import { EXPORT_CONFIGS } from "@/lib/export-configs";
 
 // Test categories for filtering
 const TEST_CATEGORIES = [
@@ -554,6 +556,15 @@ export default function ClassStudentsPage() {
           </div>
         </div>
         <div className="flex gap-2">
+          <ExportButtonWithColumns
+            menuKey="education"
+            tableName="trainees"
+            allColumns={EXPORT_CONFIGS.class_students.columns}
+            fileName={`${EXPORT_CONFIGS.class_students.fileName}-${classData?.code || 'class'}`}
+            selectQuery="trainee_code, full_name, birth_date, birthplace, simple_status, progression_stage"
+            filters={{ class_id: classId || '' }}
+            title={`Xuất danh sách học viên - ${classData?.name || ''}`}
+          />
           <Button variant="outline" asChild>
             <Link to={`/education/classes/${classId}/attendance`}>
               <Calendar className="mr-2 h-4 w-4" />

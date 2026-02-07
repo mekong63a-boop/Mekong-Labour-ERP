@@ -34,6 +34,8 @@ import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { ExportButtonWithColumns } from "@/components/ui/export-button-with-columns";
+import { EXPORT_CONFIGS } from "@/lib/export-configs";
 
 
 export default function TeacherList() {
@@ -160,6 +162,14 @@ export default function TeacherList() {
           </div>
         </div>
         <div className="flex gap-2">
+          <ExportButtonWithColumns
+            menuKey="education"
+            tableName="teachers"
+            allColumns={EXPORT_CONFIGS.teachers.columns}
+            fileName={EXPORT_CONFIGS.teachers.fileName}
+            selectQuery="code, full_name, email, phone, specialty, class_start_date, class_end_date, status"
+            title="Xuất danh sách giáo viên"
+          />
           {canCreate && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>

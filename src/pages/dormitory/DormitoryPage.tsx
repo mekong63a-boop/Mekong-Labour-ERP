@@ -677,6 +677,15 @@ export default function DormitoryPage() {
             </div>
             {selectedDormitory && (
               <div className="flex gap-2">
+                <ExportButtonWithColumns
+                  menuKey="dormitory"
+                  tableName="dormitory_residents"
+                  allColumns={EXPORT_CONFIGS.dormitory_residents.columns}
+                  fileName={`${EXPORT_CONFIGS.dormitory_residents.fileName}-${selectedDormData?.name || 'ktx'}`}
+                  selectQuery="trainee:trainees(trainee_code, full_name, phone), room_number, bed_number, check_in_date, check_out_date, status, notes"
+                  filters={{ dormitory_id: selectedDormitory }}
+                  title={`Xuất danh sách cư dân - ${selectedDormData?.name || ''}`}
+                />
                 {canUpdate && (
                   <Dialog open={isTransferOpen} onOpenChange={setIsTransferOpen}>
                     <DialogTrigger asChild>
