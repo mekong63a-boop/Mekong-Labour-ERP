@@ -19,9 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Search, Building2, Users, FileCheck, FileClock, FileX, GraduationCap, Wrench, UserCheck, ChevronDown, ChevronLeft, BarChart3, Download } from "lucide-react";
+import { Search, Building2, Users, FileCheck, FileClock, FileX, GraduationCap, Wrench, UserCheck, ChevronDown, ChevronLeft, BarChart3, FileText, Send } from "lucide-react";
 import { removeVietnameseDiacritics, formatJapaneseDate } from "@/lib/vietnamese-utils";
 import {
   DropdownMenu,
@@ -51,6 +52,14 @@ interface CompanyBatch {
 }
 
 type DocumentStatusFilter = 'in_progress' | 'completed' | null;
+
+// Interface cho thống kê phiếu
+interface FormStats {
+  total_forms: number;
+  total_workers: number;
+  male_workers: number;
+  female_workers: number;
+}
 
 interface TraineeTypeCount {
   trainee_type: string | null;
@@ -138,6 +147,7 @@ export default function LegalPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<DocumentStatusFilter>(null);
   const [showStats, setShowStats] = useState(true);
+  const [mainTab, setMainTab] = useState<string>("documents"); // Thêm state cho main tabs
   
   // View state
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -193,7 +203,62 @@ export default function LegalPage() {
     },
   });
 
-  // Query trainees by selected type - match view logic: only document processing stages
+  // === QUERY: Thống kê Số phiếu trả lời (dựa trên dkhd_code) ===
+  const { data: dkhdStats } = useQuery({
+    queryKey: ["legal-dkhd-stats"],
+    queryFn: async () => {
+      // Đếm số phiếu (mã unique) và số lao động từ trainees có dkhd_code
+      const { data, error } = await supabase
+        .from("trainees")
+        .select("dkhd_code, gender")
+        .eq("progression_stage", 'Đậu phỏng vấn')
+        .not("dkhd_code", "is", null);
+
+      if (error) throw error;
+
+      // Tính toán: phiếu = mã unique, lao động = tổng số trainees có mã
+      const uniqueCodes = new Set((data || []).map(t => t.dkhd_code));
+      const workers = data || [];
+      const maleCount = workers.filter(t => t.gender === 'Nam').length;
+      const femaleCount = workers.filter(t => t.gender === 'Nữ').length;
+
+      return {
+        total_forms: uniqueCodes.size,
+        total_workers: workers.length,
+        male_workers: maleCount,
+        female_workers: femaleCount,
+      } as FormStats;
+    },
+  });
+
+  // === QUERY: Thống kê Thư phái cử (dựa trên tpc_code) ===
+  const { data: tpcStats } = useQuery({
+    queryKey: ["legal-tpc-stats"],
+    queryFn: async () => {
+      // Đếm số phiếu (mã unique) và số lao động từ trainees có tpc_code
+      const { data, error } = await supabase
+        .from("trainees")
+        .select("tpc_code, gender")
+        .eq("progression_stage", 'Đậu phỏng vấn')
+        .not("tpc_code", "is", null);
+
+      if (error) throw error;
+
+      // Tính toán: phiếu = mã unique, lao động = tổng số trainees có mã
+      const uniqueCodes = new Set((data || []).map(t => t.tpc_code));
+      const workers = data || [];
+      const maleCount = workers.filter(t => t.gender === 'Nam').length;
+      const femaleCount = workers.filter(t => t.gender === 'Nữ').length;
+
+      return {
+        total_forms: uniqueCodes.size,
+        total_workers: workers.length,
+        male_workers: maleCount,
+        female_workers: femaleCount,
+      } as FormStats;
+    },
+  });
+
   const { data: traineesByType = [], isLoading: isLoadingTrainees } = useQuery({
     queryKey: ["legal-trainees-by-type", selectedType],
     queryFn: async () => {
@@ -941,6 +1006,144 @@ export default function LegalPage() {
     </>
   );
 
+  // Render stats tab for Số phiếu trả lời
+  const renderDkhdStatsTab = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Tổng số phiếu ĐKHĐ */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Tổng số phiếu ĐKHĐ</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">{dkhdStats?.total_forms || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Mỗi mã HS ĐKHĐ = 1 phiếu
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Tổng số lao động đã đăng ký */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Số lao động đã ĐK</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{dkhdStats?.total_workers || 0}</div>
+            <div className="flex items-center gap-3 mt-1 text-xs">
+              <span className="text-blue-600">{dkhdStats?.male_workers || 0} Nam</span>
+              <span className="text-pink-600">{dkhdStats?.female_workers || 0} Nữ</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tỷ lệ giới tính */}
+        <Card className="md:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Tỷ lệ giới tính</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-3">
+              {(dkhdStats?.total_workers || 0) > 0 ? (
+                <>
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    Nam {Math.round(((dkhdStats?.male_workers || 0) / (dkhdStats?.total_workers || 1)) * 100)}%
+                  </Badge>
+                  <Badge variant="outline" className="bg-pink-50 text-pink-700 border-pink-200">
+                    Nữ {Math.round(((dkhdStats?.female_workers || 0) / (dkhdStats?.total_workers || 1)) * 100)}%
+                  </Badge>
+                </>
+              ) : (
+                <span className="text-muted-foreground text-sm">Chưa có dữ liệu</span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardContent className="pt-6">
+          <div className="text-center text-muted-foreground py-8">
+            <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
+            <p>Để thống kê, vui lòng nhập <strong>Mã HS ĐKHĐ</strong> trong chi tiết từng đợt công ty</p>
+            <p className="text-xs mt-1">Nhiều học viên cùng mã = 1 phiếu trả lời</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  // Render stats tab for Thư phái cử
+  const renderTpcStatsTab = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Tổng số thư phái cử */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Tổng số Thư phái cử</CardTitle>
+            <Send className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">{tpcStats?.total_forms || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Mỗi mã HS xin TPC = 1 thư
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Tổng số lao động */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Số lao động</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{tpcStats?.total_workers || 0}</div>
+            <div className="flex items-center gap-3 mt-1 text-xs">
+              <span className="text-blue-600">{tpcStats?.male_workers || 0} Nam</span>
+              <span className="text-pink-600">{tpcStats?.female_workers || 0} Nữ</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tỷ lệ giới tính */}
+        <Card className="md:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Tỷ lệ giới tính</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-3">
+              {(tpcStats?.total_workers || 0) > 0 ? (
+                <>
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    Nam {Math.round(((tpcStats?.male_workers || 0) / (tpcStats?.total_workers || 1)) * 100)}%
+                  </Badge>
+                  <Badge variant="outline" className="bg-pink-50 text-pink-700 border-pink-200">
+                    Nữ {Math.round(((tpcStats?.female_workers || 0) / (tpcStats?.total_workers || 1)) * 100)}%
+                  </Badge>
+                </>
+              ) : (
+                <span className="text-muted-foreground text-sm">Chưa có dữ liệu</span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardContent className="pt-6">
+          <div className="text-center text-muted-foreground py-8">
+            <Send className="h-12 w-12 mx-auto mb-3 opacity-30" />
+            <p>Để thống kê, vui lòng nhập <strong>Mã HS xin TPC</strong> trong chi tiết từng đợt công ty</p>
+            <p className="text-xs mt-1">Nhiều học viên cùng mã = 1 thư phái cử</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between">
@@ -951,7 +1154,7 @@ export default function LegalPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          {viewMode === 'list' && (
+          {viewMode === 'list' && mainTab === 'documents' && (
             <>
               <ExportButtonWithColumns
                 menuKey="legal"
@@ -975,9 +1178,52 @@ export default function LegalPage() {
         </div>
       </header>
 
-      {viewMode === 'list' && renderListView()}
-      {viewMode === 'type-detail' && renderTypeDetailView()}
-      {viewMode === 'company-detail' && renderCompanyDetailView()}
+      {/* Main Tabs: Tình trạng HS | Số phiếu trả lời | Thư phái cử */}
+      {viewMode === 'list' ? (
+        <Tabs value={mainTab} onValueChange={setMainTab}>
+          <TabsList className="grid w-full max-w-md grid-cols-3">
+            <TabsTrigger value="documents" className="gap-1.5">
+              <FileCheck className="h-4 w-4" />
+              Tình trạng HS
+            </TabsTrigger>
+            <TabsTrigger value="dkhd" className="gap-1.5">
+              <FileText className="h-4 w-4" />
+              Số phiếu trả lời
+              {(dkhdStats?.total_forms || 0) > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                  {dkhdStats?.total_forms}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="tpc" className="gap-1.5">
+              <Send className="h-4 w-4" />
+              Thư phái cử
+              {(tpcStats?.total_forms || 0) > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                  {tpcStats?.total_forms}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="documents" className="mt-6">
+            {renderListView()}
+          </TabsContent>
+
+          <TabsContent value="dkhd" className="mt-6">
+            {renderDkhdStatsTab()}
+          </TabsContent>
+
+          <TabsContent value="tpc" className="mt-6">
+            {renderTpcStatsTab()}
+          </TabsContent>
+        </Tabs>
+      ) : (
+        <>
+          {viewMode === 'type-detail' && renderTypeDetailView()}
+          {viewMode === 'company-detail' && renderCompanyDetailView()}
+        </>
+      )}
     </div>
   );
 }
