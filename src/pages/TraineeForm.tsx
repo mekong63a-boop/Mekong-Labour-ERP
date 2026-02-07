@@ -533,15 +533,14 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     }
   }, [japanRelativesData, japanLoaded]);
 
-  // Sync project interview data - load draft from trainees table
-  // interview_date draft now lives in trainees table, not history
+  // Sync project interview data - load from trainees table + interview_history
+  // interview_date is ONLY stored in interview_history, not in trainees table
   useEffect(() => {
     if (trainee && !projectLoaded) {
       setProjectInterviewData({
         order_id: "",
-        // Draft: prioritize trainee.interview_date (draft in trainees table)
-        // Fallback to latest history only if draft is empty
-        interview_date: (trainee as any).interview_date || interviewData?.[0]?.interview_date || "",
+        // interview_date comes from latest interview_history only
+        interview_date: interviewData?.[0]?.interview_date || "",
         expected_entry_month: trainee.expected_entry_month || "",
         receiving_company_id: trainee.receiving_company_id || "",
         union_id: trainee.union_id || "",
@@ -774,11 +773,10 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       await supabase.from("japan_relatives").insert(japanData);
     }
 
-    // Project/Interview: Always update trainee's draft fields (Draft mode)
-    // interview_history is ONLY written when clicking "Lưu lịch sử phỏng vấn" via finalize_interview_draft RPC
-    // No condition - always save draft fields including interview_date
+    // Project/Interview: Always update trainee's draft fields
+    // NOTE: interview_date does NOT exist in trainees table - it's only in interview_history
+    // interview_history is written when clicking "Lưu lịch sử phỏng vấn" via finalize_interview_draft RPC
     await supabase.from("trainees").update({
-      interview_date: projectInterviewData.interview_date || null,
       receiving_company_id: projectInterviewData.receiving_company_id || null,
       union_id: projectInterviewData.union_id || null,
       job_category_id: projectInterviewData.job_category_id || null,
