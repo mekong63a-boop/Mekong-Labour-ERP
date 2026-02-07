@@ -1765,6 +1765,8 @@ export type Database = {
           current_situation: string | null
           departure_date: string | null
           dkhd_code: string | null
+          dkhd_date: string | null
+          dkhd_number: string | null
           document_status: string | null
           document_submission_date: string | null
           dominant_hand: string | null
@@ -1831,6 +1833,7 @@ export type Database = {
             | Database["public"]["Enums"]["progression_stage"]
             | null
           ptl_date: string | null
+          ptl_number: string | null
           receiving_company_id: string | null
           registration_date: string | null
           religion: string | null
@@ -1847,6 +1850,9 @@ export type Database = {
           tattoo_description: string | null
           temp_address: string | null
           tpc_code: string | null
+          tpc_cv_number: string | null
+          tpc_issue_date: string | null
+          tpc_request_date: string | null
           trainee_code: string
           trainee_type: Database["public"]["Enums"]["trainee_type"] | null
           union_id: string | null
@@ -1875,6 +1881,8 @@ export type Database = {
           current_situation?: string | null
           departure_date?: string | null
           dkhd_code?: string | null
+          dkhd_date?: string | null
+          dkhd_number?: string | null
           document_status?: string | null
           document_submission_date?: string | null
           dominant_hand?: string | null
@@ -1941,6 +1949,7 @@ export type Database = {
             | Database["public"]["Enums"]["progression_stage"]
             | null
           ptl_date?: string | null
+          ptl_number?: string | null
           receiving_company_id?: string | null
           registration_date?: string | null
           religion?: string | null
@@ -1957,6 +1966,9 @@ export type Database = {
           tattoo_description?: string | null
           temp_address?: string | null
           tpc_code?: string | null
+          tpc_cv_number?: string | null
+          tpc_issue_date?: string | null
+          tpc_request_date?: string | null
           trainee_code: string
           trainee_type?: Database["public"]["Enums"]["trainee_type"] | null
           union_id?: string | null
@@ -1985,6 +1997,8 @@ export type Database = {
           current_situation?: string | null
           departure_date?: string | null
           dkhd_code?: string | null
+          dkhd_date?: string | null
+          dkhd_number?: string | null
           document_status?: string | null
           document_submission_date?: string | null
           dominant_hand?: string | null
@@ -2051,6 +2065,7 @@ export type Database = {
             | Database["public"]["Enums"]["progression_stage"]
             | null
           ptl_date?: string | null
+          ptl_number?: string | null
           receiving_company_id?: string | null
           registration_date?: string | null
           religion?: string | null
@@ -2067,6 +2082,9 @@ export type Database = {
           tattoo_description?: string | null
           temp_address?: string | null
           tpc_code?: string | null
+          tpc_cv_number?: string | null
+          tpc_issue_date?: string | null
+          tpc_request_date?: string | null
           trainee_code?: string
           trainee_type?: Database["public"]["Enums"]["trainee_type"] | null
           union_id?: string | null

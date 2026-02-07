@@ -269,20 +269,34 @@ const legalColumns: ExportColumn[] = [
   { key: 'jp_school_2', label: 'Tên trường JP 2' },
   // 28. Khóa học JP 2
   { key: 'jp_course_2', label: 'Khóa học JP 2' },
-  // 29-39: Các cột pháp lý (placeholder) - giữ đúng thứ tự hệ thống
-  // NOTE: Hiện tại các cột này CHƯA tồn tại trong bảng trainees => phải để computed 'blank'
-  // Khi Supabase bổ sung cột thật, chỉ cần bỏ computeType và giữ key trùng tên cột DB.
-  { key: 'dkhd_submission_date', label: 'Ngày trình ĐKHĐ', computeType: 'blank' },
-  { key: 'dkhd_number', label: 'Số ĐKHĐ', computeType: 'blank' },
-  { key: 'dkhd_file_code', label: 'Mã HS ĐKHĐ', computeType: 'blank' },
-  { key: 'tpc_request_date', label: 'Ngày gửi xin TPC', computeType: 'blank' },
-  { key: 'tpc_cv_number', label: 'Số CV xin TPC', computeType: 'blank' },
-  { key: 'tpc_file_code', label: 'Mã HS xin TPC', computeType: 'blank' },
-  { key: 'ptl_number', label: 'Số PTL', computeType: 'blank' },
+  // 29. Tên công ty tiến cử
+  { key: 'receiving_company.name', label: 'Tên công ty tiến cử' },
+  // 30. Tên người đại diện
+  { key: 'receiving_company.representative', label: 'Tên người đại diện' },
+  // 31. Chức vụ
+  { key: 'receiving_company.position', label: 'Chức vụ' },
+  // 32. Ngày trình ĐKHĐ
+  { key: 'dkhd_date', label: 'Ngày trình ĐKHĐ', format: 'date' },
+  // 33. Số ĐKHĐ
+  { key: 'dkhd_number', label: 'Số ĐKHĐ' },
+  // 34. Mã HS ĐKHĐ
+  { key: 'dkhd_code', label: 'Mã HS ĐKHĐ' },
+  // 35. Ngày gửi xin TPC
+  { key: 'tpc_request_date', label: 'Ngày gửi xin TPC', format: 'date' },
+  // 36. Số CV xin TPC
+  { key: 'tpc_cv_number', label: 'Số CV xin TPC' },
+  // 37. Mã HS xin TPC
+  { key: 'tpc_code', label: 'Mã HS xin TPC' },
+  // 38. Số PTL
+  { key: 'ptl_number', label: 'Số PTL' },
+  // 39. Tình trạng
   { key: 'document_status', label: 'Tình trạng' },
-  { key: 'ptl_issue_date', label: 'Ngày cấp PTL', computeType: 'blank' },
-  { key: 'tpc_issue_date', label: 'Ngày cấp TPC', computeType: 'blank' },
-  { key: 'current_status', label: 'Hiện trạng', computeType: 'blank' },
+  // 40. Ngày cấp PTL
+  { key: 'ptl_date', label: 'Ngày cấp PTL', format: 'date' },
+  // 41. Ngày cấp TPC
+  { key: 'tpc_issue_date', label: 'Ngày cấp TPC', format: 'date' },
+  // 42. Hiện trạng
+  { key: 'current_situation', label: 'Hiện trạng' },
 ];
 
 // Handbook - Cẩm nang tư vấn
