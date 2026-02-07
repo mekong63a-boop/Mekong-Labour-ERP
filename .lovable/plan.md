@@ -1,445 +1,267 @@
 
-## Triển khai Xuất Excel theo Phân Quyền Menu
+## Triển khai Quyền Xuất File (can_export) và Tùy Chỉnh Cột Xuất
 
-### Tổng quan
-Xây dựng hệ thống xuất dữ liệu ra Excel linh hoạt, tuân thủ:
-1. **Phân quyền menu**: Chỉ xuất được dữ liệu của menu mà người dùng có quyền xem
-2. **Kiểm soát cột**: Mỗi phòng ban chỉ xuất được các cột phù hợp với nghiệp vụ của họ
-3. **RLS tự động**: Dữ liệu xuất ra tuân thủ Row-Level Security đã có sẵn
-4. **Tối ưu hiệu suất**: Phân trang khi xuất lượng lớn, tránh làm chậm hệ thống
+### Tổng quan yêu cầu
+1. **Thêm quyền "Xuất file" (can_export)** vào hệ thống phân quyền menu
+2. **Mở rộng xuất file** cho tất cả menu có dữ liệu (không chỉ trainees, orders, partners)
+3. **Tùy chỉnh cột xuất** - cho phép user chọn cột nào cần xuất ra Excel
 
 ---
 
 ### Kiến trúc giải pháp
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                     FRONTEND (React)                            │
-├─────────────────────────────────────────────────────────────────┤
-│  1. ExportButton (component dùng chung)                         │
-│     - Hiển thị nếu user có quyền xem menu đó                    │
-│     - Props: menuKey, exportConfig, filters                     │
-│                                                                 │
-│  2. useExportExcel (hook)                                       │
-│     - Gọi Supabase query với filters hiện tại                   │
-│     - Phân trang khi > 1000 records                             │
-│     - Chuyển dữ liệu → xlsx → download                          │
-│                                                                 │
-│  3. exportConfigs (cấu hình theo menu)                          │
-│     - Định nghĩa cột nào được xuất cho mỗi menu                 │
-│     - Map tên cột VN cho header Excel                           │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                          DATABASE                                     │
+├──────────────────────────────────────────────────────────────────────┤
+│  user_menu_permissions                                               │
+│  ├── can_view, can_create, can_update, can_delete                   │
+│  └── can_export (MỚI)  ← Thêm cột mới                               │
+│                                                                      │
+│  department_menu_permissions                                         │
+│  └── can_export (MỚI)  ← Thêm cột mới                               │
+│                                                                      │
+│  get_user_merged_permissions()                                       │
+│  └── Cập nhật để gộp can_export từ cả 2 nguồn                       │
+└──────────────────────────────────────────────────────────────────────┘
                               ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                     SUPABASE (RLS)                              │
-├─────────────────────────────────────────────────────────────────┤
-│  - RLS policies tự động lọc dữ liệu theo quyền user             │
-│  - can_view('trainees') → chỉ trả dữ liệu user được xem         │
-│  - PII masking đã có sẵn cho non-senior staff                   │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                     UI PHÂN QUYỀN (Modal)                            │
+├──────────────────────────────────────────────────────────────────────┤
+│  ┌─────────┬───────┬───────┬──────┬──────┬──────────┐              │
+│  │ Menu    │  Xem  │ Thêm  │ Sửa  │ Xóa  │ Xuất file│              │
+│  ├─────────┼───────┼───────┼──────┼──────┼──────────┤              │
+│  │ Học viên│  ✓    │  ✓    │  ✓   │  ✓   │    ✓     │              │
+│  │ Đơn hàng│  ✓    │  ✓    │  ✓   │  ✓   │    ✓     │              │
+│  │ ...     │       │       │      │      │          │              │
+│  └─────────┴───────┴───────┴──────┴──────┴──────────┘              │
+└──────────────────────────────────────────────────────────────────────┘
+                              ↓
+┌──────────────────────────────────────────────────────────────────────┐
+│                     EXPORT SYSTEM                                    │
+├──────────────────────────────────────────────────────────────────────┤
+│  useMenuPermissions()                                                │
+│  └── canExport ← Thêm thuộc tính mới                                │
+│                                                                      │
+│  useExportExcel()                                                    │
+│  └── Kiểm tra canExport thay vì canView                             │
+│                                                                      │
+│  ExportButtonWithColumnSelect (MỚI)                                  │
+│  └── Dialog chọn cột trước khi xuất                                 │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ### Chi tiết triển khai
 
-#### 1. Cài đặt thư viện SheetJS (xlsx)
+#### PHASE 1: Database Migration (Thêm cột can_export)
 
-Thêm dependency `xlsx` vào project:
-```bash
-npm install xlsx
+**Migration SQL:**
+```sql
+-- 1. Thêm cột can_export vào user_menu_permissions
+ALTER TABLE public.user_menu_permissions 
+ADD COLUMN IF NOT EXISTS can_export boolean DEFAULT false;
+
+-- 2. Thêm cột can_export vào department_menu_permissions
+ALTER TABLE public.department_menu_permissions 
+ADD COLUMN IF NOT EXISTS can_export boolean DEFAULT false;
+
+-- 3. Cập nhật function get_user_merged_permissions để gộp can_export
+CREATE OR REPLACE FUNCTION public.get_user_merged_permissions(_user_id uuid)
+RETURNS TABLE (
+  menu_key text,
+  can_view boolean,
+  can_create boolean,
+  can_update boolean,
+  can_delete boolean,
+  can_export boolean
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+  WITH 
+  -- Quyền cá nhân
+  user_perms AS (
+    SELECT 
+      ump.menu_key,
+      COALESCE(ump.can_view, false) as can_view,
+      COALESCE(ump.can_create, false) as can_create,
+      COALESCE(ump.can_update, false) as can_update,
+      COALESCE(ump.can_delete, false) as can_delete,
+      COALESCE(ump.can_export, false) as can_export
+    FROM user_menu_permissions ump
+    WHERE ump.user_id = _user_id
+  ),
+  -- Quyền phòng ban (lấy từ tất cả phòng ban user thuộc về)
+  dept_perms AS (
+    SELECT 
+      dmp.menu_key,
+      bool_or(COALESCE(dmp.can_view, false)) as can_view,
+      bool_or(COALESCE(dmp.can_create, false)) as can_create,
+      bool_or(COALESCE(dmp.can_update, false)) as can_update,
+      bool_or(COALESCE(dmp.can_delete, false)) as can_delete,
+      bool_or(COALESCE(dmp.can_export, false)) as can_export
+    FROM department_menu_permissions dmp
+    INNER JOIN department_members dm ON dm.department = dmp.department
+    WHERE dm.user_id = _user_id
+    GROUP BY dmp.menu_key
+  ),
+  -- Gộp quyền (logical OR)
+  all_keys AS (
+    SELECT menu_key FROM user_perms
+    UNION
+    SELECT menu_key FROM dept_perms
+  )
+  SELECT 
+    ak.menu_key,
+    COALESCE(up.can_view, false) OR COALESCE(dp.can_view, false) as can_view,
+    COALESCE(up.can_create, false) OR COALESCE(dp.can_create, false) as can_create,
+    COALESCE(up.can_update, false) OR COALESCE(dp.can_update, false) as can_update,
+    COALESCE(up.can_delete, false) OR COALESCE(dp.can_delete, false) as can_delete,
+    COALESCE(up.can_export, false) OR COALESCE(dp.can_export, false) as can_export
+  FROM all_keys ak
+  LEFT JOIN user_perms up ON ak.menu_key = up.menu_key
+  LEFT JOIN dept_perms dp ON ak.menu_key = dp.menu_key;
+END;
+$$;
 ```
 
 ---
 
-#### 2. Tạo Export Configurations (`src/lib/export-configs.ts`)
+#### PHASE 2: Cập nhật Frontend Hooks
 
-Định nghĩa cột xuất cho từng menu với tên tiếng Việt:
+**2.1. Cập nhật `useMenuPermissions.ts`:**
+- Thêm `can_export` vào interface `MenuPermission`
+- Cập nhật `useCanAccessMenu()` trả về `canExport`
+- Thêm action mới `export` cho `useCanAction()`
 
-```typescript
-// Cấu hình xuất Excel theo menu
-export const EXPORT_CONFIGS = {
-  trainees: {
-    menuKey: 'trainees',
-    fileName: 'danh-sach-hoc-vien',
-    columns: [
-      { key: 'trainee_code', label: 'Mã HV' },
-      { key: 'full_name', label: 'Họ và tên' },
-      { key: 'birth_date', label: 'Ngày sinh', format: 'date' },
-      { key: 'gender', label: 'Giới tính' },
-      { key: 'birthplace', label: 'Quê quán' },
-      { key: 'progression_stage', label: 'Giai đoạn' },
-      { key: 'receiving_company.name', label: 'Công ty tiếp nhận' },
-      { key: 'union.name', label: 'Nghiệp đoàn' },
-      { key: 'job_category.name', label: 'Ngành nghề' },
-      // ... các cột khác
-    ]
-  },
-  orders: {
-    menuKey: 'orders',
-    fileName: 'danh-sach-don-hang',
-    columns: [
-      { key: 'code', label: 'Mã đơn hàng' },
-      { key: 'company.name', label: 'Công ty' },
-      { key: 'job_category.name', label: 'Ngành nghề' },
-      { key: 'work_address', label: 'Địa chỉ làm việc' },
-      { key: 'quantity', label: 'Số lượng tuyển' },
-      { key: 'expected_interview_date', label: 'Ngày PV dự kiến', format: 'date' },
-      { key: 'status', label: 'Trạng thái' },
-    ]
-  },
-  partners: {
-    menuKey: 'partners',
-    fileName: 'danh-sach-doi-tac',
-    // Có 3 sub-tabs: companies, unions, job_categories
-    tabs: {
-      companies: {
-        fileName: 'danh-sach-cong-ty',
-        columns: [
-          { key: 'code', label: 'Mã công ty' },
-          { key: 'name', label: 'Tên công ty' },
-          { key: 'name_japanese', label: 'Tên tiếng Nhật' },
-          { key: 'industry', label: 'Ngành nghề' },
-          { key: 'work_address', label: 'Địa chỉ làm việc' },
-          { key: 'representative', label: 'Người phụ trách' },
-          { key: 'status', label: 'Trạng thái' },
-        ]
-      },
-      unions: {
-        fileName: 'danh-sach-nghiep-doan',
-        columns: [
-          { key: 'code', label: 'Mã nghiệp đoàn' },
-          { key: 'name', label: 'Tên nghiệp đoàn' },
-          { key: 'name_japanese', label: 'Tên tiếng Nhật' },
-          { key: 'address', label: 'Địa chỉ' },
-          { key: 'contact_person', label: 'Người liên hệ' },
-          { key: 'phone', label: 'Điện thoại' },
-          { key: 'status', label: 'Trạng thái' },
-        ]
-      },
-      job_categories: {
-        fileName: 'danh-sach-nganh-nghe',
-        columns: [
-          { key: 'code', label: 'Mã ngành' },
-          { key: 'name', label: 'Tên ngành nghề' },
-          { key: 'name_japanese', label: 'Tên tiếng Nhật' },
-          { key: 'category', label: 'Danh mục' },
-          { key: 'description', label: 'Mô tả' },
-          { key: 'status', label: 'Trạng thái' },
-        ]
-      }
-    }
-  },
-  education: {
-    menuKey: 'education',
-    fileName: 'danh-sach-lop-hoc',
-    columns: [
-      { key: 'class_code', label: 'Mã lớp' },
-      { key: 'class_name', label: 'Tên lớp' },
-      { key: 'teacher.name', label: 'Giáo viên' },
-      { key: 'student_count', label: 'Số học viên' },
-      { key: 'status', label: 'Trạng thái' },
-    ]
-  },
-  post_departure: {
-    menuKey: 'post_departure',
-    fileName: 'danh-sach-sau-xuat-canh',
-    columns: [
-      { key: 'trainee_code', label: 'Mã HV' },
-      { key: 'full_name', label: 'Họ và tên' },
-      { key: 'departure_date', label: 'Ngày xuất cảnh', format: 'date' },
-      { key: 'receiving_company.name', label: 'Công ty' },
-      { key: 'current_situation', label: 'Tình trạng hiện tại' },
-      { key: 'expected_return_date', label: 'Ngày dự kiến về', format: 'date' },
-    ]
-  },
-  // ... các menu khác
-};
-```
+**2.2. Cập nhật `useExportExcel.ts`:**
+- Thay đổi kiểm tra từ `canView` → `canExport`
+- Nếu có `canExport` thì cho phép xuất (không cần `canView`)
 
 ---
 
-#### 3. Tạo Hook xuất Excel (`src/hooks/useExportExcel.ts`)
+#### PHASE 3: Cập nhật UI Phân Quyền
 
+**3.1. Cập nhật `UserMenuPermissionsModal.tsx`:**
+- Thêm cột "Xuất file" với icon `FileSpreadsheet`
+- Thêm checkbox `can_export` cho mỗi menu
+- Thêm hàng "Chọn tất cả" cho cột Xuất file
+- Logic: Bật `can_export` → tự động bật `can_view`
+
+**3.2. Cập nhật `DepartmentMenuPermissionsModal.tsx`:**
+- Tương tự như UserMenuPermissionsModal
+- Thêm cột và logic cho `can_export`
+
+---
+
+#### PHASE 4: Component Chọn Cột Xuất
+
+**Tạo mới `ExportButtonWithColumnSelect.tsx`:**
 ```typescript
-import { useCallback, useState } from 'react';
-import * as XLSX from 'xlsx';
-import { supabase } from '@/integrations/supabase/client';
-import { useCanAccessMenu } from '@/hooks/useMenuPermissions';
-import { formatVietnameseDate } from '@/lib/vietnamese-utils';
-import { toast } from 'sonner';
-
-interface ExportColumn {
-  key: string;
-  label: string;
-  format?: 'date' | 'number' | 'currency';
-}
-
-interface UseExportExcelOptions {
+interface ExportButtonWithColumnSelectProps {
   menuKey: string;
   tableName: string;
-  columns: ExportColumn[];
+  allColumns: ExportColumn[];  // Tất cả cột có thể xuất
+  defaultColumns: string[];    // Cột mặc định đã chọn
   fileName: string;
-  selectQuery?: string; // Custom select query
-  filters?: Record<string, any>; // Current filters from UI
-}
-
-export function useExportExcel(options: UseExportExcelOptions) {
-  const { menuKey, tableName, columns, fileName, selectQuery, filters } = options;
-  const { canView, isLoading: permissionLoading } = useCanAccessMenu(menuKey);
-  const [isExporting, setIsExporting] = useState(false);
-
-  const exportToExcel = useCallback(async () => {
-    if (!canView) {
-      toast.error('Bạn không có quyền xuất dữ liệu này');
-      return;
-    }
-
-    setIsExporting(true);
-    try {
-      // Build query
-      let query = supabase
-        .from(tableName)
-        .select(selectQuery || '*');
-
-      // Apply filters from UI state
-      if (filters) {
-        Object.entries(filters).forEach(([key, value]) => {
-          if (value && value !== 'all') {
-            query = query.eq(key, value);
-          }
-        });
-      }
-
-      // Fetch all data (với phân trang nếu cần)
-      const PAGE_SIZE = 1000;
-      let allData: any[] = [];
-      let from = 0;
-      let hasMore = true;
-
-      while (hasMore) {
-        const { data, error } = await query.range(from, from + PAGE_SIZE - 1);
-        if (error) throw error;
-        
-        allData = [...allData, ...(data || [])];
-        hasMore = data?.length === PAGE_SIZE;
-        from += PAGE_SIZE;
-      }
-
-      if (allData.length === 0) {
-        toast.warning('Không có dữ liệu để xuất');
-        return;
-      }
-
-      // Transform data to Excel format
-      const excelData = allData.map(row => {
-        const excelRow: Record<string, any> = {};
-        columns.forEach(col => {
-          const value = getNestedValue(row, col.key);
-          excelRow[col.label] = formatValue(value, col.format);
-        });
-        return excelRow;
-      });
-
-      // Create workbook and export
-      const ws = XLSX.utils.json_to_sheet(excelData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Dữ liệu');
-
-      // Auto-width columns
-      const colWidths = columns.map(col => ({
-        wch: Math.max(col.label.length, 15)
-      }));
-      ws['!cols'] = colWidths;
-
-      // Generate filename with date
-      const dateStr = new Date().toISOString().split('T')[0];
-      const fullFileName = `${fileName}_${dateStr}.xlsx`;
-
-      XLSX.writeFile(wb, fullFileName);
-      toast.success(`Đã xuất ${allData.length} bản ghi`);
-    } catch (error: any) {
-      toast.error('Lỗi khi xuất dữ liệu: ' + error.message);
-    } finally {
-      setIsExporting(false);
-    }
-  }, [canView, tableName, selectQuery, filters, columns, fileName]);
-
-  return {
-    exportToExcel,
-    isExporting,
-    canExport: canView && !permissionLoading,
-  };
-}
-
-// Helper: lấy giá trị từ nested object (vd: 'company.name')
-function getNestedValue(obj: any, path: string): any {
-  return path.split('.').reduce((acc, part) => acc?.[part], obj);
-}
-
-// Helper: format giá trị theo type
-function formatValue(value: any, format?: string): any {
-  if (value == null) return '';
-  if (format === 'date') return formatVietnameseDate(value);
-  if (format === 'currency') return new Intl.NumberFormat('vi-VN').format(value);
-  return value;
-}
-```
-
----
-
-#### 4. Tạo Component ExportButton (`src/components/ui/export-button.tsx`)
-
-```typescript
-import { Button } from '@/components/ui/button';
-import { Download, Loader2 } from 'lucide-react';
-import { useExportExcel } from '@/hooks/useExportExcel';
-
-interface ExportButtonProps {
-  menuKey: string;
-  tableName: string;
-  columns: Array<{ key: string; label: string; format?: string }>;
-  fileName: string;
-  selectQuery?: string;
+  selectQuery: string;
   filters?: Record<string, any>;
-  variant?: 'default' | 'outline' | 'ghost';
-  size?: 'default' | 'sm' | 'lg' | 'icon';
-  label?: string;
 }
 
-export function ExportButton({
-  menuKey,
-  tableName,
-  columns,
-  fileName,
-  selectQuery,
-  filters,
-  variant = 'outline',
-  size = 'sm',
-  label = 'Xuất Excel',
-}: ExportButtonProps) {
-  const { exportToExcel, isExporting, canExport } = useExportExcel({
-    menuKey,
-    tableName,
-    columns,
-    fileName,
-    selectQuery,
-    filters,
-  });
+// Component hiển thị:
+// 1. Nút "Xuất Excel" (nếu có quyền)
+// 2. Click → Mở Dialog chọn cột
+// 3. User tick chọn cột → Nhấn "Xuất"
+// 4. Xuất file với các cột đã chọn
+```
 
-  if (!canExport) return null;
-
-  return (
-    <Button
-      variant={variant}
-      size={size}
-      onClick={exportToExcel}
-      disabled={isExporting}
-    >
-      {isExporting ? (
-        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-      ) : (
-        <Download className="h-4 w-4 mr-2" />
-      )}
-      {label}
-    </Button>
-  );
-}
+**Dialog chọn cột:**
+```text
+┌────────────────────────────────────────┐
+│  📊 Xuất Excel - Danh sách Học viên    │
+├────────────────────────────────────────┤
+│  ☑ Chọn tất cả                         │
+│  ─────────────────────────────────────│
+│  ☑ Mã HV                               │
+│  ☑ Họ và tên                           │
+│  ☑ Ngày sinh                           │
+│  ☐ Số điện thoại                       │
+│  ☐ Số CCCD                             │
+│  ☑ Giai đoạn                           │
+│  ☑ Trạng thái                          │
+│  ...                                   │
+├────────────────────────────────────────┤
+│           [Hủy]  [Xuất 7 cột]          │
+└────────────────────────────────────────┘
 ```
 
 ---
 
-#### 5. Tích hợp vào các trang List
+#### PHASE 5: Mở rộng Export cho tất cả Menu
 
-**TraineeList.tsx** - thêm nút xuất:
-```typescript
-// Import
-import { ExportButton } from '@/components/ui/export-button';
-import { EXPORT_CONFIGS } from '@/lib/export-configs';
+**Cập nhật `export-configs.ts`:**
+Thêm cấu hình xuất cho các menu còn thiếu:
+- `post_departure` - Sau xuất cảnh
+- `violations` - Blacklist  
+- `internal_union` - Công đoàn nội bộ
+- `legal` - Tình trạng hồ sơ
+- `handbook` - Cẩm nang tư vấn
+- `glossary` - Từ điển chuyên ngành
 
-// Trong JSX, thêm bên cạnh nút "Thêm học viên"
-<ExportButton
-  menuKey="trainees"
-  tableName="trainees"
-  columns={EXPORT_CONFIGS.trainees.columns}
-  fileName={EXPORT_CONFIGS.trainees.fileName}
-  selectQuery={`
-    id, trainee_code, full_name, birth_date, gender, birthplace,
-    progression_stage, simple_status, trainee_type,
-    receiving_company:companies(name),
-    union:unions(name),
-    job_category:job_categories(name)
-  `}
-  filters={{ progression_stage: progressionStage !== 'all' ? progressionStage : undefined }}
-/>
-```
-
-**OrderList.tsx** - thêm nút xuất:
-```typescript
-<ExportButton
-  menuKey="orders"
-  tableName="orders"
-  columns={EXPORT_CONFIGS.orders.columns}
-  fileName={EXPORT_CONFIGS.orders.fileName}
-  selectQuery={`
-    *,
-    company:companies(name),
-    union:unions(name),
-    job_category:job_categories(name)
-  `}
-/>
-```
-
-**PartnerList.tsx** - thêm nút xuất theo tab:
-```typescript
-<ExportButton
-  menuKey="partners"
-  tableName={activeTab === 'companies' ? 'companies' : activeTab === 'unions' ? 'unions' : 'job_categories'}
-  columns={EXPORT_CONFIGS.partners.tabs[activeTab].columns}
-  fileName={EXPORT_CONFIGS.partners.tabs[activeTab].fileName}
-/>
-```
+**Tích hợp ExportButton vào các trang:**
+- `PostDeparturePage.tsx`
+- `ViolationsPage.tsx`
+- `InternalUnionPage.tsx`
+- `LegalPage.tsx`
+- `HandbookPage.tsx`
+- `GlossaryPage.tsx`
+- `ClassList.tsx` (Education)
+- `DormitoryPage.tsx`
 
 ---
 
-### Bảo mật tự động theo RLS
-
-| Tầng | Cơ chế bảo mật | Ghi chú |
-|------|---------------|---------|
-| **Frontend** | `useCanAccessMenu(menuKey)` | Ẩn nút nếu không có quyền xem menu |
-| **Query** | `supabase.from(tableName)` | Query chạy với token của user hiện tại |
-| **Supabase RLS** | `can_view('trainees')` | Chỉ trả dữ liệu user được phép xem |
-| **PII Masking** | Trigger `mask_phone`, `mask_cccd` | Dữ liệu nhạy cảm được mask cho non-senior staff |
-
----
-
-### Tóm tắt files cần tạo/sửa
+### Danh sách Files cần tạo/sửa
 
 | File | Loại | Mô tả |
 |------|------|-------|
-| `package.json` | Sửa | Thêm dependency `xlsx` |
-| `src/lib/export-configs.ts` | Tạo mới | Cấu hình cột xuất cho từng menu |
-| `src/hooks/useExportExcel.ts` | Tạo mới | Hook xử lý logic xuất Excel |
-| `src/components/ui/export-button.tsx` | Tạo mới | Component nút xuất dùng chung |
-| `src/pages/TraineeList.tsx` | Sửa | Thêm ExportButton |
-| `src/pages/orders/OrderList.tsx` | Sửa | Thêm ExportButton |
-| `src/pages/partners/PartnerList.tsx` | Sửa | Thêm ExportButton |
+| `supabase/migrations/20260207_add_can_export.sql` | Tạo mới | Thêm cột can_export + cập nhật function |
+| `src/hooks/useMenuPermissions.ts` | Sửa | Thêm canExport vào interface và hooks |
+| `src/hooks/useExportExcel.ts` | Sửa | Kiểm tra canExport thay vì canView |
+| `src/components/admin/UserMenuPermissionsModal.tsx` | Sửa | Thêm cột "Xuất file" |
+| `src/components/admin/DepartmentMenuPermissionsModal.tsx` | Sửa | Thêm cột "Xuất file" |
+| `src/components/ui/export-button-with-columns.tsx` | Tạo mới | Component xuất với chọn cột |
+| `src/lib/export-configs.ts` | Sửa | Thêm config cho các menu còn thiếu |
+| Các trang list (10+ files) | Sửa | Thêm ExportButton |
 
 ---
 
-### Tiêu chí nghiệm thu (E2E Testing)
+### Tiêu chí nghiệm thu
 
-1. **Test quyền xuất:**
-   - Đăng nhập user có quyền xem menu Học viên → thấy nút "Xuất Excel"
-   - Đăng nhập user KHÔNG có quyền xem menu Đơn hàng → KHÔNG thấy nút xuất ở trang Đơn hàng
+1. **Phân quyền Xuất file:**
+   - Admin tick "Xuất file" cho user A menu Học viên
+   - User A vào trang Học viên → thấy nút "Xuất Excel"
+   - User B không được tick → KHÔNG thấy nút xuất
 
-2. **Test dữ liệu xuất:**
-   - Xuất danh sách học viên với filter "Giai đoạn = Đậu phỏng vấn" → file Excel chỉ chứa học viên đã đậu PV
-   - Mở file Excel → kiểm tra các cột header đúng tiếng Việt
+2. **Chọn cột linh hoạt:**
+   - Click "Xuất Excel" → Dialog chọn cột xuất hiện
+   - Bỏ tick một số cột → Xuất file chỉ có các cột đã chọn
 
-3. **Test PII Masking:**
-   - Đăng nhập nhân viên thường (non-senior) → xuất Excel → số điện thoại, CCCD bị mask
-   - Đăng nhập nhân viên cấp cao → xuất Excel → thấy đầy đủ thông tin
+3. **Tất cả menu đều xuất được:**
+   - Vào từng trang (Học viên, Đơn hàng, Đối tác, Đào tạo, KTX, Sau xuất cảnh, Blacklist...) → đều có nút Xuất Excel
 
-4. **Test hiệu suất:**
-   - Xuất 5000+ học viên → hoàn thành trong < 10 giây, không làm đơ UI
+4. **Kế thừa quyền phòng ban:**
+   - Tick "Xuất file" cho Phòng Đào tạo → Tất cả nhân viên thuộc phòng có quyền xuất
+
+---
+
+### Lưu ý bảo mật
+
+- `can_export` tuân thủ RLS như các quyền khác
+- Dữ liệu xuất vẫn được filter theo RLS (user chỉ xuất dữ liệu họ có quyền xem)
+- PII masking vẫn áp dụng cho non-senior staff
+- Primary Admin có quyền xuất tất cả (như các quyền khác)
