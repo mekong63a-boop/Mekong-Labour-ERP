@@ -305,7 +305,7 @@ export const EXPORT_CONFIGS = {
   },
   dormitory_residents: {
     menuKey: 'dormitory',
-    fileName: 'danh-sach-cu-dan-ktx',
+    fileName: 'danh-sach-hoc-vien-ktx',
     columns: dormitoryResidentsColumns,
   },
 };

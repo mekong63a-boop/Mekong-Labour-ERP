@@ -198,6 +198,8 @@ export default function LegalPage() {
     queryFn: async () => {
       if (!selectedType) return [];
       
+      // Query học viên theo loại, chỉ cần progression_stage = 'Đậu phỏng vấn'
+      // Không yêu cầu interview_pass_date vì có thể chưa nhập
       const { data, error } = await supabase
         .from("trainees")
         .select(`
@@ -211,7 +213,6 @@ export default function LegalPage() {
           receiving_company:companies!fk_trainees_company(name)
         `)
         .eq("trainee_type", selectedType as any)
-        .not("interview_pass_date", "is", null)
         .not("receiving_company_id", "is", null)
         .eq("progression_stage", 'Đậu phỏng vấn')
         .order("full_name");
@@ -224,10 +225,12 @@ export default function LegalPage() {
 
   // Query trainees for company batch - only document processing stages
   const { data: companyTrainees = [], isLoading: isLoadingCompanyTrainees } = useQuery({
-    queryKey: ["legal-company-trainees", selectedCompanyBatch?.company_id, selectedCompanyBatch?.interview_pass_date],
+    queryKey: ["legal-company-trainees", selectedCompanyBatch?.company_id],
     queryFn: async () => {
       if (!selectedCompanyBatch) return [];
       
+      // Query tất cả học viên của công ty có progression_stage = 'Đậu phỏng vấn'
+      // Không filter theo interview_pass_date vì có thể chưa được nhập
       const { data, error } = await supabase
         .from("trainees")
         .select(`
@@ -258,7 +261,6 @@ export default function LegalPage() {
           document_status
         `)
         .eq("receiving_company_id", selectedCompanyBatch.company_id)
-        .eq("interview_pass_date", selectedCompanyBatch.interview_pass_date)
         .eq("progression_stage", 'Đậu phỏng vấn')
         .order("full_name");
 
