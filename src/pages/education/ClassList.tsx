@@ -91,6 +91,8 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCanAction } from "@/hooks/useMenuPermissions";
+import { ExportButtonWithColumns } from '@/components/ui/export-button-with-columns';
+import { EXPORT_CONFIGS } from '@/lib/export-configs';
 import { format } from "date-fns";
 import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 
@@ -459,6 +461,14 @@ export default function ClassList() {
             </DialogContent>
           </Dialog>
         )}
+        <ExportButtonWithColumns
+          menuKey="education"
+          tableName="classes"
+          allColumns={EXPORT_CONFIGS.education.columns}
+          fileName={EXPORT_CONFIGS.education.fileName}
+          selectQuery="code, name, level, schedule, start_date, expected_end_date, max_students, status"
+          title="Xuất danh sách lớp học"
+        />
       </div>
 
       {/* Search */}

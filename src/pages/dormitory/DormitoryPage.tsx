@@ -57,6 +57,8 @@ import {
   ArrowRight,
   Search,
 } from "lucide-react";
+import { ExportButtonWithColumns } from '@/components/ui/export-button-with-columns';
+import { EXPORT_CONFIGS } from '@/lib/export-configs';
 import {
   useDormitoriesWithCount,
   useDormitoryResidents,
@@ -276,6 +278,14 @@ export default function DormitoryPage() {
             Quản lý ký túc xá và học viên ở KTX
           </p>
         </div>
+        <ExportButtonWithColumns
+          menuKey="dormitory"
+          tableName="dormitories"
+          allColumns={EXPORT_CONFIGS.dormitory.columns}
+          fileName={EXPORT_CONFIGS.dormitory.fileName}
+          selectQuery="name, address, capacity, status, notes"
+          title="Xuất danh sách KTX"
+        />
       </header>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
