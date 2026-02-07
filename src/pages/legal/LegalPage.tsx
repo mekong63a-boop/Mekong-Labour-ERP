@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Search, Building2, Users, FileCheck, FileClock, FileX, GraduationCap, Wrench, UserCheck, ChevronDown, ChevronLeft, BarChart3 } from "lucide-react";
+import { Search, Building2, Users, FileCheck, FileClock, FileX, GraduationCap, Wrench, UserCheck, ChevronDown, ChevronLeft, BarChart3, Download } from "lucide-react";
 import { removeVietnameseDiacritics, formatJapaneseDate } from "@/lib/vietnamese-utils";
 import {
   DropdownMenu,
@@ -143,6 +143,7 @@ export default function LegalPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [selectedCompanyBatch, setSelectedCompanyBatch] = useState<CompanyBatch | null>(null);
+  const [exportDocStatus, setExportDocStatus] = useState<string>('all');
 
   // SYSTEM RULE: Query từ database view legal_company_stats (grouped by company + date)
   const { data: companyBatches = [], isLoading } = useQuery({
@@ -455,18 +456,47 @@ export default function LegalPage() {
   const renderCompanyDetailView = () => (
     <Card>
       <CardHeader>
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={handleBackToList}>
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Quay lại
-          </Button>
-          <div>
-            <CardTitle className="text-base">{selectedCompanyBatch?.name}</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              {selectedCompanyBatch?.name_japanese && `${selectedCompanyBatch.name_japanese} • `}
-              Ngày PV: {selectedCompanyBatch?.interview_pass_date && 
-                format(new Date(selectedCompanyBatch.interview_pass_date), "dd/MM/yyyy", { locale: vi })}
-            </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={handleBackToList}>
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Quay lại
+            </Button>
+            <div>
+              <CardTitle className="text-base">{selectedCompanyBatch?.name}</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {selectedCompanyBatch?.name_japanese && `${selectedCompanyBatch.name_japanese} • `}
+                Công ty {selectedCompanyBatch?.code}
+              </p>
+            </div>
+          </div>
+          
+          {/* Export section with document status filter */}
+          <div className="flex items-center gap-2">
+            <Select value={exportDocStatus} onValueChange={setExportDocStatus}>
+              <SelectTrigger className="w-[160px] h-9">
+                <SelectValue placeholder="Lọc theo tình trạng" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả hồ sơ</SelectItem>
+                <SelectItem value="not_started">Chưa làm</SelectItem>
+                <SelectItem value="in_progress">Đang làm</SelectItem>
+                <SelectItem value="completed">Đã xong</SelectItem>
+              </SelectContent>
+            </Select>
+            <ExportButtonWithColumns
+              menuKey="legal"
+              tableName="trainees"
+              allColumns={EXPORT_CONFIGS.legal.columns}
+              fileName={`ho-so-${selectedCompanyBatch?.code || 'cty'}-${exportDocStatus === 'all' ? 'tat-ca' : exportDocStatus}`}
+              selectQuery="trainee_code, full_name, furigana, gender, birth_date, birthplace, passport_number, passport_date, expected_entry_month, legal_address_vn, legal_address_jp, guarantor_name_vn, guarantor_name_jp, guarantor_phone, high_school_name, high_school_period, jp_certificate_school, jp_certificate_period, document_status, receiving_company:companies!fk_trainees_company(name)"
+              filters={{
+                receiving_company_id: selectedCompanyBatch?.company_id || '',
+                progression_stage: 'Đậu phỏng vấn',
+                ...(exportDocStatus !== 'all' && { document_status: exportDocStatus })
+              }}
+              title={`Xuất hồ sơ - ${selectedCompanyBatch?.name || ''}`}
+            />
           </div>
         </div>
       </CardHeader>
