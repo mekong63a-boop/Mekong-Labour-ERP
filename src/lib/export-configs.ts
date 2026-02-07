@@ -121,17 +121,22 @@ const dormitoryColumns: ExportColumn[] = [
 const postDepartureColumns: ExportColumn[] = [
   { key: 'trainee_code', label: 'Mã HV' },
   { key: 'full_name', label: 'Họ và tên' },
+  { key: 'trainee_type', label: 'Đối tượng' },
+  { key: 'gender', label: 'Giới tính' },
+  { key: 'birth_date', label: 'Ngày sinh', format: 'date' },
   { key: 'departure_date', label: 'Ngày xuất cảnh', format: 'date' },
   { key: 'receiving_company.name', label: 'Công ty tiếp nhận' },
   { key: 'union.name', label: 'Nghiệp đoàn' },
   { key: 'job_category.name', label: 'Ngành nghề' },
-  { key: 'current_situation', label: 'Tình trạng hiện tại' },
+  { key: 'progression_stage', label: 'Tình trạng' },
+  { key: 'contract_term', label: 'Thời hạn HĐ', format: 'number' },
   { key: 'contract_end_date', label: 'Ngày hết HĐ', format: 'date' },
   { key: 'expected_return_date', label: 'Ngày dự kiến về', format: 'date' },
   { key: 'return_date', label: 'Ngày về thực tế', format: 'date' },
   { key: 'early_return_date', label: 'Ngày về sớm', format: 'date' },
   { key: 'early_return_reason', label: 'Lý do về sớm' },
   { key: 'absconded_date', label: 'Ngày bỏ trốn', format: 'date' },
+  { key: 'notes', label: 'Ghi chú' },
 ];
 
 // Internal Union - Công đoàn nội bộ (Thành viên)
@@ -155,17 +160,37 @@ const internalUnionTransactionColumns: ExportColumn[] = [
   { key: 'description', label: 'Mô tả' },
 ];
 
-// Legal - Tình trạng hồ sơ (chi tiết đầy đủ - phải khớp với bảng trong LegalPage)
+// Legal - Tình trạng hồ sơ (chi tiết đầy đủ - KHỚP ĐÚNG THỨ TỰ VỚI DOCUMENT_COLUMNS trong LegalPage)
+// 'STT', 'Mã HV', 'Họ và tên', 'Họ và tên không dấu', 'Tên phiên âm', 
+// 'Giới tính', 'Ngày tháng năm sinh', 'Ngày sinh tiếng Nhật',
+// 'Nơi sinh', 'Nơi sinh không dấu', 
+// 'Số hộ chiếu', 'Ngày cấp HC', 'Ngày cấp HC (JP)',
+// 'Ngày dự kiến XC', 'Ngày dự kiến XC (JP)',
+// 'Địa chỉ Việt', 'Địa chỉ Nhật',
+// 'Tên người bảo lãnh VN', 'Tên người bảo lãnh JP', 'SĐT người bảo lãnh',
+// 'Tên trường cấp 3', 'Thời gian học',
+// 'Trường chứng chỉ JP', 'Thời gian học CC',
+// 'Tên trường JP 1', 'Khóa học JP 1',
+// 'Tên trường JP 2', 'Khóa học JP 2',
+// 'Ngày trình ĐKHĐ', 'Số ĐKHĐ', 'Mã HS ĐKHĐ',
+// 'Ngày gửi xin TPC', 'Số CV xin TPC', 'Mã HS xin TPC',
+// 'Số PTL', 'Tình trạng', 'Ngày cấp PTL', 'Ngày cấp TPC', 'Hiện trạng'
 const legalColumns: ExportColumn[] = [
+  // Cột cơ bản - STT sẽ được thêm tự động khi xuất
   { key: 'trainee_code', label: 'Mã HV' },
   { key: 'full_name', label: 'Họ và tên' },
+  // Họ và tên không dấu - tính toán khi xuất
   { key: 'furigana', label: 'Tên phiên âm' },
   { key: 'gender', label: 'Giới tính' },
-  { key: 'birth_date', label: 'Ngày sinh', format: 'date' },
+  { key: 'birth_date', label: 'Ngày tháng năm sinh', format: 'date' },
+  // Ngày sinh tiếng Nhật - tính toán khi xuất
   { key: 'birthplace', label: 'Nơi sinh' },
+  // Nơi sinh không dấu - tính toán khi xuất
   { key: 'passport_number', label: 'Số hộ chiếu' },
   { key: 'passport_date', label: 'Ngày cấp HC', format: 'date' },
+  // Ngày cấp HC (JP) - tính toán khi xuất
   { key: 'expected_entry_month', label: 'Ngày dự kiến XC' },
+  // Ngày dự kiến XC (JP) - tính toán khi xuất
   { key: 'legal_address_vn', label: 'Địa chỉ Việt' },
   { key: 'legal_address_jp', label: 'Địa chỉ Nhật' },
   { key: 'guarantor_name_vn', label: 'Tên người bảo lãnh VN' },
