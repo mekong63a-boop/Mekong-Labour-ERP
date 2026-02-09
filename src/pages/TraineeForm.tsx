@@ -714,77 +714,124 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
 
   // Save history items
   const saveHistoryItems = async (traineeId: string) => {
+    // IMPORTANT: Supabase JS does NOT throw by default.
+    // If we don't check `error`, failures will look like "saved but missing".
+
     // Education history
-    await supabase.from("education_history").delete().eq("trainee_id", traineeId);
-    if (educationItems.length > 0) {
-      const eduData = educationItems.map(item => ({
-        trainee_id: traineeId,
-        level: item.level || null,
-        school_name: item.school_name,
-        major: item.major || null,
-        start_month: item.start_month ? parseInt(item.start_month) : null,
-        start_year: item.start_year ? parseInt(item.start_year) : null,
-        end_month: item.end_month ? parseInt(item.end_month) : null,
-        end_year: item.end_year ? parseInt(item.end_year) : null,
-      }));
-      await supabase.from("education_history").insert(eduData);
+    {
+      const { error: delErr } = await supabase
+        .from("education_history")
+        .delete()
+        .eq("trainee_id", traineeId);
+      if (delErr) throw delErr;
+
+      if (educationItems.length > 0) {
+        const eduData = educationItems.map((item) => ({
+          trainee_id: traineeId,
+          level: item.level || null,
+          school_name: item.school_name,
+          major: item.major || null,
+          start_month: item.start_month ? parseInt(item.start_month, 10) : null,
+          start_year: item.start_year ? parseInt(item.start_year, 10) : null,
+          end_month: item.end_month ? parseInt(item.end_month, 10) : null,
+          end_year: item.end_year ? parseInt(item.end_year, 10) : null,
+        }));
+
+        const { error: insErr } = await supabase.from("education_history").insert(eduData);
+        if (insErr) throw insErr;
+      }
     }
 
     // Work history
-    await supabase.from("work_history").delete().eq("trainee_id", traineeId);
-    if (workItems.length > 0) {
-      const workData = workItems.map(item => ({
-        trainee_id: traineeId,
-        company_name: item.company_name,
-        position: item.position || null,
-        income: item.income || null,
-        start_date: item.start_date || null,
-        end_date: item.end_date || null,
-      }));
-      await supabase.from("work_history").insert(workData);
+    {
+      const { error: delErr } = await supabase
+        .from("work_history")
+        .delete()
+        .eq("trainee_id", traineeId);
+      if (delErr) throw delErr;
+
+      if (workItems.length > 0) {
+        const workData = workItems.map((item) => ({
+          trainee_id: traineeId,
+          company_name: item.company_name,
+          position: item.position || null,
+          income: item.income || null,
+          start_date: item.start_date || null,
+          end_date: item.end_date || null,
+        }));
+
+        const { error: insErr } = await supabase.from("work_history").insert(workData);
+        if (insErr) throw insErr;
+      }
     }
 
     // Family members
-    await supabase.from("family_members").delete().eq("trainee_id", traineeId);
-    if (familyItems.length > 0) {
-      const familyData = familyItems.map(item => ({
-        trainee_id: traineeId,
-        relationship: item.relationship,
-        full_name: item.full_name,
-        gender: item.gender || null,
-        birth_year: item.birth_year ? parseInt(item.birth_year) : null,
-        location: item.location || null, // Save to correct DB column
-        occupation: item.occupation || null,
-        income: item.income || null,
-      }));
-      await supabase.from("family_members").insert(familyData);
+    {
+      const { error: delErr } = await supabase
+        .from("family_members")
+        .delete()
+        .eq("trainee_id", traineeId);
+      if (delErr) throw delErr;
+
+      if (familyItems.length > 0) {
+        const familyData = familyItems.map((item) => ({
+          trainee_id: traineeId,
+          relationship: item.relationship,
+          full_name: item.full_name,
+          gender: item.gender || null,
+          birth_year: item.birth_year ? parseInt(item.birth_year, 10) : null,
+          location: item.location || null,
+          occupation: item.occupation || null,
+          income: item.income || null,
+        }));
+
+        const { error: insErr } = await supabase.from("family_members").insert(familyData);
+        if (insErr) throw insErr;
+      }
     }
 
     // Japan relatives
-    await supabase.from("japan_relatives").delete().eq("trainee_id", traineeId);
-    if (japanRelativeItems.length > 0) {
-      const japanData = japanRelativeItems.map(item => ({
-        trainee_id: traineeId,
-        full_name: item.full_name,
-        relationship: item.relationship || null,
-        age: item.age ? parseInt(item.age) : null,
-        gender: item.gender || null,
-        address_japan: item.address_japan || null,
-        residence_status: item.residence_status || null,
-      }));
-      await supabase.from("japan_relatives").insert(japanData);
+    {
+      const { error: delErr } = await supabase
+        .from("japan_relatives")
+        .delete()
+        .eq("trainee_id", traineeId);
+      if (delErr) throw delErr;
+
+      if (japanRelativeItems.length > 0) {
+        const japanData = japanRelativeItems.map((item) => ({
+          trainee_id: traineeId,
+          full_name: item.full_name,
+          relationship: item.relationship || null,
+          age: item.age ? parseInt(item.age, 10) : null,
+          gender: item.gender || null,
+          address_japan: item.address_japan || null,
+          residence_status: item.residence_status || null,
+        }));
+
+        const { error: insErr } = await supabase.from("japan_relatives").insert(japanData);
+        if (insErr) throw insErr;
+      }
     }
 
     // Project/Interview: Always update trainee's draft fields
     // NOTE: interview_date does NOT exist in trainees table - it's only in interview_history
     // interview_history is written when clicking "Lưu lịch sử phỏng vấn" via finalize_interview_draft RPC
-    await supabase.from("trainees").update({
-      receiving_company_id: projectInterviewData.receiving_company_id || null,
-      union_id: projectInterviewData.union_id || null,
-      job_category_id: projectInterviewData.job_category_id || null,
-      expected_entry_month: projectInterviewData.expected_entry_month || null,
-      contract_term: projectInterviewData.contract_term ? parseFloat(projectInterviewData.contract_term) : null,
-    }).eq("id", traineeId);
+    {
+      const { error: updErr } = await supabase
+        .from("trainees")
+        .update({
+          receiving_company_id: projectInterviewData.receiving_company_id || null,
+          union_id: projectInterviewData.union_id || null,
+          job_category_id: projectInterviewData.job_category_id || null,
+          expected_entry_month: projectInterviewData.expected_entry_month || null,
+          contract_term: projectInterviewData.contract_term
+            ? parseFloat(projectInterviewData.contract_term)
+            : null,
+        })
+        .eq("id", traineeId);
+      if (updErr) throw updErr;
+    }
   };
 
   // Handle form submit
