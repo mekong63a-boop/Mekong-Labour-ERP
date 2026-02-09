@@ -471,9 +471,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         level: item.level || "",
         school_name: item.school_name || "",
         major: item.major || "",
-        start_month: "",
+        start_month: item.start_month?.toString().padStart(2, '0') || "",
         start_year: item.start_year?.toString() || "",
-        end_month: "",
+        end_month: item.end_month?.toString().padStart(2, '0') || "",
         end_year: item.end_year?.toString() || "",
       }));
       setEducationItems(mapped);
@@ -722,7 +722,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         level: item.level || null,
         school_name: item.school_name,
         major: item.major || null,
+        start_month: item.start_month ? parseInt(item.start_month) : null,
         start_year: item.start_year ? parseInt(item.start_year) : null,
+        end_month: item.end_month ? parseInt(item.end_month) : null,
         end_year: item.end_year ? parseInt(item.end_year) : null,
       }));
       await supabase.from("education_history").insert(eduData);

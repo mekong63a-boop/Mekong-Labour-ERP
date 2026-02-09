@@ -531,31 +531,37 @@ export type Database = {
       education_history: {
         Row: {
           created_at: string
+          end_month: number | null
           end_year: number | null
           id: string
           level: string | null
           major: string | null
           school_name: string
+          start_month: number | null
           start_year: number | null
           trainee_id: string
         }
         Insert: {
           created_at?: string
+          end_month?: number | null
           end_year?: number | null
           id?: string
           level?: string | null
           major?: string | null
           school_name: string
+          start_month?: number | null
           start_year?: number | null
           trainee_id: string
         }
         Update: {
           created_at?: string
+          end_month?: number | null
           end_year?: number | null
           id?: string
           level?: string | null
           major?: string | null
           school_name?: string
+          start_month?: number | null
           start_year?: number | null
           trainee_id?: string
         }
