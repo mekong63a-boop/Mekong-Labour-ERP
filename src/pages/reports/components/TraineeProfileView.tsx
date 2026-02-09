@@ -40,7 +40,7 @@ import {
   FileSearch,
 } from "lucide-react";
 import { TraineeProfile } from "../hooks/useTraineeProfile";
-import { formatVietnameseDate } from "@/lib/vietnamese-utils";
+import { formatVietnameseDate, formatVietnameseMonthYearRange } from "@/lib/vietnamese-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -504,8 +504,15 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                         <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                           {edu.level && <Badge variant="outline" className="text-xs">{edu.level}</Badge>}
                           {edu.major && <span>Chuyên ngành: {edu.major}</span>}
-                          {(edu.start_year || edu.end_year) && (
-                            <span>{edu.start_year || '?'} - {edu.end_year || 'nay'}</span>
+                          {(edu.start_year || edu.end_year || (edu as any).start_month || (edu as any).end_month) && (
+                            <span>
+                              {formatVietnameseMonthYearRange({
+                                startMonth: (edu as any).start_month,
+                                startYear: edu.start_year,
+                                endMonth: (edu as any).end_month,
+                                endYear: edu.end_year,
+                              })}
+                            </span>
                           )}
                         </div>
                       </div>

@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatVietnameseDate } from "@/lib/vietnamese-utils";
+import { formatVietnameseDate, formatVietnameseMonthYearRange } from "@/lib/vietnamese-utils";
 
 interface PersonalHistoryTabProps {
   traineeId: string;
@@ -64,9 +64,12 @@ export function PersonalHistoryTab({ traineeId }: PersonalHistoryTabProps) {
                     </TableCell>
                     <TableCell>{edu.major || "—"}</TableCell>
                     <TableCell>
-                      {edu.start_year && edu.end_year
-                        ? `${edu.start_year} - ${edu.end_year}`
-                        : edu.start_year || "—"}
+                      {formatVietnameseMonthYearRange({
+                        startMonth: (edu as any).start_month,
+                        startYear: edu.start_year,
+                        endMonth: (edu as any).end_month,
+                        endYear: edu.end_year,
+                      })}
                     </TableCell>
                   </TableRow>
                 ))}

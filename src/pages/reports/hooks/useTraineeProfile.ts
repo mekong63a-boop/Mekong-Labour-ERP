@@ -28,7 +28,9 @@ export interface EducationHistoryRecord {
   school_name: string;
   level: string | null;
   major: string | null;
+  start_month: number | null;
   start_year: number | null;
+  end_month: number | null;
   end_year: number | null;
 }
 
