@@ -869,23 +869,44 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         await saveHistoryItems(finalTraineeId);
       }
 
-      // Invalidate and refetch queries to ensure UI reflects latest data
+      // CRITICAL: Invalidate AND immediately refetch all related queries
+      // This ensures UI updates instantly without waiting for staleTime or realtime events
+      
+      // 1. Core trainee data - invalidate and refetch immediately
       await queryClient.invalidateQueries({ queryKey: ["trainees"] });
       await queryClient.invalidateQueries({ queryKey: ["trainee", traineeId] });
-      await queryClient.refetchQueries({ queryKey: ["trainee", traineeId] });
       
-      // Invalidate Orders queries (receiving_company_id, progression_stage changes)
+      // 2. CRITICAL: Trainee List uses these queries - must refetch immediately to avoid 10-20s delay
+      await queryClient.invalidateQueries({ queryKey: ["trainees-paginated"] });
+      await queryClient.invalidateQueries({ queryKey: ["trainees-count"] });
+      await queryClient.invalidateQueries({ queryKey: ["trainee-stage-counts"] });
+      
+      // 3. History data - CRITICAL: Must invalidate to reflect saved education/work/family data
+      await queryClient.invalidateQueries({ queryKey: ["education-history", traineeId || finalTraineeId] });
+      await queryClient.invalidateQueries({ queryKey: ["work-history", traineeId || finalTraineeId] });
+      await queryClient.invalidateQueries({ queryKey: ["family-members", traineeId || finalTraineeId] });
+      await queryClient.invalidateQueries({ queryKey: ["japan-relatives", traineeId || finalTraineeId] });
+      await queryClient.invalidateQueries({ queryKey: ["interview-history", traineeId || finalTraineeId] });
+      
+      // 4. Force immediate refetch of active queries to ensure instant UI update
+      await queryClient.refetchQueries({ queryKey: ["trainee", traineeId], type: "active" });
+      await queryClient.refetchQueries({ queryKey: ["trainees-paginated"], type: "active" });
+      await queryClient.refetchQueries({ queryKey: ["trainees-count"], type: "active" });
+      await queryClient.refetchQueries({ queryKey: ["trainee-stage-counts"], type: "active" });
+      
+      // 5. Invalidate related module queries
+      // Orders queries (receiving_company_id, progression_stage changes)
       await queryClient.invalidateQueries({ queryKey: ["orders"] });
       await queryClient.invalidateQueries({ queryKey: ["order-trainee-counts"] });
       await queryClient.invalidateQueries({ queryKey: ["order-trainees"] });
       
-      // Invalidate Post-departure queries (progression_stage changes affect stats)
+      // Post-departure queries (progression_stage changes affect stats)
       await queryClient.invalidateQueries({ queryKey: ["post-departure-trainees"] });
       await queryClient.invalidateQueries({ queryKey: ["post-departure-stats-by-year"] });
       await queryClient.invalidateQueries({ queryKey: ["post-departure-by-type"] });
       await queryClient.invalidateQueries({ queryKey: ["post-departure-kpi-cards"] });
       
-      // Invalidate Partners queries (receiving_company_id, union_id changes)
+      // Partners queries (receiving_company_id, union_id changes)
       await queryClient.invalidateQueries({ queryKey: ["companies"] });
       await queryClient.invalidateQueries({ queryKey: ["unions"] });
 

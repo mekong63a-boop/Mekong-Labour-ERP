@@ -141,7 +141,7 @@ export function useTraineesPaginated({
       return count || 0;
     },
     enabled,
-    staleTime: 30000,
+    staleTime: 5000, // Reduced from 30s to 5s for faster updates
   });
 
   // Query for data
@@ -265,7 +265,7 @@ export function useTraineesPaginated({
       return trainees;
     },
     enabled: enabled && countQuery.data !== undefined,
-    staleTime: 10000,
+    staleTime: 5000, // Reduced from 10s to 5s for faster updates
   });
 
   return {
