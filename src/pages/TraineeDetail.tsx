@@ -4,11 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, User, History, Briefcase, Edit, Clock, Home } from "lucide-react";
+import { ArrowLeft, User, History, Briefcase, Edit, Clock } from "lucide-react";
 import { PersonalInfoTab } from "@/components/trainees/tabs/PersonalInfoTab";
 import { PersonalHistoryTab } from "@/components/trainees/tabs/PersonalHistoryTab";
 import { ProjectInterviewTab } from "@/components/trainees/tabs/ProjectInterviewTab";
-import { StageTimeline } from "@/components/trainees/StageTimeline";
 
 import { useStageTimeline } from "@/hooks/useStageTransition";
 export default function TraineeDetail() {
@@ -110,7 +109,7 @@ export default function TraineeDetail() {
 
       {/* Tabs - Single Source View */}
       <Tabs defaultValue="personal" className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-4">
+        <TabsList className="grid w-full max-w-2xl grid-cols-3">
           <TabsTrigger value="personal" className="gap-2">
             <User className="h-4 w-4" />
             Thông tin cá nhân
@@ -122,10 +121,6 @@ export default function TraineeDetail() {
           <TabsTrigger value="project" className="gap-2">
             <Briefcase className="h-4 w-4" />
             Dự án & Phỏng vấn
-          </TabsTrigger>
-          <TabsTrigger value="timeline" className="gap-2">
-            <Clock className="h-4 w-4" />
-            Lịch sử trạng thái
           </TabsTrigger>
         </TabsList>
 
@@ -139,10 +134,6 @@ export default function TraineeDetail() {
 
         <TabsContent value="project" className="mt-6">
           <ProjectInterviewTab trainee={trainee} />
-        </TabsContent>
-
-        <TabsContent value="timeline" className="mt-6">
-          <StageTimeline traineeId={trainee.id} />
         </TabsContent>
       </Tabs>
     </div>
