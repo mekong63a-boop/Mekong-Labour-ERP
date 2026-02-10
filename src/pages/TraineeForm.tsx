@@ -219,6 +219,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     contract_term: "",
   });
   const [projectLoaded, setProjectLoaded] = useState(false);
+  const [formLoaded, setFormLoaded] = useState(false);
 
   // Hooks
   const { data: trainee } = useTrainee(traineeId || "");
@@ -365,9 +366,19 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     }
   );
 
-  // Populate form with trainee data when editing
+  // Reset all loaded flags when traineeId changes (navigating to different trainee)
   useEffect(() => {
-    if (isEditMode && trainee) {
+    setFormLoaded(false);
+    setProjectLoaded(false);
+    setEducationLoaded(false);
+    setWorkLoaded(false);
+    setFamilyLoaded(false);
+    setJapanLoaded(false);
+  }, [traineeId]);
+
+  // Populate form with trainee data when editing - only runs ONCE per trainee
+  useEffect(() => {
+    if (isEditMode && trainee && !formLoaded) {
       setFormData({
         trainee_code: trainee.trainee_code || "",
         full_name: trainee.full_name || "",
@@ -448,8 +459,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
           ? (trainee as any).ssw_certificate.split(", ").filter(Boolean) 
           : [],
       });
+      setFormLoaded(true);
     }
-  }, [isEditMode, trainee]);
+  }, [isEditMode, trainee, formLoaded]);
 
   const [educationLoaded, setEducationLoaded] = useState(false);
   const [workLoaded, setWorkLoaded] = useState(false);
@@ -535,8 +547,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
 
   // Sync project interview data - load from trainees table + interview_history
   // interview_date is ONLY stored in interview_history, not in trainees table
+  // IMPORTANT: Wait for interviewData to be defined (not just truthy) before marking as loaded
   useEffect(() => {
-    if (trainee && !projectLoaded) {
+    if (trainee && interviewData !== undefined && !projectLoaded) {
       setProjectInterviewData({
         order_id: "",
         // interview_date comes from latest interview_history only
@@ -816,7 +829,6 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
 
     // Project/Interview: Always update trainee's draft fields
     // NOTE: interview_date does NOT exist in trainees table - it's only in interview_history
-    // interview_history is written when clicking "Lưu lịch sử phỏng vấn" via finalize_interview_draft RPC
     {
       const { error: updErr } = await supabase
         .from("trainees")
@@ -831,6 +843,21 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         })
         .eq("id", traineeId);
       if (updErr) throw updErr;
+    }
+
+    // Auto-finalize interview history when interview_date is present
+    // This eliminates the need for users to click a separate "Lưu lịch sử phỏng vấn" button
+    if (projectInterviewData.interview_date) {
+      const { error: intErr } = await supabase.rpc("finalize_interview_draft", {
+        p_trainee_id: traineeId,
+        p_interview_date: projectInterviewData.interview_date,
+        p_result: null,
+        p_company_id: projectInterviewData.receiving_company_id || null,
+        p_union_id: projectInterviewData.union_id || null,
+        p_job_category_id: projectInterviewData.job_category_id || null,
+        p_expected_entry_month: projectInterviewData.expected_entry_month || null,
+      });
+      if (intErr) throw intErr;
     }
   };
 
@@ -923,7 +950,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       
       // 1. Core trainee data - invalidate and refetch immediately
       await queryClient.invalidateQueries({ queryKey: ["trainees"] });
-      await queryClient.invalidateQueries({ queryKey: ["trainee", traineeId] });
+      // Don't refetch ["trainee", traineeId] here - formLoaded guard prevents re-render overwrite
+      // and we navigate away immediately after save anyway
       
       // 2. CRITICAL: Trainee List uses these queries - must refetch immediately to avoid 10-20s delay
       await queryClient.invalidateQueries({ queryKey: ["trainees-paginated"] });
@@ -937,8 +965,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       await queryClient.invalidateQueries({ queryKey: ["japan-relatives", traineeId || finalTraineeId] });
       await queryClient.invalidateQueries({ queryKey: ["interview-history", traineeId || finalTraineeId] });
       
-      // 4. Force immediate refetch of active queries to ensure instant UI update
-      await queryClient.refetchQueries({ queryKey: ["trainee", traineeId], type: "active" });
+      // 4. Force immediate refetch of list queries to ensure instant UI update
       await queryClient.refetchQueries({ queryKey: ["trainees-paginated"], type: "active" });
       await queryClient.refetchQueries({ queryKey: ["trainees-count"], type: "active" });
       await queryClient.refetchQueries({ queryKey: ["trainee-stage-counts"], type: "active" });
