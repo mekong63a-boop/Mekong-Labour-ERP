@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Package } from "lucide-react";
+import { FileText, Package, RotateCcw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -233,10 +233,32 @@ export function ProjectInterviewForm({ data, onChange, traineeId }: ProjectInter
   return (
     <Card>
       <CardHeader className="py-3">
-        <CardTitle className="flex items-center gap-2 text-base font-semibold text-primary">
-          <FileText className="h-5 w-5" />
-          Thông tin Dự án & Phỏng vấn
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-primary">
+            <FileText className="h-5 w-5" />
+            Thông tin Dự án & Phỏng vấn
+          </CardTitle>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10"
+            onClick={() => {
+              onChange({
+                order_id: "",
+                interview_date: "",
+                expected_entry_month: "",
+                receiving_company_id: "",
+                union_id: "",
+                job_category_id: "",
+                contract_term: "",
+              });
+            }}
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Xóa thông tin dự án
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
