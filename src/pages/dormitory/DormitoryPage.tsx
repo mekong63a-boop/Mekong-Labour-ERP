@@ -56,7 +56,9 @@ import {
   History,
   ArrowRight,
   Search,
+  BarChart3,
 } from "lucide-react";
+import DormitoryMonthlyStats from "@/components/dormitory/DormitoryMonthlyStats";
 import { ExportButtonWithColumns } from '@/components/ui/export-button-with-columns';
 import { EXPORT_CONFIGS } from '@/lib/export-configs';
 import {
@@ -298,6 +300,10 @@ export default function DormitoryPage() {
             <Search className="h-4 w-4" />
             Tra cứu học viên
           </TabsTrigger>
+          <TabsTrigger value="stats" className="gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Thống kê vào/ra
+          </TabsTrigger>
         </TabsList>
 
         {/* Tab Tra cứu */}
@@ -446,6 +452,10 @@ export default function DormitoryPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="stats" className="mt-6">
+          <DormitoryMonthlyStats />
         </TabsContent>
 
         <TabsContent value="manage" className="mt-6">

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useEducationStats } from "@/hooks/useEducation";
 import { GraduationCap, Users, AlertCircle, Clock, BookOpen, UserCheck, UserX } from "lucide-react";
+import EnrollmentMonthlyStats from "@/components/education/EnrollmentMonthlyStats";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -302,6 +303,9 @@ export default function EducationDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Enrollment Monthly Stats */}
+      <EnrollmentMonthlyStats />
     </div>
   );
 }
