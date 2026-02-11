@@ -24,8 +24,26 @@ import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 
 const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
+function useAvailableYearsEnrollment() {
+  return useQuery({
+    queryKey: ["enrollment-available-years"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("enrollment_history")
+        .select("action_date")
+        .eq("action_type", "enroll");
+      if (error) throw error;
+      const yearSet = new Set<number>();
+      (data || []).forEach((r) => {
+        if (r.action_date) yearSet.add(new Date(r.action_date).getFullYear());
+      });
+      if (yearSet.size === 0) yearSet.add(currentYear);
+      return Array.from(yearSet).sort((a, b) => b - a);
+    },
+  });
+}
 
 function useEnrollmentMonthlyStats(year: number) {
   return useQuery({
@@ -105,6 +123,7 @@ export default function EnrollmentMonthlyStats() {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [detailMonth, setDetailMonth] = useState(0);
 
+  const { data: availableYears } = useAvailableYearsEnrollment();
   const { data: stats, isLoading } = useEnrollmentMonthlyStats(selectedYear);
   const { data: detailTrainees, isLoading: detailLoading } = useEnrollmentMonthlyTrainees(
     selectedYear, detailMonth
@@ -124,7 +143,7 @@ export default function EnrollmentMonthlyStats() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {years.map((y) => (
+                {(availableYears || [currentYear]).map((y) => (
                   <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                 ))}
               </SelectContent>

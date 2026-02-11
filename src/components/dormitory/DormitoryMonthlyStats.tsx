@@ -24,8 +24,26 @@ import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 
 const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
+function useAvailableYearsDormitory() {
+  return useQuery({
+    queryKey: ["dormitory-available-years"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dormitory_residents")
+        .select("check_in_date, check_out_date");
+      if (error) throw error;
+      const yearSet = new Set<number>();
+      (data || []).forEach((r) => {
+        if (r.check_in_date) yearSet.add(new Date(r.check_in_date).getFullYear());
+        if (r.check_out_date) yearSet.add(new Date(r.check_out_date).getFullYear());
+      });
+      if (yearSet.size === 0) yearSet.add(currentYear);
+      return Array.from(yearSet).sort((a, b) => b - a);
+    },
+  });
+}
 
 function useDormitoryMonthlyStats(year: number) {
   return useQuery({
@@ -125,6 +143,7 @@ export default function DormitoryMonthlyStats() {
   const [detailMonth, setDetailMonth] = useState(0);
   const [detailType, setDetailType] = useState<"in" | "out">("in");
 
+  const { data: availableYears } = useAvailableYearsDormitory();
   const { data: stats, isLoading } = useDormitoryMonthlyStats(selectedYear);
   const { data: detailTrainees, isLoading: detailLoading } = useDormitoryMonthlyTrainees(
     selectedYear, detailMonth, detailType
@@ -153,7 +172,7 @@ export default function DormitoryMonthlyStats() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {years.map((y) => (
+                {(availableYears || [currentYear]).map((y) => (
                   <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                 ))}
               </SelectContent>

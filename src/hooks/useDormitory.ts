@@ -515,6 +515,7 @@ export function useAvailableTraineesForDormitory() {
         .from("trainees")
         .select("id, trainee_code, full_name, photo_url, phone")
         .in("simple_status", ELIGIBLE_DORMITORY_STATUSES)
+        .is("departure_date", null) // Loại bỏ học viên đã xuất cảnh
         .order("full_name", { ascending: true });
         
       if (error) throw error;
