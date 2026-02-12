@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Lock, LockOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
@@ -22,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { PhotoUpload, uploadPhoto } from "@/components/trainees/PhotoUpload";
 import { LineQRUpload, uploadLineQR } from "@/components/trainees/LineQRUpload";
-import { useTrainee, useUpdateTrainee } from "@/hooks/useTrainees";
+import { useTrainee, useUpdateTrainee, useToggleTraineeLock } from "@/hooks/useTrainees";
 import { useKatakanaConverter } from "@/hooks/useKatakanaConverter";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useDataMasking } from "@/hooks/useSecureData";
@@ -194,8 +195,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState("personal");
   const { convertToKatakana } = useKatakanaConverter();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isPrimaryAdmin } = useUserRole();
   const { canViewUnmasked } = useDataMasking();
+  const toggleLockMutation = useToggleTraineeLock();
   
   // Admin và Nhân viên cấp cao có thể xem/sửa trường nhạy cảm
   const canEditSensitiveFields = canViewUnmasked;
@@ -1008,8 +1010,22 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     return value ? "" : "input-empty";
   };
 
+  // Check if trainee is locked and user is not primary admin
+  const isLocked = isEditMode && trainee?.is_locked === true;
+  const canEditLocked = isPrimaryAdmin;
+  const isFormDisabled = isLocked && !canEditLocked;
+
   return (
-    <div className="p-4 md:p-6">
+    <div className={cn("p-4 md:p-6", isFormDisabled && "pointer-events-none")}>
+      {/* Lock banner */}
+      {isLocked && (
+        <div className="mb-4 flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+          <Lock className="h-5 w-5 text-destructive shrink-0" />
+          <p className="text-sm text-destructive font-medium">
+            Hồ sơ đã bị khóa bởi Admin. {canEditLocked ? "Bạn có thể mở khóa." : "Chỉ Admin chính mới có thể chỉnh sửa."}
+          </p>
+        </div>
+      )}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         {/* Sticky Header with trainee info */}
         <div className="sticky top-0 z-20 bg-background pb-2 -mx-4 md:-mx-6 px-4 md:px-6 border-b">
@@ -1017,7 +1033,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate("/trainees")}
-                className="p-2 hover:bg-muted rounded-lg transition"
+                className={cn("p-2 hover:bg-muted rounded-lg transition", isFormDisabled && "pointer-events-auto")}
               >
                 <ArrowLeft className="h-5 w-5" />
               </button>
@@ -1038,20 +1054,52 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                       </span>
                     </div>
                   )}
+                  {isLocked && (
+                    <Badge variant="destructive" className="gap-1">
+                      <Lock className="h-3 w-3" />
+                      Đã khóa
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
                   {isEditMode ? "Cập nhật thông tin học viên" : "Tạo hồ sơ học viên mới"}
                 </p>
               </div>
             </div>
-            <Button onClick={handleSubmit} disabled={isSubmitting || isCodeDuplicate}>
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
+            <div className="flex items-center gap-2 pointer-events-auto">
+              {/* Lock/Unlock button - only for Primary Admin in edit mode */}
+              {isEditMode && isPrimaryAdmin && traineeId && (
+                <Button
+                  variant={isLocked ? "outline" : "destructive"}
+                  size="sm"
+                  onClick={() => toggleLockMutation.mutate({ id: traineeId, is_locked: !isLocked })}
+                  disabled={toggleLockMutation.isPending}
+                >
+                  {isLocked ? (
+                    <>
+                      <LockOpen className="h-4 w-4 mr-1" />
+                      Mở khóa
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-4 w-4 mr-1" />
+                      Khóa
+                    </>
+                  )}
+                </Button>
               )}
-              Lưu
-            </Button>
+              {/* Save button - hidden when locked for non-primary admin */}
+              {!isFormDisabled && (
+                <Button onClick={handleSubmit} disabled={isSubmitting || isCodeDuplicate}>
+                  {isSubmitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Lưu
+                </Button>
+              )}
+            </div>
           </div>
 
           <TabsList className="w-full grid grid-cols-5">

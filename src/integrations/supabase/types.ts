@@ -1804,6 +1804,7 @@ export type Database = {
           id: string
           interview_count: number | null
           interview_pass_date: string | null
+          is_locked: boolean | null
           japanese_certificate: string | null
           job_category_id: string | null
           jp_certificate_period: string | null
@@ -1815,6 +1816,7 @@ export type Database = {
           legal_address_jp: string | null
           legal_address_vn: string | null
           line_qr_url: string | null
+          locked_at: string | null
           marital_status: string | null
           notes: string | null
           nyukan_entry_date: string | null
@@ -1923,6 +1925,7 @@ export type Database = {
           id?: string
           interview_count?: number | null
           interview_pass_date?: string | null
+          is_locked?: boolean | null
           japanese_certificate?: string | null
           job_category_id?: string | null
           jp_certificate_period?: string | null
@@ -1934,6 +1937,7 @@ export type Database = {
           legal_address_jp?: string | null
           legal_address_vn?: string | null
           line_qr_url?: string | null
+          locked_at?: string | null
           marital_status?: string | null
           notes?: string | null
           nyukan_entry_date?: string | null
@@ -2042,6 +2046,7 @@ export type Database = {
           id?: string
           interview_count?: number | null
           interview_pass_date?: string | null
+          is_locked?: boolean | null
           japanese_certificate?: string | null
           job_category_id?: string | null
           jp_certificate_period?: string | null
@@ -2053,6 +2058,7 @@ export type Database = {
           legal_address_jp?: string | null
           legal_address_vn?: string | null
           line_qr_url?: string | null
+          locked_at?: string | null
           marital_status?: string | null
           notes?: string | null
           nyukan_entry_date?: string | null

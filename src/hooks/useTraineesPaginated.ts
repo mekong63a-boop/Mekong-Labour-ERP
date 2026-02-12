@@ -37,6 +37,7 @@ export interface TraineeListItem {
   return_date: string | null;
   contract_term: number | null;
   updated_at: string | null;
+  is_locked: boolean | null;
   receiving_company: { id: string; name: string; name_japanese: string | null } | null;
   union: { id: string; name: string; name_japanese: string | null } | null;
   job_category: { id: string; name: string; name_japanese: string | null } | null;
@@ -68,6 +69,7 @@ interface TraineeRaw {
   return_date: string | null;
   contract_term: number | null;
   updated_at: string | null;
+  is_locked: boolean | null;
   receiving_company_id: string | null;
   union_id: string | null;
   job_category_id: string | null;
@@ -177,6 +179,7 @@ export function useTraineesPaginated({
           return_date,
           contract_term,
           updated_at,
+          is_locked,
           receiving_company_id,
           union_id,
           job_category_id
@@ -257,6 +260,7 @@ export function useTraineesPaginated({
         return_date: trainee.return_date,
         contract_term: trainee.contract_term,
         updated_at: trainee.updated_at,
+        is_locked: trainee.is_locked,
         receiving_company: trainee.receiving_company_id ? companiesMap.get(trainee.receiving_company_id) || null : null,
         union: trainee.union_id ? unionsMap.get(trainee.union_id) || null : null,
         job_category: trainee.job_category_id ? jobCategoriesMap.get(trainee.job_category_id) || null : null,

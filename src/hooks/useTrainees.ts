@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Trainee } from "@/types/trainee";
 import { Database } from "@/integrations/supabase/types";
+import { useToast } from "@/hooks/use-toast";
 
 type TraineeUpdate = Database["public"]["Tables"]["trainees"]["Update"];
 
@@ -174,6 +175,49 @@ export function useDeleteTrainee() {
       if (context?.previousTrainees) {
         queryClient.setQueryData(["trainees"], context.previousTrainees);
       }
+    },
+  });
+}
+
+/**
+ * Hook khóa/mở khóa học viên - chỉ Primary Admin có quyền (RLS bảo vệ)
+ */
+export function useToggleTraineeLock() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, is_locked }: { id: string; is_locked: boolean }) => {
+      const { data, error } = await supabase
+        .from("trainees")
+        .update({
+          is_locked,
+          locked_at: is_locked ? new Date().toISOString() : null,
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData<Trainee>(["trainee", data.id], data as Trainee);
+      queryClient.invalidateQueries({ queryKey: ["trainees-paginated"] });
+      queryClient.invalidateQueries({ queryKey: ["trainees"] });
+      toast({
+        title: data.is_locked ? "Đã khóa hồ sơ" : "Đã mở khóa hồ sơ",
+        description: data.is_locked 
+          ? "Chỉ Admin chính mới có thể chỉnh sửa hồ sơ này." 
+          : "Hồ sơ đã được mở khóa, mọi người có quyền đều có thể chỉnh sửa.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Lỗi",
+        description: error.message || "Không thể thay đổi trạng thái khóa",
+        variant: "destructive",
+      });
     },
   });
 }
