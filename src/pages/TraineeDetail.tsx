@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, User, History, Briefcase, Edit, Clock } from "lucide-react";
+import { ArrowLeft, User, History, Briefcase, Edit, Clock, Lock } from "lucide-react";
 import { PersonalInfoTab } from "@/components/trainees/tabs/PersonalInfoTab";
 import { PersonalHistoryTab } from "@/components/trainees/tabs/PersonalHistoryTab";
 import { ProjectInterviewTab } from "@/components/trainees/tabs/ProjectInterviewTab";
@@ -80,6 +80,13 @@ export default function TraineeDetail() {
               <Badge className="bg-primary/10 text-primary">
                 {trainee.trainee_code}
               </Badge>
+              {/* Locked Badge */}
+              {trainee.is_locked && (
+                <Badge variant="destructive" className="gap-1">
+                  <Lock className="h-3 w-3" />
+                  Đã khóa
+                </Badge>
+              )}
               {/* Current Stage Badge - from State Machine */}
               {currentStage && (
                 <Badge className={`${stageColorMap[currentStage.ui_color] || stageColorMap.gray}`}>

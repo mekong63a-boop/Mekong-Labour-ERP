@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Eye, RefreshCw, Trash2 } from "lucide-react";
+import { Plus, Search, Eye, RefreshCw, Trash2, Lock } from "lucide-react";
 import { addYears } from "date-fns";
 import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 import { usePagination } from "@/hooks/usePagination";
@@ -346,7 +346,14 @@ export default function TraineeList() {
     const baseColumns = (
       <>
         <TableCell className="font-mono text-sm">{trainee.trainee_code}</TableCell>
-        <TableCell className="font-medium">{trainee.full_name}</TableCell>
+        <TableCell className="font-medium">
+          <span className="flex items-center gap-1.5">
+            {trainee.full_name}
+            {trainee.is_locked && (
+              <Lock className="h-3.5 w-3.5 text-destructive shrink-0" />
+            )}
+          </span>
+        </TableCell>
         <TableCell className="text-sm">{formatDate(trainee.birth_date)}</TableCell>
         <TableCell className={`text-sm font-medium ${trainee.gender === 'Nữ' ? 'text-red-600' : trainee.gender === 'Nam' ? 'text-blue-600' : ''}`}>
           {trainee.gender || "—"}

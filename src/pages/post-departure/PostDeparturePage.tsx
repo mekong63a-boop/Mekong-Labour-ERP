@@ -64,7 +64,7 @@ function usePostDepartureTrainees() {
       const { data: trainees, error: traineeError } = await supabase
         .from("trainees")
         .select(
-          "id,trainee_code,full_name,progression_stage,departure_date,contract_term,contract_end_date,return_date,early_return_date,notes,receiving_company_id,trainee_type"
+          "id,trainee_code,full_name,progression_stage,departure_date,contract_term,contract_end_date,return_date,early_return_date,absconded_date,notes,receiving_company_id,trainee_type"
         )
         .in("progression_stage", [
           "Xuất cảnh",
@@ -317,14 +317,18 @@ export default function PostDeparturePage() {
     }
   };
 
-  // Get return date based on progression stage
-  const getReturnDate = (trainee: any) => {
-    if (trainee.progression_stage === "Hoàn thành hợp đồng") {
-      return formatDate(trainee.return_date);
-    } else if (trainee.progression_stage === "Về trước hạn") {
-      return formatDate(trainee.early_return_date);
+  // Get return date info based on progression stage
+  const getReturnDateInfo = (trainee: any): { date: string; label: string; colorClass: string } => {
+    switch (trainee.progression_stage) {
+      case "Bỏ trốn":
+        return { date: formatDate(trainee.absconded_date), label: "Ngày bỏ trốn", colorClass: "text-red-600 font-medium" };
+      case "Về trước hạn":
+        return { date: formatDate(trainee.early_return_date), label: "Ngày về", colorClass: "text-orange-600" };
+      case "Hoàn thành hợp đồng":
+        return { date: formatDate(trainee.return_date), label: "Ngày về nước", colorClass: "text-blue-600" };
+      default:
+        return { date: "-", label: "", colorClass: "" };
     }
-    return "-";
   };
 
   const getStatusBadge = (stage: string | null) => {
@@ -598,7 +602,7 @@ export default function PostDeparturePage() {
                 <TableHead className="w-28 text-center">Tình trạng</TableHead>
                 <TableHead className="w-32 text-center">Ngày xuất cảnh</TableHead>
                 <TableHead className="w-32 text-center">Ngày hết hạn HĐ</TableHead>
-                <TableHead className="w-28 text-center">Ngày về nước</TableHead>
+                <TableHead className="w-32 text-center">Ngày tương ứng</TableHead>
                 <TableHead>Ghi chú</TableHead>
               </TableRow>
             </TableHeader>
@@ -626,7 +630,16 @@ export default function PostDeparturePage() {
                       : calculateContractEndDate(trainee.departure_date, trainee.contract_term)}
                   </TableCell>
                   <TableCell className="text-center text-sm">
-                    {getReturnDate(trainee)}
+                    {(() => {
+                      const info = getReturnDateInfo(trainee);
+                      if (info.date === "-") return "-";
+                      return (
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className={info.colorClass}>{info.date}</span>
+                          <span className="text-[10px] text-muted-foreground">{info.label}</span>
+                        </div>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {trainee.notes || "-"}
