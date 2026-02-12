@@ -1,127 +1,99 @@
 
 
-## Fix loi "phai thao tac 2 lan moi luu duoc" trong menu Hoc vien
+## Yeu cau 1: Hien thi ngay tuong ung theo trang thai trong menu Sau xuat canh
 
-### Nguyen nhan goc
+### Hien trang
+Bang danh sach hien tai co cot "Ngay ve nuoc" dung chung cho tat ca trang thai. Cot nay chi hien thi `return_date` (Hoan thanh HD) hoac `early_return_date` (Ve truoc han), nhung **khong hien thi `absconded_date`** cho tab Bo tron. Ngoai ra, query `usePostDepartureTrainees` khong select truong `absconded_date`.
 
-Sau khi kiem tra toan bo TraineeForm.tsx va cac component lien quan, toi phat hien **3 nguyen nhan chinh** gay ra loi phai thao tac 2 lan:
+### Giai phap
+1. Them `absconded_date` vao query select (dong 66-67 PostDeparturePage.tsx)
+2. Doi cot "Ngay ve nuoc" thanh cot dong theo `progression_stage`:
+   - **Bo tron**: hien thi `absconded_date` voi nhan "Ngay bo tron" (badge mau do)
+   - **Ve truoc han**: hien thi `early_return_date` voi nhan "Ngay ve"
+   - **Hoan thanh hop dong**: hien thi `return_date` voi nhan "Ngay ve nuoc"
+   - **Dang lam viec / Xuat canh**: hien thi "-"
 
----
-
-### Van de 1: Tab Du an & Phong van - Ngay phong van khong luu
-
-**Nguyen nhan**: `projectInterviewData` duoc dong bo tu `trainee` va `interviewData` nhung co co `projectLoaded` chi chay 1 lan. Neu `interviewData` load SAU `trainee`, ngay phong van se bi trong. Ngoai ra, khi TAO MOI hoc vien, `traineeId` la `undefined` nen nut "Luu lich su phong van" khong hien thi, va ham `saveHistoryItems` chi luu draft fields (company, union...) nhung KHONG goi `finalize_interview_draft` de luu ngay phong van.
-
-**Cach fix**:
-- Bo co `projectLoaded` - thay bang logic dong bo dung: chi cap nhat khi du lieu thay doi thuc su
-- Trong `saveHistoryItems`, neu co `interview_date` thi tu dong goi `finalize_interview_draft` RPC de luu luon lich su phong van (khong bat buoc nguoi dung bam nut rieng)
-- Voi hoc vien moi: sau khi tao xong, goi finalize voi traineeId moi
-
----
-
-### Van de 2: Tab Trang thai - Simple status va Progression stage khong luu
-
-**Nguyen nhan**: `useEffect` tai dong 369-452 chay moi khi `trainee` thay doi (tu optimistic update hoac refetch). Khi nguoi dung thay doi trang thai roi bam Luu:
-1. `updateTraineeMutation` fire optimistic update → cache `trainee` cap nhat
-2. `useEffect([isEditMode, trainee])` fire → RESET `formData` tu cache
-3. Server response ve → `onSuccess` cap nhat cache THEM 1 lan
-4. `useEffect` fire LAN NUA → co the reset ve du lieu cu neu co race condition
-
-Ngoai ra, `useUpdateTrainee` su dung optimistic update voi `setQueryData`, nhung `TraineeForm.handleSubmit` cung goi `invalidateQueries` + `refetchQueries`. Dieu nay tao ra nhieu lan re-render khong can thiet va co the gay ra race condition.
-
-**Cach fix**:
-- Them co `formLoaded` tuong tu `educationLoaded` de ngan useEffect re-run sau khi nguoi dung da bat dau chinh sua
-- Reset co `formLoaded` chi khi traineeId thay doi (navigate sang hoc vien khac)
-- Loai bo viec goi `refetchQueries` cho `["trainee", traineeId]` trong handleSubmit vi optimistic update da xu ly
+### File thay doi
+- `src/pages/post-departure/PostDeparturePage.tsx`: Them `absconded_date` vao query, cap nhat header va cell cua cot ngay
 
 ---
 
-### Van de 3: Lich su lam viec va cac tab khac
+## Yeu cau 2: Khoa hoc vien - chi Admin chinh moi co quyen mo/khoa
 
-**Nguyen nhan tuong tu**: Cac co `workLoaded`, `educationLoaded` hoat dong dung cho lan load dau tien, nhung sau khi luu va invalidate queries, du lieu moi duoc fetch ve va useEffect chay lai voi co van la `true` nen khong cap nhat. Tuy nhien, do nguoi dung da thao tac tren local state nen van de nay it xay ra hon 2 van de tren.
+### Hien trang
+Chua co co che khoa hoc vien. Can tao cot moi trong database va logic bao ve tren ca backend (RLS) va frontend.
 
----
+### Giai phap
 
-### Chi tiet ky thuat
+**A. Database Migration:**
 
-#### File: `src/pages/TraineeForm.tsx`
+```sql
+-- Them cot
+ALTER TABLE public.trainees ADD COLUMN is_locked BOOLEAN DEFAULT false;
+ALTER TABLE public.trainees ADD COLUMN locked_at TIMESTAMPTZ;
 
-**1. Them co `formLoaded` de ngan useEffect reset form:**
+-- Ham kiem tra Primary Admin (SECURITY DEFINER)
+CREATE OR REPLACE FUNCTION public.is_primary_admin(uid uuid)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = uid AND role = 'admin' AND is_primary_admin = true
+  );
+$$;
 
-```typescript
-const [formLoaded, setFormLoaded] = useState(false);
-
-// Reset khi traineeId thay doi
-useEffect(() => {
-  setFormLoaded(false);
-  setProjectLoaded(false);
-  setEducationLoaded(false);
-  setWorkLoaded(false);
-  setFamilyLoaded(false);
-  setJapanLoaded(false);
-}, [traineeId]);
-
-// Populate form - chi chay 1 lan
-useEffect(() => {
-  if (isEditMode && trainee && !formLoaded) {
-    setFormData({...});
-    setFormLoaded(true);
-  }
-}, [isEditMode, trainee, formLoaded]);
+-- Cap nhat RLS policy UPDATE: hoc vien bi khoa chi Primary Admin moi sua duoc
+DROP POLICY IF EXISTS "trainees_update" ON public.trainees;
+CREATE POLICY "trainees_update" ON public.trainees
+  FOR UPDATE TO authenticated
+  USING (
+    can_update('trainees') AND (
+      NOT is_locked OR is_primary_admin(auth.uid())
+    )
+  )
+  WITH CHECK (
+    can_update('trainees') AND (
+      NOT is_locked OR is_primary_admin(auth.uid())
+    )
+  );
 ```
 
-**2. Fix dong bo projectInterviewData:**
+**B. Frontend - Danh sach hoc vien (`TraineeList.tsx`):**
+- Them icon o khoa (Lock) ben canh ten hoc vien khi `is_locked = true`
+- Them `is_locked` vao select query trong `useTraineesPaginated.ts`
 
-```typescript
-useEffect(() => {
-  if (trainee && interviewData !== undefined && !projectLoaded) {
-    setProjectInterviewData({
-      order_id: "",
-      interview_date: interviewData?.[0]?.interview_date || "",
-      expected_entry_month: trainee.expected_entry_month || "",
-      receiving_company_id: trainee.receiving_company_id || "",
-      union_id: trainee.union_id || "",
-      job_category_id: trainee.job_category_id || "",
-      contract_term: trainee.contract_term ? String(trainee.contract_term) : "",
-    });
-    setProjectLoaded(true);
-  }
-}, [trainee, interviewData, projectLoaded]);
-```
+**C. Frontend - Form chinh sua (`TraineeForm.tsx`):**
+- Them nut Khoa/Mo khoa (chi hien thi cho Primary Admin, su dung `useUserRole().isPrimaryAdmin`)
+- Khi hoc vien bi khoa:
+  - Hien thi banner canh bao "Hoc vien da bi khoa boi Admin. Chi Admin chinh moi co the chinh sua."
+  - An nut "Luu" cho nguoi khong phai Primary Admin
+  - Disable tat ca input fields thong qua prop/CSS `pointer-events-none` + `opacity`
 
-Diem quan trong: them dieu kien `interviewData !== undefined` de dam bao du lieu phong van da load xong truoc khi set `projectLoaded = true`.
+**D. Frontend - Trang xem chi tiet (`TraineeDetail.tsx`):**
+- Hien thi badge "Da khoa" ben canh ten hoc vien
 
-**3. Tu dong luu interview history khi save form:**
+**E. Hook moi trong `useTrainees.ts`:**
+- Them mutation `toggleTraineeLock(id, is_locked)` goi `supabase.from('trainees').update({ is_locked, locked_at })` 
+- Chi Primary Admin moi goi duoc (RLS bao ve phia server)
 
-Trong ham `saveHistoryItems`, them logic:
+### Dam bao quy tac
 
-```typescript
-// Neu co interview_date, tu dong finalize vao lich su
-if (projectInterviewData.interview_date) {
-  const { error: intErr } = await supabase.rpc("finalize_interview_draft", {
-    p_trainee_id: traineeId,
-    p_interview_date: projectInterviewData.interview_date,
-    p_result: null,
-    p_company_id: projectInterviewData.receiving_company_id || null,
-    p_union_id: projectInterviewData.union_id || null,
-    p_job_category_id: projectInterviewData.job_category_id || null,
-    p_expected_entry_month: projectInterviewData.expected_entry_month || null,
-  });
-  if (intErr) throw intErr;
-}
-```
+| Quy tac | Tuan thu |
+|---------|----------|
+| Single Source of Truth | `is_locked` chi nam trong bang `trainees`, khong duplicate |
+| Brain (Supabase) vs Hands (Lovable) | Logic bao ve khoa nam trong RLS policy (Brain), UI chi hien thi |
+| Khong pha UI | Chi them icon nho + banner, khong thay doi layout |
+| Dong bo du lieu | `is_locked` duoc fetch cung voi du lieu hoc vien, khong can query rieng |
 
-**4. Don dep invalidation logic trong handleSubmit:**
+### Danh sach file thay doi
 
-Loai bo `refetchQueries` cho `["trainee", traineeId]` de tranh xung dot voi optimistic update. Chi giu `invalidateQueries` cho cac query list.
-
----
-
-### Cac file can chinh sua
-
-| File | Thay doi |
+| File | Noi dung |
 |------|----------|
-| `src/pages/TraineeForm.tsx` | Them `formLoaded`, fix projectLoaded sync, tu dong finalize interview, don dep cache logic |
-
-Khong can thay doi database hay tao migration moi.
+| `supabase/migrations/xxx.sql` | Them cot `is_locked`, `locked_at`; tao ham `is_primary_admin`; cap nhat RLS |
+| `src/pages/post-departure/PostDeparturePage.tsx` | Them `absconded_date` vao query; doi cot ngay theo trang thai |
+| `src/hooks/useTraineesPaginated.ts` | Them `is_locked` vao select va interface `TraineeListItem` |
+| `src/pages/TraineeList.tsx` | Hien thi icon khoa ben canh ten |
+| `src/pages/TraineeForm.tsx` | Them nut khoa/mo khoa, banner, disable form khi bi khoa |
+| `src/pages/TraineeDetail.tsx` | Hien thi badge khoa |
+| `src/hooks/useTrainees.ts` | Them mutation `toggleTraineeLock` |
 
