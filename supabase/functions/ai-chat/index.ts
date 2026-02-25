@@ -117,8 +117,38 @@ Deno.serve(async (req) => {
     if (!geminiRes.ok) {
       const errorText = await geminiRes.text();
       console.error("Gemini API error:", geminiRes.status, errorText);
+      
+      if (geminiRes.status === 429) {
+        // Rate limit - try once more after delay
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        const retryRes = await fetch(geminiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(geminiBody),
+        });
+        if (retryRes.ok) {
+          const retryData = await retryRes.json();
+          const retryReply = retryData?.candidates?.[0]?.content?.parts?.[0]?.text || "Xin lỗi, tôi không thể trả lời lúc này.";
+          const sid = sessionId || crypto.randomUUID();
+          const userMsg = messages[messages.length - 1];
+          await supabase.from("ai_chat_messages").insert([
+            { user_id: userId, role: "user", content: userMsg.content, session_id: sid },
+            { user_id: userId, role: "assistant", content: retryReply, session_id: sid },
+          ]);
+          return new Response(
+            JSON.stringify({ reply: retryReply, sessionId: sid }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        // Still failing after retry
+        return new Response(
+          JSON.stringify({ error: "API Gemini đang quá tải. Vui lòng thử lại sau 30 giây. Nếu lỗi kéo dài, API key của bạn có thể đã hết quota miễn phí - hãy kiểm tra tại https://ai.google.dev/gemini-api/docs/rate-limits" }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
       return new Response(
-        JSON.stringify({ error: `Gemini API error: ${geminiRes.status}` }),
+        JSON.stringify({ error: `Lỗi API Gemini: ${geminiRes.status}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
