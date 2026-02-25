@@ -9,6 +9,7 @@ import { useSessionHeartbeat } from "@/hooks/useSessionHeartbeat";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { PendingRegistrationsNotification } from "@/components/admin/PendingRegistrationsNotification";
+import { AIChatWidget } from "@/components/ai/AIChatWidget";
 
 // Page title mapping
 const pageTitles: Record<string, string> = {
@@ -124,6 +125,9 @@ export function MainLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* AI Chat Widget */}
+      <AIChatWidget />
     </div>
   );
 }
