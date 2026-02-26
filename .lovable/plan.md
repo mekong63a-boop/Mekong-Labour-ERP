@@ -1,123 +1,56 @@
 
 
-## Tich hop Tro ly AI (Google Gemini) vao he thong Mekong Labour ERP
+## Cap nhat PDF xuat day du nhu trang Tra cuu ho so
 
-### Tong quan
-Them nut chat noi o goc duoi ben phai man hinh, cho phep nguoi dung hoi AI ve thong tin hoc vien, thong ke, huong dan su dung he thong. Quyen su dung AI duoc kiem soat qua he thong phan quyen menu hien tai.
+### Hien trang
+Trang **Tra cuu ho so** (TraineeProfileView) hien thi **22 section** day du, nhung file PDF chi xuat **8 section**. Cac phan con thieu trong PDF:
 
-### Yeu cau truoc khi bat dau
-Ban can tao API key Google Gemini mien phi tai [Google AI Studio](https://aistudio.google.com/apikeys), sau do toi se luu vao he thong dang secret an toan.
+| Section thieu trong PDF | Du lieu |
+|---|---|
+| The chat & Suc khoe | height, weight, blood_group, vision, hearing, hepatitis_b, smoking, drinking, tattoo, hobbies, health_status, dominant_hand |
+| Dia chi | temp_address, household_address |
+| Giay to | cccd_place |
+| Thong tin ca nhan | ethnicity, religion, marital_status, education_level, policy_category |
+| Hoc van | education_history (truong, cap, nganh, nam) |
+| Kinh nghiem lam viec | work_history (cong ty, vi tri, thoi gian) |
+| Thanh vien gia dinh | family_members (table) |
+| Than nhan tai Nhat | japan_relatives (table) |
+| Lich su o KTX | dormitory_history (table) |
+| Lich su chuyen lop | enrollment_history |
+| Ghi chu nghiep vu | trainee_notes |
+| Vi pham | violations |
+| Lich su giai doan | workflow_history |
+| Nhat ky he thong | audit_logs |
+| Moc thoi gian | registration_date, interview_count, visa_date, expected_entry_month |
 
----
+### Giai phap
 
-### Phan 1: Database - Them menu "ai_assistant" va bang luu lich su chat
+Cap nhat file `supabase/functions/export-trainee-pdf/index.ts`:
 
-**Migration SQL:**
+1. **Mo rong TraineeProfile interface** trong edge function de bao gom tat ca cac truong con thieu (education_history, work_history, family_members, japan_relatives, dormitory_history, enrollment_history, workflow_history, audit_logs, trainee_notes, violations, + cac truong don le)
 
-```sql
--- 1. Them menu AI vao bang menus (de phan quyen)
-INSERT INTO menus (key, label, parent_key, path, icon, order_index)
-VALUES ('ai_assistant', 'Tro ly AI', NULL, '#ai', 'Bot', 99);
+2. **Them cac section vao PDF theo dung thu tu nhu UI:**
+   - **THONG TIN CA NHAN**: them ethnicity, religion, marital_status, education_level, policy_category
+   - **DIA CHI**: them temp_address, household_address
+   - **GIAY TO**: them cccd_place
+   - **THE CHAT & SUC KHOE** (section moi): height, weight, blood_group, vision, hearing, hepatitis_b, dominant_hand, smoking, drinking, tattoo, health_status, hobbies
+   - **MOC THOI GIAN**: them registration_date, interview_count, visa_date, expected_entry_month
+   - **HOC VAN** (section moi): bang voi truong, cap, nganh, nam
+   - **KINH NGHIEM LAM VIEC** (section moi): bang voi cong ty, vi tri, thoi gian
+   - **THANH VIEN GIA DINH** (section moi): bang voi ho ten, quan he, nam sinh, nghe, noi o
+   - **THAN NHAN TAI NHAT** (section moi): bang voi ho ten, quan he, tuoi, dia chi, tu cach luu tru
+   - **LICH SU O KTX** (section moi): bang voi KTX, phong, giuong, ngay vao/ra
+   - **LICH SU CHUYEN LOP** (section moi): danh sach hanh dong + ngay
+   - **GHI CHU NGHIEP VU** (section moi): danh sach ghi chu theo loai
+   - **VI PHAM** (section moi): danh sach vi pham theo loai + ngay
+   - **LICH SU GIAI DOAN** (section moi): danh sach chuyen doi from → to + ngay
+   - **NHAT KY HE THONG** (section moi): bang voi thoi gian, hanh dong, mo ta (gioi han 50 dong)
 
--- 2. Bang luu lich su hoi thoai
-CREATE TABLE public.ai_chat_messages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
-  content TEXT NOT NULL,
-  session_id UUID NOT NULL DEFAULT gen_random_uuid(),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+3. **Helper moi `drawTable`**: tao ham ve bang trong PDF (header row + data rows) de tai su dung cho family_members, japan_relatives, dormitory_history, audit_logs
 
-ALTER TABLE ai_chat_messages ENABLE ROW LEVEL SECURITY;
+### File thay doi
 
--- RLS: Moi nguoi chi xem duoc tin nhan cua minh
-CREATE POLICY "ai_chat_select" ON ai_chat_messages
-  FOR SELECT TO authenticated
-  USING (user_id = auth.uid());
-
-CREATE POLICY "ai_chat_insert" ON ai_chat_messages
-  FOR INSERT TO authenticated
-  WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "ai_chat_delete" ON ai_chat_messages
-  FOR DELETE TO authenticated
-  USING (user_id = auth.uid());
-
--- Index
-CREATE INDEX idx_ai_chat_user_session ON ai_chat_messages(user_id, session_id, created_at);
-```
-
-**Luu y:** Menu `ai_assistant` co `path: '#ai'` (khong phai trang rieng) va `order_index: 99` de khong anh huong menu hien tai. Menu nay CHI dung cho viec phan quyen (can_view), khong hien thi tren sidebar.
-
----
-
-### Phan 2: Edge Function - `ai-chat`
-
-Tao file `supabase/functions/ai-chat/index.ts`:
-- Nhan tin nhan tu nguoi dung + lich su hoi thoai
-- Goi Google Gemini API (`gemini-2.0-flash`)
-- Xac thuc JWT trong code (verify_jwt = false trong config.toml)
-- Kiem tra quyen menu `ai_assistant` bang cach goi RPC `has_menu_permission`
-- Tra ve response streaming hoac JSON
-
-System prompt se huong dan AI ve ngu canh he thong Mekong Labour ERP (quan ly hoc vien, giai doan, KTX, dao tao...) de tra loi chinh xac hon.
-
----
-
-### Phan 3: Frontend
-
-**A. Component `AIChatWidget` (`src/components/ai/AIChatWidget.tsx`):**
-- Nut tron noi o goc duoi phai (position fixed, z-index 50)
-- Icon: Bot (lucide-react)
-- Click mo hop chat (panel nho 400x500px)
-- Gom: input, danh sach tin nhan (scroll), nut gui, nut xoa lich su
-- Render markdown cho cau tra loi AI (dung ReactMarkdown neu co, hoac dangerouslySetInnerHTML don gian)
-- Luu lich su vao bang `ai_chat_messages` qua Supabase client
-- Goi edge function `ai-chat` de lay cau tra loi
-
-**B. Kiem tra quyen (`src/components/ai/AIChatWidget.tsx`):**
-- Dung `useCanAccessMenu('ai_assistant')` de kiem tra quyen
-- Neu `canView = false` va khong phai Primary Admin → an nut hoan toan
-- Khong can route moi, khong can trang rieng
-
-**C. Tich hop vao `MainLayout.tsx`:**
-- Them `<AIChatWidget />` vao cuoi component MainLayout, ngay truoc the dong `</div>`
-- Vi tri: sau `<main>`, truoc `</div>` ngoai cung
-- Khong thay doi bat ky UI hien tai nao
-
----
-
-### Phan 4: Phan quyen
-
-| Vai tro | Quyen |
-|---------|-------|
-| Primary Admin | Luon thay va su dung AI |
-| Admin phu / Manager / Staff | Chi khi duoc cap quyen `can_view` cho menu `ai_assistant` |
-| Chua phan quyen | Khong thay |
-
-Admin chinh vao trang **Quan tri > Phan quyen nguoi dung** hoac **Phan quyen phong ban**, tick "Xem" cho muc "Tro ly AI" de cap quyen cho tung nguoi/phong ban.
-
----
-
-### Dam bao quy tac
-
-| Quy tac | Tuan thu |
-|---------|----------|
-| Single Source of Truth | Quyen AI nam trong `user_menu_permissions` / `department_menu_permissions` - cung 1 he thong phan quyen |
-| Brain vs Hands | Logic phan quyen + luu lich su nam trong Supabase (RLS + RPC). Frontend chi hien thi |
-| Khong pha UI | Chi them 1 nut noi fixed, khong thay doi layout/sidebar/header hien tai |
-| 1 luong duy nhat | Luong: User gui tin → Edge function kiem tra quyen + goi Gemini → tra ve → hien thi |
-
----
-
-### Danh sach file thay doi
-
-| File | Hanh dong | Noi dung |
-|------|-----------|---------|
-| `supabase/migrations/xxx.sql` | Tao moi | Them menu `ai_assistant`, tao bang `ai_chat_messages` + RLS |
-| `supabase/config.toml` | Sua | Them `[functions.ai-chat]` verify_jwt = false |
-| `supabase/functions/ai-chat/index.ts` | Tao moi | Edge function goi Google Gemini API |
-| `src/components/ai/AIChatWidget.tsx` | Tao moi | Component chat noi |
-| `src/components/layout/MainLayout.tsx` | Sua | Them `<AIChatWidget />` |
+| File | Noi dung |
+|------|---------|
+| `supabase/functions/export-trainee-pdf/index.ts` | Mo rong interface, them tat ca section con thieu, them ham drawTable |
 
