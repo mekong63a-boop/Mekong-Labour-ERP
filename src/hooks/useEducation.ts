@@ -71,18 +71,16 @@ export function useClasses() {
         .order("created_at", { ascending: false });
       if (classesError) throw classesError;
       
-      // Get student counts per class - CHỈ đếm học viên có simple_status = "Đang học"
-      const { data: traineesData, error: traineesError } = await supabase
-        .from("trainees")
-        .select("class_id, simple_status")
-        .not("class_id", "is", null);
-      if (traineesError) throw traineesError;
+      // SYSTEM RULE: Sĩ số lớp học tính từ DB view class_student_counts
+      const { data: countsData, error: countsError } = await supabase
+        .from("class_student_counts")
+        .select("class_id, current_students");
+      if (countsError) throw countsError;
       
-      // Count students per class - chỉ đếm học viên có simple_status = "Đang học"
       const studentCounts: Record<string, number> = {};
-      traineesData?.forEach(t => {
-        if (t.class_id && t.simple_status === "Đang học") {
-          studentCounts[t.class_id] = (studentCounts[t.class_id] || 0) + 1;
+      countsData?.forEach(c => {
+        if (c.class_id) {
+          studentCounts[c.class_id] = c.current_students || 0;
         }
       });
       
