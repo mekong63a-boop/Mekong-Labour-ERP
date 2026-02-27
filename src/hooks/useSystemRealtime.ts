@@ -275,14 +275,12 @@ export function useManualRefresh() {
 
   const refreshTrainees = () => {
     console.log('[ManualRefresh] Refreshing trainees...');
-    queryClient.invalidateQueries({ queryKey: ["trainees"] });
     queryClient.invalidateQueries({ queryKey: ["trainees-paginated"] });
     queryClient.invalidateQueries({ queryKey: ["trainee-stage-counts"] });
     queryClient.invalidateQueries({ queryKey: ["trainees-count"] });
     queryClient.invalidateQueries({ queryKey: ["trainee"] });
     
     // Force immediate refetch for active queries
-    queryClient.refetchQueries({ queryKey: ["trainees"], type: "active" });
     queryClient.refetchQueries({ queryKey: ["trainees-paginated"], type: "active" });
   };
 
