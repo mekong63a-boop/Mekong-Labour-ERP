@@ -77,6 +77,13 @@ export type Database = {
             foreignKeyName: "attendance_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
+            referencedRelation: "class_student_counts"
+            referencedColumns: ["class_id"]
+          },
+          {
+            foreignKeyName: "attendance_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
           },
@@ -179,6 +186,13 @@ export type Database = {
           teacher_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "class_teachers_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "class_student_counts"
+            referencedColumns: ["class_id"]
+          },
           {
             foreignKeyName: "class_teachers_class_id_fkey"
             columns: ["class_id"]
@@ -651,6 +665,13 @@ export type Database = {
             foreignKeyName: "enrollment_history_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
+            referencedRelation: "class_student_counts"
+            referencedColumns: ["class_id"]
+          },
+          {
+            foreignKeyName: "enrollment_history_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
           },
@@ -658,8 +679,22 @@ export type Database = {
             foreignKeyName: "enrollment_history_from_class_id_fkey"
             columns: ["from_class_id"]
             isOneToOne: false
+            referencedRelation: "class_student_counts"
+            referencedColumns: ["class_id"]
+          },
+          {
+            foreignKeyName: "enrollment_history_from_class_id_fkey"
+            columns: ["from_class_id"]
+            isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollment_history_to_class_id_fkey"
+            columns: ["to_class_id"]
+            isOneToOne: false
+            referencedRelation: "class_student_counts"
+            referencedColumns: ["class_id"]
           },
           {
             foreignKeyName: "enrollment_history_to_class_id_fkey"
@@ -1571,6 +1606,13 @@ export type Database = {
             foreignKeyName: "test_scores_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
+            referencedRelation: "class_student_counts"
+            referencedColumns: ["class_id"]
+          },
+          {
+            foreignKeyName: "test_scores_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
           },
@@ -1631,6 +1673,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "trainee_reviews_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "class_student_counts"
+            referencedColumns: ["class_id"]
+          },
           {
             foreignKeyName: "trainee_reviews_class_id_fkey"
             columns: ["class_id"]
@@ -2148,6 +2197,13 @@ export type Database = {
             foreignKeyName: "fk_trainees_class"
             columns: ["class_id"]
             isOneToOne: false
+            referencedRelation: "class_student_counts"
+            referencedColumns: ["class_id"]
+          },
+          {
+            foreignKeyName: "fk_trainees_class"
+            columns: ["class_id"]
+            isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
           },
@@ -2524,6 +2580,13 @@ export type Database = {
       }
     }
     Views: {
+      class_student_counts: {
+        Row: {
+          class_id: string | null
+          current_students: number | null
+        }
+        Relationships: []
+      }
       companies_public: {
         Row: {
           code: string | null
@@ -2978,6 +3041,13 @@ export type Database = {
           zalo: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_trainees_class"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "class_student_counts"
+            referencedColumns: ["class_id"]
+          },
           {
             foreignKeyName: "fk_trainees_class"
             columns: ["class_id"]
