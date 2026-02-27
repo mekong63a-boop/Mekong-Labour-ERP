@@ -1,56 +1,58 @@
 
 
-## Cap nhat PDF xuat day du nhu trang Tra cuu ho so
+## Kiem tra va thong nhat 1 luong, 1 nguon du lieu cho toan du an
 
-### Hien trang
-Trang **Tra cuu ho so** (TraineeProfileView) hien thi **22 section** day du, nhung file PDF chi xuat **8 section**. Cac phan con thieu trong PDF:
+### Ket qua kiem tra
 
-| Section thieu trong PDF | Du lieu |
-|---|---|
-| The chat & Suc khoe | height, weight, blood_group, vision, hearing, hepatitis_b, smoking, drinking, tattoo, hobbies, health_status, dominant_hand |
-| Dia chi | temp_address, household_address |
-| Giay to | cccd_place |
-| Thong tin ca nhan | ethnicity, religion, marital_status, education_level, policy_category |
-| Hoc van | education_history (truong, cap, nganh, nam) |
-| Kinh nghiem lam viec | work_history (cong ty, vi tri, thoi gian) |
-| Thanh vien gia dinh | family_members (table) |
-| Than nhan tai Nhat | japan_relatives (table) |
-| Lich su o KTX | dormitory_history (table) |
-| Lich su chuyen lop | enrollment_history |
-| Ghi chu nghiep vu | trainee_notes |
-| Vi pham | violations |
-| Lich su giai doan | workflow_history |
-| Nhat ky he thong | audit_logs |
-| Moc thoi gian | registration_date, interview_count, visa_date, expected_entry_month |
+He thong hien tai **DA** tuan thu tot nguyen tac Single Source of Truth o muc kien truc:
+- Tat ca du lieu doc tu bang `trainees` (Supabase)
+- Dashboard dung PostgreSQL Views (pre-computed)
+- Phan quyen thong nhat qua `has_menu_permission` RPC
+- Stage counts dung DB view `trainee_stage_counts`
+- Optimistic updates + cache invalidation dong bo
 
-### Giai phap
+### Van de can xu ly
 
-Cap nhat file `supabase/functions/export-trainee-pdf/index.ts`:
+| # | Van de | File | Muc do |
+|---|--------|------|--------|
+| 1 | `useTrainees()` load **TOAN BO** bang trainees (select *) khong LIMIT - ham nay khong ai goi nhung van ton tai, gay nham lan va co the bi goi nham trong tuong lai | `src/hooks/useTrainees.ts` | Cao |
+| 2 | `DashboardDetailList.tsx` inline query load toan bo trainees khong LIMIT, khong phan trang | `src/pages/dashboard/DashboardDetailList.tsx` | Cao |
+| 3 | `useEducation.ts` inline query `select("class_id, simple_status").not("class_id", "is", null)` load toan bo trainees de dem si so - nen dung DB view | `src/hooks/useEducation.ts` | Trung binh |
+| 4 | Thieu index `audit_logs.record_id` va GIN trigram cho `trainee_code`, `birthplace` | Database | Cao |
 
-1. **Mo rong TraineeProfile interface** trong edge function de bao gom tat ca cac truong con thieu (education_history, work_history, family_members, japan_relatives, dormitory_history, enrollment_history, workflow_history, audit_logs, trainee_notes, violations, + cac truong don le)
+### Ke hoach thuc hien
 
-2. **Them cac section vao PDF theo dung thu tu nhu UI:**
-   - **THONG TIN CA NHAN**: them ethnicity, religion, marital_status, education_level, policy_category
-   - **DIA CHI**: them temp_address, household_address
-   - **GIAY TO**: them cccd_place
-   - **THE CHAT & SUC KHOE** (section moi): height, weight, blood_group, vision, hearing, hepatitis_b, dominant_hand, smoking, drinking, tattoo, health_status, hobbies
-   - **MOC THOI GIAN**: them registration_date, interview_count, visa_date, expected_entry_month
-   - **HOC VAN** (section moi): bang voi truong, cap, nganh, nam
-   - **KINH NGHIEM LAM VIEC** (section moi): bang voi cong ty, vi tri, thoi gian
-   - **THANH VIEN GIA DINH** (section moi): bang voi ho ten, quan he, nam sinh, nghe, noi o
-   - **THAN NHAN TAI NHAT** (section moi): bang voi ho ten, quan he, tuoi, dia chi, tu cach luu tru
-   - **LICH SU O KTX** (section moi): bang voi KTX, phong, giuong, ngay vao/ra
-   - **LICH SU CHUYEN LOP** (section moi): danh sach hanh dong + ngay
-   - **GHI CHU NGHIEP VU** (section moi): danh sach ghi chu theo loai
-   - **VI PHAM** (section moi): danh sach vi pham theo loai + ngay
-   - **LICH SU GIAI DOAN** (section moi): danh sach chuyen doi from → to + ngay
-   - **NHAT KY HE THONG** (section moi): bang voi thoi gian, hanh dong, mo ta (gioi han 50 dong)
+**Buoc 1: Migration - Them index**
+```sql
+-- Index cho audit_logs.record_id (bang lon nhat)
+CREATE INDEX IF NOT EXISTS idx_audit_logs_record_id ON audit_logs(record_id);
 
-3. **Helper moi `drawTable`**: tao ham ve bang trong PDF (header row + data rows) de tai su dung cho family_members, japan_relatives, dormitory_history, audit_logs
+-- GIN trigram indexes cho search ilike
+CREATE INDEX IF NOT EXISTS idx_trainees_trainee_code_trgm ON trainees USING gin (trainee_code gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_trainees_birthplace_trgm ON trainees USING gin (birthplace gin_trgm_ops);
+```
+
+**Buoc 2: Xoa `useTrainees()` va `useTraineesRealtime()` - thay bang `useTraineesPaginated`**
+
+File `src/hooks/useTrainees.ts`:
+- Xoa ham `useTrainees()` (dong 24-40) va `useTraineesRealtime()` (dong 14-17)
+- Giu lai: `useTrainee()`, `useUpdateTrainee()`, `useDeleteTrainee()`, `useToggleTraineeLock()`
+- Xoa optimistic update cho queryKey `["trainees"]` trong `useUpdateTrainee` va `useDeleteTrainee` (vi khong con query nao dung key do)
+
+**Buoc 3: Fix `DashboardDetailList.tsx` - them LIMIT**
+
+Them `.limit(5000)` vao query inline (dong 130-157) de bao ve khi data lon. Day la trang detail list nen can xem nhieu nhung van can gioi han.
+
+**Buoc 4: Cap nhat `useSystemRealtime.ts`**
+
+Xoa `invalidateQueries({ queryKey: ["trainees"] })` va `refetchQueries({ queryKey: ["trainees"] })` trong ham `refreshTrainees()` vi khong con query nao dung key do.
 
 ### File thay doi
 
 | File | Noi dung |
 |------|---------|
-| `supabase/functions/export-trainee-pdf/index.ts` | Mo rong interface, them tat ca section con thieu, them ham drawTable |
+| Migration SQL | Them 3 index (audit_logs.record_id, trainee_code trgm, birthplace trgm) |
+| `src/hooks/useTrainees.ts` | Xoa `useTrainees()` + `useTraineesRealtime()`, don dep optimistic update |
+| `src/pages/dashboard/DashboardDetailList.tsx` | Them `.limit(5000)` |
+| `src/hooks/useSystemRealtime.ts` | Xoa invalidate queryKey `["trainees"]` |
 
