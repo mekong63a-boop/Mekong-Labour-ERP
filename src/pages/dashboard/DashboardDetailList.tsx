@@ -151,7 +151,8 @@ export default function DashboardDetailList() {
           job_category_id,
           class_id
         `)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(5000);
       
       if (error) throw error;
       return data || [];
