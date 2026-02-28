@@ -264,8 +264,19 @@ export default function PostDeparturePage() {
     // Filter by year
     if (selectedYear && selectedYear !== "all") {
       result = result.filter(t => {
-        if (!t.departure_date) return false;
-        return t.departure_date.startsWith(selectedYear);
+        // Dùng ngày sự kiện thực tế theo trạng thái
+        let eventDate: string | null = null;
+        if (t.progression_stage === 'Bỏ trốn') {
+          eventDate = (t as any).absconded_date || t.departure_date;
+        } else if (t.progression_stage === 'Về trước hạn') {
+          eventDate = (t as any).early_return_date || t.departure_date;
+        } else if (t.progression_stage === 'Hoàn thành hợp đồng') {
+          eventDate = (t as any).return_date || t.departure_date;
+        } else {
+          eventDate = t.departure_date;
+        }
+        if (!eventDate) return false;
+        return eventDate.startsWith(selectedYear);
       });
     }
 
