@@ -105,25 +105,18 @@ function usePostDepartureTrainees() {
   });
 }
 
-// Generate year options from actual event dates (not just departure_date)
+// Generate year options from departure_date (năm xuất cảnh)
 function getYearOptionsFromData(trainees: any[] | undefined) {
   if (!trainees) return [];
   
   const years = new Set<string>();
   trainees.forEach(t => {
-    // Lấy năm theo ngày sự kiện thực tế của từng trạng thái
-    const dates: (string | null)[] = [
-      t.departure_date,
-      t.absconded_date,
-      t.early_return_date,
-      t.return_date,
-    ];
-    dates.forEach(d => {
-      if (d) years.add(d.substring(0, 4));
-    });
+    if (t.departure_date) {
+      years.add(t.departure_date.substring(0, 4));
+    }
   });
   
-  return Array.from(years).sort((a, b) => b.localeCompare(a)); // Sort descending
+  return Array.from(years).sort((a, b) => b.localeCompare(a));
 }
 
 export default function PostDeparturePage() {
@@ -269,20 +262,9 @@ export default function PostDeparturePage() {
 
     // Filter by year
     if (selectedYear && selectedYear !== "all") {
+      // Danh sách lọc theo departure_date (năm xuất cảnh)
       result = result.filter(t => {
-        // Dùng ngày sự kiện thực tế theo trạng thái
-        let eventDate: string | null = null;
-        if (t.progression_stage === 'Bỏ trốn') {
-          eventDate = (t as any).absconded_date || t.departure_date;
-        } else if (t.progression_stage === 'Về trước hạn') {
-          eventDate = (t as any).early_return_date || t.departure_date;
-        } else if (t.progression_stage === 'Hoàn thành hợp đồng') {
-          eventDate = (t as any).return_date || t.departure_date;
-        } else {
-          eventDate = t.departure_date;
-        }
-        if (!eventDate) return false;
-        return eventDate.startsWith(selectedYear);
+        return t.departure_date?.startsWith(selectedYear);
       });
     }
 
