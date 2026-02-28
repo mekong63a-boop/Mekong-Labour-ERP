@@ -105,16 +105,22 @@ function usePostDepartureTrainees() {
   });
 }
 
-// Generate year options from actual departure data
+// Generate year options from actual event dates (not just departure_date)
 function getYearOptionsFromData(trainees: any[] | undefined) {
   if (!trainees) return [];
   
   const years = new Set<string>();
   trainees.forEach(t => {
-    if (t.departure_date) {
-      const year = t.departure_date.substring(0, 4);
-      years.add(year);
-    }
+    // Lấy năm theo ngày sự kiện thực tế của từng trạng thái
+    const dates: (string | null)[] = [
+      t.departure_date,
+      t.absconded_date,
+      t.early_return_date,
+      t.return_date,
+    ];
+    dates.forEach(d => {
+      if (d) years.add(d.substring(0, 4));
+    });
   });
   
   return Array.from(years).sort((a, b) => b.localeCompare(a)); // Sort descending
