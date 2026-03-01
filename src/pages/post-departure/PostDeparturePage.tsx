@@ -228,6 +228,8 @@ export default function PostDeparturePage() {
     },
   });
 
+  // KPI stats: khi chọn năm cụ thể, tính từ danh sách đã lọc theo departure_date
+  // để đồng bộ với bảng danh sách bên dưới
   const stats = useMemo(() => {
     if (selectedYear === "all" && summaryStats) {
       return {
@@ -239,20 +241,24 @@ export default function PostDeparturePage() {
       };
     }
     
-    // Khi chọn năm cụ thể, lấy từ chartData (đã có sẵn từ DB view)
-    const yearData = chartData.find(d => d.year === selectedYear);
-    if (yearData) {
+    // Khi chọn năm cụ thể → tính từ trainees đã lọc theo departure_date
+    if (selectedYear && selectedYear !== "all" && trainees) {
+      const yearTrainees = trainees.filter(t => t.departure_date?.startsWith(selectedYear));
+      const working = yearTrainees.filter(t => t.progression_stage === "Đang làm việc" || t.progression_stage === "Xuất cảnh").length;
+      const earlyReturn = yearTrainees.filter(t => t.progression_stage === "Về trước hạn").length;
+      const absconded = yearTrainees.filter(t => t.progression_stage === "Bỏ trốn").length;
+      const completed = yearTrainees.filter(t => t.progression_stage === "Hoàn thành hợp đồng").length;
       return {
-        working: yearData.working,
-        earlyReturn: yearData.earlyReturn,
-        absconded: yearData.absconded,
-        completed: yearData.completed,
-        total: yearData.working + yearData.earlyReturn + yearData.absconded + yearData.completed,
+        working,
+        earlyReturn,
+        absconded,
+        completed,
+        total: yearTrainees.length,
       };
     }
     
     return { working: 0, earlyReturn: 0, absconded: 0, completed: 0, total: 0 };
-  }, [selectedYear, summaryStats, chartData]);
+  }, [selectedYear, summaryStats, trainees]);
 
   // Filter trainees (UI filtering - hợp lệ ở frontend)
   const filteredTrainees = useMemo(() => {
