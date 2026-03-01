@@ -242,12 +242,14 @@ export default function PostDeparturePage() {
     }
     
     // Khi chọn năm cụ thể → tính từ trainees đã lọc theo departure_date
+    // KPI phải dựa trên NGÀY SỰ KIỆN, không phải progression_stage hiện tại
+    // VD: HV xuất cảnh 2024, bỏ trốn 2026 → năm 2024 tính là "Đang ở Nhật", năm 2026 mới tính "Bỏ trốn"
     if (selectedYear && selectedYear !== "all" && trainees) {
       const yearTrainees = trainees.filter(t => t.departure_date?.startsWith(selectedYear));
-      const working = yearTrainees.filter(t => t.progression_stage === "Đang làm việc" || t.progression_stage === "Xuất cảnh").length;
-      const earlyReturn = yearTrainees.filter(t => t.progression_stage === "Về trước hạn").length;
-      const absconded = yearTrainees.filter(t => t.progression_stage === "Bỏ trốn").length;
-      const completed = yearTrainees.filter(t => t.progression_stage === "Hoàn thành hợp đồng").length;
+      const absconded = yearTrainees.filter(t => t.absconded_date?.startsWith(selectedYear)).length;
+      const earlyReturn = yearTrainees.filter(t => t.early_return_date?.startsWith(selectedYear)).length;
+      const completed = yearTrainees.filter(t => t.return_date?.startsWith(selectedYear)).length;
+      const working = yearTrainees.length - absconded - earlyReturn - completed;
       return {
         working,
         earlyReturn,
