@@ -1,81 +1,45 @@
 
 
-## Lỗi: View `post_departure_stats_by_year` nhóm theo `departure_date` cho tất cả trạng thái
+## Nguyên nhân gốc
 
-### Nguyên nhân
+RPC `finalize_interview_draft` **luôn INSERT** mới, không kiểm tra bản ghi đã tồn tại. Kết quả:
 
-View `post_departure_stats_by_year` nhóm **tất cả** trạng thái theo năm `departure_date`. Học viên 006692 xuất cảnh năm **2024** nhưng bỏ trốn ngày **09/02/2026**. Khi lọc năm 2026, view đếm học viên này ở năm 2024 → năm 2026 hiển thị "Bỏ trốn = 0".
+- Nút "Lưu lịch sử phỏng vấn" trong `ProjectInterviewForm` → gọi RPC → INSERT 1 bản ghi
+- Nút "Lưu" chính trong `TraineeForm` → cũng gọi RPC → INSERT thêm 1 bản ghi nữa
+- Mỗi lần bấm Lưu = thêm 1 bản ghi trùng
 
-**Tương tự cho**: "Về trước hạn" dùng `early_return_date`, "Hoàn thành HĐ" dùng `return_date` — đều bị nhóm sai theo `departure_date`.
+DB hiện có 3 cặp trùng lặp, trong đó học viên 006700 có **4 bản ghi cùng ngày 26/11/2024**.
 
-### Giải pháp
+## Giải pháp
 
-Sửa view `post_departure_stats_by_year` để mỗi trạng thái được nhóm theo **ngày sự kiện thực tế**:
+### 1. Migration SQL — sửa RPC thành UPSERT + dọn trùng
 
-| Trạng thái | Nhóm theo |
-|---|---|
-| Đang làm việc / Xuất cảnh | `departure_date` (đúng rồi) |
-| Bỏ trốn | `absconded_date` (thay vì departure_date) |
-| Về trước hạn | `early_return_date` (thay vì departure_date) |
-| Hoàn thành hợp đồng | `return_date` (thay vì departure_date) |
+**a) Thêm UNIQUE constraint** trên `(trainee_id, interview_date)` — đảm bảo mỗi học viên chỉ có 1 bản ghi cho mỗi ngày phỏng vấn.
 
-Cách triển khai: dùng `UNION ALL` của 4 sub-queries, mỗi query nhóm theo ngày tương ứng, rồi aggregate lại theo năm.
+**b) Dọn dữ liệu trùng trước** — giữ lại bản ghi có nhiều thông tin nhất (ưu tiên có company_id), xóa các bản trùng.
+
+**c) Sửa RPC `finalize_interview_draft`** — dùng `ON CONFLICT (trainee_id, interview_date) DO UPDATE` thay vì INSERT thuần:
 
 ```sql
-CREATE OR REPLACE VIEW post_departure_stats_by_year AS
-WITH combined AS (
-  -- Đang ở Nhật: nhóm theo departure_date
-  SELECT EXTRACT(year FROM departure_date)::text AS year,
-    1 AS working, 0 AS early_return, 0 AS absconded, 0 AS completed
-  FROM trainees
-  WHERE departure_date IS NOT NULL
-    AND progression_stage IN ('Đang làm việc', 'Xuất cảnh')
-
-  UNION ALL
-  -- Bỏ trốn: nhóm theo absconded_date
-  SELECT EXTRACT(year FROM COALESCE(absconded_date, departure_date))::text,
-    0, 0, 1, 0
-  FROM trainees
-  WHERE progression_stage = 'Bỏ trốn'
-    AND COALESCE(absconded_date, departure_date) IS NOT NULL
-
-  UNION ALL
-  -- Về trước hạn: nhóm theo early_return_date
-  SELECT EXTRACT(year FROM COALESCE(early_return_date, departure_date))::text,
-    0, 1, 0, 0
-  FROM trainees
-  WHERE progression_stage = 'Về trước hạn'
-    AND COALESCE(early_return_date, departure_date) IS NOT NULL
-
-  UNION ALL
-  -- Hoàn thành HĐ: nhóm theo return_date
-  SELECT EXTRACT(year FROM COALESCE(return_date, departure_date))::text,
-    0, 0, 0, 1
-  FROM trainees
-  WHERE progression_stage = 'Hoàn thành hợp đồng'
-    AND COALESCE(return_date, departure_date) IS NOT NULL
-)
-SELECT year,
-  SUM(working)::integer AS working,
-  SUM(early_return)::integer AS early_return,
-  SUM(absconded)::integer AS absconded,
-  SUM(completed)::integer AS completed,
-  COUNT(*)::integer AS total
-FROM combined
-GROUP BY year
-ORDER BY year;
+INSERT INTO interview_history (trainee_id, company_id, union_id, ...)
+VALUES (...)
+ON CONFLICT (trainee_id, interview_date)
+DO UPDATE SET
+  company_id = COALESCE(EXCLUDED.company_id, interview_history.company_id),
+  union_id = COALESCE(EXCLUDED.union_id, interview_history.union_id),
+  ...
+RETURNING id;
 ```
 
-Đồng thời cần cập nhật **cách lọc danh sách** trong frontend (`PostDeparturePage.tsx` dòng 265-269): khi lọc năm cho trạng thái "Bỏ trốn" thì dùng `absconded_date`, "Về trước hạn" dùng `early_return_date`, "Hoàn thành HĐ" dùng `return_date` thay vì chỉ dùng `departure_date`.
+### 2. Không thay đổi frontend
+
+- `ProjectInterviewForm.tsx` — giữ nguyên
+- `TraineeForm.tsx` — giữ nguyên
+- Cả 2 nơi gọi RPC đều an toàn vì RPC giờ là UPSERT, bấm bao nhiêu lần cũng chỉ có 1 bản ghi duy nhất
 
 ### File thay đổi
 
 | File | Nội dung |
 |------|---------|
-| Migration SQL | `CREATE OR REPLACE VIEW post_departure_stats_by_year` với UNION ALL logic |
-| `src/pages/post-departure/PostDeparturePage.tsx` | Sửa filter năm (dòng 265-269) dùng event date thay vì chỉ departure_date |
-
-### Không thay đổi
-
-Tất cả các phần khác giữ nguyên: KPI cards, chart, export, trainee type filter, search.
+| Migration SQL | Dọn trùng + thêm UNIQUE constraint + sửa RPC thành UPSERT |
 
