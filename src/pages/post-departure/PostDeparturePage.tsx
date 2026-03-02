@@ -226,13 +226,26 @@ export default function PostDeparturePage() {
     return trainee.progression_stage;
   };
 
-  // KPI stats: tính từ danh sách trainees đã lọc theo departure_date
-  // Trạng thái được xác định TẠI THỜI ĐIỂM năm được chọn (không phải trạng thái hiện tại)
+  // Helper: kiểm tra HV có liên quan đến năm được chọn không
+  // Liên quan = xuất cảnh trong năm ĐÓ, HOẶC có sự kiện (bỏ trốn/về sớm/hoàn thành) trong năm đó
+  const isTraineeRelevantToYear = (trainee: any, year: string | null) => {
+    if (!year || year === "all") return true;
+    // Xuất cảnh trong năm
+    if (trainee.departure_date?.startsWith(year)) return true;
+    // Có sự kiện xảy ra trong năm
+    if (trainee.absconded_date?.startsWith(year)) return true;
+    if (trainee.early_return_date?.startsWith(year)) return true;
+    if (trainee.return_date?.startsWith(year)) return true;
+    return false;
+  };
+
+  // KPI stats: tính từ danh sách trainees liên quan đến năm được chọn
+  // Bao gồm HV xuất cảnh trong năm + HV có sự kiện (bỏ trốn/về sớm/hoàn thành) trong năm
   const stats = useMemo(() => {
     if (!trainees) return { working: 0, earlyReturn: 0, absconded: 0, completed: 0, total: 0 };
 
     const filtered = selectedYear && selectedYear !== "all"
-      ? trainees.filter(t => t.departure_date?.startsWith(selectedYear))
+      ? trainees.filter(t => isTraineeRelevantToYear(t, selectedYear))
       : trainees;
 
     let working = 0, earlyReturn = 0, absconded = 0, completed = 0;
@@ -259,12 +272,9 @@ export default function PostDeparturePage() {
 
     let result = trainees;
 
-    // Filter by year
+    // Filter by year (bao gồm HV xuất cảnh + HV có sự kiện trong năm)
     if (selectedYear && selectedYear !== "all") {
-      // Danh sách lọc theo departure_date (năm xuất cảnh)
-      result = result.filter(t => {
-        return t.departure_date?.startsWith(selectedYear);
-      });
+      result = result.filter(t => isTraineeRelevantToYear(t, selectedYear));
     }
 
     // Filter by status (dùng getStatusAtYear để khớp với KPI cards)
