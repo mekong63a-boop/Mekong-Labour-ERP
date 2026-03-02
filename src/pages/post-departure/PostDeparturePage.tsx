@@ -138,30 +138,10 @@ export default function PostDeparturePage() {
   // Get year options from actual data
   const yearOptions = useMemo(() => getYearOptionsFromData(trainees), [trainees]);
 
-  // Fetch KPI data by trainee_type from DB views
-  const { data: typeByYearData } = useQuery({
-    queryKey: ["post-departure-by-type"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("post_departure_by_type")
-        .select("*");
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  // Type stats và KPI stats được tính trực tiếp từ trainees list (SSOT)
 
-  const { data: typeSummaryData } = useQuery({
-    queryKey: ["post-departure-by-type-summary"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("post_departure_by_type_summary")
-        .select("*");
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  // Calculate type stats based on selectedYear
+  // Calculate type stats từ danh sách trainees đã lọc theo năm
+  // SSOT: dùng cùng nguồn dữ liệu với bảng danh sách để đảm bảo số liệu khớp
   const typeStats = useMemo(() => {
     const result: Record<string, number> = {
       "Thực tập sinh": 0,
@@ -171,24 +151,21 @@ export default function PostDeparturePage() {
       "Kỹ sư": 0,
     };
 
-    if (selectedYear === "all" && typeSummaryData) {
-      typeSummaryData.forEach((item: any) => {
-        if (item.trainee_type && item.trainee_type in result) {
-          result[item.trainee_type] = item.count || 0;
-        }
-      });
-    } else if (typeByYearData) {
-      typeByYearData
-        .filter((item: any) => item.departure_year === selectedYear)
-        .forEach((item: any) => {
-          if (item.trainee_type && item.trainee_type in result) {
-            result[item.trainee_type] = item.count || 0;
-          }
-        });
-    }
+    if (!trainees) return result;
+
+    const filtered = selectedYear && selectedYear !== "all"
+      ? trainees.filter(t => t.departure_date?.startsWith(selectedYear))
+      : trainees;
+
+    filtered.forEach((t: any) => {
+      const type = t.trainee_type;
+      if (type && type in result) {
+        result[type] += 1;
+      }
+    });
 
     return result;
-  }, [selectedYear, typeSummaryData, typeByYearData]);
+  }, [selectedYear, trainees]);
 
   // SYSTEM RULE: Chart data từ database view post_departure_stats_by_year
   // Logic tính toán đã ở Supabase, frontend chỉ hiển thị
@@ -215,52 +192,31 @@ export default function PostDeparturePage() {
   // SYSTEM RULE: Stats từ database view, UI filtering là hợp lệ
   // Khi selectedYear = "all" → dùng post_departure_summary view
   // Khi selectedYear != "all" → lọc từ post_departure_stats_by_year view
-  const { data: summaryStats } = useQuery({
-    queryKey: ["post-departure-summary"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("post_departure_summary")
-        .select("*")
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-  });
+  // summaryStats không còn dùng — stats tính trực tiếp từ trainees
 
-  // KPI stats: khi chọn năm cụ thể, tính từ danh sách đã lọc theo departure_date
-  // để đồng bộ với bảng danh sách bên dưới
+  // KPI stats: tính từ danh sách trainees đã lọc theo departure_date
+  // SSOT: dùng progression_stage HIỆN TẠI của học viên (trạng thái thực tế)
+  // VD: HV xuất cảnh 2024, hiện tại bỏ trốn → lọc 2024 thì KPI "Bỏ trốn" phải tính HV này
   const stats = useMemo(() => {
-    if (selectedYear === "all" && summaryStats) {
-      return {
-        working: summaryStats.working || 0,
-        earlyReturn: summaryStats.early_return || 0,
-        absconded: summaryStats.absconded || 0,
-        completed: summaryStats.completed || 0,
-        total: summaryStats.total || 0,
-      };
-    }
-    
-    // Khi chọn năm cụ thể → tính từ trainees đã lọc theo departure_date
-    // KPI phải dựa trên NGÀY SỰ KIỆN, không phải progression_stage hiện tại
-    // VD: HV xuất cảnh 2024, bỏ trốn 2026 → năm 2024 tính là "Đang ở Nhật", năm 2026 mới tính "Bỏ trốn"
-    if (selectedYear && selectedYear !== "all" && trainees) {
-      const yearTrainees = trainees.filter(t => t.departure_date?.startsWith(selectedYear));
-      const absconded = yearTrainees.filter(t => t.absconded_date?.startsWith(selectedYear)).length;
-      const earlyReturn = yearTrainees.filter(t => t.early_return_date?.startsWith(selectedYear)).length;
-      const completed = yearTrainees.filter(t => t.return_date?.startsWith(selectedYear)).length;
-      const working = yearTrainees.length - absconded - earlyReturn - completed;
-      return {
-        working,
-        earlyReturn,
-        absconded,
-        completed,
-        total: yearTrainees.length,
-      };
-    }
-    
-    return { working: 0, earlyReturn: 0, absconded: 0, completed: 0, total: 0 };
-  }, [selectedYear, summaryStats, trainees]);
+    if (!trainees) return { working: 0, earlyReturn: 0, absconded: 0, completed: 0, total: 0 };
+
+    const filtered = selectedYear && selectedYear !== "all"
+      ? trainees.filter(t => t.departure_date?.startsWith(selectedYear))
+      : trainees;
+
+    const working = filtered.filter(t => t.progression_stage === "Đang làm việc" || t.progression_stage === "Xuất cảnh").length;
+    const earlyReturn = filtered.filter(t => t.progression_stage === "Về trước hạn").length;
+    const absconded = filtered.filter(t => t.progression_stage === "Bỏ trốn").length;
+    const completed = filtered.filter(t => t.progression_stage === "Hoàn thành hợp đồng").length;
+
+    return {
+      working,
+      earlyReturn,
+      absconded,
+      completed,
+      total: filtered.length,
+    };
+  }, [selectedYear, trainees]);
 
   // Filter trainees (UI filtering - hợp lệ ở frontend)
   const filteredTrainees = useMemo(() => {
