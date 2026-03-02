@@ -197,50 +197,29 @@ export default function PostDeparturePage() {
   // Helper: xác định trạng thái của HV tại thời điểm năm được chọn
   // Nếu sự kiện (bỏ trốn, về sớm, hoàn thành) xảy ra TRONG năm đó hoặc TRƯỚC đó → tính trạng thái đó
   // Nếu sự kiện xảy ra SAU năm đó → HV vẫn "Đang ở Nhật" tại thời điểm năm đó
-  const getStatusAtYear = (trainee: any, year: string | null) => {
-    // Không lọc năm → dùng trạng thái hiện tại
-    if (!year || year === "all") return trainee.progression_stage;
-
-    const yearEnd = parseInt(year);
-
-    // Kiểm tra sự kiện có xảy ra trong năm đó hoặc trước không
-    const abscondedYear = trainee.absconded_date ? parseInt(trainee.absconded_date.substring(0, 4)) : null;
-    const earlyReturnYear = trainee.early_return_date ? parseInt(trainee.early_return_date.substring(0, 4)) : null;
-    const returnYear = trainee.return_date ? parseInt(trainee.return_date.substring(0, 4)) : null;
-
-    if (trainee.progression_stage === "Bỏ trốn" && abscondedYear && abscondedYear <= yearEnd) {
-      return "Bỏ trốn";
-    }
-    if (trainee.progression_stage === "Về trước hạn" && earlyReturnYear && earlyReturnYear <= yearEnd) {
-      return "Về trước hạn";
-    }
-    if (trainee.progression_stage === "Hoàn thành hợp đồng" && returnYear && returnYear <= yearEnd) {
-      return "Hoàn thành hợp đồng";
-    }
-
-    // Sự kiện chưa xảy ra tại thời điểm năm này → vẫn đang ở Nhật
-    if (["Bỏ trốn", "Về trước hạn", "Hoàn thành hợp đồng"].includes(trainee.progression_stage)) {
-      return "Đang làm việc";
-    }
-
-    return trainee.progression_stage;
-  };
-
   // Helper: kiểm tra HV có liên quan đến năm được chọn không
   // Liên quan = xuất cảnh trong năm ĐÓ, HOẶC có sự kiện (bỏ trốn/về sớm/hoàn thành) trong năm đó
   const isTraineeRelevantToYear = (trainee: any, year: string | null) => {
     if (!year || year === "all") return true;
-    // Xuất cảnh trong năm
     if (trainee.departure_date?.startsWith(year)) return true;
-    // Có sự kiện xảy ra trong năm
     if (trainee.absconded_date?.startsWith(year)) return true;
     if (trainee.early_return_date?.startsWith(year)) return true;
     if (trainee.return_date?.startsWith(year)) return true;
     return false;
   };
 
+  // Helper: lấy trạng thái hiển thị của HV (luôn dùng trạng thái HIỆN TẠI/CUỐI CÙNG)
+  const getDisplayStatus = (trainee: any) => {
+    const stage = trainee.progression_stage;
+    if (stage === "Đang làm việc" || stage === "Xuất cảnh") return "Đang làm việc";
+    if (stage === "Về trước hạn") return "Về trước hạn";
+    if (stage === "Bỏ trốn") return "Bỏ trốn";
+    if (stage === "Hoàn thành hợp đồng") return "Hoàn thành hợp đồng";
+    return stage;
+  };
+
   // KPI stats: tính từ danh sách trainees liên quan đến năm được chọn
-  // Bao gồm HV xuất cảnh trong năm + HV có sự kiện (bỏ trốn/về sớm/hoàn thành) trong năm
+  // Trạng thái luôn dùng trạng thái HIỆN TẠI (không phải lịch sử)
   const stats = useMemo(() => {
     if (!trainees) return { working: 0, earlyReturn: 0, absconded: 0, completed: 0, total: 0 };
 
@@ -250,8 +229,8 @@ export default function PostDeparturePage() {
 
     let working = 0, earlyReturn = 0, absconded = 0, completed = 0;
     filtered.forEach(t => {
-      const status = getStatusAtYear(t, selectedYear);
-      if (status === "Đang làm việc" || status === "Xuất cảnh") working++;
+      const status = getDisplayStatus(t);
+      if (status === "Đang làm việc") working++;
       else if (status === "Về trước hạn") earlyReturn++;
       else if (status === "Bỏ trốn") absconded++;
       else if (status === "Hoàn thành hợp đồng") completed++;
@@ -266,7 +245,7 @@ export default function PostDeparturePage() {
     };
   }, [selectedYear, trainees]);
 
-  // Filter trainees (UI filtering - hợp lệ ở frontend)
+  // Filter trainees (UI filtering)
   const filteredTrainees = useMemo(() => {
     if (!trainees) return [];
 
@@ -277,15 +256,15 @@ export default function PostDeparturePage() {
       result = result.filter(t => isTraineeRelevantToYear(t, selectedYear));
     }
 
-    // Filter by status (dùng getStatusAtYear để khớp với KPI cards)
+    // Filter by status (dùng trạng thái hiện tại)
     if (selectedStatus) {
       if (selectedStatus === "Đang làm việc") {
         result = result.filter(t => {
-          const s = getStatusAtYear(t, selectedYear);
-          return s === "Đang làm việc" || s === "Xuất cảnh";
+          const s = getDisplayStatus(t);
+          return s === "Đang làm việc";
         });
       } else {
-        result = result.filter(t => getStatusAtYear(t, selectedYear) === selectedStatus);
+        result = result.filter(t => getDisplayStatus(t) === selectedStatus);
       }
     }
 
