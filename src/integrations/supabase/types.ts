@@ -727,6 +727,7 @@ export type Database = {
           gender: string | null
           id: string
           income: string | null
+          living_together: boolean | null
           location: string | null
           occupation: string | null
           relationship: string
@@ -739,6 +740,7 @@ export type Database = {
           gender?: string | null
           id?: string
           income?: string | null
+          living_together?: boolean | null
           location?: string | null
           occupation?: string | null
           relationship: string
@@ -751,6 +753,7 @@ export type Database = {
           gender?: string | null
           id?: string
           income?: string | null
+          living_together?: boolean | null
           location?: string | null
           occupation?: string | null
           relationship?: string
@@ -1838,6 +1841,7 @@ export type Database = {
           cccd_date: string | null
           cccd_number: string | null
           cccd_place: string | null
+          class_attitude: string | null
           class_id: string | null
           coe_date: string | null
           contract_end_date: string | null
@@ -1846,6 +1850,7 @@ export type Database = {
           current_address: string | null
           current_situation: string | null
           departure_date: string | null
+          discipline: string | null
           dkhd_code: string | null
           dkhd_date: string | null
           dkhd_number: string | null
@@ -1866,6 +1871,9 @@ export type Database = {
           full_name: string
           furigana: string | null
           gender: string | null
+          gender_identity: string | null
+          glasses: string | null
+          greeting_attitude: string | null
           guarantor_name_jp: string | null
           guarantor_name_vn: string | null
           guarantor_phone: string | null
@@ -1909,6 +1917,7 @@ export type Database = {
           passport_place: string | null
           permanent_address: string | null
           permanent_address_new: string | null
+          personality: string | null
           phone: string | null
           photo_url: string | null
           policy_category: string | null
@@ -1926,6 +1935,7 @@ export type Database = {
           religion: string | null
           reserve_date: string | null
           return_date: string | null
+          rirekisho_remarks: string | null
           shirt_size: string | null
           shoe_size: string | null
           simple_status: Database["public"]["Enums"]["simple_status"] | null
@@ -1936,6 +1946,7 @@ export type Database = {
           tattoo: boolean | null
           tattoo_description: string | null
           temp_address: string | null
+          tidiness: string | null
           tpc_code: string | null
           tpc_cv_number: string | null
           tpc_issue_date: string | null
@@ -1959,6 +1970,7 @@ export type Database = {
           cccd_date?: string | null
           cccd_number?: string | null
           cccd_place?: string | null
+          class_attitude?: string | null
           class_id?: string | null
           coe_date?: string | null
           contract_end_date?: string | null
@@ -1967,6 +1979,7 @@ export type Database = {
           current_address?: string | null
           current_situation?: string | null
           departure_date?: string | null
+          discipline?: string | null
           dkhd_code?: string | null
           dkhd_date?: string | null
           dkhd_number?: string | null
@@ -1987,6 +2000,9 @@ export type Database = {
           full_name: string
           furigana?: string | null
           gender?: string | null
+          gender_identity?: string | null
+          glasses?: string | null
+          greeting_attitude?: string | null
           guarantor_name_jp?: string | null
           guarantor_name_vn?: string | null
           guarantor_phone?: string | null
@@ -2030,6 +2046,7 @@ export type Database = {
           passport_place?: string | null
           permanent_address?: string | null
           permanent_address_new?: string | null
+          personality?: string | null
           phone?: string | null
           photo_url?: string | null
           policy_category?: string | null
@@ -2047,6 +2064,7 @@ export type Database = {
           religion?: string | null
           reserve_date?: string | null
           return_date?: string | null
+          rirekisho_remarks?: string | null
           shirt_size?: string | null
           shoe_size?: string | null
           simple_status?: Database["public"]["Enums"]["simple_status"] | null
@@ -2057,6 +2075,7 @@ export type Database = {
           tattoo?: boolean | null
           tattoo_description?: string | null
           temp_address?: string | null
+          tidiness?: string | null
           tpc_code?: string | null
           tpc_cv_number?: string | null
           tpc_issue_date?: string | null
@@ -2080,6 +2099,7 @@ export type Database = {
           cccd_date?: string | null
           cccd_number?: string | null
           cccd_place?: string | null
+          class_attitude?: string | null
           class_id?: string | null
           coe_date?: string | null
           contract_end_date?: string | null
@@ -2088,6 +2108,7 @@ export type Database = {
           current_address?: string | null
           current_situation?: string | null
           departure_date?: string | null
+          discipline?: string | null
           dkhd_code?: string | null
           dkhd_date?: string | null
           dkhd_number?: string | null
@@ -2108,6 +2129,9 @@ export type Database = {
           full_name?: string
           furigana?: string | null
           gender?: string | null
+          gender_identity?: string | null
+          glasses?: string | null
+          greeting_attitude?: string | null
           guarantor_name_jp?: string | null
           guarantor_name_vn?: string | null
           guarantor_phone?: string | null
@@ -2151,6 +2175,7 @@ export type Database = {
           passport_place?: string | null
           permanent_address?: string | null
           permanent_address_new?: string | null
+          personality?: string | null
           phone?: string | null
           photo_url?: string | null
           policy_category?: string | null
@@ -2168,6 +2193,7 @@ export type Database = {
           religion?: string | null
           reserve_date?: string | null
           return_date?: string | null
+          rirekisho_remarks?: string | null
           shirt_size?: string | null
           shoe_size?: string | null
           simple_status?: Database["public"]["Enums"]["simple_status"] | null
@@ -2178,6 +2204,7 @@ export type Database = {
           tattoo?: boolean | null
           tattoo_description?: string | null
           temp_address?: string | null
+          tidiness?: string | null
           tpc_code?: string | null
           tpc_cv_number?: string | null
           tpc_issue_date?: string | null
