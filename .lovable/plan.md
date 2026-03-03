@@ -1,45 +1,106 @@
 
 
-## Nguyên nhân gốc
+## Plan: Tích hợp xuất 履歴書 (Lí lịch Nhật) dạng Excel
 
-RPC `finalize_interview_draft` **luôn INSERT** mới, không kiểm tra bản ghi đã tồn tại. Kết quả:
+### Phân tích file mẫu vs Database hiện tại
 
-- Nút "Lưu lịch sử phỏng vấn" trong `ProjectInterviewForm` → gọi RPC → INSERT 1 bản ghi
-- Nút "Lưu" chính trong `TraineeForm` → cũng gọi RPC → INSERT thêm 1 bản ghi nữa
-- Mỗi lần bấm Lưu = thêm 1 bản ghi trùng
+| Mục trong 履歴書 | Trường DB hiện có | Ghi chú |
+|---|---|---|
+| No | `trainee_code` | Co |
+| 氏名 フリガナ | `furigana` | Co |
+| 英字表記 | `full_name` | Co |
+| 生年月日 / 年齢 | `birth_date` | Tính tuổi từ birth_date |
+| 性別 | `gender` | Co |
+| 出生地 | `birthplace` | Co |
+| 婚姻 | `marital_status` | Co |
+| 現住所 | `current_address` | Co |
+| 学歴 | `education_history` (school_name, start_year/month, end_year/month) | Co |
+| 職歴 + 月収 | `work_history` (company_name, position, start_date, end_date, income) | Co |
+| 過去の在留許可 | `prior_residence_status` | Co |
+| 家族構成 | `family_members` (full_name, relationship, birth_year, occupation, income, location) | Co - thiếu "同居" |
+| 在日親戚 | `japan_relatives` (full_name, age, gender, relationship, residence_status, address_japan) | Co |
+| 身長/体重 | `height`, `weight` | Co |
+| 血液型 | `blood_group` | Co |
+| 視力 | `vision_left`, `vision_right` | Co |
+| 聴力 | `hearing` | Co |
+| 利き手 | `dominant_hand` | Co |
+| 刺青 | `tattoo` | Co |
+| Ｂ型肝炎 | `hepatitis_b` | Co |
+| 健康診断 | `health_status` | Co |
+| 資格・免許 | `japanese_certificate` | Co |
+| 趣味・特技 | `hobbies` | Co |
+| 飲酒/喫煙 | `drinking`, `smoking` | Co |
+| **メガネ** | **Chưa có** | Cần thêm |
+| **性自認・指向** | **Chưa có** | Cần thêm |
+| **性格** | **Chưa có** | Cần thêm |
+| **あいさつ・受け答え** | **Chưa có** | Cần thêm |
+| **整理・整頓** | **Chưa có** | Cần thêm |
+| **規則の順守** | **Chưa có** | Cần thêm |
+| **授業態度** | **Chưa có** | Cần thêm |
+| **備考** | `notes` (có sẵn) | Dùng notes hoặc thêm riêng |
+| **同居 (gia đình)** | **Chưa có** | Cần thêm vào family_members |
 
-DB hiện có 3 cặp trùng lặp, trong đó học viên 006700 có **4 bản ghi cùng ngày 26/11/2024**.
+### Phương án thực hiện
 
-## Giải pháp
+Theo yêu cầu: các trường chưa có sẽ được **thêm vào DB** nhưng **không hiển thị trên UI**, chỉ xuất hiện khi xuất file Excel. Không thay đổi bất kỳ giao diện hay logic hiện tại.
 
-### 1. Migration SQL — sửa RPC thành UPSERT + dọn trùng
+#### 1. Migration: Thêm các cột mới vào bảng `trainees`
 
-**a) Thêm UNIQUE constraint** trên `(trainee_id, interview_date)` — đảm bảo mỗi học viên chỉ có 1 bản ghi cho mỗi ngày phỏng vấn.
+Thêm 7 cột vào bảng `trainees` (ẩn trên UI, chỉ dùng khi xuất):
+- `glasses` (text, nullable) — メガネ: 有/無
+- `gender_identity` (text, nullable) — 性自認・指向: 有/無/－
+- `personality` (text, nullable) — 性格: 活/普/控
+- `greeting_attitude` (text, nullable) — あいさつ: 優/良/可
+- `tidiness` (text, nullable) — 整理整頓: 優/良/可
+- `discipline` (text, nullable) — 規則順守: 優/良/可/未
+- `class_attitude` (text, nullable) — 授業態度: 優/良/可/未
+- `rirekisho_remarks` (text, nullable) — 備考 riêng cho 履歴書
 
-**b) Dọn dữ liệu trùng trước** — giữ lại bản ghi có nhiều thông tin nhất (ưu tiên có company_id), xóa các bản trùng.
+Thêm 1 cột vào bảng `family_members`:
+- `living_together` (boolean, default false) — 同居
 
-**c) Sửa RPC `finalize_interview_draft`** — dùng `ON CONFLICT (trainee_id, interview_date) DO UPDATE` thay vì INSERT thuần:
+#### 2. Cập nhật RPC `get_trainee_full_profile`
 
-```sql
-INSERT INTO interview_history (trainee_id, company_id, union_id, ...)
-VALUES (...)
-ON CONFLICT (trainee_id, interview_date)
-DO UPDATE SET
-  company_id = COALESCE(EXCLUDED.company_id, interview_history.company_id),
-  union_id = COALESCE(EXCLUDED.union_id, interview_history.union_id),
-  ...
-RETURNING id;
+Thêm các trường mới vào kết quả trả về để Edge Function có thể đọc.
+
+#### 3. Tạo Edge Function `export-rirekisho`
+
+- Nhận `trainee_code` qua query param
+- Gọi RPC `get_trainee_full_profile` để lấy toàn bộ dữ liệu (SSOT)
+- Dùng SheetJS (xlsx) tạo file `.xlsx` với layout chính xác theo file mẫu:
+  - Cell merging tái tạo bố cục form
+  - Borders, font formatting
+  - Các ô tô màu = cố định (label), ô trắng = dữ liệu
+- Map dữ liệu:
+  - Thông tin cá nhân → từ trainee record
+  - 学歴 → từ `education_history` (format: `{start_year}年{start_month}月` / `{end_year}年{end_month}月` / `{school_name}高校`)
+  - 職歴 → từ `work_history` (format tương tự + `{position}（月収{income}）`)
+  - 家族構成 → từ `family_members` (tính tuổi từ birth_year, 同居 = X/O)
+  - 在日親戚 → từ `japan_relatives`
+  - 生活態度 → từ các cột mới (để trống nếu chưa nhập)
+- Trả về binary `.xlsx` với filename `{trainee_code} - 履歴書.xlsx`
+
+#### 4. Thêm nút "Xuất lí lịch" vào `TraineeDetail.tsx`
+
+- Thêm 1 nút bên cạnh nút "Chỉnh sửa" hiện tại
+- Click → gọi Edge Function → tải file về
+- Không thay đổi bất kỳ logic hay UI nào khác
+
+#### 5. Cập nhật `supabase/config.toml`
+
+Thêm entry cho function mới:
+```toml
+[functions.export-rirekisho]
+verify_jwt = false
 ```
 
-### 2. Không thay đổi frontend
+### Tóm tắt file thay đổi
 
-- `ProjectInterviewForm.tsx` — giữ nguyên
-- `TraineeForm.tsx` — giữ nguyên
-- Cả 2 nơi gọi RPC đều an toàn vì RPC giờ là UPSERT, bấm bao nhiêu lần cũng chỉ có 1 bản ghi duy nhất
-
-### File thay đổi
-
-| File | Nội dung |
-|------|---------|
-| Migration SQL | Dọn trùng + thêm UNIQUE constraint + sửa RPC thành UPSERT |
+| File | Hành động |
+|---|---|
+| Migration SQL | Thêm 8 cột `trainees` + 1 cột `family_members` |
+| Migration SQL | Cập nhật RPC `get_trainee_full_profile` thêm các trường mới |
+| `supabase/functions/export-rirekisho/index.ts` | **Tạo mới** - Edge Function xuất Excel |
+| `supabase/config.toml` | Thêm config cho function mới |
+| `src/pages/TraineeDetail.tsx` | Thêm nút "Xuất lí lịch" (chỉ thêm, không sửa code cũ) |
 
