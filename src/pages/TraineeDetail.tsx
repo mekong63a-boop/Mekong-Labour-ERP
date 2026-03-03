@@ -4,7 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, User, History, Briefcase, Edit, Clock, Lock } from "lucide-react";
+import { ArrowLeft, User, History, Briefcase, Edit, Clock, Lock, FileDown, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { PersonalInfoTab } from "@/components/trainees/tabs/PersonalInfoTab";
 import { PersonalHistoryTab } from "@/components/trainees/tabs/PersonalHistoryTab";
 import { ProjectInterviewTab } from "@/components/trainees/tabs/ProjectInterviewTab";
@@ -15,6 +18,37 @@ export default function TraineeDetail() {
   const navigate = useNavigate();
   const { data: trainee, isLoading, error } = useTrainee(id || "");
   const { data: stageData } = useStageTimeline(id);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportRirekisho = async () => {
+    if (!trainee?.trainee_code) return;
+    setIsExporting(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token || "";
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "bcltzwpnhfpbfiuhfkxi";
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/export-rirekisho?trainee_code=${encodeURIComponent(trainee.trainee_code)}`,
+        { headers: { Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "" } }
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Lỗi xuất file");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${trainee.trainee_code} - 履歴書.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Xuất lí lịch thành công");
+    } catch (err: any) {
+      toast.error(err.message || "Lỗi xuất lí lịch");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   if (error) {
     return (
@@ -107,10 +141,21 @@ export default function TraineeDetail() {
             </p>
           </div>
         </div>
-        <Button onClick={() => navigate(`/trainees/${id}/edit`)} className="gap-2">
-          <Edit className="h-4 w-4" />
-          Chỉnh sửa
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleExportRirekisho}
+            disabled={isExporting}
+            className="gap-2"
+          >
+            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+            Xuất lí lịch
+          </Button>
+          <Button onClick={() => navigate(`/trainees/${id}/edit`)} className="gap-2">
+            <Edit className="h-4 w-4" />
+            Chỉnh sửa
+          </Button>
+        </div>
       </div>
 
 
