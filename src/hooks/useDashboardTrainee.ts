@@ -160,3 +160,26 @@ export const usePostDepartureStats = () => useQuery({
   queryFn: () => queryView("post_departure_stats_by_year") as Promise<PostDepartureStatsData[]>,
   staleTime: 30 * 1000,
 });
+
+// SSOT: Xuất cảnh theo năm departure_date - SOURCE: Menu Học viên
+export interface DepartedByYearData {
+  year: number;
+  total: number;
+  male_count: number;
+  female_count: number;
+}
+export const useDepartedByDepartureYear = () => useQuery({
+  queryKey: ["dashboard-departed-by-departure-year"],
+  queryFn: () => queryView("dashboard_departed_by_departure_year") as Promise<DepartedByYearData[]>,
+  staleTime: 30 * 1000,
+});
+
+// SSOT: Tổng sĩ số đang học - SOURCE: Menu Đào tạo (class_student_counts)
+export interface EducationTotalData {
+  total_studying: number;
+}
+export const useEducationTotal = () => useQuery({
+  queryKey: ["dashboard-education-total"],
+  queryFn: () => queryViewSingle("dashboard_education_total") as Promise<EducationTotalData>,
+  staleTime: 30 * 1000,
+});

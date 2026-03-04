@@ -21,6 +21,8 @@ import {
 
 // SINGLE SOURCE: KTX stats từ menu KTX
 import { useDormitoryGenderStats } from "@/hooks/useDormitory";
+// SINGLE SOURCE: Tổng học viên từ menu Học viên (trainee_stage_counts)
+import { useTraineeStageCounts } from "@/hooks/useTraineeStageCounts";
 import {
   BarChart,
   Bar,
@@ -40,7 +42,8 @@ import {
   useTraineeBySource,
   useTraineeByCompany,
   useMonthlyPassed,
-  usePostDepartureStats,
+  useDepartedByDepartureYear,
+  useEducationTotal,
 } from "@/hooks/useDashboardTrainee";
 
 // Icon color classes
@@ -62,8 +65,14 @@ export default function TraineeDashboard() {
   const { data: companyData, isLoading: loadingCompany } = useTraineeByCompany();
   const { data: monthlyPassed, isLoading: loadingPassed } = useMonthlyPassed();
   
-  // SINGLE SOURCE: Xuất cảnh từ menu Sau xuất cảnh
-  const { data: postDepartureStats, isLoading: loadingPostDeparture } = usePostDepartureStats();
+  // SINGLE SOURCE: Tổng học viên từ menu Học viên (trainee_stage_counts)
+  const { data: stageCounts, isLoading: loadingStageCounts } = useTraineeStageCounts();
+  
+  // SINGLE SOURCE: Xuất cảnh theo năm departure_date từ menu Học viên
+  const { data: departedByYear, isLoading: loadingDeparted } = useDepartedByDepartureYear();
+  
+  // SINGLE SOURCE: Sĩ số đang học từ menu Đào tạo (class_student_counts)
+  const { data: educationTotal, isLoading: loadingEducation } = useEducationTotal();
   
   // SINGLE SOURCE: KTX từ menu KTX
   const { data: dormitoryStats, isLoading: loadingDormitory } = useDormitoryGenderStats();
@@ -71,12 +80,18 @@ export default function TraineeDashboard() {
   // SYSTEM RULE: activeOrders từ kpis view (đã tính sẵn ở DB)
   const activeOrders = kpis?.active_orders || 0;
   
-  // SINGLE SOURCE: Tính xuất cảnh năm nay từ post_departure_stats_by_year
+  // SINGLE SOURCE: Tổng học viên = trainee_stage_counts.all (cùng nguồn menu Học viên)
+  const totalTrainees = stageCounts?.all || 0;
+  
+  // SINGLE SOURCE: Học viên đang học = class_student_counts (cùng nguồn menu Đào tạo)
+  const studyingCount = educationTotal?.total_studying || 0;
+  
+  // SINGLE SOURCE: Xuất cảnh năm nay = trainees có departure_date trong năm hiện tại
   const departedThisYear = useMemo(() => {
-    if (!postDepartureStats) return 0;
-    const currentYearData = postDepartureStats.find(s => s.year === currentYear.toString());
+    if (!departedByYear) return 0;
+    const currentYearData = departedByYear.find(s => s.year === currentYear);
     return currentYearData?.total || 0;
-  }, [postDepartureStats, currentYear]);
+  }, [departedByYear, currentYear]);
 
   // Tính các năm có dữ liệu thực sự cho từng loại biểu đồ
   const recruitmentYears = useMemo(() => {
@@ -262,20 +277,14 @@ export default function TraineeDashboard() {
       }));
   }, [companyData, effectiveCompanyYear]);
 
-  // Calculate studying count - use status_studying from KPIs
-  const studyingCount = useMemo(() => {
-    if (!kpis) return 0;
-    return kpis.status_studying || 0;
-  }, [kpis]);
-
   return (
     <div className="space-y-6">
       {/* KPI Cards Row - Display only, no navigation */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Total Trainees */}
-        <Card>
+         <Card>
           <CardContent className="p-5">
-            {loadingKPIs ? (
+            {loadingStageCounts ? (
               <div className="space-y-3">
                 <Skeleton className="h-12 w-12 rounded-2xl" />
                 <Skeleton className="h-8 w-20" />
@@ -289,7 +298,7 @@ export default function TraineeDashboard() {
                   </div>
                   <div className="space-y-1">
                     <div className="text-2xl font-bold text-foreground">
-                      {kpis?.total_trainees || 0}
+                      {totalTrainees}
                     </div>
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Tổng số học viên
@@ -326,45 +335,32 @@ export default function TraineeDashboard() {
         {/* Currently Studying */}
         <Card>
           <CardContent className="p-5">
-            {loadingKPIs ? (
+            {loadingEducation ? (
               <div className="space-y-3">
                 <Skeleton className="h-12 w-12 rounded-2xl" />
                 <Skeleton className="h-8 w-20" />
               </div>
             ) : (
-              <div className="flex gap-4">
-                <div className="space-y-3 flex-1">
-                  <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", iconColorClasses.green)}>
-                    <GraduationCap className="h-6 w-6" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-2xl font-bold text-foreground">{studyingCount}</div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Học viên hiện tại
-                    </p>
-                    <p className="text-xs text-muted-foreground">Đang đào tạo</p>
-                  </div>
+              <div className="space-y-3">
+                <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center", iconColorClasses.green)}>
+                  <GraduationCap className="h-6 w-6" />
                 </div>
-                {/* Gender breakdown */}
-                <div className="flex flex-col justify-center gap-1 min-w-[60px]">
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm font-semibold text-blue-600">{kpis?.studying_male || 0}</span>
-                    <span className="text-xs text-muted-foreground">Nam</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm font-semibold text-red-500">{kpis?.studying_female || 0}</span>
-                    <span className="text-xs text-muted-foreground">Nữ</span>
-                  </div>
+                <div className="space-y-1">
+                  <div className="text-2xl font-bold text-foreground">{studyingCount}</div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Học viên hiện tại
+                  </p>
+                  <p className="text-xs text-muted-foreground">Đang đào tạo (từ menu Đào tạo)</p>
                 </div>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Trainees Departed - SINGLE SOURCE từ menu Sau xuất cảnh */}
+        {/* Trainees Departed - SINGLE SOURCE từ menu Học viên + departure_date */}
         <Card>
           <CardContent className="p-5">
-            {loadingPostDeparture ? (
+            {loadingDeparted ? (
               <div className="space-y-3">
                 <Skeleton className="h-12 w-12 rounded-2xl" />
                 <Skeleton className="h-8 w-20" />

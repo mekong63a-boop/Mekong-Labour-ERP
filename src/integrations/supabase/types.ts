@@ -2653,6 +2653,21 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboard_departed_by_departure_year: {
+        Row: {
+          female_count: number | null
+          male_count: number | null
+          total: number | null
+          year: number | null
+        }
+        Relationships: []
+      }
+      dashboard_education_total: {
+        Row: {
+          total_studying: number | null
+        }
+        Relationships: []
+      }
       dashboard_monthly_combined: {
         Row: {
           departure: number | null
