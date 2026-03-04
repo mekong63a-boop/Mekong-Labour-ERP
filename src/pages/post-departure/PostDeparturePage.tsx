@@ -194,9 +194,43 @@ export default function PostDeparturePage() {
   // Khi selectedYear != "all" → lọc từ post_departure_stats_by_year view
   // summaryStats không còn dùng — stats tính trực tiếp từ trainees
 
-  // Helper: xác định trạng thái của HV tại thời điểm năm được chọn
-  // Nếu sự kiện (bỏ trốn, về sớm, hoàn thành) xảy ra TRONG năm đó hoặc TRƯỚC đó → tính trạng thái đó
-  // Nếu sự kiện xảy ra SAU năm đó → HV vẫn "Đang ở Nhật" tại thời điểm năm đó
+  // Helper: lấy trạng thái LỊCH SỬ của HV tại thời điểm cuối năm được chọn
+  // Nếu sự kiện xảy ra SAU năm đó → HV vẫn "Đang làm việc" tại thời điểm năm đó
+  // Nếu không chọn năm (all) → dùng trạng thái hiện tại
+  const getDisplayStatusForYear = (trainee: any, year: string | null) => {
+    const stage = trainee.progression_stage;
+    
+    // Không lọc năm → trạng thái hiện tại
+    if (!year || year === "all") {
+      if (stage === "Đang làm việc" || stage === "Xuất cảnh") return "Đang làm việc";
+      if (stage === "Về trước hạn") return "Về trước hạn";
+      if (stage === "Bỏ trốn") return "Bỏ trốn";
+      if (stage === "Hoàn thành hợp đồng") return "Hoàn thành hợp đồng";
+      return stage;
+    }
+
+    // Có lọc năm → kiểm tra sự kiện đã xảy ra trong/trước năm đó chưa
+    const yearNum = parseInt(year);
+    const eventInOrBefore = (dateStr: string | null) => {
+      if (!dateStr) return false;
+      return parseInt(dateStr.substring(0, 4)) <= yearNum;
+    };
+    const eventInYear = (dateStr: string | null) => {
+      if (!dateStr) return false;
+      return dateStr.startsWith(year);
+    };
+
+    // Ưu tiên: Bỏ trốn > Về trước hạn > Hoàn thành HĐ > Đang làm việc
+    if (stage === "Bỏ trốn" && eventInOrBefore(trainee.absconded_date)) return "Bỏ trốn";
+    if (stage === "Về trước hạn" && eventInOrBefore(trainee.early_return_date)) return "Về trước hạn";
+    if (stage === "Hoàn thành hợp đồng" && eventInOrBefore(trainee.return_date)) return "Hoàn thành hợp đồng";
+    
+    // Sự kiện chưa xảy ra tại năm đó → vẫn đang làm việc
+    if (["Bỏ trốn", "Về trước hạn", "Hoàn thành hợp đồng"].includes(stage)) return "Đang làm việc";
+    if (stage === "Đang làm việc" || stage === "Xuất cảnh") return "Đang làm việc";
+    return stage;
+  };
+
   // Helper: kiểm tra HV có liên quan đến năm được chọn không
   // Liên quan = xuất cảnh trong năm ĐÓ, HOẶC có sự kiện (bỏ trốn/về sớm/hoàn thành) trong năm đó
   const isTraineeRelevantToYear = (trainee: any, year: string | null) => {
@@ -208,28 +242,24 @@ export default function PostDeparturePage() {
     return false;
   };
 
-  // Helper: lấy trạng thái hiển thị của HV (luôn dùng trạng thái HIỆN TẠI/CUỐI CÙNG)
+  // Backward compat wrapper - used by table display
   const getDisplayStatus = (trainee: any) => {
-    const stage = trainee.progression_stage;
-    if (stage === "Đang làm việc" || stage === "Xuất cảnh") return "Đang làm việc";
-    if (stage === "Về trước hạn") return "Về trước hạn";
-    if (stage === "Bỏ trốn") return "Bỏ trốn";
-    if (stage === "Hoàn thành hợp đồng") return "Hoàn thành hợp đồng";
-    return stage;
+    return getDisplayStatusForYear(trainee, selectedYear === "all" ? null : selectedYear);
   };
 
   // KPI stats: tính từ danh sách trainees liên quan đến năm được chọn
-  // Trạng thái luôn dùng trạng thái HIỆN TẠI (không phải lịch sử)
+  // Trạng thái tính theo thời điểm năm được chọn (lịch sử)
   const stats = useMemo(() => {
     if (!trainees) return { working: 0, earlyReturn: 0, absconded: 0, completed: 0, total: 0 };
 
-    const filtered = selectedYear && selectedYear !== "all"
-      ? trainees.filter(t => isTraineeRelevantToYear(t, selectedYear))
+    const yearFilter = selectedYear && selectedYear !== "all" ? selectedYear : null;
+    const filtered = yearFilter
+      ? trainees.filter(t => isTraineeRelevantToYear(t, yearFilter))
       : trainees;
 
     let working = 0, earlyReturn = 0, absconded = 0, completed = 0;
     filtered.forEach(t => {
-      const status = getDisplayStatus(t);
+      const status = getDisplayStatusForYear(t, yearFilter);
       if (status === "Đang làm việc") working++;
       else if (status === "Về trước hạn") earlyReturn++;
       else if (status === "Bỏ trốn") absconded++;
