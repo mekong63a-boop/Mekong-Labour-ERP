@@ -171,50 +171,67 @@ export function OrderTraineesModal({
                     <TableHead>Quê quán</TableHead>
                     <TableHead>Số điện thoại</TableHead>
                     <TableHead className="text-center">Số lần PV</TableHead>
+                    <TableHead className="text-center">Kết quả PV</TableHead>
                     {canDelete && <TableHead className="w-12"></TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {trainees.map((trainee, index) => (
-                    <TableRow key={trainee.id}>
-                      <TableCell className="text-muted-foreground">
-                        {index + 1}
-                      </TableCell>
-                      <TableCell className="font-medium text-primary">
-                        {trainee.trainee_code}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {trainee.full_name}
-                      </TableCell>
-                      <TableCell>{formatDate(trainee.birth_date)}</TableCell>
-                      <TableCell>{trainee.birthplace || "-"}</TableCell>
-                      <TableCell>{trainee.phone || "-"}</TableCell>
-                      <TableCell className="text-center">
-                        <Badge
-                          variant="outline"
-                          className={
-                            trainee.interview_count > 1
-                              ? "bg-amber-50 text-amber-700 border-amber-200"
-                              : "bg-green-50 text-green-700 border-green-200"
-                          }
-                        >
-                          {trainee.interview_count}
-                        </Badge>
-                      </TableCell>
-                      {canDelete && (
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => handleRemoveClick(trainee)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                  {trainees.map((trainee, index) => {
+                    // Đậu = progression_stage không phải "Chưa đậu" và không null
+                    const isPassed = trainee.progression_stage && trainee.progression_stage !== "Chưa đậu";
+                    return (
+                      <TableRow key={trainee.id}>
+                        <TableCell className="text-muted-foreground">
+                          {index + 1}
                         </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
+                        <TableCell className="font-medium text-primary">
+                          {trainee.trainee_code}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {trainee.full_name}
+                        </TableCell>
+                        <TableCell>{formatDate(trainee.birth_date)}</TableCell>
+                        <TableCell>{trainee.birthplace || "-"}</TableCell>
+                        <TableCell>{trainee.phone || "-"}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant="outline"
+                            className={
+                              trainee.interview_count > 1
+                                ? "bg-amber-50 text-amber-700 border-amber-200"
+                                : "bg-green-50 text-green-700 border-green-200"
+                            }
+                          >
+                            {trainee.interview_count}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant="outline"
+                            className={
+                              isPassed
+                                ? "bg-green-50 text-green-700 border-green-200"
+                                : "bg-gray-50 text-gray-500 border-gray-200"
+                            }
+                          >
+                            {isPassed ? "Đậu" : "Chưa đậu"}
+                          </Badge>
+                        </TableCell>
+                        {canDelete && (
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => handleRemoveClick(trainee)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

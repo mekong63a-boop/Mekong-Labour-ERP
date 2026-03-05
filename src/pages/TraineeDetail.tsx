@@ -151,10 +151,12 @@ export default function TraineeDetail() {
             {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
             Xuất lí lịch
           </Button>
-          <Button onClick={() => navigate(`/trainees/${id}/edit`)} className="gap-2">
-            <Edit className="h-4 w-4" />
-            Chỉnh sửa
-          </Button>
+          {!trainee.is_locked && (
+            <Button onClick={() => navigate(`/trainees/${id}/edit`)} className="gap-2">
+              <Edit className="h-4 w-4" />
+              Chỉnh sửa
+            </Button>
+          )}
         </div>
       </div>
 

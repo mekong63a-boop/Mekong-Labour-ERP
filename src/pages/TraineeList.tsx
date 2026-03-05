@@ -376,7 +376,7 @@ export default function TraineeList() {
           >
             <Eye className="h-4 w-4" />
           </Button>
-          {canDelete && (
+          {canDelete && !trainee.is_locked && (
             <Button
               variant="ghost"
               size="icon"

@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, RefreshCw, Search, MapPin, Briefcase, Calendar, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 import { useCanAction } from "@/hooks/useMenuPermissions";
 import { supabase } from "@/integrations/supabase/client";
@@ -168,6 +169,7 @@ export default function OrderList() {
                 <TableHead className="font-semibold text-foreground text-center">SỐ LƯỢNG TUYỂN</TableHead>
                 <TableHead className="font-semibold text-foreground text-center">ỨNG VIÊN THAM GIA</TableHead>
                 <TableHead className="font-semibold text-foreground">NGÀY PHỎNG VẤN</TableHead>
+                <TableHead className="font-semibold text-foreground text-center">TÌNH TRẠNG</TableHead>
                 <TableHead className="font-semibold text-foreground text-center">THAO TÁC</TableHead>
               </TableRow>
             </TableHeader>
@@ -216,6 +218,20 @@ export default function OrderList() {
                             : "-"}
                         </span>
                       </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge
+                        variant="outline"
+                        className={
+                          order.status === "Đang tuyển" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                          order.status === "Đã phỏng vấn" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                          order.status === "Hoàn thành" ? "bg-green-50 text-green-700 border-green-200" :
+                          order.status === "Đã hủy" ? "bg-red-50 text-red-700 border-red-200" :
+                          "bg-gray-50 text-gray-700 border-gray-200"
+                        }
+                      >
+                        {order.status || "Đang tuyển"}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-center gap-2">
