@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -711,24 +712,20 @@ export default function DormitoryPage() {
                       <div className="space-y-4 py-4">
                         <div className="space-y-2">
                           <Label>Chọn học viên muốn chuyển *</Label>
-                          <Select
+                          <SearchableSelect
+                            options={(transferableTrainees || []).map((r) => ({
+                              value: r.id,
+                              label: `${r.trainee?.trainee_code} - ${r.trainee?.full_name} (${r.dormitory?.name})`,
+                            }))}
                             value={selectedTransferResident?.id || ""}
                             onValueChange={(val) => {
                               const resident = transferableTrainees?.find((r) => r.id === val);
                               setSelectedTransferResident(resident || null);
                             }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Chọn học viên..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {transferableTrainees?.map((r) => (
-                                <SelectItem key={r.id} value={r.id}>
-                                  {r.trainee?.trainee_code} - {r.trainee?.full_name} ({r.dormitory?.name})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            placeholder="Chọn học viên..."
+                            searchPlaceholder="Tìm theo mã hoặc tên học viên..."
+                            emptyText="Không tìm thấy học viên."
+                          />
                           {transferableTrainees?.length === 0 && (
                             <p className="text-xs text-muted-foreground">
                               Không có học viên ở KTX khác để chuyển
