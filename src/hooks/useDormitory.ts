@@ -97,6 +97,7 @@ export function useDormitoryResidents(dormitoryId: string | null) {
           from_dormitory:dormitories!dormitory_residents_from_dormitory_id_fkey(id, name)
         `)
         .eq("dormitory_id", dormitoryId)
+        .eq("status", "Đang ở")
         .order("room_number", { ascending: true });
 
       if (error) throw error;
