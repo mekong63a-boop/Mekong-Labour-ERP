@@ -403,10 +403,10 @@ serve(async (req) => {
     label(5, 17, "婚姻"); merge(5, 17, 5, 20);
     center(5, 21, p.marital_status === "Độc thân" ? "未婚" : p.marital_status === "Đã kết hôn" ? "既婚" : ""); merge(5, 21, 5, 28);
 
-    // === Row 6: 現住所 ===
+    // === Row 6: 現住所 (stop at col 28 to avoid overlap with photo frame) ===
     rowHeights.set(6, 24);
     label(6, 0, "現住所"); merge(6, 0, 6, 2);
-    data(6, 3, p.current_address || ""); merge(6, 3, 6, LC);
+    data(6, 3, p.current_address || ""); merge(6, 3, 6, 28);
 
     // === Row 7: Empty separator ===
     rowHeights.set(7, 5);
