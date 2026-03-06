@@ -422,7 +422,8 @@ export function useTransferResident() {
       bedNumber?: string;
       transferReason: string;
     }) => {
-      const today = new Date().toISOString().split("T")[0];
+      const now = new Date();
+      const today = now.toISOString().split("T")[0];
 
       // Step 1: Check out from current dormitory
       const { error: checkOutError } = await supabase
@@ -436,7 +437,25 @@ export function useTransferResident() {
 
       if (checkOutError) throw checkOutError;
 
-      // Step 2: Add to new dormitory with reference to old one
+      // Step 2: Check if there's already a record for this trainee in the target dormitory on the same date
+      // If so, delete the old "Đã chuyển" record to avoid unique constraint violation
+      const { data: existingRecords } = await supabase
+        .from("dormitory_residents")
+        .select("id")
+        .eq("dormitory_id", toDormitoryId)
+        .eq("trainee_id", traineeId)
+        .eq("check_in_date", today)
+        .eq("status", "Đã chuyển");
+
+      if (existingRecords && existingRecords.length > 0) {
+        // Remove old transferred records for same day to avoid unique constraint
+        await supabase
+          .from("dormitory_residents")
+          .delete()
+          .in("id", existingRecords.map(r => r.id));
+      }
+
+      // Step 3: Add to new dormitory with reference to old one
       const { data, error: addError } = await supabase
         .from("dormitory_residents")
         .insert({
