@@ -628,6 +628,11 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         }
       }
 
+      // CRITICAL: Update ref immediately inside setState callback
+      // This ensures formDataRef.current is always up-to-date even before React re-renders
+      // Prevents stale data when user changes a field and clicks Save quickly
+      formDataRef.current = newData;
+
       return newData;
     });
   }, []);
