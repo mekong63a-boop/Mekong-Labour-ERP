@@ -197,13 +197,13 @@ ${drawingRef}
 </Relationships>`;
     files.push({ name: "xl/drawings/_rels/drawing1.xml.rels", data: new TextEncoder().encode(drawRels) });
 
-    // Photo anchored at cols 29-36, rows 1-6
+    // Photo anchored at cols 29-36, rows 1-5 (matching merge area)
     const drawXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"
   xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
   xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
 <xdr:twoCellAnchor editAs="oneCell">
-  <xdr:from><xdr:col>29</xdr:col><xdr:colOff>20000</xdr:colOff><xdr:row>1</xdr:row><xdr:rowOff>10000</xdr:rowOff></xdr:from>
+  <xdr:from><xdr:col>29</xdr:col><xdr:colOff>20000</xdr:colOff><xdr:row>1</xdr:row><xdr:rowOff>20000</xdr:rowOff></xdr:from>
   <xdr:to><xdr:col>37</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>6</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>
   <xdr:pic>
     <xdr:nvPicPr><xdr:cNvPr id="2" name="Photo"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>
@@ -369,8 +369,8 @@ serve(async (req) => {
     rowHeights.set(1, 28);
     add(1, 0, "履歴書", S_TITLE); merge(1, 0, 1, 5);
     add(1, 14, dateStr, 0); merge(1, 14, 1, 21);
-    // Photo frame: rows 1-6, cols 29-36 (bordered, merged)
-    data(1, 29, ""); merge(1, 29, 6, LC);
+    // Photo frame: rows 1-5 ONLY (row 6 is full-width address)
+    data(1, 29, ""); merge(1, 29, 5, LC);
 
     // === Row 2: 氏名 - フリガナ ===
     rowHeights.set(2, 24);
@@ -403,10 +403,10 @@ serve(async (req) => {
     label(5, 17, "婚姻"); merge(5, 17, 5, 20);
     center(5, 21, p.marital_status === "Độc thân" ? "未婚" : p.marital_status === "Đã kết hôn" ? "既婚" : ""); merge(5, 21, 5, 28);
 
-    // === Row 6: 現住所 (stop at col 28 to avoid overlap with photo frame) ===
+    // === Row 6: 現住所 (full width, photo ends at row 5) ===
     rowHeights.set(6, 24);
     label(6, 0, "現住所"); merge(6, 0, 6, 2);
-    data(6, 3, p.current_address || ""); merge(6, 3, 6, 28);
+    data(6, 3, p.current_address || ""); merge(6, 3, 6, LC);
 
     // === Row 7: Empty separator ===
     rowHeights.set(7, 5);
