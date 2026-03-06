@@ -93,6 +93,14 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
   const cellMap = new Map<string, CellData>();
   for (const cell of cells) cellMap.set(`${cell.r},${cell.c}`, cell);
 
+  // No-border zones: title area and photo area
+  const isNoBorderZone = (row: number, col: number): boolean => {
+    if (row === 0 && col < 8) return true;  // Row 0: only "No" box at cols 8-9
+    if (row === 1) return true;              // Title row: no borders
+    if (row >= 2 && row <= 5 && col >= 8) return true; // Photo area
+    return false;
+  };
+
   let sheetDataXml = "";
   for (let r = 0; r <= maxRow; r++) {
     const ht = rowHeights.get(r) || 22;
@@ -100,7 +108,7 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
     for (let c = 0; c <= maxCol; c++) {
       const ref = `${colLetter(c)}${r + 1}`;
       const cell = cellMap.get(`${r},${c}`);
-      const style = cell?.s ?? S_DATA;
+      const style = cell?.s ?? (isNoBorderZone(r, c) ? 0 : S_DATA);
       if (cell && typeof cell.v === "number") {
         rowXml += `<c r="${ref}" s="${style}"><v>${cell.v}</v></c>`;
       } else if (cell && typeof cell.v === "string" && cell.v !== "") {
@@ -392,6 +400,7 @@ serve(async (req) => {
     label(4, 4, "歳)");
     label(4, 5, "性別");
     center(4, 6, p.gender === "Nam" ? "男" : p.gender === "Nữ" ? "女" : "");
+    merge(4, 6, 4, 7); // Extend gender value to col 7
 
     // === Row 5: 出生地 + 婚姻 ===
     rowHeights.set(5, 22);
@@ -402,6 +411,7 @@ serve(async (req) => {
     label(5, 4, ")");
     label(5, 5, "婚姻");
     center(5, 6, p.marital_status === "Độc thân" ? "未婚" : p.marital_status === "Đã kết hôn" ? "既婚" : "");
+    merge(5, 6, 5, 7); // Extend marital status value to col 7
 
     // === Row 6: 現住所 ===
     rowHeights.set(6, 22);
