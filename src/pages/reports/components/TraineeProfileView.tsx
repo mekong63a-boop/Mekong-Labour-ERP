@@ -89,10 +89,14 @@ const getStatusColor = (status: string) => {
       return 'bg-red-100 text-red-800';
     case 'late':
     case 'đi trễ':
-      return 'bg-yellow-100 text-yellow-800';
+      return 'bg-orange-100 text-orange-700';
     case 'excused':
     case 'nghỉ phép':
-      return 'bg-blue-100 text-blue-800';
+    case 'nghỉ có phép':
+      return 'bg-blue-100 text-blue-700';
+    case 'unexcused':
+    case 'nghỉ không phép':
+      return 'bg-red-100 text-red-700';
     default:
       return 'bg-gray-100 text-gray-800';
   }
