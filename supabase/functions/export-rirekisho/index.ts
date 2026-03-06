@@ -43,9 +43,9 @@ const S_LABEL = 2;
 const S_CENTER = 3;
 const S_TITLE = 4;
 
-// Column config: 10 columns matching original template proportions
-// Total width ≈ 82 chars → fits A4 portrait
-const COL_WIDTHS = [9, 12, 9, 7, 6, 7, 6, 9, 8, 9];
+// Column config: 10 columns scaled to fill A4 portrait width
+// Total width ≈ 118 chars → fills A4 with narrow margins
+const COL_WIDTHS = [12, 16, 12, 10, 8, 10, 8, 12, 11, 12];
 const NUM_COLS = COL_WIDTHS.length;
 
 function buildXlsx(
@@ -73,9 +73,9 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
   const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <fonts count="3">
-<font><sz val="10"/><name val="MS Gothic"/></font>
-<font><b/><sz val="10"/><name val="MS Gothic"/></font>
-<font><b/><sz val="14"/><name val="MS Gothic"/></font>
+<font><sz val="11"/><name val="MS Gothic"/></font>
+<font><b/><sz val="11"/><name val="MS Gothic"/></font>
+<font><b/><sz val="16"/><name val="MS Gothic"/></font>
 </fonts>
 <fills count="3">
 <fill><patternFill patternType="none"/></fill>
@@ -109,7 +109,7 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
       sheetDataXml += `<row r="${r + 1}" ht="5" customHeight="1"/>`;
       continue;
     }
-    let rowXml = `<row r="${r + 1}" ht="18" customHeight="1">`;
+    let rowXml = `<row r="${r + 1}" ht="22" customHeight="1">`;
     for (let c = 0; c <= maxCol; c++) {
       const ref = `${colLetter(c)}${r + 1}`;
       const cell = cellMap.get(`${r},${c}`);
@@ -150,8 +150,8 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
 ${colsXml}
 <sheetData>${sheetDataXml}</sheetData>
 ${mergesXml}
-<pageMargins left="0.5" right="0.5" top="0.4" bottom="0.4" header="0.2" footer="0.2"/>
-<pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="1"/>
+<pageMargins left="0.3" right="0.3" top="0.3" bottom="0.3" header="0.1" footer="0.1"/>
+<pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="1" scale="100"/>
 ${drawingRef}
 </worksheet>`;
 
