@@ -1,106 +1,67 @@
 
 
-## Plan: Tích hợp xuất 履歴書 (Lí lịch Nhật) dạng Excel
+## Root Cause Analysis
 
-### Phân tích file mẫu vs Database hiện tại
+The issue is **NOT** in the React frontend code at all. It's a **database trigger chain** that overwrites the `simple_status` after every INSERT:
 
-| Mục trong 履歴書 | Trường DB hiện có | Ghi chú |
-|---|---|---|
-| No | `trainee_code` | Co |
-| 氏名 フリガナ | `furigana` | Co |
-| 英字表記 | `full_name` | Co |
-| 生年月日 / 年齢 | `birth_date` | Tính tuổi từ birth_date |
-| 性別 | `gender` | Co |
-| 出生地 | `birthplace` | Co |
-| 婚姻 | `marital_status` | Co |
-| 現住所 | `current_address` | Co |
-| 学歴 | `education_history` (school_name, start_year/month, end_year/month) | Co |
-| 職歴 + 月収 | `work_history` (company_name, position, start_date, end_date, income) | Co |
-| 過去の在留許可 | `prior_residence_status` | Co |
-| 家族構成 | `family_members` (full_name, relationship, birth_year, occupation, income, location) | Co - thiếu "同居" |
-| 在日親戚 | `japan_relatives` (full_name, age, gender, relationship, residence_status, address_japan) | Co |
-| 身長/体重 | `height`, `weight` | Co |
-| 血液型 | `blood_group` | Co |
-| 視力 | `vision_left`, `vision_right` | Co |
-| 聴力 | `hearing` | Co |
-| 利き手 | `dominant_hand` | Co |
-| 刺青 | `tattoo` | Co |
-| Ｂ型肝炎 | `hepatitis_b` | Co |
-| 健康診断 | `health_status` | Co |
-| 資格・免許 | `japanese_certificate` | Co |
-| 趣味・特技 | `hobbies` | Co |
-| 飲酒/喫煙 | `drinking`, `smoking` | Co |
-| **メガネ** | **Chưa có** | Cần thêm |
-| **性自認・指向** | **Chưa có** | Cần thêm |
-| **性格** | **Chưa có** | Cần thêm |
-| **あいさつ・受け答え** | **Chưa có** | Cần thêm |
-| **整理・整頓** | **Chưa có** | Cần thêm |
-| **規則の順守** | **Chưa có** | Cần thêm |
-| **授業態度** | **Chưa có** | Cần thêm |
-| **備考** | `notes` (có sẵn) | Dùng notes hoặc thêm riêng |
-| **同居 (gia đình)** | **Chưa có** | Cần thêm vào family_members |
+1. User saves new trainee with `simple_status = 'Dừng chương trình'`
+2. The INSERT succeeds with the correct value
+3. **Trigger `trigger_auto_create_workflow`** fires AFTER INSERT → creates a `trainee_workflow` record with `current_stage = 'recruited'`
+4. **Trigger `trigger_sync_trainee_status`** fires on the workflow insert → maps `'recruited'` → `'Đang học'` and **overwrites** `trainees.simple_status` back to `'Đang học'`
 
-### Phương án thực hiện
+This is why the status always resets — the workflow sync trigger blindly overwrites whatever `simple_status` value the user set.
 
-Theo yêu cầu: các trường chưa có sẽ được **thêm vào DB** nhưng **không hiển thị trên UI**, chỉ xuất hiện khi xuất file Excel. Không thay đổi bất kỳ giao diện hay logic hiện tại.
+The same issue affects editing: the previous `formDataRef` fixes were unnecessary — the real problem was always this trigger chain.
 
-#### 1. Migration: Thêm các cột mới vào bảng `trainees`
+## Fix Plan
 
-Thêm 7 cột vào bảng `trainees` (ẩn trên UI, chỉ dùng khi xuất):
-- `glasses` (text, nullable) — メガネ: 有/無
-- `gender_identity` (text, nullable) — 性自認・指向: 有/無/－
-- `personality` (text, nullable) — 性格: 活/普/控
-- `greeting_attitude` (text, nullable) — あいさつ: 優/良/可
-- `tidiness` (text, nullable) — 整理整頓: 優/良/可
-- `discipline` (text, nullable) — 規則順守: 優/良/可/未
-- `class_attitude` (text, nullable) — 授業態度: 優/良/可/未
-- `rirekisho_remarks` (text, nullable) — 備考 riêng cho 履歴書
+**Modify the `auto_create_trainee_workflow` function** to respect the `simple_status` value set by the user during INSERT:
 
-Thêm 1 cột vào bảng `family_members`:
-- `living_together` (boolean, default false) — 同居
+1. **Map the trainee's `simple_status` to the correct workflow stage** instead of always using `'recruited'`. For example:
+   - `'Đăng ký mới'` → `'registered'` (or keep `'recruited'`)
+   - `'Dừng chương trình'` → `'terminated'`
+   - `'Đang học'` → `'training'`
 
-#### 2. Cập nhật RPC `get_trainee_full_profile`
+2. **Alternatively (simpler and safer)**: Modify the `sync_trainee_status_from_workflow` trigger to **skip the update** when it's triggered by the initial auto-create. This prevents the overwrite.
 
-Thêm các trường mới vào kết quả trả về để Edge Function có thể đọc.
+**Recommended approach**: Update `auto_create_trainee_workflow` to map from the NEW trainee's `simple_status` to the correct workflow stage, so the sync trigger maps it back to the same value. This keeps the system consistent.
 
-#### 3. Tạo Edge Function `export-rirekisho`
+### Files to modify:
+- **New SQL migration**: Recreate `auto_create_trainee_workflow()` to use `NEW.simple_status` to determine the correct `current_stage` instead of hardcoding `'recruited'`
 
-- Nhận `trainee_code` qua query param
-- Gọi RPC `get_trainee_full_profile` để lấy toàn bộ dữ liệu (SSOT)
-- Dùng SheetJS (xlsx) tạo file `.xlsx` với layout chính xác theo file mẫu:
-  - Cell merging tái tạo bố cục form
-  - Borders, font formatting
-  - Các ô tô màu = cố định (label), ô trắng = dữ liệu
-- Map dữ liệu:
-  - Thông tin cá nhân → từ trainee record
-  - 学歴 → từ `education_history` (format: `{start_year}年{start_month}月` / `{end_year}年{end_month}月` / `{school_name}高校`)
-  - 職歴 → từ `work_history` (format tương tự + `{position}（月収{income}）`)
-  - 家族構成 → từ `family_members` (tính tuổi từ birth_year, 同居 = X/O)
-  - 在日親戚 → từ `japan_relatives`
-  - 生活態度 → từ các cột mới (để trống nếu chưa nhập)
-- Trả về binary `.xlsx` với filename `{trainee_code} - 履歴書.xlsx`
+### Migration SQL (core logic):
+```sql
+CREATE OR REPLACE FUNCTION public.auto_create_trainee_workflow()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_stage trainee_workflow_stage;
+BEGIN
+  -- Map simple_status to workflow stage (reverse mapping)
+  v_stage := CASE NEW.simple_status
+    WHEN 'Đăng ký mới' THEN 'registered'::trainee_workflow_stage
+    WHEN 'Đang học' THEN 'training'::trainee_workflow_stage
+    WHEN 'Dừng chương trình' THEN 'terminated'::trainee_workflow_stage
+    WHEN 'Hủy' THEN 'terminated'::trainee_workflow_stage
+    WHEN 'Không học' THEN 'terminated'::trainee_workflow_stage
+    WHEN 'Bảo lưu' THEN 'recruited'::trainee_workflow_stage
+    WHEN 'Đang ở Nhật' THEN 'departed'::trainee_workflow_stage
+    WHEN 'Rời công ty' THEN 'terminated'::trainee_workflow_stage
+    ELSE 'registered'::trainee_workflow_stage
+  END;
 
-#### 4. Thêm nút "Xuất lí lịch" vào `TraineeDetail.tsx`
-
-- Thêm 1 nút bên cạnh nút "Chỉnh sửa" hiện tại
-- Click → gọi Edge Function → tải file về
-- Không thay đổi bất kỳ logic hay UI nào khác
-
-#### 5. Cập nhật `supabase/config.toml`
-
-Thêm entry cho function mới:
-```toml
-[functions.export-rirekisho]
-verify_jwt = false
+  INSERT INTO trainee_workflow (trainee_id, current_stage, created_at, updated_at)
+  VALUES (NEW.id, v_stage, NOW(), NOW())
+  ON CONFLICT (trainee_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
 ```
 
-### Tóm tắt file thay đổi
+Additionally, update `sync_trainee_status_from_workflow` to handle `'registered'` → `'Đăng ký mới'` (currently maps to `'Đang học'`, which is wrong) and add the `'terminated'` stage mapping.
 
-| File | Hành động |
-|---|---|
-| Migration SQL | Thêm 8 cột `trainees` + 1 cột `family_members` |
-| Migration SQL | Cập nhật RPC `get_trainee_full_profile` thêm các trường mới |
-| `supabase/functions/export-rirekisho/index.ts` | **Tạo mới** - Edge Function xuất Excel |
-| `supabase/config.toml` | Thêm config cho function mới |
-| `src/pages/TraineeDetail.tsx` | Thêm nút "Xuất lí lịch" (chỉ thêm, không sửa code cũ) |
+Also **clean up the unnecessary `formDataRef` workarounds** in TraineeForm.tsx since they were masking the real DB issue, though they are harmless to keep.
 
