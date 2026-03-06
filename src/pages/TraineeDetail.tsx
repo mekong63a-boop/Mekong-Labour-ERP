@@ -13,11 +13,13 @@ import { PersonalHistoryTab } from "@/components/trainees/tabs/PersonalHistoryTa
 import { ProjectInterviewTab } from "@/components/trainees/tabs/ProjectInterviewTab";
 
 import { useStageTimeline } from "@/hooks/useStageTransition";
+import { useUserRole } from "@/hooks/useUserRole";
 export default function TraineeDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: trainee, isLoading, error } = useTrainee(id || "");
   const { data: stageData } = useStageTimeline(id);
+  const { isAdmin } = useUserRole();
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExportRirekisho = async () => {
@@ -151,7 +153,7 @@ export default function TraineeDetail() {
             {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
             Xuất lí lịch
           </Button>
-          {!trainee.is_locked && (
+          {(!trainee.is_locked || isAdmin) && (
             <Button onClick={() => navigate(`/trainees/${id}/edit`)} className="gap-2">
               <Edit className="h-4 w-4" />
               Chỉnh sửa
