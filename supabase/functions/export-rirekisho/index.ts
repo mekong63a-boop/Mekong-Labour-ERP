@@ -25,24 +25,25 @@ interface MergeRange { s: { r: number; c: number }; e: { r: number; c: number };
 
 // Style indices:
 // 0 = default (no border)
-// 1 = S_DATA: border, left-align, wrap, vertical center
-// 2 = S_LABEL: border, beige fill, bold, center, wrap
-// 3 = S_CENTER: border, center-align
+// 1 = S_DATA: thin border, left-align, wrap, vertical center
+// 2 = S_LABEL: thin border, beige fill (#F4D9A0), bold, center, wrap
+// 3 = S_CENTER: thin border, center-align, wrap
 // 4 = S_TITLE: no border, bold, large font
-// 5 = S_HEADER: border, beige fill, bold, center (section headers spanning full width)
+// 5 = S_HEADER: thin border, beige fill, bold, center (section headers)
 const S_DATA = 1;
 const S_LABEL = 2;
 const S_CENTER = 3;
 const S_TITLE = 4;
 const S_HEADER = 5;
 
-// 10 columns filling A4 width
-const COL_WIDTHS = [12, 16, 12, 10, 8, 10, 8, 12, 11, 12];
-const NUM_COLS = COL_WIDTHS.length;
+// 37 columns matching original template
+const NUM_COLS = 37;
+const COL_WIDTHS: number[] = new Array(37).fill(2.4);
 
 function buildXlsx(
   cells: CellData[], merges: MergeRange[], rowHeights: Map<number, number>, maxRow: number,
-  imageData?: Uint8Array | null, imageExt?: string
+  imageData?: Uint8Array | null, imageExt?: string,
+  noBorderZone?: (row: number, col: number) => boolean
 ): Uint8Array {
   const hasImage = imageData && imageData.length > 0;
   const maxCol = NUM_COLS - 1;
@@ -65,14 +66,14 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
   const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <fonts count="3">
-<font><sz val="11"/><name val="MS Gothic"/></font>
-<font><b/><sz val="11"/><name val="MS Gothic"/></font>
+<font><sz val="10"/><name val="MS Gothic"/></font>
+<font><b/><sz val="10"/><name val="MS Gothic"/></font>
 <font><b/><sz val="16"/><name val="MS Gothic"/></font>
 </fonts>
 <fills count="3">
 <fill><patternFill patternType="none"/></fill>
 <fill><patternFill patternType="gray125"/></fill>
-<fill><patternFill patternType="solid"><fgColor rgb="FFDDD9C4"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFF4D9A0"/></patternFill></fill>
 </fills>
 <borders count="2">
 <border><left/><right/><top/><bottom/></border>
@@ -93,21 +94,15 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
   const cellMap = new Map<string, CellData>();
   for (const cell of cells) cellMap.set(`${cell.r},${cell.c}`, cell);
 
-  // No-border zones: title area only (photo area now has borders)
-  const isNoBorderZone = (row: number, col: number): boolean => {
-    if (row === 0 && col < 8) return true;  // Row 0: only "No" box at cols 8-9
-    if (row === 1) return true;              // Title row: no borders
-    return false;
-  };
-
   let sheetDataXml = "";
   for (let r = 0; r <= maxRow; r++) {
-    const ht = rowHeights.get(r) || 22;
+    const ht = rowHeights.get(r) || 20;
     let rowXml = `<row r="${r + 1}" ht="${ht}" customHeight="1">`;
     for (let c = 0; c <= maxCol; c++) {
       const ref = `${colLetter(c)}${r + 1}`;
       const cell = cellMap.get(`${r},${c}`);
-      const style = cell?.s ?? (isNoBorderZone(r, c) ? 0 : S_DATA);
+      const defaultStyle = (noBorderZone && noBorderZone(r, c)) ? 0 : S_DATA;
+      const style = cell?.s ?? defaultStyle;
       if (cell && typeof cell.v === "number") {
         rowXml += `<c r="${ref}" s="${style}"><v>${cell.v}</v></c>`;
       } else if (cell && typeof cell.v === "string" && cell.v !== "") {
@@ -202,18 +197,18 @@ ${drawingRef}
 </Relationships>`;
     files.push({ name: "xl/drawings/_rels/drawing1.xml.rels", data: new TextEncoder().encode(drawRels) });
 
-    // Photo at top-right: cols 8-9, rows 2-6, with padding to fit within bordered cells
+    // Photo anchored at cols 29-36, rows 1-6
     const drawXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"
   xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
   xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
 <xdr:twoCellAnchor editAs="oneCell">
-  <xdr:from><xdr:col>8</xdr:col><xdr:colOff>30000</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>
-  <xdr:to><xdr:col>10</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>6</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>
+  <xdr:from><xdr:col>29</xdr:col><xdr:colOff>20000</xdr:colOff><xdr:row>1</xdr:row><xdr:rowOff>10000</xdr:rowOff></xdr:from>
+  <xdr:to><xdr:col>37</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>6</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>
   <xdr:pic>
     <xdr:nvPicPr><xdr:cNvPr id="2" name="Photo"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>
     <xdr:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>
-    <xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1080000" cy="1440000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>
+    <xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1440000" cy="1920000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>
   </xdr:pic>
   <xdr:clientData/>
 </xdr:twoCellAnchor>
@@ -340,8 +335,7 @@ serve(async (req) => {
 
     const photoPromise = fetchPhoto(p.photo_url);
 
-    // ====== Build cells matching original template EXACTLY ======
-    // NO empty separator rows - sections flow directly into each other
+    // ====== Build cells matching original 37-column template EXACTLY ======
     const cells: CellData[] = [];
     const merges: MergeRange[] = [];
     const rowHeights = new Map<number, number>();
@@ -355,382 +349,330 @@ serve(async (req) => {
     const header = (r: number, c: number, v: any) => add(r, c, v, S_HEADER);
     const merge = (r1: number, c1: number, r2: number, c2: number) => merges.push({ s: { r: r1, c: c1 }, e: { r: r2, c: c2 } });
 
+    // No-border zone: title area left side + row 1 left
+    const noBorderZone = (row: number, col: number): boolean => {
+      if (row === 0 && col < 29) return true;
+      if (row === 1 && col < 29) return true;
+      return false;
+    };
+
     const today = new Date();
     const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
+    const LC = 36; // last column index
 
-    // Fixed row counts for each section (matching original template)
-    const EDU_ROWS = 2;   // Education always 2 rows
-    const WORK_ROWS = 3;  // Work always 3 rows
-    const FAM_ROWS = 4;   // Family always 4 rows
-    const JR_ROWS = 1;    // Japan relatives always 1 row
-
-    // === Row 0: Top border row with No + code (right side) ===
+    // === Row 0: No + trainee code (top-right only) ===
     rowHeights.set(0, 18);
-    label(0, 8, "No");
-    data(0, 9, traineeCode);
+    label(0, 29, "No"); merge(0, 29, 0, 31);
+    data(0, 32, traineeCode); merge(0, 32, 0, LC);
 
     // === Row 1: 履歴書 title + date ===
-    rowHeights.set(1, 24);
-    add(1, 0, "履歴書", S_TITLE);
-    merge(1, 0, 1, 3);
-    data(1, 4, dateStr);
-    merge(1, 4, 1, 7);
+    rowHeights.set(1, 28);
+    add(1, 0, "履歴書", S_TITLE); merge(1, 0, 1, 5);
+    add(1, 14, dateStr, 0); merge(1, 14, 1, 21);
+    // Photo frame: rows 1-6, cols 29-36 (bordered, merged)
+    data(1, 29, ""); merge(1, 29, 6, LC);
 
-    // === Row 2: 氏名 - フリガナ (+ photo area cols 8-9, rows 2-5 merged as photo frame) ===
-    rowHeights.set(2, 22);
-    label(2, 0, "氏\n名");
-    merge(2, 0, 3, 0);
-    label(2, 1, "フリガナ");
-    data(2, 2, p.furigana || "");
-    merge(2, 2, 2, 7);
-    // Photo frame: merge cols 8-9, rows 2-5 with border
-    data(2, 8, "");
-    merge(2, 8, 5, 9);
+    // === Row 2: 氏名 - フリガナ ===
+    rowHeights.set(2, 24);
+    label(2, 0, "氏\n名"); merge(2, 0, 3, 1);
+    label(2, 2, "フリガナ"); merge(2, 2, 2, 3);
+    data(2, 4, p.furigana || ""); merge(2, 4, 2, 28);
 
-    // === Row 3: 氏名 - 英字表記 ===
-    rowHeights.set(3, 22);
-    label(3, 1, "英字表記");
-    data(3, 2, (p.full_name || "").toUpperCase());
-    merge(3, 2, 3, 7);
+    // === Row 3: 英字表記 ===
+    rowHeights.set(3, 24);
+    label(3, 2, "英字表記"); merge(3, 2, 3, 3);
+    data(3, 4, (p.full_name || "").toUpperCase()); merge(3, 4, 3, 28);
 
     // === Row 4: 生年月日 + 性別 ===
-    rowHeights.set(4, 22);
-    label(4, 0, "生年月日");
-    data(4, 1, toJpDate(p.birth_date));
-    label(4, 2, "(年齢");
-    center(4, 3, calcAge(p.birth_date));
-    label(4, 4, "歳)");
-    label(4, 5, "性別");
-    center(4, 6, p.gender === "Nam" ? "男" : p.gender === "Nữ" ? "女" : "");
-    merge(4, 6, 4, 7); // Extend gender value to col 7
+    rowHeights.set(4, 24);
+    label(4, 0, "生年月日"); merge(4, 0, 4, 2);
+    data(4, 3, toJpDate(p.birth_date)); merge(4, 3, 4, 8);
+    label(4, 9, "(年齢"); merge(4, 9, 4, 10);
+    center(4, 11, calcAge(p.birth_date)); merge(4, 11, 4, 12);
+    label(4, 13, "歳)"); merge(4, 13, 4, 16);
+    label(4, 17, "性別"); merge(4, 17, 4, 20);
+    center(4, 21, p.gender === "Nam" ? "男" : p.gender === "Nữ" ? "女" : ""); merge(4, 21, 4, 28);
 
     // === Row 5: 出生地 + 婚姻 ===
-    rowHeights.set(5, 22);
-    label(5, 0, "出生地");
-    data(5, 1, p.birthplace ? p.birthplace + "省" : "");
-    label(5, 2, "(");
-    center(5, 3, getRegion(p.birthplace));
-    label(5, 4, ")");
-    label(5, 5, "婚姻");
-    center(5, 6, p.marital_status === "Độc thân" ? "未婚" : p.marital_status === "Đã kết hôn" ? "既婚" : "");
-    merge(5, 6, 5, 7); // Extend marital status value to col 7
+    rowHeights.set(5, 24);
+    label(5, 0, "出生地"); merge(5, 0, 5, 2);
+    data(5, 3, p.birthplace ? p.birthplace + "省" : ""); merge(5, 3, 5, 8);
+    label(5, 9, "("); merge(5, 9, 5, 9);
+    center(5, 10, getRegion(p.birthplace)); merge(5, 10, 5, 14);
+    label(5, 15, ")"); merge(5, 15, 5, 16);
+    label(5, 17, "婚姻"); merge(5, 17, 5, 20);
+    center(5, 21, p.marital_status === "Độc thân" ? "未婚" : p.marital_status === "Đã kết hôn" ? "既婚" : ""); merge(5, 21, 5, 28);
 
     // === Row 6: 現住所 ===
-    rowHeights.set(6, 22);
-    label(6, 0, "現住所");
-    data(6, 1, p.current_address || "");
-    merge(6, 1, 6, 9);
+    rowHeights.set(6, 24);
+    label(6, 0, "現住所"); merge(6, 0, 6, 2);
+    data(6, 3, p.current_address || ""); merge(6, 3, 6, LC);
 
-    // === Row 7: 学歴 section header ===
-    let r = 7;
+    // === Row 7: Empty separator ===
+    rowHeights.set(7, 5);
+
+    // === Row 8: 学歴 header ===
+    let r = 8;
     rowHeights.set(r, 20);
-    label(r, 0, "入学年月");
-    label(r, 1, "卒業年月");
-    header(r, 2, "学歴");
-    merge(r, 2, r, 9);
+    label(r, 0, "入学年月"); merge(r, 0, r, 2);
+    label(r, 3, "卒業年月"); merge(r, 3, r, 8);
+    header(r, 9, "学歴"); merge(r, 9, r, LC);
 
-    // === Rows 8-9: Education data (always 2 rows) ===
+    // === Education data ===
     const edu = [...(p.education_history || [])].sort((a: any, b: any) => (a.start_year || 0) - (b.start_year || 0));
+    const EDU_ROWS = Math.max(edu.length, 1);
     for (let i = 0; i < EDU_ROWS; i++) {
       r++;
       rowHeights.set(r, 20);
-      if (i < edu.length) {
-        const e = edu[i];
-        data(r, 0, toYM(e.start_year, e.start_month));
-        data(r, 1, toYM(e.end_year, e.end_month));
-        data(r, 2, (e.school_name || "") + (e.level ? "" : "高校"));
-        merge(r, 2, r, 9);
-      } else {
-        data(r, 0, "");
-        data(r, 1, "");
-        data(r, 2, "");
-        merge(r, 2, r, 9);
-      }
+      const e = i < edu.length ? edu[i] : null;
+      data(r, 0, e ? toYM(e.start_year, e.start_month) : ""); merge(r, 0, r, 2);
+      data(r, 3, e ? toYM(e.end_year, e.end_month) : ""); merge(r, 3, r, 8);
+      data(r, 9, e ? ((e.school_name || "") + (e.level === "高校" || !e.level ? "高校" : "")) : ""); merge(r, 9, r, LC);
     }
 
-    // === 職歴 section header ===
+    // === 職歴 header ===
     r++;
     rowHeights.set(r, 20);
-    label(r, 0, "入社年月");
-    label(r, 1, "退社年月");
-    header(r, 2, "職歴");
-    merge(r, 2, r, 5);
-    // Empty header cells for 職種 and 月収 area
-    header(r, 6, "");
-    merge(r, 6, r, 9);
+    label(r, 0, "入社年月"); merge(r, 0, r, 2);
+    label(r, 3, "退社年月"); merge(r, 3, r, 8);
+    header(r, 9, "職歴"); merge(r, 9, r, LC);
 
-    // === Work data (always 3 rows) ===
-    const work = [...(p.work_history || [])].sort((a: any, b: any) => {
-      return (a.start_date ? new Date(a.start_date).getTime() : 0) - (b.start_date ? new Date(b.start_date).getTime() : 0);
-    });
+    // === Work data ===
+    const work = [...(p.work_history || [])].sort((a: any, b: any) =>
+      (a.start_date ? new Date(a.start_date).getTime() : 0) - (b.start_date ? new Date(b.start_date).getTime() : 0)
+    );
+    const WORK_ROWS = Math.max(work.length, 3);
     for (let i = 0; i < WORK_ROWS; i++) {
       r++;
       rowHeights.set(r, 20);
-      if (i < work.length) {
-        const w = work[i];
+      const w = i < work.length ? work[i] : null;
+      if (w) {
         const sD = w.start_date ? new Date(w.start_date) : null;
         const eD = w.end_date ? new Date(w.end_date) : null;
-        data(r, 0, sD ? `${sD.getFullYear()}年${sD.getMonth() + 1}月` : "");
-        data(r, 1, eD ? `${eD.getFullYear()}年${eD.getMonth() + 1}月` : "現在");
-        data(r, 2, (w.company_name || "") + "会社");
-        merge(r, 2, r, 5);
-        const inc = w.income ? `${w.income}万円` : "";
-        data(r, 6, w.position || "");
-        merge(r, 6, r, 7);
-        data(r, 8, inc);
-        merge(r, 8, r, 9);
+        data(r, 0, sD ? `${sD.getFullYear()}年${sD.getMonth() + 1}月` : ""); merge(r, 0, r, 2);
+        data(r, 3, eD ? `${eD.getFullYear()}年${eD.getMonth() + 1}月` : "現在"); merge(r, 3, r, 8);
+        data(r, 9, (w.company_name || "") + "会社"); merge(r, 9, r, 22);
+        const posIncome = (w.position || "") + (w.income ? `（月収${w.income}万円）` : "");
+        data(r, 23, posIncome); merge(r, 23, r, LC);
       } else {
-        data(r, 0, "");
-        data(r, 1, "");
-        data(r, 2, "");
-        merge(r, 2, r, 5);
-        data(r, 6, "");
-        merge(r, 6, r, 7);
-        data(r, 8, "");
-        merge(r, 8, r, 9);
+        data(r, 0, ""); merge(r, 0, r, 2);
+        data(r, 3, ""); merge(r, 3, r, 8);
+        data(r, 9, ""); merge(r, 9, r, 22);
+        data(r, 23, ""); merge(r, 23, r, LC);
       }
     }
 
-    // === 過去の在留許可申請・訪日経験 header ===
+    // === 過去の在留許可申請・訪日経験 ===
     r++;
     rowHeights.set(r, 20);
-    header(r, 0, "過去の在留許可申請・訪日経験");
-    merge(r, 0, r, 9);
+    header(r, 0, "過去の在留許可申請・訪日経験"); merge(r, 0, r, LC);
 
-    // === 無/有 + 目的 row ===
+    // === 無/有 + 目的 ===
     r++;
     rowHeights.set(r, 20);
-    center(r, 0, p.prior_residence_status === "Có" ? "有" : "無");
-    merge(r, 0, r, 1);
-    label(r, 2, "目的 (");
-    merge(r, 2, r, 3);
-    data(r, 4, "");
-    merge(r, 4, r, 8);
-    data(r, 9, ")");
+    center(r, 0, p.prior_residence_status === "Có" ? "有" : "無"); merge(r, 0, r, 8);
+    label(r, 9, "目的 ("); merge(r, 9, r, 10);
+    data(r, 11, ""); merge(r, 11, r, 35);
+    data(r, 36, ")");
 
-    // === 家族構成 header ===
+    // === 家族構成 ===
     r++;
     rowHeights.set(r, 20);
-    header(r, 0, "家族構成");
-    merge(r, 0, r, 9);
+    header(r, 0, "家族構成"); merge(r, 0, r, LC);
 
     // === Family column headers ===
     r++;
     rowHeights.set(r, 20);
-    label(r, 0, "続柄");
-    label(r, 1, "氏名");
-    merge(r, 1, r, 2);
-    label(r, 3, "年齢");
-    label(r, 4, "同居");
-    label(r, 5, "職業");
-    merge(r, 5, r, 7);
-    label(r, 8, "月収");
-    merge(r, 8, r, 9);
+    label(r, 0, "続柄"); merge(r, 0, r, 2);
+    label(r, 3, "氏名"); merge(r, 3, r, 11);
+    label(r, 12, "年齢"); merge(r, 12, r, 17);
+    label(r, 18, "同居"); merge(r, 18, r, 19);
+    label(r, 20, "職業"); merge(r, 20, r, 31);
+    label(r, 32, "月収"); merge(r, 32, r, LC);
 
-    // === Family data (always 4 rows) ===
+    // === Family data ===
     const fam = p.family_members || [];
+    const FAM_ROWS = Math.max(fam.length, 4);
     for (let i = 0; i < FAM_ROWS; i++) {
       r++;
       rowHeights.set(r, 20);
-      if (i < fam.length) {
-        const fm = fam[i];
-        center(r, 0, relationMap[fm.relationship] || fm.relationship || "");
-        data(r, 1, fm.full_name || "");
-        merge(r, 1, r, 2);
-        const age = fm.birth_year ? today.getFullYear() - fm.birth_year : "";
-        center(r, 3, age);
-        center(r, 4, fm.living_together ? "O" : "X");
-        data(r, 5, fm.occupation || "");
-        merge(r, 5, r, 7);
-        data(r, 8, fm.income ? `${fm.income} 万円` : "");
-        merge(r, 8, r, 9);
+      const fm = i < fam.length ? fam[i] : null;
+      if (fm) {
+        center(r, 0, relationMap[fm.relationship] || fm.relationship || ""); merge(r, 0, r, 2);
+        data(r, 3, fm.full_name || ""); merge(r, 3, r, 11);
+        center(r, 12, fm.birth_year ? today.getFullYear() - fm.birth_year : ""); merge(r, 12, r, 17);
+        center(r, 18, fm.living_together ? "O" : "X"); merge(r, 18, r, 19);
+        data(r, 20, fm.occupation || ""); merge(r, 20, r, 31);
+        data(r, 32, fm.income ? `${fm.income} 万円` : ""); merge(r, 32, r, LC);
       } else {
-        center(r, 0, "");
-        data(r, 1, "");
-        merge(r, 1, r, 2);
-        center(r, 3, "");
-        center(r, 4, "");
-        data(r, 5, "");
-        merge(r, 5, r, 7);
-        data(r, 8, "");
-        merge(r, 8, r, 9);
+        center(r, 0, ""); merge(r, 0, r, 2);
+        data(r, 3, ""); merge(r, 3, r, 11);
+        center(r, 12, ""); merge(r, 12, r, 17);
+        center(r, 18, ""); merge(r, 18, r, 19);
+        data(r, 20, ""); merge(r, 20, r, 31);
+        data(r, 32, ""); merge(r, 32, r, LC);
       }
     }
 
-    // === 在日親戚 header row (combined with column headers) ===
+    // === 在日親戚 header + column headers ===
     r++;
     rowHeights.set(r, 20);
-    label(r, 0, "在日親戚");
-    label(r, 1, "氏名");
-    merge(r, 1, r, 2);
-    label(r, 3, "年齢");
-    label(r, 4, "性別");
-    label(r, 5, "関係");
-    label(r, 6, "在留資格");
-    merge(r, 6, r, 7);
-    label(r, 8, "居住地");
-    merge(r, 8, r, 9);
+    label(r, 0, "在日親戚"); merge(r, 0, r, 2);
+    label(r, 3, "氏名"); merge(r, 3, r, 11);
+    label(r, 12, "年齢"); merge(r, 12, r, 17);
+    label(r, 18, "性別"); merge(r, 18, r, 19);
+    label(r, 20, "関係"); merge(r, 20, r, 23);
+    label(r, 24, "在留資格"); merge(r, 24, r, 32);
+    label(r, 33, "居住地"); merge(r, 33, r, LC);
 
-    // === Japan relatives data (always 1 row) ===
+    // === Japan relatives data ===
     const jr = p.japan_relatives || [];
+    const JR_ROWS = Math.max(jr.length, 1);
     for (let i = 0; i < JR_ROWS; i++) {
       r++;
       rowHeights.set(r, 20);
-      if (i < jr.length) {
-        const rel = jr[i];
-        center(r, 0, "");
-        data(r, 1, rel.full_name || "");
-        merge(r, 1, r, 2);
-        center(r, 3, rel.age || "");
-        center(r, 4, rel.gender === "Nam" ? "男" : rel.gender === "Nữ" ? "女" : "");
-        center(r, 5, relationMap[rel.relationship] || rel.relationship || "");
-        data(r, 6, rel.residence_status || "");
-        merge(r, 6, r, 7);
-        data(r, 8, rel.address_japan || "");
-        merge(r, 8, r, 9);
+      const rel = i < jr.length ? jr[i] : null;
+      if (rel) {
+        center(r, 0, ""); merge(r, 0, r, 2);
+        data(r, 3, rel.full_name || ""); merge(r, 3, r, 11);
+        center(r, 12, rel.age || ""); merge(r, 12, r, 17);
+        center(r, 18, rel.gender === "Nam" ? "男" : rel.gender === "Nữ" ? "女" : ""); merge(r, 18, r, 19);
+        center(r, 20, relationMap[rel.relationship] || rel.relationship || ""); merge(r, 20, r, 23);
+        data(r, 24, rel.residence_status || ""); merge(r, 24, r, 32);
+        data(r, 33, rel.address_japan || ""); merge(r, 33, r, LC);
       } else {
-        center(r, 0, jr.length === 0 ? "無" : "");
-        data(r, 1, "");
-        merge(r, 1, r, 2);
-        center(r, 3, "");
-        center(r, 4, "");
-        center(r, 5, "");
-        data(r, 6, "");
-        merge(r, 6, r, 7);
-        data(r, 8, "");
-        merge(r, 8, r, 9);
+        center(r, 0, jr.length === 0 ? "無" : ""); merge(r, 0, r, 2);
+        data(r, 3, ""); merge(r, 3, r, 11);
+        center(r, 12, ""); merge(r, 12, r, 17);
+        center(r, 18, ""); merge(r, 18, r, 19);
+        center(r, 20, ""); merge(r, 20, r, 23);
+        data(r, 24, ""); merge(r, 24, r, 32);
+        data(r, 33, ""); merge(r, 33, r, LC);
       }
     }
 
     // === 健康状態 + 視力 header ===
     r++;
     rowHeights.set(r, 20);
-    header(r, 0, "健康状態");
-    merge(r, 0, r, 5);
-    header(r, 6, "視力");
-    merge(r, 6, r, 9);
+    header(r, 0, "健康状態"); merge(r, 0, r, 20);
+    header(r, 21, "視力"); merge(r, 21, r, LC);
 
     // === Health row 1: 身長, 血液型, メガネ, 視力左右 ===
     r++;
     rowHeights.set(r, 20);
-    label(r, 0, "身長");
-    data(r, 1, p.height ? `${p.height}cm` : "");
-    label(r, 2, "血液型");
-    center(r, 3, p.blood_group || "");
-    label(r, 4, "メガネ\n" + (p.glasses === "有" ? "有" : "無"));
-    label(r, 5, "");
-    label(r, 6, "左：");
-    data(r, 7, p.vision_left != null ? `${p.vision_left}/10` : "");
-    label(r, 8, "右：");
-    data(r, 9, p.vision_right != null ? `${p.vision_right}/10` : "");
+    label(r, 0, "身長"); merge(r, 0, r, 2);
+    data(r, 3, p.height ? `${p.height}cm` : ""); merge(r, 3, r, 7);
+    label(r, 8, "血液型"); merge(r, 8, r, 14);
+    center(r, 15, p.blood_group || ""); merge(r, 15, r, 20);
+    label(r, 21, "メガネ" + (p.glasses === "有" ? "有" : "無")); merge(r, 21, r, 24);
+    label(r, 25, "左："); merge(r, 25, r, 29);
+    data(r, 30, p.vision_left != null ? `${p.vision_left}/10` : ""); merge(r, 30, r, 32);
+    label(r, 33, "右：");
+    data(r, 34, p.vision_right != null ? `${p.vision_right}/10` : ""); merge(r, 34, r, LC);
 
     // === Health row 2: 体重, 聴力, 健康診断 ===
     r++;
     rowHeights.set(r, 20);
-    label(r, 0, "体重");
-    data(r, 1, p.weight ? `${p.weight}kg` : "");
-    label(r, 2, "聴力");
-    center(r, 3, p.hearing || "正常");
-    label(r, 4, "健康診断");
-    data(r, 5, p.health_status || "異常なし");
-    merge(r, 5, r, 9);
+    label(r, 0, "体重"); merge(r, 0, r, 2);
+    data(r, 3, p.weight ? `${p.weight}kg` : ""); merge(r, 3, r, 7);
+    label(r, 8, "聴力"); merge(r, 8, r, 14);
+    center(r, 15, p.hearing || "正常"); merge(r, 15, r, 20);
+    label(r, 21, "健康診断"); merge(r, 21, r, 24);
+    data(r, 25, p.health_status || "異常なし"); merge(r, 25, r, LC);
 
     // === Health row 3: 利き手, 刺青, B型肝炎 ===
     r++;
     rowHeights.set(r, 20);
-    label(r, 0, "利き手");
+    label(r, 0, "利き手"); merge(r, 0, r, 2);
     const hand = (p.dominant_hand || "").toLowerCase();
-    center(r, 1, hand.includes("phải") || hand.includes("right") ? "右" : hand.includes("trái") || hand.includes("left") ? "左" : (p.dominant_hand || ""));
-    label(r, 2, "刺青");
-    center(r, 3, p.tattoo ? "有" : "無");
-    label(r, 4, "Ｂ型肝炎");
-    center(r, 5, p.hepatitis_b === "Có" ? "有" : "無");
-    merge(r, 5, r, 9);
+    center(r, 3, hand.includes("phải") || hand.includes("right") ? "右" : hand.includes("trái") || hand.includes("left") ? "左" : (p.dominant_hand || "")); merge(r, 3, r, 7);
+    label(r, 8, "刺青"); merge(r, 8, r, 14);
+    center(r, 15, p.tattoo ? "有" : "無"); merge(r, 15, r, 20);
+    label(r, 21, "Ｂ型肝炎"); merge(r, 21, r, 24);
+    center(r, 25, p.hepatitis_b === "Có" ? "有" : "無"); merge(r, 25, r, LC);
 
     // === 資格・免許 + 趣味・特技 header ===
     r++;
     rowHeights.set(r, 20);
-    label(r, 0, "資格・免許");
-    merge(r, 0, r, 4);
-    label(r, 5, "趣味・特技");
-    merge(r, 5, r, 9);
+    label(r, 0, "資格・免許"); merge(r, 0, r, 28);
+    label(r, 29, "趣味・特技"); merge(r, 29, r, LC);
 
     // === 資格 + 趣味 data ===
     r++;
     rowHeights.set(r, 20);
-    data(r, 0, p.japanese_certificate || "");
-    merge(r, 0, r, 4);
-    data(r, 5, p.hobbies || "");
-    merge(r, 5, r, 9);
+    data(r, 0, p.japanese_certificate || ""); merge(r, 0, r, 28);
+    data(r, 29, p.hobbies || ""); merge(r, 29, r, LC);
+
+    // === Empty separator ===
+    r++;
+    rowHeights.set(r, 5);
 
     // === 生活態度 header ===
     r++;
     rowHeights.set(r, 20);
-    header(r, 0, "生活態度・学習態度・その他　[ 自己評価の場合は（　）で記載 ]");
-    merge(r, 0, r, 9);
+    header(r, 0, "生活態度・学習態度・その他　[ 自己評価の場合は（　）で記載 ]"); merge(r, 0, r, LC);
 
     // === Attitude row 1: 飲酒, 喫煙, 性自認, 性格 ===
     r++;
-    rowHeights.set(r, 30);
-    center(r, 0, p.drinking || "無");
-    label(r, 1, "飲酒\n[ 多・少・無 ]");
-    center(r, 2, p.smoking || "無");
-    label(r, 3, "喫煙\n[ 多・少・無 ]");
-    center(r, 4, p.gender_identity || "無");
-    label(r, 5, "性自認・指向の有無\n[ 有・無・－(無回答) ]");
-    merge(r, 5, r, 7);
-    center(r, 8, p.personality || "");
-    label(r, 9, "性格\n[ 活(発)・普(通)・控(え目) ]");
+    rowHeights.set(r, 32);
+    center(r, 0, p.drinking || "無"); merge(r, 0, r, 1);
+    label(r, 2, "飲酒\n[ 多・少・無 ]"); merge(r, 2, r, 4);
+    center(r, 5, p.smoking || "無"); merge(r, 5, r, 6);
+    label(r, 7, "喫煙\n[ 多・少・無 ]"); merge(r, 7, r, 16);
+    center(r, 17, p.gender_identity || "無"); merge(r, 17, r, 18);
+    label(r, 19, "性自認・指向の有無\n[ 有・無・－(無回答) ]"); merge(r, 19, r, 24);
+    center(r, 25, p.personality || "普"); merge(r, 25, r, 27);
+    label(r, 28, "性格\n[ 活(発)・普(通)・控(え目) ]"); merge(r, 28, r, LC);
 
     // === Attitude row 2: あいさつ, 整理整頓, 規則, 授業 ===
     r++;
-    rowHeights.set(r, 30);
-    center(r, 0, p.greeting_attitude || "");
-    label(r, 1, "あいさつ・受け答え\n[優・良・可 ]");
-    center(r, 2, p.tidiness || "");
-    label(r, 3, "整理・整頓\n[ 優・良・可 ]");
-    center(r, 4, p.discipline || "");
-    label(r, 5, "規則の順守\n[ 優・良・可 ・未]");
-    merge(r, 5, r, 7);
-    center(r, 8, p.class_attitude || "");
-    label(r, 9, "授業態度\n[ 優・良・可・未 ]");
+    rowHeights.set(r, 32);
+    center(r, 0, p.greeting_attitude || ""); merge(r, 0, r, 1);
+    label(r, 2, "あいさつ・受け答え\n[優・良・可 ]"); merge(r, 2, r, 4);
+    center(r, 5, p.tidiness || ""); merge(r, 5, r, 6);
+    label(r, 7, "整理・整頓\n[ 優・良・可 ]"); merge(r, 7, r, 16);
+    center(r, 17, p.discipline || ""); merge(r, 17, r, 18);
+    label(r, 19, "規則の順守\n[ 優・良・可 ・未]"); merge(r, 19, r, 24);
+    center(r, 25, p.class_attitude || ""); merge(r, 25, r, 27);
+    label(r, 28, "授業態度\n[ 優・良・可・未 ]"); merge(r, 28, r, LC);
 
     // === 備考 header ===
     r++;
     rowHeights.set(r, 20);
-    header(r, 0, "備考");
-    merge(r, 0, r, 9);
+    header(r, 0, "備考"); merge(r, 0, r, LC);
 
     // === 備考 data ===
     r++;
     rowHeights.set(r, 22);
-    data(r, 0, p.rirekisho_remarks || "");
-    merge(r, 0, r, 9);
+    data(r, 0, p.rirekisho_remarks || ""); merge(r, 0, r, LC);
 
     const maxRow = r;
 
     // === Dynamic A4 page fill: scale row heights to fill portrait A4 ===
-    // A4 portrait ≈ 842pt. Margins top+bottom = ~0.4" = ~29pt. Available ≈ 813pt.
     const TARGET_HEIGHT = 810;
     let totalHeight = 0;
-    for (let i = 0; i <= maxRow; i++) totalHeight += rowHeights.get(i) || 22;
-    
+    for (let i = 0; i <= maxRow; i++) totalHeight += rowHeights.get(i) || 20;
+
     if (totalHeight < TARGET_HEIGHT) {
       const deficit = TARGET_HEIGHT - totalHeight;
       const scalableRows: number[] = [];
-      // Distribute extra height to all data rows (skip row 0, 1 title rows)
-      for (let i = 2; i <= maxRow; i++) scalableRows.push(i);
-      const extraPerRow = Math.floor(deficit / scalableRows.length);
-      const remainder = deficit - extraPerRow * scalableRows.length;
-      for (let idx = 0; idx < scalableRows.length; idx++) {
-        const rowIdx = scalableRows[idx];
-        const current = rowHeights.get(rowIdx) || 22;
-        rowHeights.set(rowIdx, current + extraPerRow + (idx < remainder ? 1 : 0));
+      for (let i = 2; i <= maxRow; i++) {
+        const h = rowHeights.get(i) || 20;
+        if (h >= 15) scalableRows.push(i); // skip tiny separator rows
+      }
+      if (scalableRows.length > 0) {
+        const extraPerRow = Math.floor(deficit / scalableRows.length);
+        const remainder = deficit - extraPerRow * scalableRows.length;
+        for (let idx = 0; idx < scalableRows.length; idx++) {
+          const rowIdx = scalableRows[idx];
+          const current = rowHeights.get(rowIdx) || 20;
+          rowHeights.set(rowIdx, current + extraPerRow + (idx < remainder ? 1 : 0));
+        }
       }
     }
 
     const { data: photoData, ext: photoExt } = await photoPromise;
-    const xlsxBuf = buildXlsx(cells, merges, rowHeights, maxRow, photoData, photoExt);
+    const xlsxBuf = buildXlsx(cells, merges, rowHeights, maxRow, photoData, photoExt, noBorderZone);
 
     const traineeName = (p.full_name || "").toUpperCase();
     const filename = `${traineeCode} - 履歴書 - ${traineeName}.xlsx`;
@@ -743,7 +685,6 @@ serve(async (req) => {
       },
     });
   } catch (err) {
-    console.error("Export rirekisho error:", err);
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
