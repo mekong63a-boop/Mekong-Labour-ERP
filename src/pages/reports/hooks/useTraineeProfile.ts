@@ -151,7 +151,7 @@ export interface TraineeProfile {
   // Addresses
   permanent_address: string | null;
   current_address: string | null;
-  temp_address: string | null;
+  
   household_address: string | null;
   birthplace: string | null;
   

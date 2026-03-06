@@ -300,7 +300,6 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
             <Section title="Địa chỉ" icon={MapPin}>
               <InfoRow label="Địa chỉ thường trú" value={profile.permanent_address} />
               <InfoRow label="Địa chỉ hiện tại" value={profile.current_address} />
-              <InfoRow label="Địa chỉ tạm trú" value={profile.temp_address} />
               <InfoRow label="Địa chỉ hộ khẩu" value={profile.household_address} />
             </Section>
 
@@ -364,18 +363,6 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
               </>
             )}
 
-            {/* Class */}
-            {profile.class?.id && (
-              <>
-                <Section title="Lớp học" icon={GraduationCap}>
-                  <div className="grid grid-cols-2 gap-x-4">
-                    <InfoRow label="Tên lớp" value={profile.class.name || "—"} />
-                    <InfoRow label="Tình trạng học" value={profile.enrollment_status} />
-                  </div>
-                </Section>
-                <Separator />
-              </>
-            )}
 
             {/* Training History - Attendance + Test Scores */}
             {((profile.attendance && profile.attendance.length > 0) || (profile.test_scores && profile.test_scores.length > 0)) && (

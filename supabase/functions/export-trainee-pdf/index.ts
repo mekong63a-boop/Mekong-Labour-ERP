@@ -559,7 +559,7 @@ serve(async (req) => {
     drawSection("ĐỊA CHỈ");
     drawRow("Địa chỉ thường trú", trainee.permanent_address);
     drawRow("Địa chỉ hiện tại", trainee.current_address);
-    drawRow("Địa chỉ tạm trú", trainee.temp_address);
+    
     drawRow("Địa chỉ hộ khẩu", trainee.household_address);
 
     // ========== 4. GIẤY TỜ ==========
