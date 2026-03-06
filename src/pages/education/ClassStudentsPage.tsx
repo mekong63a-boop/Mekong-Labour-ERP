@@ -843,9 +843,14 @@ export default function ClassStudentsPage() {
                                     <span>{formatDate(att.date)}</span>
                                     <Badge 
                                       variant="outline" 
-                                      className={att.status === "late" ? "bg-yellow-50 text-yellow-700 border-yellow-200" : "bg-red-50 text-red-700 border-red-200"}
+                                      className={
+                                        att.status === "late" ? "bg-yellow-50 text-yellow-700 border-yellow-200" 
+                                        : att.status === "excused" ? "bg-blue-50 text-blue-700 border-blue-200"
+                                        : att.status === "unexcused" ? "bg-red-50 text-red-700 border-red-200"
+                                        : "bg-red-50 text-red-700 border-red-200"
+                                      }
                                     >
-                                      {att.status === "late" ? "Đi trễ" : "Vắng"}
+                                      {att.status === "late" ? "Đi trễ" : att.status === "excused" ? "Nghỉ có phép" : att.status === "unexcused" ? "Nghỉ không phép" : "Vắng"}
                                     </Badge>
                                     {att.notes && <span className="text-muted-foreground italic">{att.notes}</span>}
                                   </div>
