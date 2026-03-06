@@ -72,7 +72,7 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
 <fills count="3">
 <fill><patternFill patternType="none"/></fill>
 <fill><patternFill patternType="gray125"/></fill>
-<fill><patternFill patternType="solid"><fgColor rgb="FFDAEEF3"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFDDD9C4"/></patternFill></fill>
 </fills>
 <borders count="2">
 <border><left/><right/><top/><bottom/></border>
@@ -502,7 +502,7 @@ serve(async (req) => {
       merges.push({ s: { r: cr, c: 3 }, e: { r: cr, c: 10 } });
       const age = fm.birth_year ? today.getFullYear() - fm.birth_year : "";
       addData(cr, 11, age);
-      addData(cr, 17, fm.living_together ? "X" : "O");
+      addData(cr, 17, fm.living_together ? "O" : "X");
       addData(cr, 19, fm.occupation || "");
       merges.push({ s: { r: cr, c: 19 }, e: { r: cr, c: 30 } });
       addData(cr, 31, fm.income ? `${fm.income} 万円` : "");
@@ -565,7 +565,8 @@ serve(async (req) => {
 
     cr++;
     addLabel(cr, 0, "利き手");
-    addData(cr, 3, profile.dominant_hand === "Phải" ? "右" : profile.dominant_hand === "Trái" ? "左" : (profile.dominant_hand || ""));
+    const hand = (profile.dominant_hand || "").toLowerCase();
+    addData(cr, 3, hand.includes("phải") || hand.includes("right") ? "右" : hand.includes("trái") || hand.includes("left") ? "左" : (profile.dominant_hand || ""));
     addLabel(cr, 8, "刺青");
     addData(cr, 15, profile.tattoo ? "有" : "無");
     addLabel(cr, 20, "Ｂ型肝炎");
@@ -621,7 +622,8 @@ serve(async (req) => {
 
     const xlsxBuf = buildXlsx(cells, merges, maxRow, maxCol);
 
-    const filename = `${traineeCode} - 履歴書.xlsx`;
+    const traineeName = (profile.full_name || "").toUpperCase();
+    const filename = `${traineeCode} - 履歴書 - ${traineeName}.xlsx`;
 
     return new Response(xlsxBuf, {
       headers: {
