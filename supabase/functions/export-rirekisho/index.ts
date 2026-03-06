@@ -36,12 +36,9 @@ const S_CENTER = 3;
 const S_TITLE = 4;
 const S_HEADER = 5;
 
-// 37 columns - first 4 cols wider for labels, rest narrower
+// 37 columns - uniform width matching original template
 const NUM_COLS = 37;
-const COL_WIDTHS: number[] = [
-  3.5, 3.5, 3.5, 3.5, // cols 0-3: label area (wider)
-  ...new Array(33).fill(2.27) // cols 4-36: data area
-];
+const COL_WIDTHS: number[] = new Array(37).fill(2.5);
 
 function buildXlsx(
   cells: CellData[], merges: MergeRange[], rowHeights: Map<number, number>, maxRow: number,
@@ -617,27 +614,27 @@ serve(async (req) => {
 
     // === Attitude row 1: 飲酒, 喫煙, 性自認, 性格 ===
     r++;
-    rowHeights.set(r, 32);
-    center(r, 0, p.drinking || "無"); merge(r, 0, r, 1);
+    rowHeights.set(r, 45);
+    center(r, 0, p.drinking === "Không" ? "無" : p.drinking || "無"); merge(r, 0, r, 1);
     label(r, 2, "飲酒\n[ 多・少・無 ]"); merge(r, 2, r, 4);
-    center(r, 5, p.smoking || "無"); merge(r, 5, r, 6);
-    label(r, 7, "喫煙\n[ 多・少・無 ]"); merge(r, 7, r, 16);
-    center(r, 17, p.gender_identity || "無"); merge(r, 17, r, 18);
-    label(r, 19, "性自認・指向の有無\n[ 有・無・－(無回答) ]"); merge(r, 19, r, 24);
-    center(r, 25, p.personality || "普"); merge(r, 25, r, 27);
-    label(r, 28, "性格\n[ 活(発)・普(通)・控(え目) ]"); merge(r, 28, r, LC);
+    center(r, 5, p.smoking === "Không" ? "無" : p.smoking || "無"); merge(r, 5, r, 6);
+    label(r, 7, "喫煙\n[ 多・少・無 ]"); merge(r, 7, r, 12);
+    center(r, 13, p.gender_identity === "Không" ? "無" : p.gender_identity || "無"); merge(r, 13, r, 14);
+    label(r, 15, "性自認・指向の有無\n[ 有・無・－(無回答) ]"); merge(r, 15, r, 22);
+    center(r, 23, p.personality || "普"); merge(r, 23, r, 25);
+    label(r, 26, "性格\n[ 活(発)・普(通)・控(え目) ]"); merge(r, 26, r, LC);
 
     // === Attitude row 2: あいさつ, 整理整頓, 規則, 授業 ===
     r++;
-    rowHeights.set(r, 32);
+    rowHeights.set(r, 45);
     center(r, 0, p.greeting_attitude || ""); merge(r, 0, r, 1);
     label(r, 2, "あいさつ・受け答え\n[優・良・可 ]"); merge(r, 2, r, 4);
     center(r, 5, p.tidiness || ""); merge(r, 5, r, 6);
-    label(r, 7, "整理・整頓\n[ 優・良・可 ]"); merge(r, 7, r, 16);
-    center(r, 17, p.discipline || ""); merge(r, 17, r, 18);
-    label(r, 19, "規則の順守\n[ 優・良・可 ・未]"); merge(r, 19, r, 24);
-    center(r, 25, p.class_attitude || ""); merge(r, 25, r, 27);
-    label(r, 28, "授業態度\n[ 優・良・可・未 ]"); merge(r, 28, r, LC);
+    label(r, 7, "整理・整頓\n[ 優・良・可 ]"); merge(r, 7, r, 12);
+    center(r, 13, p.discipline || ""); merge(r, 13, r, 14);
+    label(r, 15, "規則の順守\n[ 優・良・可 ・未]"); merge(r, 15, r, 22);
+    center(r, 23, p.class_attitude || ""); merge(r, 23, r, 25);
+    label(r, 26, "授業態度\n[ 優・良・可・未 ]"); merge(r, 26, r, LC);
 
     // === 備考 header ===
     r++;
