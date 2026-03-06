@@ -389,12 +389,13 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                         Đánh giá
                       </h4>
                       <div className="rounded-md border overflow-hidden">
-                        <Table>
+                         <Table>
                           <TableHeader>
                             <TableRow className="bg-muted/50">
                               <TableHead className="text-xs py-2">Ngày</TableHead>
                               <TableHead className="text-xs py-2">Lớp</TableHead>
                               <TableHead className="text-xs py-2">Bài kiểm tra</TableHead>
+                              <TableHead className="text-xs py-2">Điểm</TableHead>
                               <TableHead className="text-xs py-2">Đánh giá</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -404,6 +405,9 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                                 <TableCell className="text-xs py-1.5">{formatDate(score.test_date)}</TableCell>
                                 <TableCell className="text-xs py-1.5">{score.class_name || "—"}</TableCell>
                                 <TableCell className="text-xs py-1.5">{score.test_name}</TableCell>
+                                <TableCell className="text-xs py-1.5">
+                                  {score.score != null ? `${score.score}/${score.max_score}` : "—"}
+                                </TableCell>
                                 <TableCell className="text-xs py-1.5 font-medium">
                                   {score.evaluation || "—"}
                                 </TableCell>
