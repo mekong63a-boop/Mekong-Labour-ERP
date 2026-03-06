@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// ====== Minimal XLSX generator with styling ======
+// ====== Minimal XLSX generator with styling + image support ======
 
 function escapeXml(s: string): string {
   return String(s)
@@ -32,7 +32,7 @@ interface CellData {
   r: number;
   c: number;
   v: string | number;
-  s?: number; // style index: 1=data(border), 2=label(blue+border+bold)
+  s?: number; // style index: 1=data(border), 2=label(fill+border+bold)
 }
 
 interface MergeRange {
@@ -40,7 +40,16 @@ interface MergeRange {
   e: { r: number; c: number };
 }
 
-function buildXlsx(cells: CellData[], merges: MergeRange[], maxRow: number, maxCol: number): Uint8Array {
+function buildXlsx(
+  cells: CellData[],
+  merges: MergeRange[],
+  maxRow: number,
+  maxCol: number,
+  imageData?: Uint8Array | null,
+  imageExt?: string
+): Uint8Array {
+  const hasImage = imageData && imageData.length > 0;
+
   // Build shared strings
   const strings: string[] = [];
   const stringMap = new Map<string, number>();
@@ -59,10 +68,7 @@ function buildXlsx(cells: CellData[], merges: MergeRange[], maxRow: number, maxC
 ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
 </sst>`;
 
-  // ====== Styles XML ======
-  // Style 0: default (no border, no fill) - Excel requires this
-  // Style 1: data cell (thin borders, no fill, normal font)
-  // Style 2: label cell (thin borders, light blue fill, bold font)
+  // Styles XML
   const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <fonts count="2">
@@ -99,7 +105,7 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
   const sortedRows = [...rowMap.keys()].sort((a, b) => a - b);
   for (const r of sortedRows) {
     const rowCells = rowMap.get(r)!.sort((a, b) => a.c - b.c);
-    let rowXml = `<row r="${r + 1}">`;
+    let rowXml = `<row r="${r + 1}" ht="15" customHeight="1">`;
     for (const cell of rowCells) {
       const ref = `${colLetter(cell.c)}${cell.r + 1}`;
       const styleAttr = cell.s ? ` s="${cell.s}"` : "";
@@ -111,7 +117,6 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
           rowXml += `<c r="${ref}" t="s"${styleAttr}><v>${idx}</v></c>`;
         }
       } else {
-        // Empty cell with style (for borders/fill)
         if (cell.s) {
           rowXml += `<c r="${ref}"${styleAttr}/>`;
         }
@@ -131,14 +136,18 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
     mergesXml += "</mergeCells>";
   }
 
-  // Column widths - 38 columns (A-AL), each 4.5 width
+  // Column widths - 38 columns, adjusted for A4 portrait
+  // A4 portrait usable width ≈ 7.5 inches ≈ 80 chars at 10pt
+  // 38 columns → ~2.1 each
   let colsXml = "<cols>";
   for (let i = 0; i <= maxCol; i++) {
-    colsXml += `<col min="${i + 1}" max="${i + 1}" width="4.5" customWidth="1"/>`;
+    colsXml += `<col min="${i + 1}" max="${i + 1}" width="2.2" customWidth="1"/>`;
   }
   colsXml += "</cols>";
 
-  // Page setup for A4 (paperSize=9), fit to 1 page width
+  // Drawing reference (for image)
+  const drawingRef = hasImage ? `<drawing r:id="rId1"/>` : "";
+
   const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
   xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
@@ -148,7 +157,8 @@ ${colsXml}
 <sheetData>${sheetDataXml}</sheetData>
 ${mergesXml}
 <pageMargins left="0.4" right="0.4" top="0.4" bottom="0.4" header="0.2" footer="0.2"/>
-<pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/>
+<pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="1"/>
+${drawingRef}
 </worksheet>`;
 
   const workbookXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -157,15 +167,26 @@ ${mergesXml}
 <sheets><sheet name="履歴書" sheetId="1" r:id="rId1"/></sheets>
 </workbook>`;
 
-  const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  // Content Types - include image if present
+  const ext = imageExt || "jpeg";
+  const imgContentType = ext === "png" ? "image/png" : "image/jpeg";
+  
+  let contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
 <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-<Default Extension="xml" ContentType="application/xml"/>
+<Default Extension="xml" ContentType="application/xml"/>`;
+  if (hasImage) {
+    contentTypesXml += `\n<Default Extension="${ext}" ContentType="${imgContentType}"/>`;
+  }
+  contentTypesXml += `
 <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
 <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
 <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>
-<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
-</Types>`;
+<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>`;
+  if (hasImage) {
+    contentTypesXml += `\n<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>`;
+  }
+  contentTypesXml += `\n</Types>`;
 
   const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
@@ -188,6 +209,64 @@ ${mergesXml}
     { name: "xl/sharedStrings.xml", data: new TextEncoder().encode(sharedStringsXml) },
     { name: "xl/styles.xml", data: new TextEncoder().encode(stylesXml) },
   ];
+
+  // Add image-related files if image exists
+  if (hasImage) {
+    // Sheet rels - link drawing
+    const sheetRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/>
+</Relationships>`;
+    files.push({ name: "xl/worksheets/_rels/sheet1.xml.rels", data: new TextEncoder().encode(sheetRelsXml) });
+
+    // Drawing rels - link to image
+    const drawingRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.${ext}"/>
+</Relationships>`;
+    files.push({ name: "xl/drawings/_rels/drawing1.xml.rels", data: new TextEncoder().encode(drawingRelsXml) });
+
+    // Drawing XML - position photo at top-right (columns 30-37, rows 2-6)
+    // EMU: 1 inch = 914400 EMU, 1 cm = 360000 EMU
+    // Photo size approximately 3cm x 4cm (passport size)
+    const drawingXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"
+  xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<xdr:twoCellAnchor editAs="oneCell">
+  <xdr:from>
+    <xdr:col>30</xdr:col><xdr:colOff>0</xdr:colOff>
+    <xdr:row>2</xdr:row><xdr:rowOff>0</xdr:rowOff>
+  </xdr:from>
+  <xdr:to>
+    <xdr:col>37</xdr:col><xdr:colOff>0</xdr:colOff>
+    <xdr:row>7</xdr:row><xdr:rowOff>0</xdr:rowOff>
+  </xdr:to>
+  <xdr:pic>
+    <xdr:nvPicPr>
+      <xdr:cNvPr id="2" name="Photo"/>
+      <xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr>
+    </xdr:nvPicPr>
+    <xdr:blipFill>
+      <a:blip r:embed="rId1"/>
+      <a:stretch><a:fillRect/></a:stretch>
+    </xdr:blipFill>
+    <xdr:spPr>
+      <a:xfrm>
+        <a:off x="0" y="0"/>
+        <a:ext cx="1080000" cy="1440000"/>
+      </a:xfrm>
+      <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+    </xdr:spPr>
+  </xdr:pic>
+  <xdr:clientData/>
+</xdr:twoCellAnchor>
+</xdr:wsDr>`;
+    files.push({ name: "xl/drawings/drawing1.xml", data: new TextEncoder().encode(drawingXml) });
+
+    // Image file
+    files.push({ name: `xl/media/image1.${ext}`, data: imageData! });
+  }
 
   return createZip(files);
 }
@@ -285,7 +364,21 @@ function crc32(data: Uint8Array): number {
 
 // Style constants
 const S_DATA = 1;  // data cell: thin borders, no fill
-const S_LABEL = 2; // label cell: thin borders, light blue fill, bold
+const S_LABEL = 2; // label cell: thin borders, beige fill, bold
+
+// ====== Fetch trainee photo ======
+async function fetchPhoto(photoUrl: string | null): Promise<{ data: Uint8Array | null; ext: string }> {
+  if (!photoUrl) return { data: null, ext: "jpeg" };
+  try {
+    const resp = await fetch(photoUrl);
+    if (!resp.ok) return { data: null, ext: "jpeg" };
+    const buf = await resp.arrayBuffer();
+    const ext = photoUrl.toLowerCase().includes(".png") ? "png" : "jpeg";
+    return { data: new Uint8Array(buf), ext };
+  } catch {
+    return { data: null, ext: "jpeg" };
+  }
+}
 
 // ====== Main handler ======
 
@@ -313,7 +406,7 @@ serve(async (req) => {
 
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
-      const { error } = await supabase.auth.getClaims(token);
+      const { error } = await supabase.auth.getUser(token);
       if (error) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
@@ -334,6 +427,9 @@ serve(async (req) => {
       );
     }
 
+    // Fetch photo in parallel with building cells
+    const photoPromise = fetchPhoto(profile.photo_url);
+
     // ====== Build cells ======
     const cells: CellData[] = [];
     const merges: MergeRange[] = [];
@@ -343,9 +439,7 @@ serve(async (req) => {
       cells.push({ r, c, v, s: style });
     };
 
-    // Helper: add label cell (blue fill)
     const addLabel = (r: number, c: number, v: any) => addCell(r, c, v, S_LABEL);
-    // Helper: add data cell (border only)
     const addData = (r: number, c: number, v: any) => addCell(r, c, v, S_DATA);
 
     const calcAge = (birthDate: string | null): number | string => {
@@ -380,6 +474,7 @@ serve(async (req) => {
 
     const relationMap: Record<string, string> = {
       "Cha": "父", "Mẹ": "母", "Anh": "兄", "Chị": "姉", "Em trai": "弟", "Em gái": "妹",
+      "Anh trai": "兄", "Chị gái": "姉",
       "Vợ": "妻", "Chồng": "夫", "Con trai": "息子", "Con gái": "娘", "Ông": "祖父", "Bà": "祖母"
     };
 
@@ -398,10 +493,10 @@ serve(async (req) => {
     addLabel(2, 0, "氏\n名");
     addLabel(2, 1, "フリガナ");
     addData(2, 3, profile.furigana || "");
-    merges.push({ s: { r: 2, c: 3 }, e: { r: 2, c: 37 } });
+    merges.push({ s: { r: 2, c: 3 }, e: { r: 2, c: 29 } }); // Leave space for photo
     addLabel(3, 1, "英字表記");
     addData(3, 3, (profile.full_name || "").toUpperCase());
-    merges.push({ s: { r: 3, c: 3 }, e: { r: 3, c: 37 } });
+    merges.push({ s: { r: 3, c: 3 }, e: { r: 3, c: 29 } }); // Leave space for photo
     merges.push({ s: { r: 2, c: 0 }, e: { r: 3, c: 0 } });
 
     // Row 4: 生年月日
@@ -620,7 +715,10 @@ serve(async (req) => {
     const maxRow = cr + 1;
     const maxCol = 37;
 
-    const xlsxBuf = buildXlsx(cells, merges, maxRow, maxCol);
+    // Wait for photo
+    const { data: photoData, ext: photoExt } = await photoPromise;
+
+    const xlsxBuf = buildXlsx(cells, merges, maxRow, maxCol, photoData, photoExt);
 
     const traineeName = (profile.full_name || "").toUpperCase();
     const filename = `${traineeCode} - 履歴書 - ${traineeName}.xlsx`;
