@@ -93,11 +93,10 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
   const cellMap = new Map<string, CellData>();
   for (const cell of cells) cellMap.set(`${cell.r},${cell.c}`, cell);
 
-  // No-border zones: title area and photo area
+  // No-border zones: title area only (photo area now has borders)
   const isNoBorderZone = (row: number, col: number): boolean => {
     if (row === 0 && col < 8) return true;  // Row 0: only "No" box at cols 8-9
     if (row === 1) return true;              // Title row: no borders
-    if (row >= 2 && row <= 5 && col >= 8) return true; // Photo area
     return false;
   };
 
@@ -203,14 +202,14 @@ ${drawingRef}
 </Relationships>`;
     files.push({ name: "xl/drawings/_rels/drawing1.xml.rels", data: new TextEncoder().encode(drawRels) });
 
-    // Photo at top-right: cols 8-9, rows 2-6
+    // Photo at top-right: cols 8-9, rows 2-6, with padding to fit within bordered cells
     const drawXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"
   xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
   xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
 <xdr:twoCellAnchor editAs="oneCell">
-  <xdr:from><xdr:col>8</xdr:col><xdr:colOff>50000</xdr:colOff><xdr:row>2</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>
-  <xdr:to><xdr:col>9</xdr:col><xdr:colOff>550000</xdr:colOff><xdr:row>6</xdr:row><xdr:rowOff>150000</xdr:rowOff></xdr:to>
+  <xdr:from><xdr:col>8</xdr:col><xdr:colOff>30000</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>
+  <xdr:to><xdr:col>10</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>6</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>
   <xdr:pic>
     <xdr:nvPicPr><xdr:cNvPr id="2" name="Photo"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>
     <xdr:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>
@@ -377,13 +376,16 @@ serve(async (req) => {
     data(1, 4, dateStr);
     merge(1, 4, 1, 7);
 
-    // === Row 2: 氏名 - フリガナ (+ photo area cols 8-9) ===
+    // === Row 2: 氏名 - フリガナ (+ photo area cols 8-9, rows 2-5 merged as photo frame) ===
     rowHeights.set(2, 22);
     label(2, 0, "氏\n名");
     merge(2, 0, 3, 0);
     label(2, 1, "フリガナ");
     data(2, 2, p.furigana || "");
     merge(2, 2, 2, 7);
+    // Photo frame: merge cols 8-9, rows 2-5 with border
+    data(2, 8, "");
+    merge(2, 8, 5, 9);
 
     // === Row 3: 氏名 - 英字表記 ===
     rowHeights.set(3, 22);
@@ -706,6 +708,26 @@ serve(async (req) => {
     merge(r, 0, r, 9);
 
     const maxRow = r;
+
+    // === Dynamic A4 page fill: scale row heights to fill portrait A4 ===
+    // A4 portrait ≈ 842pt. Margins top+bottom = ~0.4" = ~29pt. Available ≈ 813pt.
+    const TARGET_HEIGHT = 810;
+    let totalHeight = 0;
+    for (let i = 0; i <= maxRow; i++) totalHeight += rowHeights.get(i) || 22;
+    
+    if (totalHeight < TARGET_HEIGHT) {
+      const deficit = TARGET_HEIGHT - totalHeight;
+      const scalableRows: number[] = [];
+      // Distribute extra height to all data rows (skip row 0, 1 title rows)
+      for (let i = 2; i <= maxRow; i++) scalableRows.push(i);
+      const extraPerRow = Math.floor(deficit / scalableRows.length);
+      const remainder = deficit - extraPerRow * scalableRows.length;
+      for (let idx = 0; idx < scalableRows.length; idx++) {
+        const rowIdx = scalableRows[idx];
+        const current = rowHeights.get(rowIdx) || 22;
+        rowHeights.set(rowIdx, current + extraPerRow + (idx < remainder ? 1 : 0));
+      }
+    }
 
     const { data: photoData, ext: photoExt } = await photoPromise;
     const xlsxBuf = buildXlsx(cells, merges, rowHeights, maxRow, photoData, photoExt);
