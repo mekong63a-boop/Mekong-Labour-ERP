@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -358,6 +358,10 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     ssw_certificate: [],
   });
 
+  // REF to always have the latest formData for async callbacks (prevents closure staleness)
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
+
   // Real-time duplicate check for trainee code
   const { isDuplicate: isCodeDuplicate, isChecking: isCheckingCode } = useDuplicateCheck(
     formData.trainee_code,
@@ -628,19 +632,20 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     });
   }, []);
   
-  // Build trainee data from form
+  // Build trainee data from form - uses ref to guarantee latest data
   const buildTraineeData = (): Database["public"]["Tables"]["trainees"]["Insert"] => {
-    const hobbiesString = Array.isArray(formData.hobbies) 
-      ? formData.hobbies.join(", ") 
-      : formData.hobbies;
+    const currentFormData = formDataRef.current;
+    const hobbiesString = Array.isArray(currentFormData.hobbies) 
+      ? currentFormData.hobbies.join(", ") 
+      : currentFormData.hobbies;
 
-    const japaneseCertString = Array.isArray(formData.japanese_certificate) 
-      ? formData.japanese_certificate.join(", ") 
-      : formData.japanese_certificate;
+    const japaneseCertString = Array.isArray(currentFormData.japanese_certificate) 
+      ? currentFormData.japanese_certificate.join(", ") 
+      : currentFormData.japanese_certificate;
 
-    const sswCertString = Array.isArray(formData.ssw_certificate) 
-      ? formData.ssw_certificate.join(", ") 
-      : formData.ssw_certificate;
+    const sswCertString = Array.isArray(currentFormData.ssw_certificate) 
+      ? currentFormData.ssw_certificate.join(", ") 
+      : currentFormData.ssw_certificate;
 
     // Valid progression stages from enum
     const validProgressionStages = [
@@ -648,80 +653,80 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       "Xuất cảnh", "Đang làm việc", "Hoàn thành hợp đồng", "Bỏ trốn", "Về trước hạn"
     ] as const;
     
-    const progressionStage = validProgressionStages.includes(formData.progression_stage as any)
-      ? (formData.progression_stage as Database["public"]["Enums"]["progression_stage"])
+    const progressionStage = validProgressionStages.includes(currentFormData.progression_stage as any)
+      ? (currentFormData.progression_stage as Database["public"]["Enums"]["progression_stage"])
       : null;
 
     return {
-      trainee_code: formData.trainee_code,
-      full_name: formData.full_name,
-      furigana: formData.furigana || null,
-      trainee_type: (formData.trainee_type as Database["public"]["Enums"]["trainee_type"]) || null,
-      birth_date: formData.birth_date || null,
-      birthplace: formData.birthplace || null,
-      gender: formData.gender || null,
-      marital_status: formData.marital_status || null,
-      cccd_number: formData.cccd_number || null,
-      cccd_date: formData.cccd_date || null,
-      cccd_place: formData.cccd_place || null,
-      passport_number: formData.passport_number || null,
-      passport_date: formData.passport_date || null,
-      passport_place: formData.passport_place || null,
-      ethnicity: formData.ethnicity || null,
-      religion: formData.religion || null,
-      policy_category: formData.policy_category || null,
-      phone: formData.phone || null,
-      source: formData.source || null,
-      education_level: formData.education_level || null,
-      current_address: formData.current_address || null,
-      email: formData.email || null,
-      permanent_address: formData.permanent_address || null,
-      permanent_address_new: formData.permanent_address_new || null,
-      facebook: formData.facebook || null,
-      parent_phone_1: formData.parent_phone_1 || null,
-      parent_phone_1_relation: formData.parent_phone_1_relation || null,
-      parent_phone_2: formData.parent_phone_2 || null,
-      parent_phone_2_relation: formData.parent_phone_2_relation || null,
-      parent_phone_3: formData.parent_phone_3 || null,
-      parent_phone_3_relation: formData.parent_phone_3_relation || null,
-      simple_status: (formData.simple_status as Database["public"]["Enums"]["simple_status"]) || null,
+      trainee_code: currentFormData.trainee_code,
+      full_name: currentFormData.full_name,
+      furigana: currentFormData.furigana || null,
+      trainee_type: (currentFormData.trainee_type as Database["public"]["Enums"]["trainee_type"]) || null,
+      birth_date: currentFormData.birth_date || null,
+      birthplace: currentFormData.birthplace || null,
+      gender: currentFormData.gender || null,
+      marital_status: currentFormData.marital_status || null,
+      cccd_number: currentFormData.cccd_number || null,
+      cccd_date: currentFormData.cccd_date || null,
+      cccd_place: currentFormData.cccd_place || null,
+      passport_number: currentFormData.passport_number || null,
+      passport_date: currentFormData.passport_date || null,
+      passport_place: currentFormData.passport_place || null,
+      ethnicity: currentFormData.ethnicity || null,
+      religion: currentFormData.religion || null,
+      policy_category: currentFormData.policy_category || null,
+      phone: currentFormData.phone || null,
+      source: currentFormData.source || null,
+      education_level: currentFormData.education_level || null,
+      current_address: currentFormData.current_address || null,
+      email: currentFormData.email || null,
+      permanent_address: currentFormData.permanent_address || null,
+      permanent_address_new: currentFormData.permanent_address_new || null,
+      facebook: currentFormData.facebook || null,
+      parent_phone_1: currentFormData.parent_phone_1 || null,
+      parent_phone_1_relation: currentFormData.parent_phone_1_relation || null,
+      parent_phone_2: currentFormData.parent_phone_2 || null,
+      parent_phone_2_relation: currentFormData.parent_phone_2_relation || null,
+      parent_phone_3: currentFormData.parent_phone_3 || null,
+      parent_phone_3_relation: currentFormData.parent_phone_3_relation || null,
+      simple_status: (currentFormData.simple_status as Database["public"]["Enums"]["simple_status"]) || null,
       progression_stage: progressionStage,
-      registration_date: formData.registration_date || null,
-      height: formData.height ? parseFloat(formData.height) : null,
-      vision_left: formData.vision_left ? parseFloat(formData.vision_left) : null,
-      vision_right: formData.vision_right ? parseFloat(formData.vision_right) : null,
-      dominant_hand: formData.dominant_hand || null,
+      registration_date: currentFormData.registration_date || null,
+      height: currentFormData.height ? parseFloat(currentFormData.height) : null,
+      vision_left: currentFormData.vision_left ? parseFloat(currentFormData.vision_left) : null,
+      vision_right: currentFormData.vision_right ? parseFloat(currentFormData.vision_right) : null,
+      dominant_hand: currentFormData.dominant_hand || null,
       hobbies: hobbiesString || null,
-      weight: formData.weight ? parseFloat(formData.weight) : null,
-      smoking: formData.smoking || null,
-      tattoo: formData.tattoo === "Có",
-      tattoo_description: formData.tattoo_description || null,
-      drinking: formData.drinking || null,
-      blood_group: formData.blood_group || null,
-      health_status: formData.health_status || null,
-      hearing: formData.hearing || null,
-      hepatitis_b: formData.hepatitis_b || null,
-      notes: formData.notes || null,
-      photo_url: formData.photo_url || null,
-      line_qr_url: formData.line_qr_url || null,
-      pants_size: formData.pants_size || null,
-      shirt_size: formData.shirt_size || null,
-      shoe_size: formData.shoe_size || null,
-      entry_date: formData.entry_date || null,
-      reserve_date: formData.reserve_date || null,
-      stop_date: formData.stop_date || null,
-      cancel_date: formData.cancel_date || null,
-      interview_pass_date: formData.interview_pass_date || null,
-      document_submission_date: formData.document_submission_date || null,
-      otit_entry_date: formData.otit_entry_date || null,
-      nyukan_entry_date: formData.nyukan_entry_date || null,
-      coe_date: formData.coe_date || null,
-      departure_date: formData.departure_date || null,
-      absconded_date: formData.absconded_date || null,
-      early_return_date: formData.early_return_date || null,
-      early_return_reason: formData.early_return_reason || null,
-      return_date: formData.return_date || null,
-      prior_residence_status: formData.prior_residence_status || null,
+      weight: currentFormData.weight ? parseFloat(currentFormData.weight) : null,
+      smoking: currentFormData.smoking || null,
+      tattoo: currentFormData.tattoo === "Có",
+      tattoo_description: currentFormData.tattoo_description || null,
+      drinking: currentFormData.drinking || null,
+      blood_group: currentFormData.blood_group || null,
+      health_status: currentFormData.health_status || null,
+      hearing: currentFormData.hearing || null,
+      hepatitis_b: currentFormData.hepatitis_b || null,
+      notes: currentFormData.notes || null,
+      photo_url: currentFormData.photo_url || null,
+      line_qr_url: currentFormData.line_qr_url || null,
+      pants_size: currentFormData.pants_size || null,
+      shirt_size: currentFormData.shirt_size || null,
+      shoe_size: currentFormData.shoe_size || null,
+      entry_date: currentFormData.entry_date || null,
+      reserve_date: currentFormData.reserve_date || null,
+      stop_date: currentFormData.stop_date || null,
+      cancel_date: currentFormData.cancel_date || null,
+      interview_pass_date: currentFormData.interview_pass_date || null,
+      document_submission_date: currentFormData.document_submission_date || null,
+      otit_entry_date: currentFormData.otit_entry_date || null,
+      nyukan_entry_date: currentFormData.nyukan_entry_date || null,
+      coe_date: currentFormData.coe_date || null,
+      departure_date: currentFormData.departure_date || null,
+      absconded_date: currentFormData.absconded_date || null,
+      early_return_date: currentFormData.early_return_date || null,
+      early_return_reason: currentFormData.early_return_reason || null,
+      return_date: currentFormData.return_date || null,
+      prior_residence_status: currentFormData.prior_residence_status || null,
       japanese_certificate: japaneseCertString || null,
       ssw_certificate: sswCertString || null,
     };
@@ -865,13 +870,16 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
 
   // Handle form submit
   const handleSubmit = async () => {
+    // Use ref to guarantee latest form data (prevents closure staleness)
+    const currentData = formDataRef.current;
+    
     // Validate required fields
     const missingFields: string[] = [];
-    if (!formData.trainee_code) missingFields.push("Mã học viên");
-    if (!formData.full_name) missingFields.push("Họ và tên");
-    if (!formData.birth_date) missingFields.push("Ngày sinh");
-    if (!formData.source) missingFields.push("Nguồn giới thiệu");
-    if (!formData.gender) missingFields.push("Giới tính");
+    if (!currentData.trainee_code) missingFields.push("Mã học viên");
+    if (!currentData.full_name) missingFields.push("Họ và tên");
+    if (!currentData.birth_date) missingFields.push("Ngày sinh");
+    if (!currentData.source) missingFields.push("Nguồn giới thiệu");
+    if (!currentData.gender) missingFields.push("Giới tính");
 
     if (missingFields.length > 0) {
       toast({
