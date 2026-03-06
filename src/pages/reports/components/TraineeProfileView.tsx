@@ -107,7 +107,9 @@ const getStatusLabel = (status: string) => {
     case 'late':
       return 'Đi trễ';
     case 'excused':
-      return 'Nghỉ phép';
+      return 'Nghỉ có phép';
+    case 'unexcused':
+      return 'Nghỉ không phép';
     default:
       return status;
   }
