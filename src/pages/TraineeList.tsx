@@ -22,14 +22,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Eye, RefreshCw, Trash2, Lock } from "lucide-react";
+import { Plus, Search, Eye, RefreshCw, Trash2, Lock, LockOpen } from "lucide-react";
 import { addYears } from "date-fns";
 import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 import { usePagination } from "@/hooks/usePagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTraineesPaginated, TraineeListItem } from "@/hooks/useTraineesPaginated";
 import { useTraineeStageCounts } from "@/hooks/useTraineeStageCounts";
-import { useDeleteTrainee } from "@/hooks/useTrainees";
+import { useDeleteTrainee, useToggleTraineeLock } from "@/hooks/useTrainees";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useCanAction } from "@/hooks/useMenuPermissions";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { useToast } from "@/hooks/use-toast";
@@ -46,6 +47,8 @@ export default function TraineeList() {
   const { toast } = useToast();
   const { hasPermission: canDelete } = useCanAction("trainees", "delete");
   const deleteTrainee = useDeleteTrainee();
+  const toggleLockMutation = useToggleTraineeLock();
+  const { isAdmin } = useUserRole();
   
   // Debounce search query (300ms delay)
   const debouncedSearch = useDebounce(searchQuery, 300);
@@ -385,6 +388,21 @@ export default function TraineeList() {
               title="Xóa học viên"
             >
               <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleLockMutation.mutate({ id: trainee.id, is_locked: !trainee.is_locked });
+              }}
+              disabled={toggleLockMutation.isPending}
+              title={trainee.is_locked ? "Mở khóa hồ sơ" : "Khóa hồ sơ"}
+              className={trainee.is_locked ? "text-destructive hover:text-destructive hover:bg-destructive/10" : "text-muted-foreground hover:text-foreground"}
+            >
+              {trainee.is_locked ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}
             </Button>
           )}
         </div>
