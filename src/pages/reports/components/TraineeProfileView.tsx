@@ -389,12 +389,13 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                         Đánh giá
                       </h4>
                       <div className="rounded-md border overflow-hidden">
-                        <Table>
+                         <Table>
                           <TableHeader>
                             <TableRow className="bg-muted/50">
                               <TableHead className="text-xs py-2">Ngày</TableHead>
                               <TableHead className="text-xs py-2">Lớp</TableHead>
                               <TableHead className="text-xs py-2">Bài kiểm tra</TableHead>
+                              <TableHead className="text-xs py-2">Điểm</TableHead>
                               <TableHead className="text-xs py-2">Đánh giá</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -404,6 +405,9 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                                 <TableCell className="text-xs py-1.5">{formatDate(score.test_date)}</TableCell>
                                 <TableCell className="text-xs py-1.5">{score.class_name || "—"}</TableCell>
                                 <TableCell className="text-xs py-1.5">{score.test_name}</TableCell>
+                                <TableCell className="text-xs py-1.5">
+                                  {score.score != null ? `${score.score}/${score.max_score}` : "—"}
+                                </TableCell>
                                 <TableCell className="text-xs py-1.5 font-medium">
                                   {score.evaluation || "—"}
                                 </TableCell>
@@ -471,6 +475,35 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                       )}
                     </div>
                   )}
+                </Section>
+                <Separator />
+              </>
+            )}
+
+            {/* Enrollment History - Lịch sử chuyển lớp */}
+            {profile.enrollment_history && profile.enrollment_history.length > 0 && (
+              <>
+                <Section title="Lịch sử chuyển lớp" icon={History}>
+                  <div className="space-y-2">
+                    {profile.enrollment_history.map((enroll) => (
+                      <div key={enroll.id} className="p-2 bg-muted/50 rounded text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{enroll.action_type}</span>
+                          <span className="text-xs text-muted-foreground">{formatDate(enroll.action_date)}</span>
+                        </div>
+                        {(enroll.from_class || enroll.to_class) && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {enroll.from_class && <span>Từ: {enroll.from_class}</span>}
+                            {enroll.from_class && enroll.to_class && <span> → </span>}
+                            {enroll.to_class && <span>Đến: {enroll.to_class}</span>}
+                          </div>
+                        )}
+                        {enroll.notes && (
+                          <p className="text-xs text-muted-foreground mt-1 italic">{enroll.notes}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </Section>
                 <Separator />
               </>
@@ -668,34 +701,6 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
               </>
             )}
 
-            {/* Enrollment History - Lịch sử chuyển lớp */}
-            {profile.enrollment_history && profile.enrollment_history.length > 0 && (
-              <>
-                <Section title="Lịch sử chuyển lớp" icon={History}>
-                  <div className="space-y-2">
-                    {profile.enrollment_history.map((enroll) => (
-                      <div key={enroll.id} className="p-2 bg-muted/50 rounded text-sm">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">{enroll.action_type}</span>
-                          <span className="text-xs text-muted-foreground">{formatDate(enroll.action_date)}</span>
-                        </div>
-                        {(enroll.from_class || enroll.to_class) && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {enroll.from_class && <span>Từ: {enroll.from_class}</span>}
-                            {enroll.from_class && enroll.to_class && <span> → </span>}
-                            {enroll.to_class && <span>Đến: {enroll.to_class}</span>}
-                          </div>
-                        )}
-                        {enroll.notes && (
-                          <p className="text-xs text-muted-foreground mt-1 italic">{enroll.notes}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </Section>
-                <Separator />
-              </>
-            )}
 
             {/* Interview History */}
             {profile.interview_history && profile.interview_history.length > 0 && (
@@ -850,42 +855,6 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
               </>
             )}
 
-            {/* Audit Logs - Nhật ký thay đổi */}
-            {profile.audit_logs && profile.audit_logs.length > 0 && (
-              <>
-                <Section title="Nhật ký hệ thống" icon={FileSearch}>
-                  <div className="rounded-md border overflow-hidden max-h-64 overflow-y-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/50">
-                          <TableHead className="text-xs py-2">Thời gian</TableHead>
-                          <TableHead className="text-xs py-2">Hành động</TableHead>
-                          <TableHead className="text-xs py-2">Mô tả</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {profile.audit_logs.map((log) => (
-                          <TableRow key={log.id}>
-                            <TableCell className="text-xs py-1.5 whitespace-nowrap">
-                              {formatDate(log.created_at)}
-                            </TableCell>
-                            <TableCell className="text-xs py-1.5">
-                              <Badge variant="outline" className="text-xs">
-                                {log.action}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-xs py-1.5 text-muted-foreground">
-                              {log.description}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </Section>
-                <Separator />
-              </>
-            )}
 
             {/* General Notes */}
             {profile.notes && (
