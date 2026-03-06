@@ -855,42 +855,6 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
               </>
             )}
 
-            {/* Audit Logs - Nhật ký thay đổi */}
-            {profile.audit_logs && profile.audit_logs.length > 0 && (
-              <>
-                <Section title="Nhật ký hệ thống" icon={FileSearch}>
-                  <div className="rounded-md border overflow-hidden max-h-64 overflow-y-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/50">
-                          <TableHead className="text-xs py-2">Thời gian</TableHead>
-                          <TableHead className="text-xs py-2">Hành động</TableHead>
-                          <TableHead className="text-xs py-2">Mô tả</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {profile.audit_logs.map((log) => (
-                          <TableRow key={log.id}>
-                            <TableCell className="text-xs py-1.5 whitespace-nowrap">
-                              {formatDate(log.created_at)}
-                            </TableCell>
-                            <TableCell className="text-xs py-1.5">
-                              <Badge variant="outline" className="text-xs">
-                                {log.action}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-xs py-1.5 text-muted-foreground">
-                              {log.description}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </Section>
-                <Separator />
-              </>
-            )}
 
             {/* General Notes */}
             {profile.notes && (
