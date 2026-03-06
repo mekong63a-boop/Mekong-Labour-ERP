@@ -41,7 +41,10 @@ export default function TraineeDetail() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${trainee.trainee_code} - 履歴書.xlsx`;
+      const disposition = res.headers.get("Content-Disposition") || "";
+      const match = disposition.match(/filename\*=UTF-8''(.+)/);
+      const serverName = match ? decodeURIComponent(match[1]) : null;
+      a.download = serverName || `${trainee.trainee_code} - 履歴書 - ${(trainee.full_name || "").toUpperCase()}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success("Xuất lí lịch thành công");

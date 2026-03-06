@@ -94,32 +94,46 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
 </cellXfs>
 </styleSheet>`;
 
-  // Build sheet data
-  const rowMap = new Map<number, CellData[]>();
+  // Build sheet data - fill ALL cells with borders
+  const cellMap = new Map<string, CellData>();
   for (const cell of cells) {
-    if (!rowMap.has(cell.r)) rowMap.set(cell.r, []);
-    rowMap.get(cell.r)!.push(cell);
+    cellMap.set(`${cell.r},${cell.c}`, cell);
+  }
+
+  // Determine which rows have content (need borders)
+  const contentRows = new Set<number>();
+  for (const cell of cells) {
+    contentRows.add(cell.r);
   }
 
   let sheetDataXml = "";
-  const sortedRows = [...rowMap.keys()].sort((a, b) => a - b);
-  for (const r of sortedRows) {
-    const rowCells = rowMap.get(r)!.sort((a, b) => a.c - b.c);
+  for (let r = 0; r <= maxRow; r++) {
+    if (!contentRows.has(r)) {
+      // Empty separator row - still output thin row
+      sheetDataXml += `<row r="${r + 1}" ht="6" customHeight="1"/>`;
+      continue;
+    }
     let rowXml = `<row r="${r + 1}" ht="15" customHeight="1">`;
-    for (const cell of rowCells) {
-      const ref = `${colLetter(cell.c)}${cell.r + 1}`;
-      const styleAttr = cell.s ? ` s="${cell.s}"` : "";
-      if (typeof cell.v === "number") {
-        rowXml += `<c r="${ref}"${styleAttr}><v>${cell.v}</v></c>`;
-      } else if (typeof cell.v === "string" && cell.v !== "") {
-        const idx = stringMap.get(cell.v);
-        if (idx !== undefined) {
-          rowXml += `<c r="${ref}" t="s"${styleAttr}><v>${idx}</v></c>`;
-        }
-      } else {
-        if (cell.s) {
+    for (let c = 0; c <= maxCol; c++) {
+      const ref = `${colLetter(c)}${r + 1}`;
+      const cell = cellMap.get(`${r},${c}`);
+      if (cell) {
+        const styleAttr = cell.s ? ` s="${cell.s}"` : ` s="${S_DATA}"`;
+        if (typeof cell.v === "number") {
+          rowXml += `<c r="${ref}"${styleAttr}><v>${cell.v}</v></c>`;
+        } else if (typeof cell.v === "string" && cell.v !== "") {
+          const idx = stringMap.get(cell.v);
+          if (idx !== undefined) {
+            rowXml += `<c r="${ref}" t="s"${styleAttr}><v>${idx}</v></c>`;
+          } else {
+            rowXml += `<c r="${ref}"${styleAttr}/>`;
+          }
+        } else {
           rowXml += `<c r="${ref}"${styleAttr}/>`;
         }
+      } else {
+        // Empty cell - add border style
+        rowXml += `<c r="${ref}" s="${S_DATA}"/>`;
       }
     }
     rowXml += "</row>";
