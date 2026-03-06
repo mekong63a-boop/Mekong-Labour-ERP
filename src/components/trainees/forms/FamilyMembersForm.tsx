@@ -11,8 +11,9 @@ import {
 } from "@/components/ui/select";
 
 const RELATIONSHIPS = [
-  "Cha", "Mẹ", "Anh trai", "Chị gái", "Em trai", "Em gái", 
+  "Cha", "Mẹ", "Cha (mất)", "Mẹ (mất)", "Anh trai", "Chị gái", "Em trai", "Em gái", 
   "Con trai", "Con gái", "Vợ", "Chồng", "Ông nội", "Bà nội", 
+  "Ông ngoại", "Bà ngoại", "Cô", "Dì", "Chú", "Bác", "Khác",
   "Ông ngoại", "Bà ngoại", "Cô", "Dì", "Chú", "Bác", "Khác"
 ];
 const GENDERS = ["Nam", "Nữ"];

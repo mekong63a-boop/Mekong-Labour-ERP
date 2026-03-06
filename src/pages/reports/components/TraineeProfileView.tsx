@@ -363,18 +363,6 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
               </>
             )}
 
-            {/* Class */}
-            {profile.class?.id && (
-              <>
-                <Section title="Lớp học" icon={GraduationCap}>
-                  <div className="grid grid-cols-2 gap-x-4">
-                    <InfoRow label="Tên lớp" value={profile.class.name || "—"} />
-                    <InfoRow label="Tình trạng học" value={profile.enrollment_status} />
-                  </div>
-                </Section>
-                <Separator />
-              </>
-            )}
 
             {/* Training History - Attendance + Test Scores */}
             {((profile.attendance && profile.attendance.length > 0) || (profile.test_scores && profile.test_scores.length > 0)) && (
