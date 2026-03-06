@@ -701,34 +701,6 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
               </>
             )}
 
-            {/* Enrollment History - Lịch sử chuyển lớp */}
-            {profile.enrollment_history && profile.enrollment_history.length > 0 && (
-              <>
-                <Section title="Lịch sử chuyển lớp" icon={History}>
-                  <div className="space-y-2">
-                    {profile.enrollment_history.map((enroll) => (
-                      <div key={enroll.id} className="p-2 bg-muted/50 rounded text-sm">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">{enroll.action_type}</span>
-                          <span className="text-xs text-muted-foreground">{formatDate(enroll.action_date)}</span>
-                        </div>
-                        {(enroll.from_class || enroll.to_class) && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {enroll.from_class && <span>Từ: {enroll.from_class}</span>}
-                            {enroll.from_class && enroll.to_class && <span> → </span>}
-                            {enroll.to_class && <span>Đến: {enroll.to_class}</span>}
-                          </div>
-                        )}
-                        {enroll.notes && (
-                          <p className="text-xs text-muted-foreground mt-1 italic">{enroll.notes}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </Section>
-                <Separator />
-              </>
-            )}
 
             {/* Interview History */}
             {profile.interview_history && profile.interview_history.length > 0 && (
