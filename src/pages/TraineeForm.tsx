@@ -1023,9 +1023,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     return value ? "" : "input-empty";
   };
 
-  // Check if trainee is locked and user is not primary admin
+  // Check if trainee is locked - all admins can edit locked records
   const isLocked = isEditMode && trainee?.is_locked === true;
-  const canEditLocked = isPrimaryAdmin;
+  const canEditLocked = isAdmin;
   const isFormDisabled = isLocked && !canEditLocked;
 
   return (
@@ -1035,7 +1035,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         <div className="mb-4 flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
           <Lock className="h-5 w-5 text-destructive shrink-0" />
           <p className="text-sm text-destructive font-medium">
-            Hồ sơ đã bị khóa bởi Admin. {canEditLocked ? "Bạn có thể mở khóa." : "Chỉ Admin chính mới có thể chỉnh sửa."}
+            Hồ sơ đã bị khóa bởi Admin. {canEditLocked ? "Bạn có thể chỉnh sửa và mở khóa." : "Chỉ Admin mới có thể chỉnh sửa."}
           </p>
         </div>
       )}
@@ -1080,8 +1080,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
               </div>
             </div>
             <div className="flex items-center gap-2 pointer-events-auto">
-              {/* Lock/Unlock button - only for Primary Admin in edit mode */}
-              {isEditMode && isPrimaryAdmin && traineeId && (
+              {/* Lock/Unlock button - for all Admins in edit mode */}
+              {isEditMode && isAdmin && traineeId && (
                 <Button
                   variant={isLocked ? "outline" : "destructive"}
                   size="sm"

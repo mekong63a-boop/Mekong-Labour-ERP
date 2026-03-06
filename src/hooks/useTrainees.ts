@@ -95,7 +95,7 @@ export function useDeleteTrainee() {
 }
 
 /**
- * Hook khóa/mở khóa học viên - chỉ Primary Admin có quyền (RLS bảo vệ)
+ * Hook khóa/mở khóa học viên - tất cả Admin có quyền
  */
 export function useToggleTraineeLock() {
   const queryClient = useQueryClient();
@@ -122,7 +122,7 @@ export function useToggleTraineeLock() {
       toast({
         title: data.is_locked ? "Đã khóa hồ sơ" : "Đã mở khóa hồ sơ",
         description: data.is_locked 
-          ? "Chỉ Admin chính mới có thể chỉnh sửa hồ sơ này." 
+          ? "Chỉ Admin mới có thể chỉnh sửa hồ sơ này." 
           : "Hồ sơ đã được mở khóa, mọi người có quyền đều có thể chỉnh sửa.",
       });
     },
