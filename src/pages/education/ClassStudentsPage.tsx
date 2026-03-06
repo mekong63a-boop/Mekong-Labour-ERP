@@ -201,6 +201,10 @@ function useEnrollmentHistory(traineeId: string) {
         from_class_test_scores: h.from_class_id ? testScoresByClass[h.from_class_id] || [] : [],
         from_class_attendance: h.from_class_id ? attendanceByClass[h.from_class_id] || [] : [],
         from_class_attendance_stats: h.from_class_id ? attendanceStatsByClass[h.from_class_id] : null,
+        // Add for to_class (destination class when transferring)
+        to_class_test_scores: h.to_class_id ? testScoresByClass[h.to_class_id] || [] : [],
+        to_class_attendance: h.to_class_id ? attendanceByClass[h.to_class_id] || [] : [],
+        to_class_attendance_stats: h.to_class_id ? attendanceStatsByClass[h.to_class_id] : null,
         // Add for class_id (when entering/leaving)
         class_test_scores: h.class_id ? testScoresByClass[h.class_id] || [] : [],
         class_attendance: h.class_id ? attendanceByClass[h.class_id] || [] : [],
@@ -762,15 +766,16 @@ export default function ClassStudentsPage() {
                 <div className="absolute left-2 top-3 bottom-3 w-0.5 bg-border" />
                 
                 {enrollmentHistory.map((history, index) => {
-                  // Determine which class data to show (from_class for transfers, class for other actions)
-                  const classTestScores = history.from_class_id 
-                    ? history.from_class_test_scores 
+                  // For transfers: show to_class (current/destination class) data
+                  // For other actions (nhập học, etc.): show class data
+                  const classTestScores = history.to_class_id 
+                    ? history.to_class_test_scores 
                     : history.class_test_scores;
-                  const classAttendance = history.from_class_id 
-                    ? history.from_class_attendance 
+                  const classAttendance = history.to_class_id 
+                    ? history.to_class_attendance 
                     : history.class_attendance;
-                  const classAttendanceStats = history.from_class_id 
-                    ? history.from_class_attendance_stats 
+                  const classAttendanceStats = history.to_class_id 
+                    ? history.to_class_attendance_stats 
                     : history.class_attendance_stats;
                   
                   return (
