@@ -766,15 +766,16 @@ export default function ClassStudentsPage() {
                 <div className="absolute left-2 top-3 bottom-3 w-0.5 bg-border" />
                 
                 {enrollmentHistory.map((history, index) => {
-                  // Determine which class data to show (from_class for transfers, class for other actions)
-                  const classTestScores = history.from_class_id 
-                    ? history.from_class_test_scores 
+                  // For transfers: show to_class (current/destination class) data
+                  // For other actions (nhập học, etc.): show class data
+                  const classTestScores = history.to_class_id 
+                    ? history.to_class_test_scores 
                     : history.class_test_scores;
-                  const classAttendance = history.from_class_id 
-                    ? history.from_class_attendance 
+                  const classAttendance = history.to_class_id 
+                    ? history.to_class_attendance 
                     : history.class_attendance;
-                  const classAttendanceStats = history.from_class_id 
-                    ? history.from_class_attendance_stats 
+                  const classAttendanceStats = history.to_class_id 
+                    ? history.to_class_attendance_stats 
                     : history.class_attendance_stats;
                   
                   return (
