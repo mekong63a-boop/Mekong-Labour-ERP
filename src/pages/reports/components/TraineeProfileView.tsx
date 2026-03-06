@@ -300,7 +300,6 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
             <Section title="Địa chỉ" icon={MapPin}>
               <InfoRow label="Địa chỉ thường trú" value={profile.permanent_address} />
               <InfoRow label="Địa chỉ hiện tại" value={profile.current_address} />
-              <InfoRow label="Địa chỉ tạm trú" value={profile.temp_address} />
               <InfoRow label="Địa chỉ hộ khẩu" value={profile.household_address} />
             </Section>
 
