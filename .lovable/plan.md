@@ -1,67 +1,84 @@
+# BẢN CHỐT TRẠNG THÁI HỆ THỐNG - Ngày 07/03/2026
 
+> ⚠️ **CẢNH BÁO**: Toàn bộ hệ thống dưới đây đã được kiểm tra và CỐ ĐỊNH.
+> KHÔNG được tự ý thay đổi bất kỳ mục nào mà không có yêu cầu rõ ràng từ người dùng.
 
-## Root Cause Analysis
+---
 
-The issue is **NOT** in the React frontend code at all. It's a **database trigger chain** that overwrites the `simple_status` after every INSERT:
+## 1. MODULE BÁO CÁO & TRA CỨU (`/reports`)
 
-1. User saves new trainee with `simple_status = 'Dừng chương trình'`
-2. The INSERT succeeds with the correct value
-3. **Trigger `trigger_auto_create_workflow`** fires AFTER INSERT → creates a `trainee_workflow` record with `current_stage = 'recruited'`
-4. **Trigger `trigger_sync_trainee_status`** fires on the workflow insert → maps `'recruited'` → `'Đang học'` and **overwrites** `trainees.simple_status` back to `'Đang học'`
+### TraineeProfileView (UI Tra cứu hồ sơ 360°)
+- ✅ **Không có** phần "Lớp học" (đã loại bỏ)
+- ✅ **Không có** phần "Nhật ký hệ thống" / Audit Logs (đã loại bỏ)
+- ✅ **Không có** phần "Địa chỉ tạm trú" (đã loại bỏ)
+- ✅ Nhãn chuyên cần đầy đủ tiếng Việt:
+  - `present` → "Có mặt"
+  - `absent` → "Vắng"
+  - `late` → "Đi trễ"
+  - `excused` → "Nghỉ có phép"
+  - `unexcused` → "Nghỉ không phép"
+- ✅ Thông tin Công ty/Nghiệp đoàn CHỈ hiển thị cho học viên đã đậu PV
+- ✅ Bảng điểm hiển thị cột "Điểm" (score/max_score) + "Đánh giá"
 
-This is why the status always resets — the workflow sync trigger blindly overwrites whatever `simple_status` value the user set.
+### Edge Function `export-trainee-pdf`
+- ✅ **Đã loại bỏ** phần "Lớp học" (dòng 602: comment "ĐÃ LOẠI BỎ THEO YÊU CẦU")
+- ✅ **Đã loại bỏ** phần "Nhật ký hệ thống" (dòng 881: comment "ĐÃ LOẠI BỎ THEO YÊU CẦU")
+- ✅ statusLabels đầy đủ: `unexcused` → "Nghỉ không phép", `excused` → "Nghỉ có phép"
+- ✅ **Đã deploy** ngày 07/03/2026
 
-The same issue affects editing: the previous `formDataRef` fixes were unnecessary — the real problem was always this trigger chain.
+---
 
-## Fix Plan
+## 2. MODULE ĐÀO TẠO (`/education`)
 
-**Modify the `auto_create_trainee_workflow` function** to respect the `simple_status` value set by the user during INSERT:
+### Education Dashboard
+- ✅ Thống kê từ database view `education_interview_stats` (không tính toán frontend)
+- ✅ Logic: "Đã đậu" = `progression_stage != 'Chưa đậu'`; "Chưa đậu" = `progression_stage IS NULL OR = 'Chưa đậu'`
+- ✅ Danh sách vắng/trễ filter: `["late", "excused", "unexcused"]`
+- ✅ Labels tiếng Việt: "Trễ", "Có phép", "Không phép"
 
-1. **Map the trainee's `simple_status` to the correct workflow stage** instead of always using `'recruited'`. For example:
-   - `'Đăng ký mới'` → `'registered'` (or keep `'recruited'`)
-   - `'Dừng chương trình'` → `'terminated'`
-   - `'Đang học'` → `'training'`
+### Sĩ số
+- ✅ "Đang học" = có `class_id` + `departure_date IS NULL` + không thuộc giai đoạn kết thúc
 
-2. **Alternatively (simpler and safer)**: Modify the `sync_trainee_status_from_workflow` trigger to **skip the update** when it's triggered by the initial auto-create. This prevents the overwrite.
+---
 
-**Recommended approach**: Update `auto_create_trainee_workflow` to map from the NEW trainee's `simple_status` to the correct workflow stage, so the sync trigger maps it back to the same value. This keeps the system consistent.
+## 3. MODULE KTX (`/dormitory`)
 
-### Files to modify:
-- **New SQL migration**: Recreate `auto_create_trainee_workflow()` to use `NEW.simple_status` to determine the correct `current_stage` instead of hardcoding `'recruited'`
+### DormitoryPage
+- ✅ Cột **"Tình trạng PV"** hiển thị trong danh sách cư dân
+- ✅ Logic: progression_stage khác 'Chưa đậu' → Badge default; ngược lại → "Chưa đậu" (secondary)
+- ✅ SearchableSelect cho chuyển KTX (tìm theo Mã/Tên)
+- ✅ Logic tránh trùng lặp khi chuyển đi-về cùng ngày
 
-### Migration SQL (core logic):
-```sql
-CREATE OR REPLACE FUNCTION public.auto_create_trainee_workflow()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_stage trainee_workflow_stage;
-BEGIN
-  -- Map simple_status to workflow stage (reverse mapping)
-  v_stage := CASE NEW.simple_status
-    WHEN 'Đăng ký mới' THEN 'registered'::trainee_workflow_stage
-    WHEN 'Đang học' THEN 'training'::trainee_workflow_stage
-    WHEN 'Dừng chương trình' THEN 'terminated'::trainee_workflow_stage
-    WHEN 'Hủy' THEN 'terminated'::trainee_workflow_stage
-    WHEN 'Không học' THEN 'terminated'::trainee_workflow_stage
-    WHEN 'Bảo lưu' THEN 'recruited'::trainee_workflow_stage
-    WHEN 'Đang ở Nhật' THEN 'departed'::trainee_workflow_stage
-    WHEN 'Rời công ty' THEN 'terminated'::trainee_workflow_stage
-    ELSE 'registered'::trainee_workflow_stage
-  END;
+---
 
-  INSERT INTO trainee_workflow (trainee_id, current_stage, created_at, updated_at)
-  VALUES (NEW.id, v_stage, NOW(), NOW())
-  ON CONFLICT (trainee_id) DO NOTHING;
-  RETURN NEW;
-END;
-$$;
-```
+## 4. AI CHATBOT (Edge Function `ai-chat`)
 
-Additionally, update `sync_trainee_status_from_workflow` to handle `'registered'` → `'Đăng ký mới'` (currently maps to `'Đang học'`, which is wrong) and add the `'terminated'` stage mapping.
+### Logic truy vấn dữ liệu
+- ✅ KTX: Phân tách đậu/chưa đậu từ `dormitory_residents` join `trainees.progression_stage`
+- ✅ Đào tạo: Học viên đang học = `class_id NOT NULL + departure_date IS NULL + không thuộc giai đoạn kết thúc`
+- ✅ Phỏng vấn (chung): `eq('progression_stage', 'Đậu phỏng vấn')` — KHÔNG tính Xuất cảnh/Bỏ trốn
+- ✅ Anti-hallucination: Quy tắc chống bịa đặt ưu tiên cao nhất
+- ✅ **Đã deploy** ngày 07/03/2026
 
-Also **clean up the unnecessary `formDataRef` workarounds** in TraineeForm.tsx since they were masking the real DB issue, though they are harmless to keep.
+---
 
+## 5. CÁC QUY TẮC CỐ ĐỊNH
+
+1. **SSOT (Single Source of Truth)**: Mỗi nghiệp vụ chỉ 1 nguồn dữ liệu, 1 luồng xử lý
+2. **Brain/Hands**: Supabase = logic; Lovable = UI hiển thị
+3. **Export đồng bộ**: Mọi cột mới trên UI phải cập nhật ngay vào `export-configs.ts`
+4. **Edge Function**: Phải deploy sau khi sửa code, nếu không thay đổi không có hiệu lực
+5. **Tầm nhìn 20 năm**: Kiến trúc cho 40.000+ học viên, 50+ user đồng thời
+
+---
+
+## 6. DATABASE VIEWS ĐÃ CHỐT
+
+- `education_interview_stats`: Đếm đậu/chưa đậu PV theo giới tính (đã sửa logic ngày 07/03)
+- `dashboard_education_total`: Tổng sĩ số đang học
+- `dormitories_with_occupancy`: KTX kèm số người ở hiện tại
+- `education_stats`: Tổng giáo viên/lớp học
+
+---
+
+*Bản chốt này là tài liệu tham chiếu để đảm bảo không có regression trong tương lai.*
