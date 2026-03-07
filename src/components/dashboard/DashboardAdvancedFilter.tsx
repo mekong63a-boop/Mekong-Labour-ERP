@@ -432,6 +432,9 @@ export default function DashboardAdvancedFilter() {
                             {passed && t.interview_pass_date ? formatVietnameseDate(t.interview_pass_date) : "—"}
                           </TableCell>
                           <TableCell className="text-xs">{t.source || "—"}</TableCell>
+                          <TableCell className="text-xs">
+                            {t.registration_date ? formatVietnameseDate(t.registration_date) : "—"}
+                          </TableCell>
                         </TableRow>
                       );
                     })}
