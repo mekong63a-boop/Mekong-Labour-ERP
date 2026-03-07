@@ -63,6 +63,7 @@ interface TraineeResult {
   birthplace: string | null;
   trainee_type: string | null;
   progression_stage: string | null;
+  source: string | null;
   // Date fields
   created_at: string | null;
   registration_date: string | null;
@@ -74,6 +75,10 @@ interface TraineeResult {
   return_date: string | null;
   early_return_date: string | null;
   absconded_date: string | null;
+  // Joined relations
+  companies: { name_japanese: string | null } | null;
+  unions: { name_japanese: string | null } | null;
+  job_categories: { name_japanese: string | null } | null;
 }
 
 export default function DashboardAdvancedFilter() {
