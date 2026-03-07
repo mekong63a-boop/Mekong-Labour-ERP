@@ -396,40 +396,43 @@ export default function DashboardAdvancedFilter() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {results.map((t, idx) => (
-                      <TableRow
-                        key={t.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => navigate(`/trainees/${t.id}`)}
-                      >
-                        <TableCell className="text-center text-xs text-muted-foreground">
-                          {idx + 1}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {t.trainee_code}
-                        </TableCell>
-                        <TableCell className="font-medium text-sm">
-                          {t.full_name}
-                        </TableCell>
-                        <TableCell className="text-xs">{t.gender || "—"}</TableCell>
-                        <TableCell className="text-xs">
-                          {t.birth_date ? formatVietnameseDate(t.birth_date) : "—"}
-                        </TableCell>
-                        <TableCell className="text-xs">{t.birthplace || "—"}</TableCell>
-                        <TableCell className="text-xs">{t.trainee_type || "—"}</TableCell>
-                        <TableCell className="text-xs">{t.progression_stage || "—"}</TableCell>
-                        <TableCell className="text-xs">
-                          {t.entry_date ? formatVietnameseDate(t.entry_date) : "—"}
-                        </TableCell>
-                        <TableCell className="text-xs">{t.companies?.name_japanese || "—"}</TableCell>
-                        <TableCell className="text-xs">{t.unions?.name_japanese || "—"}</TableCell>
-                        <TableCell className="text-xs">{t.job_categories?.name_japanese || "—"}</TableCell>
-                        <TableCell className="text-xs">
-                          {t.interview_pass_date ? formatVietnameseDate(t.interview_pass_date) : "—"}
-                        </TableCell>
-                        <TableCell className="text-xs">{t.source || "—"}</TableCell>
-                      </TableRow>
-                    ))}
+                    {results.map((t, idx) => {
+                      const passed = t.progression_stage && t.progression_stage !== "Chưa đậu";
+                      return (
+                        <TableRow
+                          key={t.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => navigate(`/trainees/${t.id}`)}
+                        >
+                          <TableCell className="text-center text-xs text-muted-foreground">
+                            {idx + 1}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {t.trainee_code}
+                          </TableCell>
+                          <TableCell className="font-medium text-sm">
+                            {t.full_name}
+                          </TableCell>
+                          <TableCell className="text-xs">{t.gender || "—"}</TableCell>
+                          <TableCell className="text-xs">
+                            {t.birth_date ? formatVietnameseDate(t.birth_date) : "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">{t.birthplace || "—"}</TableCell>
+                          <TableCell className="text-xs">{t.trainee_type || "—"}</TableCell>
+                          <TableCell className="text-xs">{t.progression_stage || "—"}</TableCell>
+                          <TableCell className="text-xs">
+                            {t.entry_date ? formatVietnameseDate(t.entry_date) : "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">{passed ? (t.companies?.name_japanese || t.companies?.name || "—") : "—"}</TableCell>
+                          <TableCell className="text-xs">{passed ? (t.unions?.name_japanese || t.unions?.name || "—") : "—"}</TableCell>
+                          <TableCell className="text-xs">{passed ? (t.job_categories?.name_japanese || t.job_categories?.name || "—") : "—"}</TableCell>
+                          <TableCell className="text-xs">
+                            {passed && t.interview_pass_date ? formatVietnameseDate(t.interview_pass_date) : "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">{t.source || "—"}</TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
