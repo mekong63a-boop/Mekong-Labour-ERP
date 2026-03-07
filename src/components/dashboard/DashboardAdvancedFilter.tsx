@@ -1,13 +1,14 @@
 import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 import { CalendarIcon, Search, Download, Loader2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -36,14 +37,15 @@ import { useNavigate } from "react-router-dom";
 
 // =============================================================================
 // SINGLE SOURCE: Event types map to specific date fields in trainees table
+// RULE: "Đăng ký mới" dùng registration_date (khớp với view dashboard_monthly_combined)
+// RULE: Không có bất kỳ mục nào liên quan đến visa
 // =============================================================================
 const EVENT_TYPES = [
-  { value: "registered", label: "Đăng ký mới", dateField: "created_at", color: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" },
+  { value: "registered", label: "Đăng ký mới", dateField: "registration_date", color: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" },
   { value: "entry", label: "Nhập học", dateField: "entry_date", color: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" },
   { value: "interview_pass", label: "Đậu phỏng vấn", dateField: "interview_pass_date", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300" },
   { value: "document_submit", label: "Nộp hồ sơ", dateField: "document_submission_date", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300" },
   { value: "coe", label: "Cấp COE", dateField: "coe_date", color: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300" },
-  { value: "visa", label: "Cấp Visa", dateField: "visa_date", color: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300" },
   { value: "departure", label: "Xuất cảnh", dateField: "departure_date", color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300" },
   { value: "return", label: "Hoàn thành hợp đồng", dateField: "return_date", color: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300" },
   { value: "early_return", label: "Về trước hạn", dateField: "early_return_date", color: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300" },
@@ -63,11 +65,11 @@ interface TraineeResult {
   progression_stage: string | null;
   // Date fields
   created_at: string | null;
+  registration_date: string | null;
   entry_date: string | null;
   interview_pass_date: string | null;
   document_submission_date: string | null;
   coe_date: string | null;
-  visa_date: string | null;
   departure_date: string | null;
   return_date: string | null;
   early_return_date: string | null;
@@ -78,9 +80,28 @@ export default function DashboardAdvancedFilter() {
   const navigate = useNavigate();
   const [fromDate, setFromDate] = useState<Date | undefined>();
   const [toDate, setToDate] = useState<Date | undefined>();
+  const [fromInput, setFromInput] = useState("");
+  const [toInput, setToInput] = useState("");
   const [eventType, setEventType] = useState<EventTypeValue | "">("");
   const [searchTriggered, setSearchTriggered] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  // Parse manual date input (dd/MM/yyyy)
+  const handleDateInput = (value: string, setter: (d: Date | undefined) => void, inputSetter: (v: string) => void) => {
+    inputSetter(value);
+    setSearchTriggered(false);
+    // Auto-parse when format matches dd/MM/yyyy
+    const parsed = parse(value, "dd/MM/yyyy", new Date());
+    if (isValid(parsed) && value.length === 10) {
+      setter(parsed);
+    }
+  };
+
+  const handleCalendarSelect = (d: Date | undefined, setter: (d: Date | undefined) => void, inputSetter: (v: string) => void) => {
+    setter(d);
+    inputSetter(d ? format(d, "dd/MM/yyyy") : "");
+    setSearchTriggered(false);
+  };
 
   const selectedEvent = EVENT_TYPES.find((e) => e.value === eventType);
 
@@ -107,7 +128,7 @@ export default function DashboardAdvancedFilter() {
       const { data, error } = await supabase
         .from("trainees")
         .select(
-          "id, trainee_code, full_name, gender, birth_date, birthplace, trainee_type, progression_stage, created_at, entry_date, interview_pass_date, document_submission_date, coe_date, visa_date, departure_date, return_date, early_return_date, absconded_date"
+          "id, trainee_code, full_name, gender, birth_date, birthplace, trainee_type, progression_stage, created_at, registration_date, entry_date, interview_pass_date, document_submission_date, coe_date, departure_date, return_date, early_return_date, absconded_date"
         )
         .gte(dateField, from)
         .lte(dateField, to + "T23:59:59")
@@ -220,66 +241,64 @@ export default function DashboardAdvancedFilter() {
             </Select>
           </div>
 
-          {/* From Date */}
+          {/* From Date - manual input + calendar */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Từ ngày</label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "h-9 w-[140px] justify-start text-left font-normal",
-                    !fromDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                  {fromDate ? format(fromDate, "dd/MM/yyyy") : "Chọn..."}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={fromDate}
-                  onSelect={(d) => {
-                    setFromDate(d);
-                    setSearchTriggered(false);
-                  }}
-                  initialFocus
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
+            <div className="flex items-center gap-1">
+              <Input
+                placeholder="dd/MM/yyyy"
+                value={fromInput}
+                onChange={(e) => handleDateInput(e.target.value, setFromDate, setFromInput)}
+                className="h-9 w-[120px] text-sm"
+                maxLength={10}
+              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-9 w-9 shrink-0">
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={fromDate}
+                    onSelect={(d) => handleCalendarSelect(d, setFromDate, setFromInput)}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
-          {/* To Date */}
+          {/* To Date - manual input + calendar */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Đến ngày</label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "h-9 w-[140px] justify-start text-left font-normal",
-                    !toDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                  {toDate ? format(toDate, "dd/MM/yyyy") : "Chọn..."}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={toDate}
-                  onSelect={(d) => {
-                    setToDate(d);
-                    setSearchTriggered(false);
-                  }}
-                  initialFocus
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
+            <div className="flex items-center gap-1">
+              <Input
+                placeholder="dd/MM/yyyy"
+                value={toInput}
+                onChange={(e) => handleDateInput(e.target.value, setToDate, setToInput)}
+                className="h-9 w-[120px] text-sm"
+                maxLength={10}
+              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-9 w-9 shrink-0">
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={toDate}
+                    onSelect={(d) => handleCalendarSelect(d, setToDate, setToInput)}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
           {/* Search Button */}
