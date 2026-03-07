@@ -224,10 +224,6 @@ export default function DashboardAdvancedFilter() {
     }
   }, [results, selectedEvent, fromDate, toDate]);
 
-  const getEventDateValue = (trainee: TraineeResult): string | null => {
-    if (!selectedEvent) return null;
-    return trainee[selectedEvent.dateField as keyof TraineeResult] as string | null;
-  };
 
   return (
     <Card>
