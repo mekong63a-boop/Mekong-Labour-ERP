@@ -394,6 +394,7 @@ export default function DashboardAdvancedFilter() {
                       <TableHead className="min-w-[100px]">Ngành nghề (JP)</TableHead>
                       <TableHead className="w-24">Ngày đậu</TableHead>
                       <TableHead className="w-20">Nguồn</TableHead>
+                      <TableHead className="w-24">Ngày ĐK</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
