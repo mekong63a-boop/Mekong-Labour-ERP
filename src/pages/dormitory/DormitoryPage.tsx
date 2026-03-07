@@ -878,6 +878,7 @@ export default function DormitoryPage() {
                     <TableRow>
                       <TableHead className="w-12">#</TableHead>
                       <TableHead>Học viên</TableHead>
+                      <TableHead>Tình trạng PV</TableHead>
                       <TableHead>Phòng</TableHead>
                       <TableHead>Giường</TableHead>
                       <TableHead>Ngày vào</TableHead>
@@ -909,6 +910,17 @@ export default function DormitoryPage() {
                               </p>
                             </div>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={
+                            res.trainee?.progression_stage && res.trainee.progression_stage !== 'Chưa đậu'
+                              ? 'default'
+                              : 'secondary'
+                          }>
+                            {res.trainee?.progression_stage && res.trainee.progression_stage !== 'Chưa đậu'
+                              ? res.trainee.progression_stage
+                              : 'Chưa đậu'}
+                          </Badge>
                         </TableCell>
                         <TableCell>{res.room_number || "—"}</TableCell>
                         <TableCell>{res.bed_number || "—"}</TableCell>
