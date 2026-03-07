@@ -1188,6 +1188,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                     onChange={(e) => updateField("furigana", e.target.value)}
                     placeholder="グエン ヴァン アー"
                     className={getInputClass(formData.furigana)}
+                    skipUppercase
                   />
                 </div>
 
