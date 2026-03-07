@@ -252,12 +252,16 @@ async function querySystemData(userMessage: string, supabase: SupabaseClient): P
         .select('*', { count: 'exact', head: true })
         .eq('status', 'Đang hoạt động');
       
-      // 6c. Học viên đang học (enrollment_status = 'Đang học')
+      // 6c. Học viên đang học (enrollment_status = 'Đang học') - tách rõ đậu/chưa đậu
       const { data: studyingTrainees, count: studyingCount } = await supabase
         .from('trainees')
-        .select('full_name, trainee_code, progression_stage, enrollment_status, class_id', { count: 'exact' })
+        .select('full_name, trainee_code, progression_stage, enrollment_status, gender', { count: 'exact' })
         .eq('enrollment_status', 'Đang học')
         .limit(100);
+      
+      // Tách rõ ràng: đang học + đậu vs đang học + chưa đậu
+      const passedAndStudying = (studyingTrainees || []).filter(t => t.progression_stage && t.progression_stage !== 'Chưa đậu');
+      const notPassedAndStudying = (studyingTrainees || []).filter(t => !t.progression_stage || t.progression_stage === 'Chưa đậu');
       
       // 6d. Sĩ số từ view
       const { data: educationTotal } = await supabase
@@ -277,7 +281,10 @@ async function querySystemData(userMessage: string, supabase: SupabaseClient): P
           active_classes: classCount, 
           active_teachers: teacherCount,
           total_studying: educationTotal?.total_studying ?? studyingCount,
-          studying_trainees: studyingTrainees,
+          studying_passed_interview: passedAndStudying.length,
+          studying_passed_list: passedAndStudying,
+          studying_not_passed: notPassedAndStudying.length,
+          studying_not_passed_list: notPassedAndStudying,
           interview_stats: interviewStats,
           classes 
         } 
