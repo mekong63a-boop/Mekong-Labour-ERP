@@ -63,6 +63,7 @@ interface TraineeResult {
   birthplace: string | null;
   trainee_type: string | null;
   progression_stage: string | null;
+  source: string | null;
   // Date fields
   created_at: string | null;
   registration_date: string | null;
@@ -74,6 +75,10 @@ interface TraineeResult {
   return_date: string | null;
   early_return_date: string | null;
   absconded_date: string | null;
+  // Joined relations
+  companies: { name_japanese: string | null } | null;
+  unions: { name_japanese: string | null } | null;
+  job_categories: { name_japanese: string | null } | null;
 }
 
 export default function DashboardAdvancedFilter() {
@@ -143,7 +148,7 @@ export default function DashboardAdvancedFilter() {
       const { data, error } = await supabase
         .from("trainees")
         .select(
-          "id, trainee_code, full_name, gender, birth_date, birthplace, trainee_type, progression_stage, created_at, registration_date, entry_date, interview_pass_date, document_submission_date, coe_date, departure_date, return_date, early_return_date, absconded_date"
+          "id, trainee_code, full_name, gender, birth_date, birthplace, trainee_type, progression_stage, source, created_at, registration_date, entry_date, interview_pass_date, document_submission_date, coe_date, departure_date, return_date, early_return_date, absconded_date, companies:receiving_company_id(name_japanese), unions:union_id(name_japanese), job_categories:job_category_id(name_japanese)"
         )
         .gte(dateField, from)
         .lte(dateField, to + "T23:59:59")
@@ -177,7 +182,6 @@ export default function DashboardAdvancedFilter() {
     setIsExporting(true);
 
     try {
-      const dateField = selectedEvent.dateField as keyof TraineeResult;
       const exportData = results.map((t, idx) => ({
         STT: idx + 1,
         "Mã HV": t.trainee_code,
@@ -187,9 +191,12 @@ export default function DashboardAdvancedFilter() {
         "Quê quán": t.birthplace || "",
         "Đối tượng": t.trainee_type || "",
         "Giai đoạn": t.progression_stage || "",
-        [selectedEvent.label]: t[dateField]
-          ? formatVietnameseDate(t[dateField] as string)
-          : "",
+        "Nhập học": t.entry_date ? formatVietnameseDate(t.entry_date) : "",
+        "Công ty (JP)": t.companies?.name_japanese || "",
+        "Nghiệp đoàn (JP)": t.unions?.name_japanese || "",
+        "Ngành nghề (JP)": t.job_categories?.name_japanese || "",
+        "Ngày đậu": t.interview_pass_date ? formatVietnameseDate(t.interview_pass_date) : "",
+        "Nguồn": t.source || "",
       }));
 
       const ws = XLSX.utils.json_to_sheet(exportData);
@@ -217,10 +224,6 @@ export default function DashboardAdvancedFilter() {
     }
   }, [results, selectedEvent, fromDate, toDate]);
 
-  const getEventDateValue = (trainee: TraineeResult): string | null => {
-    if (!selectedEvent) return null;
-    return trainee[selectedEvent.dateField as keyof TraineeResult] as string | null;
-  };
 
   return (
     <Card>
@@ -376,12 +379,17 @@ export default function DashboardAdvancedFilter() {
                       <TableHead className="w-12 text-center">STT</TableHead>
                       <TableHead className="w-20">Mã HV</TableHead>
                       <TableHead className="min-w-[140px]">Họ và tên</TableHead>
-                      <TableHead className="w-16">GT</TableHead>
+                      <TableHead className="w-14">GT</TableHead>
                       <TableHead className="w-24">Ngày sinh</TableHead>
-                      <TableHead className="min-w-[100px]">Quê quán</TableHead>
-                      <TableHead className="w-24">Đối tượng</TableHead>
+                      <TableHead className="min-w-[80px]">Quê quán</TableHead>
+                      <TableHead className="w-20">Đối tượng</TableHead>
                       <TableHead className="w-24">Giai đoạn</TableHead>
-                      <TableHead className="w-28">{selectedEvent?.label}</TableHead>
+                      <TableHead className="w-24">Nhập học</TableHead>
+                      <TableHead className="min-w-[100px]">Công ty (JP)</TableHead>
+                      <TableHead className="min-w-[100px]">Nghiệp đoàn (JP)</TableHead>
+                      <TableHead className="min-w-[100px]">Ngành nghề (JP)</TableHead>
+                      <TableHead className="w-24">Ngày đậu</TableHead>
+                      <TableHead className="w-20">Nguồn</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -404,20 +412,19 @@ export default function DashboardAdvancedFilter() {
                         <TableCell className="text-xs">
                           {t.birth_date ? formatVietnameseDate(t.birth_date) : "—"}
                         </TableCell>
+                        <TableCell className="text-xs">{t.birthplace || "—"}</TableCell>
+                        <TableCell className="text-xs">{t.trainee_type || "—"}</TableCell>
+                        <TableCell className="text-xs">{t.progression_stage || "—"}</TableCell>
                         <TableCell className="text-xs">
-                          {t.birthplace || "—"}
+                          {t.entry_date ? formatVietnameseDate(t.entry_date) : "—"}
                         </TableCell>
+                        <TableCell className="text-xs">{t.companies?.name_japanese || "—"}</TableCell>
+                        <TableCell className="text-xs">{t.unions?.name_japanese || "—"}</TableCell>
+                        <TableCell className="text-xs">{t.job_categories?.name_japanese || "—"}</TableCell>
                         <TableCell className="text-xs">
-                          {t.trainee_type || "—"}
+                          {t.interview_pass_date ? formatVietnameseDate(t.interview_pass_date) : "—"}
                         </TableCell>
-                        <TableCell className="text-xs">
-                          {t.progression_stage || "—"}
-                        </TableCell>
-                        <TableCell className="text-xs font-medium">
-                          {getEventDateValue(t)
-                            ? formatVietnameseDate(getEventDateValue(t)!)
-                            : "—"}
-                        </TableCell>
+                        <TableCell className="text-xs">{t.source || "—"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
