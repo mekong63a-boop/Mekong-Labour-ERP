@@ -182,7 +182,6 @@ export default function DashboardAdvancedFilter() {
     setIsExporting(true);
 
     try {
-      const dateField = selectedEvent.dateField as keyof TraineeResult;
       const exportData = results.map((t, idx) => ({
         STT: idx + 1,
         "Mã HV": t.trainee_code,
@@ -192,9 +191,12 @@ export default function DashboardAdvancedFilter() {
         "Quê quán": t.birthplace || "",
         "Đối tượng": t.trainee_type || "",
         "Giai đoạn": t.progression_stage || "",
-        [selectedEvent.label]: t[dateField]
-          ? formatVietnameseDate(t[dateField] as string)
-          : "",
+        "Nhập học": t.entry_date ? formatVietnameseDate(t.entry_date) : "",
+        "Công ty (JP)": t.companies?.name_japanese || "",
+        "Nghiệp đoàn (JP)": t.unions?.name_japanese || "",
+        "Ngành nghề (JP)": t.job_categories?.name_japanese || "",
+        "Ngày đậu": t.interview_pass_date ? formatVietnameseDate(t.interview_pass_date) : "",
+        "Nguồn": t.source || "",
       }));
 
       const ws = XLSX.utils.json_to_sheet(exportData);
