@@ -200,6 +200,7 @@ export default function DashboardAdvancedFilter() {
         "Ngành nghề (JP)": isPassed(t.progression_stage) ? (t.job_categories?.name_japanese || "") : "",
         "Ngày đậu": isPassed(t.progression_stage) && t.interview_pass_date ? formatVietnameseDate(t.interview_pass_date) : "",
         "Nguồn": t.source || "",
+        "Ngày đăng ký": t.registration_date ? formatVietnameseDate(t.registration_date) : "",
       }));
 
       const ws = XLSX.utils.json_to_sheet(exportData);
@@ -393,6 +394,7 @@ export default function DashboardAdvancedFilter() {
                       <TableHead className="min-w-[100px]">Ngành nghề (JP)</TableHead>
                       <TableHead className="w-24">Ngày đậu</TableHead>
                       <TableHead className="w-20">Nguồn</TableHead>
+                      <TableHead className="w-24">Ngày ĐK</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -430,6 +432,9 @@ export default function DashboardAdvancedFilter() {
                             {passed && t.interview_pass_date ? formatVietnameseDate(t.interview_pass_date) : "—"}
                           </TableCell>
                           <TableCell className="text-xs">{t.source || "—"}</TableCell>
+                          <TableCell className="text-xs">
+                            {t.registration_date ? formatVietnameseDate(t.registration_date) : "—"}
+                          </TableCell>
                         </TableRow>
                       );
                     })}
