@@ -423,9 +423,9 @@ export default function DashboardAdvancedFilter() {
                           <TableCell className="text-xs">
                             {t.entry_date ? formatVietnameseDate(t.entry_date) : "—"}
                           </TableCell>
-                          <TableCell className="text-xs">{passed ? (t.companies?.name_japanese || t.companies?.name || "—") : "—"}</TableCell>
-                          <TableCell className="text-xs">{passed ? (t.unions?.name_japanese || t.unions?.name || "—") : "—"}</TableCell>
-                          <TableCell className="text-xs">{passed ? (t.job_categories?.name_japanese || t.job_categories?.name || "—") : "—"}</TableCell>
+                          <TableCell className="text-xs">{passed ? (t.companies?.name || "—") : "—"}</TableCell>
+                          <TableCell className="text-xs">{passed ? (t.unions?.name || "—") : "—"}</TableCell>
+                          <TableCell className="text-xs">{passed ? (t.job_categories?.name_japanese || "—") : "—"}</TableCell>
                           <TableCell className="text-xs">
                             {passed && t.interview_pass_date ? formatVietnameseDate(t.interview_pass_date) : "—"}
                           </TableCell>
