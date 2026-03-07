@@ -234,7 +234,8 @@ const statusLabels: Record<string, string> = {
   present: "Có mặt",
   absent: "Vắng",
   late: "Đi trễ",
-  excused: "Nghỉ phép",
+  excused: "Nghỉ có phép",
+  unexcused: "Nghỉ không phép",
 };
 
 function formatDate(dateStr: string | null): string {
