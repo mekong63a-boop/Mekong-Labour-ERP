@@ -131,6 +131,7 @@ export function BasicInfoSection({ trainee }: BasicInfoSectionProps) {
           <Input
             value={formData.furigana}
             onChange={(e) => setFormData({ ...formData, furigana: e.target.value })}
+            skipUppercase
           />
         </div>
         <div>

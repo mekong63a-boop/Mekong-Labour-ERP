@@ -2,8 +2,31 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+const SKIP_UPPERCASE_TYPES = ["email", "password", "search", "url"];
+
+export interface InputProps extends React.ComponentProps<"input"> {
+  /** Set to true to skip auto-uppercase (e.g. for furigana fields) */
+  skipUppercase?: boolean;
+}
+
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type, skipUppercase, onBlur, ...props }, ref) => {
+    const shouldUppercase = !skipUppercase && !SKIP_UPPERCASE_TYPES.includes(type || "");
+
+    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+      if (shouldUppercase && e.target.value) {
+        const upper = e.target.value.toUpperCase();
+        if (upper !== e.target.value) {
+          const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+            window.HTMLInputElement.prototype, 'value'
+          )?.set;
+          nativeInputValueSetter?.call(e.target, upper);
+          e.target.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+      onBlur?.(e);
+    };
+
     return (
       <input
         type={type}
@@ -12,6 +35,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className,
         )}
         ref={ref}
+        onBlur={handleBlur}
         {...props}
       />
     );
