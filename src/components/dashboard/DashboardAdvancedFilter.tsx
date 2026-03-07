@@ -182,6 +182,9 @@ export default function DashboardAdvancedFilter() {
     setIsExporting(true);
 
     try {
+      // Business rule: "Chưa đậu" không hiển thị công ty/nghiệp đoàn/ngành nghề/ngày đậu
+      const isPassed = (stage: string | null) => stage && stage !== "Chưa đậu";
+
       const exportData = results.map((t, idx) => ({
         STT: idx + 1,
         "Mã HV": t.trainee_code,
@@ -192,10 +195,10 @@ export default function DashboardAdvancedFilter() {
         "Đối tượng": t.trainee_type || "",
         "Giai đoạn": t.progression_stage || "",
         "Nhập học": t.entry_date ? formatVietnameseDate(t.entry_date) : "",
-        "Công ty (JP)": t.companies?.name_japanese || "",
-        "Nghiệp đoàn (JP)": t.unions?.name_japanese || "",
-        "Ngành nghề (JP)": t.job_categories?.name_japanese || "",
-        "Ngày đậu": t.interview_pass_date ? formatVietnameseDate(t.interview_pass_date) : "",
+        "Công ty (JP)": isPassed(t.progression_stage) ? (t.companies?.name_japanese || t.companies?.name || "") : "",
+        "Nghiệp đoàn (JP)": isPassed(t.progression_stage) ? (t.unions?.name_japanese || t.unions?.name || "") : "",
+        "Ngành nghề (JP)": isPassed(t.progression_stage) ? (t.job_categories?.name_japanese || t.job_categories?.name || "") : "",
+        "Ngày đậu": isPassed(t.progression_stage) && t.interview_pass_date ? formatVietnameseDate(t.interview_pass_date) : "",
         "Nguồn": t.source || "",
       }));
 
