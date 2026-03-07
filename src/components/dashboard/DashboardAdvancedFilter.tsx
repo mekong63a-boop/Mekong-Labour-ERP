@@ -76,9 +76,9 @@ interface TraineeResult {
   early_return_date: string | null;
   absconded_date: string | null;
   // Joined relations
-  companies: { name_japanese: string | null } | null;
-  unions: { name_japanese: string | null } | null;
-  job_categories: { name_japanese: string | null } | null;
+  companies: { name: string | null; name_japanese: string | null } | null;
+  unions: { name: string | null; name_japanese: string | null } | null;
+  job_categories: { name: string | null; name_japanese: string | null } | null;
 }
 
 export default function DashboardAdvancedFilter() {
