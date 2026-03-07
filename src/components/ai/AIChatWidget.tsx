@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Bot, X, Send, Trash2, Loader2 } from "lucide-react";
+import { Bot, X, Send, Trash2, Loader2, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import { useCanAccessMenu } from "@/hooks/useMenuPermissions";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +15,8 @@ interface ChatMessage {
   content: string;
 }
 
+const AI_ENABLED_KEY = "mekong_ai_enabled";
+
 export function AIChatWidget() {
   const { canView, isLoading: permLoading } = useCanAccessMenu("ai_assistant");
   const { user } = useAuth();
@@ -22,6 +25,10 @@ export function AIChatWidget() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [aiEnabled, setAiEnabled] = useState(() => {
+    const saved = localStorage.getItem(AI_ENABLED_KEY);
+    return saved !== null ? saved === "true" : true;
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -51,6 +58,13 @@ export function AIChatWidget() {
     };
     loadHistory();
   }, [open, user?.id]);
+
+  const toggleAiEnabled = (enabled: boolean) => {
+    setAiEnabled(enabled);
+    localStorage.setItem(AI_ENABLED_KEY, String(enabled));
+    toast.success(enabled ? "Đã bật Trợ lý AI" : "Đã tắt Trợ lý AI");
+    if (!enabled) setOpen(false);
+  };
 
   const sendMessage = useCallback(async () => {
     const trimmed = input.trim();
@@ -115,6 +129,20 @@ export function AIChatWidget() {
   // Don't render if no permission
   if (permLoading || !canView) return null;
 
+  // AI is disabled - don't show anything
+  if (!aiEnabled) {
+    return (
+      <button
+        onClick={() => toggleAiEnabled(true)}
+        className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full bg-muted text-muted-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105 flex items-center justify-center opacity-50 hover:opacity-100"
+        aria-label="Bật trợ lý AI"
+        title="AI đang tắt - Nhấn để bật"
+      >
+        <Bot className="h-6 w-6" />
+      </button>
+    );
+  }
+
   return (
     <>
       {/* Floating Action Button */}
@@ -138,6 +166,15 @@ export function AIChatWidget() {
               <span className="font-semibold text-sm">Trợ lý AI Mekong</span>
             </div>
             <div className="flex items-center gap-1">
+              {/* AI On/Off Toggle */}
+              <div className="flex items-center gap-1 mr-1" title="Bật/tắt AI">
+                <Power className="h-3.5 w-3.5" />
+                <Switch
+                  checked={aiEnabled}
+                  onCheckedChange={toggleAiEnabled}
+                  className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-red-500 scale-75"
+                />
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
