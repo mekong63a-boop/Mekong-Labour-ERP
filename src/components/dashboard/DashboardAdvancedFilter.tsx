@@ -195,9 +195,9 @@ export default function DashboardAdvancedFilter() {
         "Đối tượng": t.trainee_type || "",
         "Giai đoạn": t.progression_stage || "",
         "Nhập học": t.entry_date ? formatVietnameseDate(t.entry_date) : "",
-        "Công ty (JP)": isPassed(t.progression_stage) ? (t.companies?.name_japanese || t.companies?.name || "") : "",
-        "Nghiệp đoàn (JP)": isPassed(t.progression_stage) ? (t.unions?.name_japanese || t.unions?.name || "") : "",
-        "Ngành nghề (JP)": isPassed(t.progression_stage) ? (t.job_categories?.name_japanese || t.job_categories?.name || "") : "",
+        "Công ty (JP)": isPassed(t.progression_stage) ? (t.companies?.name || "") : "",
+        "Nghiệp đoàn (JP)": isPassed(t.progression_stage) ? (t.unions?.name || "") : "",
+        "Ngành nghề (JP)": isPassed(t.progression_stage) ? (t.job_categories?.name_japanese || "") : "",
         "Ngày đậu": isPassed(t.progression_stage) && t.interview_pass_date ? formatVietnameseDate(t.interview_pass_date) : "",
         "Nguồn": t.source || "",
       }));
@@ -423,9 +423,9 @@ export default function DashboardAdvancedFilter() {
                           <TableCell className="text-xs">
                             {t.entry_date ? formatVietnameseDate(t.entry_date) : "—"}
                           </TableCell>
-                          <TableCell className="text-xs">{passed ? (t.companies?.name_japanese || t.companies?.name || "—") : "—"}</TableCell>
-                          <TableCell className="text-xs">{passed ? (t.unions?.name_japanese || t.unions?.name || "—") : "—"}</TableCell>
-                          <TableCell className="text-xs">{passed ? (t.job_categories?.name_japanese || t.job_categories?.name || "—") : "—"}</TableCell>
+                          <TableCell className="text-xs">{passed ? (t.companies?.name || "—") : "—"}</TableCell>
+                          <TableCell className="text-xs">{passed ? (t.unions?.name || "—") : "—"}</TableCell>
+                          <TableCell className="text-xs">{passed ? (t.job_categories?.name_japanese || "—") : "—"}</TableCell>
                           <TableCell className="text-xs">
                             {passed && t.interview_pass_date ? formatVietnameseDate(t.interview_pass_date) : "—"}
                           </TableCell>
