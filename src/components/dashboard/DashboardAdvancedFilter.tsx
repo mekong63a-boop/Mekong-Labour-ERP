@@ -86,14 +86,29 @@ export default function DashboardAdvancedFilter() {
   const [searchTriggered, setSearchTriggered] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Parse manual date input (dd/MM/yyyy)
+  // Parse manual date input with auto-format dd/MM/yyyy (tự thêm dấu /)
   const handleDateInput = (value: string, setter: (d: Date | undefined) => void, inputSetter: (v: string) => void) => {
-    inputSetter(value);
     setSearchTriggered(false);
-    // Auto-parse when format matches dd/MM/yyyy
-    const parsed = parse(value, "dd/MM/yyyy", new Date());
-    if (isValid(parsed) && value.length === 10) {
-      setter(parsed);
+    
+    // Remove non-digit and non-slash chars
+    const clean = value.replace(/[^\d/]/g, "");
+    
+    // Auto-insert slashes: after 2 digits (day) and after 5 chars (day + / + month)
+    let formatted = "";
+    const digits = clean.replace(/\//g, "");
+    for (let i = 0; i < digits.length && i < 8; i++) {
+      if (i === 2 || i === 4) formatted += "/";
+      formatted += digits[i];
+    }
+    
+    inputSetter(formatted);
+    
+    // Parse when complete (dd/MM/yyyy = 10 chars)
+    if (formatted.length === 10) {
+      const parsed = parse(formatted, "dd/MM/yyyy", new Date());
+      if (isValid(parsed)) {
+        setter(parsed);
+      }
     }
   };
 
