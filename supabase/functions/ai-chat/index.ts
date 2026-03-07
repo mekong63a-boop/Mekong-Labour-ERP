@@ -82,80 +82,62 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get Gemini API key
-    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!geminiApiKey) {
+    // Use Lovable AI Gateway
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "GEMINI_API_KEY is not configured" }),
+        JSON.stringify({ error: "LOVABLE_API_KEY chưa được cấu hình" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Build Gemini request
-    const geminiMessages = messages.map((msg: { role: string; content: string }) => ({
-      role: msg.role === "assistant" ? "model" : "user",
-      parts: [{ text: msg.content }],
-    }));
+    // Build messages for Lovable AI Gateway (OpenAI-compatible format)
+    const gatewayMessages = [
+      { role: "system", content: SYSTEM_PROMPT },
+      ...messages.map((msg: { role: string; content: string }) => ({
+        role: msg.role,
+        content: msg.content,
+      })),
+    ];
 
-    const geminiBody = {
-      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      contents: geminiMessages,
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 2048,
-      },
-    };
-
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
-
-    const geminiRes = await fetch(geminiUrl, {
+    const gatewayRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(geminiBody),
+      headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: gatewayMessages,
+      }),
     });
 
-    if (!geminiRes.ok) {
-      const errorText = await geminiRes.text();
-      console.error("Gemini API error:", geminiRes.status, errorText);
-      
-      if (geminiRes.status === 429) {
-        // Rate limit - try once more after delay
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        const retryRes = await fetch(geminiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(geminiBody),
-        });
-        if (retryRes.ok) {
-          const retryData = await retryRes.json();
-          const retryReply = retryData?.candidates?.[0]?.content?.parts?.[0]?.text || "Xin lỗi, tôi không thể trả lời lúc này.";
-          const sid = sessionId || crypto.randomUUID();
-          const userMsg = messages[messages.length - 1];
-          await supabase.from("ai_chat_messages").insert([
-            { user_id: userId, role: "user", content: userMsg.content, session_id: sid },
-            { user_id: userId, role: "assistant", content: retryReply, session_id: sid },
-          ]);
-          return new Response(
-            JSON.stringify({ reply: retryReply, sessionId: sid }),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        // Still failing after retry
+    if (!gatewayRes.ok) {
+      const errorText = await gatewayRes.text();
+      console.error("Lovable AI Gateway error:", gatewayRes.status, errorText);
+
+      if (gatewayRes.status === 429) {
         return new Response(
-          JSON.stringify({ error: "API Gemini đang quá tải. Vui lòng thử lại sau 30 giây. Nếu lỗi kéo dài, API key của bạn có thể đã hết quota miễn phí - hãy kiểm tra tại https://ai.google.dev/gemini-api/docs/rate-limits" }),
+          JSON.stringify({ error: "AI đang quá tải. Vui lòng thử lại sau vài giây." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      
+      if (gatewayRes.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "Hết quota AI. Vui lòng liên hệ admin để nạp thêm credits." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       return new Response(
-        JSON.stringify({ error: `Lỗi API Gemini: ${geminiRes.status}` }),
+        JSON.stringify({ error: `Lỗi AI Gateway: ${gatewayRes.status}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const geminiData = await geminiRes.json();
+    const gatewayData = await gatewayRes.json();
     const reply =
-      geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      gatewayData?.choices?.[0]?.message?.content ||
       "Xin lỗi, tôi không thể trả lời lúc này.";
 
     // Save messages to database
@@ -174,7 +156,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error("AI Chat error:", err);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
+      JSON.stringify({ error: "Lỗi hệ thống. Vui lòng thử lại." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
