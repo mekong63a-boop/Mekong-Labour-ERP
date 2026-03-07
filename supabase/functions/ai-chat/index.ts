@@ -46,10 +46,12 @@ BẠN CÓ QUYỀN TRUY CẬP DỮ LIỆU HỆ THỐNG. Khi người dùng hỏi 
 
 ## Quy tắc trả lời
 1. LUÔN trả lời bằng tiếng Việt
-2. Khi có DỮ LIỆU HỆ THỐNG, trả lời với số liệu cụ thể
-3. Không tiết lộ PII: CCCD, hộ chiếu, SĐT, email
-4. CHỈ hướng dẫn menu/chức năng THỰC SỰ TỒN TẠI
-5. Ngắn gọn, rõ ràng, đi thẳng vào vấn đề`;
+2. Khi có DỮ LIỆU HỆ THỐNG, trả lời với số liệu cụ thể từ dữ liệu đó
+3. **TUYỆT ĐỐI KHÔNG bịa tên, mã học viên, hoặc số liệu.** Nếu dữ liệu trả về total=0 hoặc list rỗng, hãy nói rõ "Không có dữ liệu" hoặc "Chưa có học viên nào"
+4. **CHỈ liệt kê tên/mã học viên nếu chúng CÓ TRONG dữ liệu hệ thống được cung cấp.** Không tự nghĩ ra tên
+5. Không tiết lộ PII: CCCD, hộ chiếu, SĐT, email
+6. CHỈ hướng dẫn menu/chức năng THỰC SỰ TỒN TẠI
+7. Ngắn gọn, rõ ràng, đi thẳng vào vấn đề`;
 
 // ============================================================
 // Data query engine - phân tích câu hỏi và truy vấn DB
