@@ -878,6 +878,7 @@ export default function DormitoryPage() {
                     <TableRow>
                       <TableHead className="w-12">#</TableHead>
                       <TableHead>Học viên</TableHead>
+                      <TableHead>Tình trạng PV</TableHead>
                       <TableHead>Phòng</TableHead>
                       <TableHead>Giường</TableHead>
                       <TableHead>Ngày vào</TableHead>
