@@ -383,12 +383,17 @@ export default function DashboardAdvancedFilter() {
                       <TableHead className="w-12 text-center">STT</TableHead>
                       <TableHead className="w-20">Mã HV</TableHead>
                       <TableHead className="min-w-[140px]">Họ và tên</TableHead>
-                      <TableHead className="w-16">GT</TableHead>
+                      <TableHead className="w-14">GT</TableHead>
                       <TableHead className="w-24">Ngày sinh</TableHead>
-                      <TableHead className="min-w-[100px]">Quê quán</TableHead>
-                      <TableHead className="w-24">Đối tượng</TableHead>
+                      <TableHead className="min-w-[80px]">Quê quán</TableHead>
+                      <TableHead className="w-20">Đối tượng</TableHead>
                       <TableHead className="w-24">Giai đoạn</TableHead>
-                      <TableHead className="w-28">{selectedEvent?.label}</TableHead>
+                      <TableHead className="w-24">Nhập học</TableHead>
+                      <TableHead className="min-w-[100px]">Công ty (JP)</TableHead>
+                      <TableHead className="min-w-[100px]">Nghiệp đoàn (JP)</TableHead>
+                      <TableHead className="min-w-[100px]">Ngành nghề (JP)</TableHead>
+                      <TableHead className="w-24">Ngày đậu</TableHead>
+                      <TableHead className="w-20">Nguồn</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -411,20 +416,19 @@ export default function DashboardAdvancedFilter() {
                         <TableCell className="text-xs">
                           {t.birth_date ? formatVietnameseDate(t.birth_date) : "—"}
                         </TableCell>
+                        <TableCell className="text-xs">{t.birthplace || "—"}</TableCell>
+                        <TableCell className="text-xs">{t.trainee_type || "—"}</TableCell>
+                        <TableCell className="text-xs">{t.progression_stage || "—"}</TableCell>
                         <TableCell className="text-xs">
-                          {t.birthplace || "—"}
+                          {t.entry_date ? formatVietnameseDate(t.entry_date) : "—"}
                         </TableCell>
+                        <TableCell className="text-xs">{t.companies?.name_japanese || "—"}</TableCell>
+                        <TableCell className="text-xs">{t.unions?.name_japanese || "—"}</TableCell>
+                        <TableCell className="text-xs">{t.job_categories?.name_japanese || "—"}</TableCell>
                         <TableCell className="text-xs">
-                          {t.trainee_type || "—"}
+                          {t.interview_pass_date ? formatVietnameseDate(t.interview_pass_date) : "—"}
                         </TableCell>
-                        <TableCell className="text-xs">
-                          {t.progression_stage || "—"}
-                        </TableCell>
-                        <TableCell className="text-xs font-medium">
-                          {getEventDateValue(t)
-                            ? formatVietnameseDate(getEventDateValue(t)!)
-                            : "—"}
-                        </TableCell>
+                        <TableCell className="text-xs">{t.source || "—"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
