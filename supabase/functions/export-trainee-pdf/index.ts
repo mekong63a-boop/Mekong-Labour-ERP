@@ -598,12 +598,7 @@ serve(async (req) => {
       drawRowBilingual("Ngành nghề", formatBilingual(trainee.job_category?.name_japanese, trainee.job_category?.name));
     }
 
-    // ========== 7. LỚP HỌC ==========
-    if (trainee.class?.id) {
-      drawSection("LỚP HỌC");
-      drawRow("Tên lớp", trainee.class.name || null);
-      drawRow("Tình trạng học", trainee.enrollment_status);
-    }
+    // ========== 7. LỚP HỌC — ĐÃ LOẠI BỎ THEO YÊU CẦU ==========
 
     // ========== 8. QUÁ TRÌNH ĐÀO TẠO - ĐÁNH GIÁ ==========
     if (trainee.test_scores && trainee.test_scores.length > 0) {
@@ -882,23 +877,7 @@ serve(async (req) => {
       }
     }
 
-    // ========== 22. NHẬT KÝ HỆ THỐNG ==========
-    if (trainee.audit_logs && trainee.audit_logs.length > 0) {
-      drawSection("NHẬT KÝ HỆ THỐNG");
-      drawTable(
-        ["Thời gian", "Hành động", "Mô tả"],
-        [80, 80, 300],
-        trainee.audit_logs.slice(0, 50).map(l => [
-          formatDate(l.created_at),
-          l.action,
-          (l.description || "").substring(0, 60),
-        ])
-      );
-      if (trainee.audit_logs.length > 50) {
-        drawText(`... và ${trainee.audit_logs.length - 50} dòng khác`, margin, y, 7, false);
-        y -= lineHeight;
-      }
-    }
+    // ========== 22. NHẬT KÝ HỆ THỐNG — ĐÃ LOẠI BỎ THEO YÊU CẦU ==========
 
     // ========== GHI CHÚ CHUNG ==========
     if (trainee.notes) {
