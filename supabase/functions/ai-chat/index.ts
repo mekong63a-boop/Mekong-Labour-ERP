@@ -252,24 +252,27 @@ async function querySystemData(userMessage: string, supabase: SupabaseClient): P
         .select('*', { count: 'exact', head: true })
         .eq('status', 'Đang hoạt động');
       
-      // 6c. Học viên đang học (enrollment_status = 'Đang học') - tách rõ đậu/chưa đậu
-      const { data: studyingTrainees, count: studyingCount } = await supabase
+      // 6c. Học viên đang học = có class_id + chưa xuất cảnh (ĐÚNG logic dashboard)
+      // KHÔNG dùng enrollment_status vì dữ liệu thực tế không có 'Đang học'
+      const { data: studyingTrainees } = await supabase
         .from('trainees')
-        .select('full_name, trainee_code, progression_stage, enrollment_status, gender', { count: 'exact' })
-        .eq('enrollment_status', 'Đang học')
-        .limit(100);
+        .select('full_name, trainee_code, progression_stage, gender, class_id')
+        .not('class_id', 'is', null)
+        .is('departure_date', null)
+        .not('progression_stage', 'in', '("Xuất cảnh","Đang làm việc","Bỏ trốn","Về trước hạn","Hoàn thành hợp đồng")')
+        .limit(200);
       
-      // Tách rõ ràng: đang học + đậu vs đang học + chưa đậu
+      // Tách rõ ràng: đậu PV vs chưa đậu PV (dựa trên progression_stage)
       const passedAndStudying = (studyingTrainees || []).filter(t => t.progression_stage && t.progression_stage !== 'Chưa đậu');
       const notPassedAndStudying = (studyingTrainees || []).filter(t => !t.progression_stage || t.progression_stage === 'Chưa đậu');
       
-      // 6d. Sĩ số từ view
+      // 6d. Sĩ số từ view (nguồn đối chiếu)
       const { data: educationTotal } = await supabase
         .from('dashboard_education_total')
         .select('total_studying')
         .single();
 
-      // 6e. Thống kê phỏng vấn đào tạo
+      // 6e. Thống kê phỏng vấn đào tạo từ view (nguồn chính xác)
       const { data: interviewStats } = await supabase
         .from('education_interview_stats')
         .select('*')
@@ -280,12 +283,12 @@ async function querySystemData(userMessage: string, supabase: SupabaseClient): P
         data: { 
           active_classes: classCount, 
           active_teachers: teacherCount,
-          total_studying: educationTotal?.total_studying ?? studyingCount,
+          total_studying: educationTotal?.total_studying ?? (studyingTrainees || []).length,
           studying_passed_interview: passedAndStudying.length,
-          studying_passed_list: passedAndStudying,
+          studying_passed_list: passedAndStudying.map(t => ({ full_name: t.full_name, trainee_code: t.trainee_code, gender: t.gender, progression_stage: t.progression_stage })),
           studying_not_passed: notPassedAndStudying.length,
-          studying_not_passed_list: notPassedAndStudying,
-          interview_stats: interviewStats,
+          studying_not_passed_list: notPassedAndStudying.map(t => ({ full_name: t.full_name, trainee_code: t.trainee_code, gender: t.gender, progression_stage: t.progression_stage })),
+          interview_stats_from_view: interviewStats,
           classes 
         } 
       });
