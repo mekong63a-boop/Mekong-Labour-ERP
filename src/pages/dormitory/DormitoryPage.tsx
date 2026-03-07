@@ -911,6 +911,17 @@ export default function DormitoryPage() {
                             </div>
                           </div>
                         </TableCell>
+                        <TableCell>
+                          <Badge variant={
+                            res.trainee?.progression_stage && res.trainee.progression_stage !== 'Chưa đậu'
+                              ? 'default'
+                              : 'secondary'
+                          }>
+                            {res.trainee?.progression_stage && res.trainee.progression_stage !== 'Chưa đậu'
+                              ? res.trainee.progression_stage
+                              : 'Chưa đậu'}
+                          </Badge>
+                        </TableCell>
                         <TableCell>{res.room_number || "—"}</TableCell>
                         <TableCell>{res.bed_number || "—"}</TableCell>
                         <TableCell className="text-sm">

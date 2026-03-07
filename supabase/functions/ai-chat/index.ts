@@ -302,8 +302,36 @@ async function querySystemData(userMessage: string, supabase: SupabaseClient): P
 
     // 8. Dormitory info
     if (isAboutDormitory) {
-      const { data } = await supabase.from('dormitories_with_occupancy').select('*');
-      results.push({ label: 'Thông tin KTX', data });
+      const { data: dormData } = await supabase.from('dormitories_with_occupancy').select('*');
+      
+      // Lấy danh sách cư dân đang ở kèm progression_stage
+      const { data: residents } = await supabase
+        .from('dormitory_residents')
+        .select('dormitory_id, trainee:trainees(full_name, trainee_code, progression_stage, gender)')
+        .eq('status', 'Đang ở');
+      
+      // Phân loại đậu/chưa đậu trong KTX
+      const ktxResidents = (residents || []).map(r => ({
+        full_name: r.trainee?.full_name,
+        trainee_code: r.trainee?.trainee_code,
+        progression_stage: r.trainee?.progression_stage,
+        gender: r.trainee?.gender,
+      }));
+      const ktxPassed = ktxResidents.filter(r => r.progression_stage && r.progression_stage !== 'Chưa đậu');
+      const ktxNotPassed = ktxResidents.filter(r => !r.progression_stage || r.progression_stage === 'Chưa đậu');
+      
+      results.push({ 
+        label: 'Thông tin KTX', 
+        data: {
+          dormitories: dormData,
+          total_residents: ktxResidents.length,
+          residents_list: ktxResidents,
+          passed_in_ktx: ktxPassed.length,
+          passed_list: ktxPassed,
+          not_passed_in_ktx: ktxNotPassed.length,
+          not_passed_list: ktxNotPassed,
+        }
+      });
     }
 
     // 9. Order info
