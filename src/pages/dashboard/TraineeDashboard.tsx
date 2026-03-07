@@ -34,7 +34,7 @@ import {
   LabelList,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import DashboardAdvancedFilter from "@/components/dashboard/DashboardAdvancedFilter";
+
 
 // Single Source - PostgreSQL views
 import {
@@ -746,8 +746,6 @@ export default function TraineeDashboard() {
           )}
         </CardContent>
       </Card>
-      {/* Advanced Filter - Tra cứu nâng cao */}
-      <DashboardAdvancedFilter />
     </div>
   );
 }
