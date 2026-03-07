@@ -176,7 +176,7 @@ async function querySystemData(userMessage: string, supabase: SupabaseClient): P
         const endDate = month === 12 ? `${year + 1}-01-01` : `${year}-${String(month + 1).padStart(2, '0')}-01`;
         const { data, count } = await supabase
           .from('trainees')
-          .select('full_name, trainee_code, interview_pass_date', { count: 'exact' })
+          .select('full_name, trainee_code, interview_pass_date, progression_stage, enrollment_status', { count: 'exact' })
           .gte('interview_pass_date', startDate)
           .lt('interview_pass_date', endDate)
           .limit(50);
@@ -184,11 +184,20 @@ async function querySystemData(userMessage: string, supabase: SupabaseClient): P
       } else if (year) {
         const { data, count } = await supabase
           .from('trainees')
-          .select('full_name, trainee_code, interview_pass_date', { count: 'exact' })
+          .select('full_name, trainee_code, interview_pass_date, progression_stage, enrollment_status', { count: 'exact' })
           .gte('interview_pass_date', `${year}-01-01`)
           .lt('interview_pass_date', `${year + 1}-01-01`)
           .limit(50);
         results.push({ label: `Học viên đậu phỏng vấn năm ${year}`, data: { total: count, list: data } });
+      } else {
+        // General: tổng số đã đậu phỏng vấn (có interview_pass_date và progression_stage != 'Chưa đậu')
+        const { data, count } = await supabase
+          .from('trainees')
+          .select('full_name, trainee_code, interview_pass_date, progression_stage, enrollment_status, gender', { count: 'exact' })
+          .not('interview_pass_date', 'is', null)
+          .neq('progression_stage', 'Chưa đậu')
+          .limit(100);
+        results.push({ label: 'Tổng học viên đã đậu phỏng vấn', data: { total: count, list: data } });
       }
     }
 
