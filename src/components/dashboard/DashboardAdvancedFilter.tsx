@@ -80,9 +80,28 @@ export default function DashboardAdvancedFilter() {
   const navigate = useNavigate();
   const [fromDate, setFromDate] = useState<Date | undefined>();
   const [toDate, setToDate] = useState<Date | undefined>();
+  const [fromInput, setFromInput] = useState("");
+  const [toInput, setToInput] = useState("");
   const [eventType, setEventType] = useState<EventTypeValue | "">("");
   const [searchTriggered, setSearchTriggered] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  // Parse manual date input (dd/MM/yyyy)
+  const handleDateInput = (value: string, setter: (d: Date | undefined) => void, inputSetter: (v: string) => void) => {
+    inputSetter(value);
+    setSearchTriggered(false);
+    // Auto-parse when format matches dd/MM/yyyy
+    const parsed = parse(value, "dd/MM/yyyy", new Date());
+    if (isValid(parsed) && value.length === 10) {
+      setter(parsed);
+    }
+  };
+
+  const handleCalendarSelect = (d: Date | undefined, setter: (d: Date | undefined) => void, inputSetter: (v: string) => void) => {
+    setter(d);
+    inputSetter(d ? format(d, "dd/MM/yyyy") : "");
+    setSearchTriggered(false);
+  };
 
   const selectedEvent = EVENT_TYPES.find((e) => e.value === eventType);
 
