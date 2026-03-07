@@ -28,6 +28,23 @@ BẠN CÓ QUYỀN TRUY CẬP DỮ LIỆU HỆ THỐNG. Khi người dùng hỏi 
 - **OTIT, Nghiệp đoàn, Luật lao động Nhật**
 - **Trạng thái học viên**: Đăng ký mới, Đang học, Dừng, Hủy, Bảo lưu, Đang ở Nhật, Rời công ty
 
+## Giai đoạn học viên (progression_stage) trong hệ thống
+- "Chưa đậu": Học viên chưa đậu phỏng vấn, đang đào tạo hoặc chờ phỏng vấn
+- "Đậu": Đã đậu phỏng vấn
+- "Hồ sơ": Đang xử lý hồ sơ pháp lý
+- "Xuất cảnh": Đã xuất cảnh sang Nhật
+- "Tại Nhật": Đang làm việc tại Nhật
+- "Hoàn thành": Hoàn thành hợp đồng về nước
+- "Bỏ trốn": Đã bỏ trốn
+- "Về trước hạn": Về nước trước hạn
+- "Lưu trữ": Hồ sơ đã lưu trữ
+
+## Trạng thái nhập học (enrollment_status) trong hệ thống
+- "Đang học": Học viên đang theo học tại trung tâm
+- "Dừng": Tạm dừng học
+- "Hủy": Đã hủy
+- "Bảo lưu": Bảo lưu
+
 ## CẤU TRÚC MENU CHÍNH XÁC
 1. Tổng quan (/) - KPI, biểu đồ
 2. Học viên (/trainees) - Danh sách, lọc theo giai đoạn
@@ -44,14 +61,16 @@ BẠN CÓ QUYỀN TRUY CẬP DỮ LIỆU HỆ THỐNG. Khi người dùng hỏi 
 13. Công đoàn nội bộ (/internal-union)
 14. Quản trị (/admin)
 
-## Quy tắc trả lời
-1. LUÔN trả lời bằng tiếng Việt
-2. Khi có DỮ LIỆU HỆ THỐNG, trả lời với số liệu cụ thể từ dữ liệu đó
-3. **TUYỆT ĐỐI KHÔNG bịa tên, mã học viên, hoặc số liệu.** Nếu dữ liệu trả về total=0 hoặc list rỗng, hãy nói rõ "Không có dữ liệu" hoặc "Chưa có học viên nào"
-4. **CHỈ liệt kê tên/mã học viên nếu chúng CÓ TRONG dữ liệu hệ thống được cung cấp.** Không tự nghĩ ra tên
+## QUY TẮC CHỐNG BỊA ĐẶT (ANTI-HALLUCINATION) - ƯU TIÊN CAO NHẤT
+1. **TUYỆT ĐỐI KHÔNG bịa tên, mã học viên, hoặc số liệu** dưới bất kỳ hình thức nào
+2. **CHỈ trả lời dựa trên dữ liệu trong phần "DỮ LIỆU HỆ THỐNG"**. Nếu không có phần này, nói rõ "Tôi không tìm thấy dữ liệu phù hợp cho câu hỏi này"
+3. Nếu dữ liệu trả về total=0 hoặc list rỗng → nói rõ "Không có dữ liệu" hoặc "Chưa có học viên nào"
+4. **Khi liệt kê danh sách**: CHỈ liệt kê chính xác những gì có trong dữ liệu, không thêm bớt
 5. Không tiết lộ PII: CCCD, hộ chiếu, SĐT, email
 6. CHỈ hướng dẫn menu/chức năng THỰC SỰ TỒN TẠI
-7. Ngắn gọn, rõ ràng, đi thẳng vào vấn đề`;
+7. Ngắn gọn, rõ ràng, đi thẳng vào vấn đề
+8. **Khi không chắc chắn**: Trả lời "Tôi không có đủ dữ liệu để trả lời chính xác" thay vì đoán
+9. **KHÔNG BAO GIỜ tự suy diễn thêm dữ liệu** ngoài những gì được cung cấp trong DỮ LIỆU HỆ THỐNG`;
 
 // ============================================================
 // Data query engine - phân tích câu hỏi và truy vấn DB
@@ -65,11 +84,9 @@ interface QueryResult {
 function extractYearMonth(text: string): { year?: number; month?: number } {
   const result: { year?: number; month?: number } = {};
   
-  // Extract year: "năm 2026", "2026", "năm nay" etc.
   const yearMatch = text.match(/(?:năm\s+)?(\d{4})/);
   if (yearMatch) result.year = parseInt(yearMatch[1]);
   
-  // Extract month: "tháng 2", "tháng 12", "t2", "T12"
   const monthMatch = text.match(/tháng\s+(\d{1,2})/i);
   if (monthMatch) result.month = parseInt(monthMatch[1]);
   
@@ -90,11 +107,12 @@ async function querySystemData(userMessage: string, supabase: SupabaseClient): P
   const isAboutTrainee = /học viên|thực tập sinh|tts|trainee|bao nhiêu|tổng|số lượng/.test(msg);
   const isAboutAbscond = /bỏ trốn|trốn|abscon/.test(msg);
   const isAboutReturn = /về nước|về trước|hoàn thành|return|early/.test(msg);
-  const isAboutClass = /lớp|class|đào tạo|training|giáo viên|teacher/.test(msg);
+  const isAboutClass = /lớp|class|đào tạo|training|giáo viên|teacher|đang học|sĩ số/.test(msg);
   const isAboutDormitory = /ktx|ký túc|dormitory|phòng/.test(msg);
   const isAboutOrder = /đơn hàng|order|đơn tuyển/.test(msg);
   const isAboutCompany = /công ty|company|đối tác|partner/.test(msg);
   const isAboutStage = /giai đoạn|stage|trạng thái|tình trạng/.test(msg);
+  const isAboutEducation = /đào tạo|education|đang học|sĩ số|chưa đậu|chuyên cần|điểm/.test(msg);
 
   try {
     // 1. Departure queries
@@ -126,7 +144,7 @@ async function querySystemData(userMessage: string, supabase: SupabaseClient): P
       }
     }
 
-    // 2. Registration queries - SSOT: dùng registration_date (khớp view dashboard_monthly_combined)
+    // 2. Registration queries
     if (isAboutRegistration) {
       if (year && month) {
         const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
@@ -210,24 +228,57 @@ async function querySystemData(userMessage: string, supabase: SupabaseClient): P
       }
     }
 
-    // 6. Stage counts (general trainee questions)
-    if (isAboutStage || (isAboutTrainee && !isAboutDeparture && !isAboutRegistration && !isAboutInterview && !isAboutAbscond && !isAboutReturn)) {
-      const { data } = await supabase.from('trainee_stage_counts').select('*');
-      results.push({ label: 'Số lượng học viên theo giai đoạn', data });
-    }
-
-    // 7. Class info
-    if (isAboutClass) {
-      const { data: classes, count } = await supabase
+    // 6. Education / Training queries - học viên đang đào tạo
+    if (isAboutEducation || isAboutClass) {
+      // 6a. Lớp học đang hoạt động
+      const { data: classes, count: classCount } = await supabase
         .from('classes')
-        .select('name, code, status, level, start_date', { count: 'exact' })
-        .eq('status', 'active')
-        .limit(20);
+        .select('name, code, status, level, start_date, max_students', { count: 'exact' })
+        .eq('status', 'Đang hoạt động')
+        .limit(30);
+      
+      // 6b. Giáo viên đang hoạt động
       const { count: teacherCount } = await supabase
         .from('teachers')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
-      results.push({ label: 'Thông tin đào tạo', data: { active_classes: count, active_teachers: teacherCount, classes } });
+        .eq('status', 'Đang hoạt động');
+      
+      // 6c. Học viên đang học (enrollment_status = 'Đang học')
+      const { data: studyingTrainees, count: studyingCount } = await supabase
+        .from('trainees')
+        .select('full_name, trainee_code, progression_stage, enrollment_status, class_id', { count: 'exact' })
+        .eq('enrollment_status', 'Đang học')
+        .limit(100);
+      
+      // 6d. Sĩ số từ view
+      const { data: educationTotal } = await supabase
+        .from('dashboard_education_total')
+        .select('total_studying')
+        .single();
+
+      // 6e. Thống kê phỏng vấn đào tạo
+      const { data: interviewStats } = await supabase
+        .from('education_interview_stats')
+        .select('*')
+        .single();
+
+      results.push({ 
+        label: 'Thông tin đào tạo', 
+        data: { 
+          active_classes: classCount, 
+          active_teachers: teacherCount,
+          total_studying: educationTotal?.total_studying ?? studyingCount,
+          studying_trainees: studyingTrainees,
+          interview_stats: interviewStats,
+          classes 
+        } 
+      });
+    }
+
+    // 7. Stage counts (general trainee questions)
+    if (isAboutStage || (isAboutTrainee && !isAboutDeparture && !isAboutRegistration && !isAboutInterview && !isAboutAbscond && !isAboutReturn && !isAboutEducation)) {
+      const { data } = await supabase.from('trainee_stage_counts').select('*');
+      results.push({ label: 'Số lượng học viên theo giai đoạn', data });
     }
 
     // 8. Dormitory info
@@ -296,12 +347,10 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Auth client for user validation
     const authClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Service client for data queries (bypasses RLS)
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
     const token = authHeader.replace("Bearer ", "");
@@ -350,11 +399,14 @@ Deno.serve(async (req) => {
 
     let dataContext = "";
     if (queryResults.length > 0) {
-      dataContext = "\n\n## DỮ LIỆU HỆ THỐNG (kết quả truy vấn thực tế từ database)\n";
+      dataContext = "\n\n## DỮ LIỆU HỆ THỐNG (kết quả truy vấn thực tế từ database - ĐÂY LÀ NGUỒN DUY NHẤT)\n";
+      dataContext += "**CHỈ SỬ DỤNG DỮ LIỆU DƯỚI ĐÂY. KHÔNG THÊM, BỚT, HOẶC THAY ĐỔI BẤT KỲ THÔNG TIN NÀO.**\n";
       for (const r of queryResults) {
         dataContext += `\n### ${r.label}\n\`\`\`json\n${JSON.stringify(r.data, null, 2)}\n\`\`\`\n`;
       }
-      dataContext += "\nHãy dùng dữ liệu trên để trả lời câu hỏi. Nêu con số cụ thể, liệt kê tên nếu có. Không bịa số liệu.";
+      dataContext += "\n**NHẮC LẠI: CHỈ trả lời dựa trên dữ liệu ở trên. Số lượng, tên, mã học viên phải KHỚP CHÍNH XÁC. Nếu list trống thì nói không có dữ liệu.**";
+    } else {
+      dataContext = "\n\n## KHÔNG CÓ DỮ LIỆU HỆ THỐNG\nKhông tìm thấy truy vấn phù hợp cho câu hỏi này. Hãy trả lời dựa trên kiến thức chung về hệ thống ERP Mekong hoặc hướng dẫn người dùng đến đúng menu. TUYỆT ĐỐI KHÔNG bịa số liệu hoặc tên học viên.";
     }
 
     const gatewayMessages = [
