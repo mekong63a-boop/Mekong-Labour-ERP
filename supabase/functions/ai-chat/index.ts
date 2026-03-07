@@ -46,10 +46,12 @@ BẠN CÓ QUYỀN TRUY CẬP DỮ LIỆU HỆ THỐNG. Khi người dùng hỏi 
 
 ## Quy tắc trả lời
 1. LUÔN trả lời bằng tiếng Việt
-2. Khi có DỮ LIỆU HỆ THỐNG, trả lời với số liệu cụ thể
-3. Không tiết lộ PII: CCCD, hộ chiếu, SĐT, email
-4. CHỈ hướng dẫn menu/chức năng THỰC SỰ TỒN TẠI
-5. Ngắn gọn, rõ ràng, đi thẳng vào vấn đề`;
+2. Khi có DỮ LIỆU HỆ THỐNG, trả lời với số liệu cụ thể từ dữ liệu đó
+3. **TUYỆT ĐỐI KHÔNG bịa tên, mã học viên, hoặc số liệu.** Nếu dữ liệu trả về total=0 hoặc list rỗng, hãy nói rõ "Không có dữ liệu" hoặc "Chưa có học viên nào"
+4. **CHỈ liệt kê tên/mã học viên nếu chúng CÓ TRONG dữ liệu hệ thống được cung cấp.** Không tự nghĩ ra tên
+5. Không tiết lộ PII: CCCD, hộ chiếu, SĐT, email
+6. CHỈ hướng dẫn menu/chức năng THỰC SỰ TỒN TẠI
+7. Ngắn gọn, rõ ràng, đi thẳng vào vấn đề`;
 
 // ============================================================
 // Data query engine - phân tích câu hỏi và truy vấn DB
@@ -132,17 +134,10 @@ async function querySystemData(userMessage: string, supabase: SupabaseClient): P
         const { data, count } = await supabase
           .from('trainees')
           .select('full_name, trainee_code, registration_date, created_at', { count: 'exact' })
-          .or(`registration_date.gte.${startDate},created_at.gte.${startDate}`)
-          .or(`registration_date.lt.${endDate},created_at.lt.${endDate}`)
-          .limit(50);
-        // Simpler approach: query by created_at
-        const { data: data2, count: count2 } = await supabase
-          .from('trainees')
-          .select('full_name, trainee_code, registration_date, created_at', { count: 'exact' })
           .gte('created_at', startDate)
           .lt('created_at', endDate)
           .limit(50);
-        results.push({ label: `Học viên đăng ký tháng ${month}/${year}`, data: { total: count2, list: data2 } });
+        results.push({ label: `Học viên đăng ký tháng ${month}/${year}`, data: { total: count ?? 0, list: data ?? [] } });
       } else if (year) {
         const { data, count } = await supabase
           .from('trainees')
@@ -150,7 +145,7 @@ async function querySystemData(userMessage: string, supabase: SupabaseClient): P
           .gte('created_at', `${year}-01-01`)
           .lt('created_at', `${year + 1}-01-01`)
           .limit(50);
-        results.push({ label: `Học viên đăng ký năm ${year}`, data: { total: count, list: data } });
+        results.push({ label: `Học viên đăng ký năm ${year}`, data: { total: count ?? 0, list: data ?? [] } });
       }
     }
 
