@@ -598,12 +598,7 @@ serve(async (req) => {
       drawRowBilingual("Ngành nghề", formatBilingual(trainee.job_category?.name_japanese, trainee.job_category?.name));
     }
 
-    // ========== 7. LỚP HỌC ==========
-    if (trainee.class?.id) {
-      drawSection("LỚP HỌC");
-      drawRow("Tên lớp", trainee.class.name || null);
-      drawRow("Tình trạng học", trainee.enrollment_status);
-    }
+    // ========== 7. LỚP HỌC — ĐÃ LOẠI BỎ THEO YÊU CẦU ==========
 
     // ========== 8. QUÁ TRÌNH ĐÀO TẠO - ĐÁNH GIÁ ==========
     if (trainee.test_scores && trainee.test_scores.length > 0) {
