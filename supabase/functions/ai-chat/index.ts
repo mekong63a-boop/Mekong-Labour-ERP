@@ -132,17 +132,10 @@ async function querySystemData(userMessage: string, supabase: SupabaseClient): P
         const { data, count } = await supabase
           .from('trainees')
           .select('full_name, trainee_code, registration_date, created_at', { count: 'exact' })
-          .or(`registration_date.gte.${startDate},created_at.gte.${startDate}`)
-          .or(`registration_date.lt.${endDate},created_at.lt.${endDate}`)
-          .limit(50);
-        // Simpler approach: query by created_at
-        const { data: data2, count: count2 } = await supabase
-          .from('trainees')
-          .select('full_name, trainee_code, registration_date, created_at', { count: 'exact' })
           .gte('created_at', startDate)
           .lt('created_at', endDate)
           .limit(50);
-        results.push({ label: `Học viên đăng ký tháng ${month}/${year}`, data: { total: count2, list: data2 } });
+        results.push({ label: `Học viên đăng ký tháng ${month}/${year}`, data: { total: count ?? 0, list: data ?? [] } });
       } else if (year) {
         const { data, count } = await supabase
           .from('trainees')
@@ -150,7 +143,7 @@ async function querySystemData(userMessage: string, supabase: SupabaseClient): P
           .gte('created_at', `${year}-01-01`)
           .lt('created_at', `${year + 1}-01-01`)
           .limit(50);
-        results.push({ label: `Học viên đăng ký năm ${year}`, data: { total: count, list: data } });
+        results.push({ label: `Học viên đăng ký năm ${year}`, data: { total: count ?? 0, list: data ?? [] } });
       }
     }
 
