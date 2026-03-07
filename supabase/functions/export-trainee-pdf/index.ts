@@ -877,23 +877,7 @@ serve(async (req) => {
       }
     }
 
-    // ========== 22. NHẬT KÝ HỆ THỐNG ==========
-    if (trainee.audit_logs && trainee.audit_logs.length > 0) {
-      drawSection("NHẬT KÝ HỆ THỐNG");
-      drawTable(
-        ["Thời gian", "Hành động", "Mô tả"],
-        [80, 80, 300],
-        trainee.audit_logs.slice(0, 50).map(l => [
-          formatDate(l.created_at),
-          l.action,
-          (l.description || "").substring(0, 60),
-        ])
-      );
-      if (trainee.audit_logs.length > 50) {
-        drawText(`... và ${trainee.audit_logs.length - 50} dòng khác`, margin, y, 7, false);
-        y -= lineHeight;
-      }
-    }
+    // ========== 22. NHẬT KÝ HỆ THỐNG — ĐÃ LOẠI BỎ THEO YÊU CẦU ==========
 
     // ========== GHI CHÚ CHUNG ==========
     if (trainee.notes) {
