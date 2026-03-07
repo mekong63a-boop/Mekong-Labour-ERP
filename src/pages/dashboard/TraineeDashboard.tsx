@@ -746,8 +746,6 @@ export default function TraineeDashboard() {
           )}
         </CardContent>
       </Card>
-      {/* Advanced Filter - Tra cứu nâng cao */}
-      <DashboardAdvancedFilter />
     </div>
   );
 }
