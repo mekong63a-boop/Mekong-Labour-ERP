@@ -190,14 +190,14 @@ async function querySystemData(userMessage: string, supabase: SupabaseClient): P
           .limit(50);
         results.push({ label: `Học viên đậu phỏng vấn năm ${year}`, data: { total: count, list: data } });
       } else {
-        // General: tổng số đã đậu phỏng vấn (có interview_pass_date và progression_stage != 'Chưa đậu')
+        // General: tổng số đã đậu phỏng vấn = CHỈ những người có progression_stage = 'Đậu phỏng vấn'
+        // KHÔNG tính Xuất cảnh, Bỏ trốn, Về trước hạn, Hoàn thành hợp đồng, Đang làm việc
         const { data, count } = await supabase
           .from('trainees')
           .select('full_name, trainee_code, interview_pass_date, progression_stage, enrollment_status, gender', { count: 'exact' })
-          .not('interview_pass_date', 'is', null)
-          .neq('progression_stage', 'Chưa đậu')
+          .eq('progression_stage', 'Đậu phỏng vấn')
           .limit(100);
-        results.push({ label: 'Tổng học viên đã đậu phỏng vấn', data: { total: count, list: data } });
+        results.push({ label: 'Học viên hiện đang ở giai đoạn Đậu phỏng vấn (chưa xuất cảnh)', data: { total: count, list: data } });
       }
     }
 
