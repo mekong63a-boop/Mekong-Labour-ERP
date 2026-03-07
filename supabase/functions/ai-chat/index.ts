@@ -126,24 +126,26 @@ async function querySystemData(userMessage: string, supabase: SupabaseClient): P
       }
     }
 
-    // 2. Registration queries
+    // 2. Registration queries - SSOT: dùng registration_date (khớp view dashboard_monthly_combined)
     if (isAboutRegistration) {
       if (year && month) {
         const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
         const endDate = month === 12 ? `${year + 1}-01-01` : `${year}-${String(month + 1).padStart(2, '0')}-01`;
         const { data, count } = await supabase
           .from('trainees')
-          .select('full_name, trainee_code, registration_date, created_at', { count: 'exact' })
-          .gte('created_at', startDate)
-          .lt('created_at', endDate)
+          .select('full_name, trainee_code, registration_date', { count: 'exact' })
+          .not('registration_date', 'is', null)
+          .gte('registration_date', startDate)
+          .lt('registration_date', endDate)
           .limit(50);
         results.push({ label: `Học viên đăng ký tháng ${month}/${year}`, data: { total: count ?? 0, list: data ?? [] } });
       } else if (year) {
         const { data, count } = await supabase
           .from('trainees')
-          .select('full_name, trainee_code, registration_date, created_at', { count: 'exact' })
-          .gte('created_at', `${year}-01-01`)
-          .lt('created_at', `${year + 1}-01-01`)
+          .select('full_name, trainee_code, registration_date', { count: 'exact' })
+          .not('registration_date', 'is', null)
+          .gte('registration_date', `${year}-01-01`)
+          .lt('registration_date', `${year + 1}-01-01`)
           .limit(50);
         results.push({ label: `Học viên đăng ký năm ${year}`, data: { total: count ?? 0, list: data ?? [] } });
       }
