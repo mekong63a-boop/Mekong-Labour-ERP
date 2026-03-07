@@ -148,7 +148,7 @@ export default function DashboardAdvancedFilter() {
       const { data, error } = await supabase
         .from("trainees")
         .select(
-          "id, trainee_code, full_name, gender, birth_date, birthplace, trainee_type, progression_stage, created_at, registration_date, entry_date, interview_pass_date, document_submission_date, coe_date, departure_date, return_date, early_return_date, absconded_date"
+          "id, trainee_code, full_name, gender, birth_date, birthplace, trainee_type, progression_stage, source, created_at, registration_date, entry_date, interview_pass_date, document_submission_date, coe_date, departure_date, return_date, early_return_date, absconded_date, companies:receiving_company_id(name_japanese), unions:union_id(name_japanese), job_categories:job_category_id(name_japanese)"
         )
         .gte(dateField, from)
         .lte(dateField, to + "T23:59:59")
