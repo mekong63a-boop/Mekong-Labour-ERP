@@ -241,66 +241,64 @@ export default function DashboardAdvancedFilter() {
             </Select>
           </div>
 
-          {/* From Date */}
+          {/* From Date - manual input + calendar */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Từ ngày</label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "h-9 w-[140px] justify-start text-left font-normal",
-                    !fromDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                  {fromDate ? format(fromDate, "dd/MM/yyyy") : "Chọn..."}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={fromDate}
-                  onSelect={(d) => {
-                    setFromDate(d);
-                    setSearchTriggered(false);
-                  }}
-                  initialFocus
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
+            <div className="flex items-center gap-1">
+              <Input
+                placeholder="dd/MM/yyyy"
+                value={fromInput}
+                onChange={(e) => handleDateInput(e.target.value, setFromDate, setFromInput)}
+                className="h-9 w-[120px] text-sm"
+                maxLength={10}
+              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-9 w-9 shrink-0">
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={fromDate}
+                    onSelect={(d) => handleCalendarSelect(d, setFromDate, setFromInput)}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
-          {/* To Date */}
+          {/* To Date - manual input + calendar */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Đến ngày</label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "h-9 w-[140px] justify-start text-left font-normal",
-                    !toDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                  {toDate ? format(toDate, "dd/MM/yyyy") : "Chọn..."}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={toDate}
-                  onSelect={(d) => {
-                    setToDate(d);
-                    setSearchTriggered(false);
-                  }}
-                  initialFocus
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
+            <div className="flex items-center gap-1">
+              <Input
+                placeholder="dd/MM/yyyy"
+                value={toInput}
+                onChange={(e) => handleDateInput(e.target.value, setToDate, setToInput)}
+                className="h-9 w-[120px] text-sm"
+                maxLength={10}
+              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="icon" className="h-9 w-9 shrink-0">
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={toDate}
+                    onSelect={(d) => handleCalendarSelect(d, setToDate, setToInput)}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
           {/* Search Button */}
