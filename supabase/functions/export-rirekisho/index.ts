@@ -603,9 +603,11 @@ serve(async (req) => {
     data(r, 0, p.japanese_certificate || ""); merge(r, 0, r, 28);
     data(r, 29, p.hobbies || ""); merge(r, 29, r, LC);
 
-    // === Empty separator ===
+    // === Empty separator (merged, outer frame only) ===
     r++;
     rowHeights.set(r, 5);
+    separatorRows.add(r);
+    data(r, 0, ""); merge(r, 0, r, LC);
 
     // === 生活態度 header ===
     r++;
