@@ -66,8 +66,8 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
   const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <fonts count="3">
-<font><sz val="9"/><name val="MS Gothic"/></font>
-<font><b/><sz val="9"/><name val="MS Gothic"/></font>
+<font><sz val="10"/><name val="MS Gothic"/></font>
+<font><b/><sz val="10"/><name val="MS Gothic"/></font>
 <font><b/><sz val="16"/><name val="MS Gothic"/></font>
 </fonts>
 <fills count="3">
