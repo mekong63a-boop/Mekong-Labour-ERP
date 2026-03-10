@@ -36,9 +36,9 @@ const S_CENTER = 3;
 const S_TITLE = 4;
 const S_HEADER = 5;
 
-// 37 columns - uniform width matching original template
+// 37 columns - widths tuned to fill A4 portrait width (210mm)
 const NUM_COLS = 37;
-const COL_WIDTHS: number[] = new Array(37).fill(2.5);
+const COL_WIDTHS: number[] = new Array(37).fill(3.0);
 
 function buildXlsx(
   cells: CellData[], merges: MergeRange[], rowHeights: Map<number, number>, maxRow: number,
@@ -138,7 +138,7 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
 ${colsXml}
 <sheetData>${sheetDataXml}</sheetData>
 ${mergesXml}
-<pageMargins left="0.3" right="0.3" top="0.2" bottom="0.2" header="0.1" footer="0.1"/>
+<pageMargins left="0.15" right="0.15" top="0.15" bottom="0.15" header="0.05" footer="0.05"/>
 <pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="1"/>
 ${drawingRef}
 </worksheet>`;
@@ -649,7 +649,7 @@ serve(async (req) => {
     const maxRow = r;
 
     // === Dynamic A4 page fill: scale row heights to fill portrait A4 ===
-    const TARGET_HEIGHT = 810;
+    const TARGET_HEIGHT = 900;
     let totalHeight = 0;
     for (let i = 0; i <= maxRow; i++) totalHeight += rowHeights.get(i) || 20;
 
