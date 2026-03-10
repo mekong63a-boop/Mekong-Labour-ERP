@@ -139,7 +139,7 @@ ${colsXml}
 <sheetData>${sheetDataXml}</sheetData>
 ${mergesXml}
 <pageMargins left="0.1" right="0.1" top="0.1" bottom="0.1" header="0.05" footer="0.05"/>
-<pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/>
+<pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="1"/>
 ${drawingRef}
 </worksheet>`;
 
@@ -339,6 +339,7 @@ serve(async (req) => {
     const cells: CellData[] = [];
     const merges: MergeRange[] = [];
     const rowHeights = new Map<number, number>();
+    const separatorRows = new Set<number>(); // rows that should have NO internal borders
 
     const add = (r: number, c: number, v: any, s: number = S_DATA) => {
       cells.push({ r, c, v: v ?? "", s });
@@ -349,10 +350,11 @@ serve(async (req) => {
     const header = (r: number, c: number, v: any) => add(r, c, v, S_HEADER);
     const merge = (r1: number, c1: number, r2: number, c2: number) => merges.push({ s: { r: r1, c: c1 }, e: { r: r2, c: c2 } });
 
-    // No-border zone: title area left side + row 1 left
+    // No-border zone: title area left side + separator rows (except first cell)
     const noBorderZone = (row: number, col: number): boolean => {
       if (row === 0 && col < 29) return true;
       if (row === 1 && col < 29) return true;
+      if (separatorRows.has(row) && col > 0) return true;
       return false;
     };
 
@@ -408,7 +410,8 @@ serve(async (req) => {
 
     // === Row 7: Empty separator ===
     rowHeights.set(7, 5);
-
+    separatorRows.add(7);
+    data(7, 0, ""); merge(7, 0, 7, LC);
     // === Row 8: 学歴 header ===
     let r = 8;
     rowHeights.set(r, 20);
@@ -600,9 +603,11 @@ serve(async (req) => {
     data(r, 0, p.japanese_certificate || ""); merge(r, 0, r, 28);
     data(r, 29, p.hobbies || ""); merge(r, 29, r, LC);
 
-    // === Empty separator ===
+    // === Empty separator (merged, outer frame only) ===
     r++;
     rowHeights.set(r, 5);
+    separatorRows.add(r);
+    data(r, 0, ""); merge(r, 0, r, LC);
 
     // === 生活態度 header ===
     r++;
@@ -638,15 +643,12 @@ serve(async (req) => {
     rowHeights.set(r, 20);
     header(r, 0, "備考"); merge(r, 0, r, LC);
 
-    // === 備考 data ===
-    r++;
-    rowHeights.set(r, 22);
-    data(r, 0, p.rirekisho_remarks || ""); merge(r, 0, r, LC);
+    // (備考 data row removed per user request)
 
     const maxRow = r;
 
     // === Dynamic A4 page fill: scale row heights to fill portrait A4 ===
-    const TARGET_HEIGHT = 1050;
+    const TARGET_HEIGHT = 1100;
     let totalHeight = 0;
     for (let i = 0; i <= maxRow; i++) totalHeight += rowHeights.get(i) || 20;
 
