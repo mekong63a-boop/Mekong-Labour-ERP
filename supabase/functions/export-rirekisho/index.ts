@@ -66,8 +66,8 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
   const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <fonts count="3">
-<font><sz val="9"/><name val="MS Gothic"/></font>
-<font><b/><sz val="9"/><name val="MS Gothic"/></font>
+<font><sz val="10"/><name val="MS Gothic"/></font>
+<font><b/><sz val="10"/><name val="MS Gothic"/></font>
 <font><b/><sz val="16"/><name val="MS Gothic"/></font>
 </fonts>
 <fills count="3">
@@ -422,9 +422,7 @@ serve(async (req) => {
     rowHeights.set(5, 24);
     label(5, 0, "出生地"); merge(5, 0, 5, 2);
     data(5, 3, p.birthplace ? p.birthplace + "省" : ""); merge(5, 3, 5, 8);
-    center(5, 9, "（"); 
-    center(5, 10, getRegion(p.birthplace) || ""); merge(5, 10, 5, 15);
-    center(5, 16, "）");
+    center(5, 9, "（" + (getRegion(p.birthplace) || "") + "）"); merge(5, 9, 5, 16);
     label(5, 17, "婚姻"); merge(5, 17, 5, 20);
     center(5, 21, p.marital_status === "Độc thân" ? "未婚" : p.marital_status === "Đã kết hôn" ? "既婚" : ""); merge(5, 21, 5, 28);
 
