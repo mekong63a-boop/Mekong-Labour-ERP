@@ -579,39 +579,32 @@ serve(async (req) => {
     header(r, 0, "健康状態"); merge(r, 0, r, 20);
     header(r, 21, "視力"); merge(r, 21, r, LC);
 
-    // === Health row 1: 身長, 血液型, メガネ, 視力左右 ===
+    // === Health row 1: 血液型, メガネ無, 視力左右 ===
     r++;
     rowHeights.set(r, 20);
-    label(r, 0, "身長"); merge(r, 0, r, 2);
-    data(r, 3, p.height ? `${p.height}cm` : ""); merge(r, 3, r, 7);
-    label(r, 8, "血液型"); merge(r, 8, r, 14);
-    center(r, 15, p.blood_group || ""); merge(r, 15, r, 20);
-    label(r, 21, "メガネ" + (p.glasses === "有" ? "有" : "無")); merge(r, 21, r, 24);
-    label(r, 25, "左："); merge(r, 25, r, 29);
-    data(r, 30, p.vision_left != null ? `${p.vision_left}/10` : ""); merge(r, 30, r, 32);
-    label(r, 33, "右：");
-    data(r, 34, p.vision_right != null ? `${p.vision_right}/10` : ""); merge(r, 34, r, LC);
+    label(r, 0, "血液型"); merge(r, 0, r, 7);
+    center(r, 8, p.blood_group || "不明"); merge(r, 8, r, 14);
+    label(r, 15, "メガネ無"); merge(r, 15, r, 20);
+    label(r, 21, "左："); merge(r, 21, r, 24);
+    center(r, 25, p.vision_left != null ? `${p.vision_left}/10` : ""); merge(r, 25, r, 27);
+    label(r, 28, "右："); merge(r, 28, r, 31);
+    center(r, 32, p.vision_right != null ? `${p.vision_right}/10` : ""); merge(r, 32, r, LC);
 
-    // === Health row 2: 体重, 聴力, 健康診断 ===
+    // === Health row 2: 聴力, 健康診断 ===
     r++;
     rowHeights.set(r, 20);
-    label(r, 0, "体重"); merge(r, 0, r, 2);
-    data(r, 3, p.weight ? `${p.weight}kg` : ""); merge(r, 3, r, 7);
-    label(r, 8, "聴力"); merge(r, 8, r, 14);
-    center(r, 15, p.hearing || "正常"); merge(r, 15, r, 20);
-    label(r, 21, "健康診断"); merge(r, 21, r, 24);
-    data(r, 25, p.health_status || "異常なし"); merge(r, 25, r, LC);
+    label(r, 0, "聴力"); merge(r, 0, r, 7);
+    center(r, 8, "正常"); merge(r, 8, r, 14);
+    label(r, 15, "健康診断"); merge(r, 15, r, 20);
+    center(r, 21, "異常なし"); merge(r, 21, r, LC);
 
-    // === Health row 3: 利き手, 刺青, B型肝炎 ===
+    // === Health row 3: 刺青, B型肝炎 ===
     r++;
     rowHeights.set(r, 20);
-    label(r, 0, "利き手"); merge(r, 0, r, 2);
-    const hand = (p.dominant_hand || "").toLowerCase();
-    center(r, 3, hand.includes("phải") || hand.includes("right") ? "右" : hand.includes("trái") || hand.includes("left") ? "左" : (p.dominant_hand || "")); merge(r, 3, r, 7);
-    label(r, 8, "刺青"); merge(r, 8, r, 14);
-    center(r, 15, p.tattoo ? "有" : "無"); merge(r, 15, r, 20);
-    label(r, 21, "Ｂ型肝炎"); merge(r, 21, r, 24);
-    center(r, 25, p.hepatitis_b === "Có" ? "有" : "無"); merge(r, 25, r, LC);
+    label(r, 0, "刺青"); merge(r, 0, r, 7);
+    center(r, 8, "無"); merge(r, 8, r, 14);
+    label(r, 15, "Ｂ型肝炎"); merge(r, 15, r, 20);
+    center(r, 21, "無"); merge(r, 21, r, LC);
 
     // === 資格・免許 + 趣味・特技 header ===
     r++;
