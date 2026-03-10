@@ -339,6 +339,7 @@ serve(async (req) => {
     const cells: CellData[] = [];
     const merges: MergeRange[] = [];
     const rowHeights = new Map<number, number>();
+    const separatorRows = new Set<number>(); // rows that should have NO internal borders
 
     const add = (r: number, c: number, v: any, s: number = S_DATA) => {
       cells.push({ r, c, v: v ?? "", s });
@@ -349,10 +350,11 @@ serve(async (req) => {
     const header = (r: number, c: number, v: any) => add(r, c, v, S_HEADER);
     const merge = (r1: number, c1: number, r2: number, c2: number) => merges.push({ s: { r: r1, c: c1 }, e: { r: r2, c: c2 } });
 
-    // No-border zone: title area left side + row 1 left
+    // No-border zone: title area left side + separator rows (except first cell)
     const noBorderZone = (row: number, col: number): boolean => {
       if (row === 0 && col < 29) return true;
       if (row === 1 && col < 29) return true;
+      if (separatorRows.has(row) && col > 0) return true;
       return false;
     };
 
