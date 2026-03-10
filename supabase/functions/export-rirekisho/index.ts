@@ -74,7 +74,7 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
 <fills count="3">
 <fill><patternFill patternType="none"/></fill>
 <fill><patternFill patternType="gray125"/></fill>
-<fill><patternFill patternType="solid"><fgColor rgb="FFF4D9A0"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFF4C27A"/></patternFill></fill>
 </fills>
 <borders count="2">
 <border><left/><right/><top/><bottom/></border>
@@ -139,7 +139,7 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
 ${colsXml}
 <sheetData>${sheetDataXml}</sheetData>
 ${mergesXml}
-<pageMargins left="0.1" right="0.1" top="0.1" bottom="0.1" header="0.05" footer="0.05"/>
+<pageMargins left="0.4" right="0.1" top="0.1" bottom="0.1" header="0.05" footer="0.05"/>
 <pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="1"/>
 ${drawingRef}
 </worksheet>`;
@@ -523,7 +523,7 @@ serve(async (req) => {
         center(r, 0, relationMap[fm.relationship] || fm.relationship || ""); merge(r, 0, r, 2);
         data(r, 3, fm.full_name || ""); merge(r, 3, r, 11);
         center(r, 12, fm.birth_year ? today.getFullYear() - fm.birth_year : ""); merge(r, 12, r, 17);
-        center(r, 18, fm.living_together ? "O" : "X"); merge(r, 18, r, 19);
+        center(r, 18, fm.location === "O" || fm.living_together === true ? "O" : "X"); merge(r, 18, r, 19);
         data(r, 20, fm.occupation || ""); merge(r, 20, r, 31);
         data(r, 32, fm.income ? `${fm.income} 万円` : ""); merge(r, 32, r, LC);
       } else {
