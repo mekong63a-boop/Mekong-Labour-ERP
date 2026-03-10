@@ -649,12 +649,7 @@ serve(async (req) => {
     center(r, 23, p.class_attitude || ""); merge(r, 23, r, 25);
     label(r, 26, "授業態度\n[ 優・良・可・未 ]"); merge(r, 26, r, LC);
 
-    // === 備考 header ===
-    r++;
-    rowHeights.set(r, 20);
-    header(r, 0, "備考"); merge(r, 0, r, LC);
-
-    // (備考 data row removed per user request)
+    // (備考 removed per user request)
 
     const maxRow = r;
 
