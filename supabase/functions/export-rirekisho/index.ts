@@ -38,7 +38,7 @@ const S_HEADER = 5;
 
 // 37 columns - widths tuned to fill A4 portrait width (210mm)
 const NUM_COLS = 37;
-const COL_WIDTHS: number[] = new Array(37).fill(3.0);
+const COL_WIDTHS: number[] = new Array(37).fill(3.5);
 
 function buildXlsx(
   cells: CellData[], merges: MergeRange[], rowHeights: Map<number, number>, maxRow: number,
@@ -138,8 +138,8 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
 ${colsXml}
 <sheetData>${sheetDataXml}</sheetData>
 ${mergesXml}
-<pageMargins left="0.15" right="0.15" top="0.15" bottom="0.15" header="0.05" footer="0.05"/>
-<pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="1"/>
+<pageMargins left="0.1" right="0.1" top="0.1" bottom="0.1" header="0.05" footer="0.05"/>
+<pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/>
 ${drawingRef}
 </worksheet>`;
 
@@ -397,9 +397,7 @@ serve(async (req) => {
     rowHeights.set(5, 24);
     label(5, 0, "出生地"); merge(5, 0, 5, 3);
     data(5, 4, p.birthplace ? p.birthplace + "省" : ""); merge(5, 4, 5, 9);
-    center(5, 10, "(");
-    center(5, 11, getRegion(p.birthplace)); merge(5, 11, 5, 14);
-    center(5, 15, ")"); merge(5, 15, 5, 16);
+    center(5, 10, "（" + (getRegion(p.birthplace) || "") + "）"); merge(5, 10, 5, 16);
     label(5, 17, "婚姻"); merge(5, 17, 5, 20);
     center(5, 21, p.marital_status === "Độc thân" ? "未婚" : p.marital_status === "Đã kết hôn" ? "既婚" : ""); merge(5, 21, 5, 28);
 
@@ -471,9 +469,8 @@ serve(async (req) => {
     r++;
     rowHeights.set(r, 20);
     center(r, 0, p.prior_residence_status === "Có" ? "有" : "無"); merge(r, 0, r, 9);
-    label(r, 10, "目的 ("); merge(r, 10, r, 11);
-    data(r, 12, ""); merge(r, 12, r, 35);
-    data(r, 36, ")");
+    label(r, 10, "目的"); merge(r, 10, r, 11);
+    data(r, 12, "（　　　　　　　　　　　　　　　　　　　　　　　　）"); merge(r, 12, r, LC);
 
     // === 家族構成 ===
     r++;
@@ -649,7 +646,7 @@ serve(async (req) => {
     const maxRow = r;
 
     // === Dynamic A4 page fill: scale row heights to fill portrait A4 ===
-    const TARGET_HEIGHT = 900;
+    const TARGET_HEIGHT = 1050;
     let totalHeight = 0;
     for (let i = 0; i <= maxRow; i++) totalHeight += rowHeights.get(i) || 20;
 
