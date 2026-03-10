@@ -139,7 +139,7 @@ ${colsXml}
 <sheetData>${sheetDataXml}</sheetData>
 ${mergesXml}
 <pageMargins left="0.1" right="0.1" top="0.1" bottom="0.1" header="0.05" footer="0.05"/>
-<pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/>
+<pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="1"/>
 ${drawingRef}
 </worksheet>`;
 
