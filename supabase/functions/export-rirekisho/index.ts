@@ -412,9 +412,7 @@ serve(async (req) => {
     rowHeights.set(4, 24);
     label(4, 0, "生年月日"); merge(4, 0, 4, 2);
     data(4, 3, toJpDate(p.birth_date)); merge(4, 3, 4, 8);
-    center(4, 9, "(年齢"); merge(4, 9, 4, 10);
-    center(4, 11, calcAge(p.birth_date)); merge(4, 11, 4, 12);
-    center(4, 13, "歳)"); merge(4, 13, 4, 16);
+    center(4, 9, "(年齢　" + calcAge(p.birth_date) + "　歳)"); merge(4, 9, 4, 16);
     label(4, 17, "性別"); merge(4, 17, 4, 20);
     center(4, 21, p.gender === "Nam" ? "男" : p.gender === "Nữ" ? "女" : ""); merge(4, 21, 4, 28);
 
