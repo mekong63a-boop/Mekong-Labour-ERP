@@ -36,9 +36,9 @@ const S_CENTER = 3;
 const S_TITLE = 4;
 const S_HEADER = 5;
 
-// 37 columns - uniform width matching original template
+// 37 columns - widths tuned to fill A4 portrait width (210mm)
 const NUM_COLS = 37;
-const COL_WIDTHS: number[] = new Array(37).fill(2.5);
+const COL_WIDTHS: number[] = new Array(37).fill(3.0);
 
 function buildXlsx(
   cells: CellData[], merges: MergeRange[], rowHeights: Map<number, number>, maxRow: number,
