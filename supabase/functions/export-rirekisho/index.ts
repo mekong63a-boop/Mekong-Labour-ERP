@@ -299,13 +299,24 @@ const toYM = (y: number | null, m: number | null): string => {
 };
 const getRegion = (bp: string | null): string => {
   if (!bp) return "";
-  const u = bp.toUpperCase();
+  const u = removeDiacritics(bp).toUpperCase();
   const north = ["HA NOI","HAI PHONG","QUANG NINH","BAC NINH","HAI DUONG","HUNG YEN","THAI BINH","NAM DINH","NINH BINH","HA NAM","VINH PHUC","BAC GIANG","PHU THO","THAI NGUYEN","BAC KAN","CAO BANG","LANG SON","TUYEN QUANG","HA GIANG","LAO CAI","YEN BAI","SON LA","LAI CHAU","DIEN BIEN","HOA BINH"];
   const central = ["THANH HOA","NGHE AN","HA TINH","QUANG BINH","QUANG TRI","THUA THIEN HUE","DA NANG","QUANG NAM","QUANG NGAI","BINH DINH","PHU YEN","KHANH HOA","NINH THUAN","BINH THUAN","KON TUM","GIA LAI","DAK LAK","DAK NONG","LAM DONG"];
   for (const p of north) if (u.includes(p)) return "北部";
   for (const p of central) if (u.includes(p)) return "中部";
   return "南部";
 };
+
+// Strip Vietnamese diacritics
+const removeDiacritics = (str: string): string => {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+};
+
 const relationMap: Record<string, string> = {
   "Cha": "父", "Mẹ": "母", "Anh": "兄", "Chị": "姉", "Em trai": "弟", "Em gái": "妹",
   "Anh trai": "兄", "Chị gái": "姉",
