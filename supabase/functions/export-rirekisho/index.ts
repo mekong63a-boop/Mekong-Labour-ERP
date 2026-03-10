@@ -649,7 +649,7 @@ serve(async (req) => {
     const maxRow = r;
 
     // === Dynamic A4 page fill: scale row heights to fill portrait A4 ===
-    const TARGET_HEIGHT = 810;
+    const TARGET_HEIGHT = 900;
     let totalHeight = 0;
     for (let i = 0; i <= maxRow; i++) totalHeight += rowHeights.get(i) || 20;
 
