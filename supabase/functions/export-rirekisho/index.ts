@@ -410,7 +410,8 @@ serve(async (req) => {
 
     // === Row 7: Empty separator ===
     rowHeights.set(7, 5);
-
+    separatorRows.add(7);
+    data(7, 0, ""); merge(7, 0, 7, LC);
     // === Row 8: 学歴 header ===
     let r = 8;
     rowHeights.set(r, 20);
