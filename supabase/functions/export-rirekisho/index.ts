@@ -643,10 +643,7 @@ serve(async (req) => {
     rowHeights.set(r, 20);
     header(r, 0, "備考"); merge(r, 0, r, LC);
 
-    // === 備考 data ===
-    r++;
-    rowHeights.set(r, 22);
-    data(r, 0, p.rirekisho_remarks || ""); merge(r, 0, r, LC);
+    // (備考 data row removed per user request)
 
     const maxRow = r;
 
