@@ -394,7 +394,7 @@ serve(async (req) => {
     // === Row 3: 英字表記 ===
     rowHeights.set(3, 24);
     label(3, 2, "英字表記"); merge(3, 2, 3, 4);
-    data(3, 5, (p.full_name || "").toUpperCase()); merge(3, 5, 3, 28);
+    data(3, 5, removeDiacritics(p.full_name || "").toUpperCase()); merge(3, 5, 3, 28);
 
     // === Row 4: 生年月日 + 性別 ===
     rowHeights.set(4, 24);
