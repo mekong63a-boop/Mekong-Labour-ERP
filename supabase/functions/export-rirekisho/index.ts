@@ -373,6 +373,18 @@ serve(async (req) => {
     const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
     const LC = 36; // last column index
 
+    // ============================================================
+    // LAYOUT REBUILT FROM ORIGINAL TEMPLATE ANALYSIS (cell-by-cell)
+    // Column mapping: 37 columns (0-36)
+    // Label area: cols 0-2 (3 cols) for most rows
+    // 氏名: col 0 only (span 2 rows)
+    // フリガナ/英字表記: cols 1-2
+    // Name data: cols 3-28
+    // Photo: cols 29-36 rows 1-5
+    // Education/Work: 0-2 start date, 3-8 end date, 9-36 content
+    // Work detail: 9-22 company, 23-36 position+income
+    // ============================================================
+
     // === Row 0: No + trainee code (top-right only) ===
     rowHeights.set(0, 18);
     label(0, 29, "No"); merge(0, 29, 0, 31);
@@ -382,53 +394,56 @@ serve(async (req) => {
     rowHeights.set(1, 28);
     add(1, 0, "履歴書", S_TITLE); merge(1, 0, 1, 5);
     add(1, 14, dateStr, 0); merge(1, 14, 1, 21);
-    // Photo frame: rows 1-5 ONLY (row 6 is full-width address)
+    // Photo frame: rows 1-5, cols 29-36
     data(1, 29, ""); merge(1, 29, 5, LC);
 
     // === Row 2: 氏名 - フリガナ ===
     rowHeights.set(2, 24);
-    label(2, 0, "氏\n名"); merge(2, 0, 3, 1);
-    label(2, 2, "フリガナ"); merge(2, 2, 2, 4);
-    data(2, 5, p.furigana || ""); merge(2, 5, 2, 28);
+    label(2, 0, "氏\n名"); merge(2, 0, 3, 0); // col 0 only, span rows 2-3
+    label(2, 1, "フリガナ"); merge(2, 1, 2, 2);
+    data(2, 3, p.furigana || ""); merge(2, 3, 2, 28);
 
     // === Row 3: 英字表記 ===
     rowHeights.set(3, 24);
-    label(3, 2, "英字表記"); merge(3, 2, 3, 4);
-    data(3, 5, removeDiacritics(p.full_name || "").toUpperCase()); merge(3, 5, 3, 28);
+    label(3, 1, "英字表記"); merge(3, 1, 3, 2);
+    data(3, 3, removeDiacritics(p.full_name || "").toUpperCase()); merge(3, 3, 3, 28);
 
     // === Row 4: 生年月日 + 性別 ===
     rowHeights.set(4, 24);
-    label(4, 0, "生年月日"); merge(4, 0, 4, 3);
-    data(4, 4, toJpDate(p.birth_date)); merge(4, 4, 4, 9);
-    center(4, 10, "(年齢"); merge(4, 10, 4, 11);
-    center(4, 12, calcAge(p.birth_date)); merge(4, 12, 4, 13);
-    center(4, 14, "歳)"); merge(4, 14, 4, 16);
+    label(4, 0, "生年月日"); merge(4, 0, 4, 2);
+    data(4, 3, toJpDate(p.birth_date)); merge(4, 3, 4, 8);
+    center(4, 9, "(年齢"); merge(4, 9, 4, 10);
+    center(4, 11, calcAge(p.birth_date)); merge(4, 11, 4, 12);
+    center(4, 13, "歳)"); merge(4, 13, 4, 16);
     label(4, 17, "性別"); merge(4, 17, 4, 20);
     center(4, 21, p.gender === "Nam" ? "男" : p.gender === "Nữ" ? "女" : ""); merge(4, 21, 4, 28);
 
     // === Row 5: 出生地 + 婚姻 ===
     rowHeights.set(5, 24);
-    label(5, 0, "出生地"); merge(5, 0, 5, 3);
-    data(5, 4, p.birthplace ? p.birthplace + "省" : ""); merge(5, 4, 5, 9);
-    center(5, 10, "（" + (getRegion(p.birthplace) || "") + "）"); merge(5, 10, 5, 16);
+    label(5, 0, "出生地"); merge(5, 0, 5, 2);
+    data(5, 3, p.birthplace ? p.birthplace + "省" : ""); merge(5, 3, 5, 8);
+    center(5, 9, "（"); 
+    center(5, 10, getRegion(p.birthplace) || ""); merge(5, 10, 5, 15);
+    center(5, 16, "）");
     label(5, 17, "婚姻"); merge(5, 17, 5, 20);
     center(5, 21, p.marital_status === "Độc thân" ? "未婚" : p.marital_status === "Đã kết hôn" ? "既婚" : ""); merge(5, 21, 5, 28);
 
     // === Row 6: 現住所 (full width, photo ends at row 5) ===
     rowHeights.set(6, 24);
-    label(6, 0, "現住所"); merge(6, 0, 6, 3);
-    data(6, 4, p.current_address || ""); merge(6, 4, 6, LC);
+    label(6, 0, "現住所"); merge(6, 0, 6, 2);
+    data(6, 3, p.current_address || ""); merge(6, 3, 6, LC);
 
-    // === Row 7: Empty separator ===
+    // === Row 7: Empty separator (outer frame only, no internal borders) ===
     rowHeights.set(7, 5);
     separatorRows.add(7);
     data(7, 0, ""); merge(7, 0, 7, LC);
+
     // === Row 8: 学歴 header ===
     let r = 8;
     rowHeights.set(r, 20);
-    label(r, 0, "入学年月"); merge(r, 0, r, 3);
-    label(r, 4, "卒業年月"); merge(r, 4, r, 9);
-    header(r, 10, "学歴"); merge(r, 10, r, LC);
+    label(r, 0, "入学年月"); merge(r, 0, r, 2);
+    label(r, 3, "卒業年月"); merge(r, 3, r, 8);
+    header(r, 9, "学歴"); merge(r, 9, r, LC);
 
     // === Education data ===
     const edu = [...(p.education_history || [])].sort((a: any, b: any) => (a.start_year || 0) - (b.start_year || 0));
@@ -437,17 +452,17 @@ serve(async (req) => {
       r++;
       rowHeights.set(r, 20);
       const e = i < edu.length ? edu[i] : null;
-      data(r, 0, e ? toYM(e.start_year, e.start_month) : ""); merge(r, 0, r, 3);
-      data(r, 4, e ? toYM(e.end_year, e.end_month) : ""); merge(r, 4, r, 9);
-      data(r, 10, e ? ((e.school_name || "") + (e.level === "高校" || !e.level ? "高校" : "")) : ""); merge(r, 10, r, LC);
+      data(r, 0, e ? toYM(e.start_year, e.start_month) : ""); merge(r, 0, r, 2);
+      data(r, 3, e ? toYM(e.end_year, e.end_month) : ""); merge(r, 3, r, 8);
+      data(r, 9, e ? ((e.school_name || "") + (e.level === "高校" || !e.level ? "高校" : "")) : ""); merge(r, 9, r, LC);
     }
 
     // === 職歴 header ===
     r++;
     rowHeights.set(r, 20);
-    label(r, 0, "入社年月"); merge(r, 0, r, 3);
-    label(r, 4, "退社年月"); merge(r, 4, r, 9);
-    header(r, 10, "職歴"); merge(r, 10, r, LC);
+    label(r, 0, "入社年月"); merge(r, 0, r, 2);
+    label(r, 3, "退社年月"); merge(r, 3, r, 8);
+    header(r, 9, "職歴"); merge(r, 9, r, LC);
 
     // === Work data ===
     const work = [...(p.work_history || [])].sort((a: any, b: any) =>
@@ -461,15 +476,15 @@ serve(async (req) => {
       if (w) {
         const sD = w.start_date ? new Date(w.start_date) : null;
         const eD = w.end_date ? new Date(w.end_date) : null;
-        data(r, 0, sD ? `${sD.getFullYear()}年${sD.getMonth() + 1}月` : ""); merge(r, 0, r, 3);
-        data(r, 4, eD ? `${eD.getFullYear()}年${eD.getMonth() + 1}月` : "現在"); merge(r, 4, r, 9);
-        data(r, 10, (w.company_name || "") + "会社"); merge(r, 10, r, 22);
+        data(r, 0, sD ? `${sD.getFullYear()}年${sD.getMonth() + 1}月` : ""); merge(r, 0, r, 2);
+        data(r, 3, eD ? `${eD.getFullYear()}年${eD.getMonth() + 1}月` : "現在"); merge(r, 3, r, 8);
+        data(r, 9, (w.company_name || "") + "会社"); merge(r, 9, r, 22);
         const posIncome = (w.position || "") + (w.income ? `（月収${w.income}万円）` : "");
         data(r, 23, posIncome); merge(r, 23, r, LC);
       } else {
-        data(r, 0, ""); merge(r, 0, r, 3);
-        data(r, 4, ""); merge(r, 4, r, 9);
-        data(r, 10, ""); merge(r, 10, r, 22);
+        data(r, 0, ""); merge(r, 0, r, 2);
+        data(r, 3, ""); merge(r, 3, r, 8);
+        data(r, 9, ""); merge(r, 9, r, 22);
         data(r, 23, ""); merge(r, 23, r, LC);
       }
     }
@@ -482,9 +497,8 @@ serve(async (req) => {
     // === 無/有 + 目的 ===
     r++;
     rowHeights.set(r, 20);
-    center(r, 0, p.prior_residence_status === "Có" ? "有" : "無"); merge(r, 0, r, 9);
-    label(r, 10, "目的"); merge(r, 10, r, 11);
-    data(r, 12, "（　　　　　　　　　　　　　　　　　　　　　　　　）"); merge(r, 12, r, LC);
+    center(r, 0, p.prior_residence_status === "Có" ? "有" : "無"); merge(r, 0, r, 8);
+    data(r, 9, "目的 (　　　　　　　　　　　　　　　　　　　　　　　　　)"); merge(r, 9, r, LC);
 
     // === 家族構成 ===
     r++;
@@ -501,7 +515,7 @@ serve(async (req) => {
     label(r, 20, "職業"); merge(r, 20, r, 31);
     label(r, 32, "月収"); merge(r, 32, r, LC);
 
-    // === Family data ===
+    // === Family data (dynamic rows) ===
     const fam = p.family_members || [];
     const FAM_ROWS = Math.max(fam.length, 4);
     for (let i = 0; i < FAM_ROWS; i++) {
@@ -614,7 +628,7 @@ serve(async (req) => {
     data(r, 0, p.japanese_certificate || ""); merge(r, 0, r, 28);
     data(r, 29, p.hobbies || ""); merge(r, 29, r, LC);
 
-    // === Empty separator (merged, outer frame only) ===
+    // === Empty separator (outer frame only, no internal borders) ===
     r++;
     rowHeights.set(r, 5);
     separatorRows.add(r);
@@ -649,7 +663,7 @@ serve(async (req) => {
     center(r, 23, p.class_attitude || ""); merge(r, 23, r, 25);
     label(r, 26, "授業態度\n[ 優・良・可・未 ]"); merge(r, 26, r, LC);
 
-    // (備考 removed per user request)
+    // === 備考 (removed per user request) ===
 
     const maxRow = r;
 
