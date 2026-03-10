@@ -523,7 +523,7 @@ serve(async (req) => {
         center(r, 0, relationMap[fm.relationship] || fm.relationship || ""); merge(r, 0, r, 2);
         data(r, 3, fm.full_name || ""); merge(r, 3, r, 11);
         center(r, 12, fm.birth_year ? today.getFullYear() - fm.birth_year : ""); merge(r, 12, r, 17);
-        center(r, 18, fm.living_together ? "O" : "X"); merge(r, 18, r, 19);
+        center(r, 18, fm.location === "O" || fm.living_together === true ? "O" : "X"); merge(r, 18, r, 19);
         data(r, 20, fm.occupation || ""); merge(r, 20, r, 31);
         data(r, 32, fm.income ? `${fm.income} 万円` : ""); merge(r, 32, r, LC);
       } else {
