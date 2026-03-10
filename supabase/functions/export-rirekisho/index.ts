@@ -39,6 +39,7 @@ const S_HEADER = 5;
 // 37 columns - widths tuned to fill A4 portrait width (210mm)
 const NUM_COLS = 37;
 const COL_WIDTHS: number[] = new Array(37).fill(3.5);
+COL_WIDTHS[2] = 12;
 
 function buildXlsx(
   cells: CellData[], merges: MergeRange[], rowHeights: Map<number, number>, maxRow: number,
