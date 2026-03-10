@@ -299,13 +299,24 @@ const toYM = (y: number | null, m: number | null): string => {
 };
 const getRegion = (bp: string | null): string => {
   if (!bp) return "";
-  const u = bp.toUpperCase();
+  const u = removeDiacritics(bp).toUpperCase();
   const north = ["HA NOI","HAI PHONG","QUANG NINH","BAC NINH","HAI DUONG","HUNG YEN","THAI BINH","NAM DINH","NINH BINH","HA NAM","VINH PHUC","BAC GIANG","PHU THO","THAI NGUYEN","BAC KAN","CAO BANG","LANG SON","TUYEN QUANG","HA GIANG","LAO CAI","YEN BAI","SON LA","LAI CHAU","DIEN BIEN","HOA BINH"];
   const central = ["THANH HOA","NGHE AN","HA TINH","QUANG BINH","QUANG TRI","THUA THIEN HUE","DA NANG","QUANG NAM","QUANG NGAI","BINH DINH","PHU YEN","KHANH HOA","NINH THUAN","BINH THUAN","KON TUM","GIA LAI","DAK LAK","DAK NONG","LAM DONG"];
   for (const p of north) if (u.includes(p)) return "北部";
   for (const p of central) if (u.includes(p)) return "中部";
   return "南部";
 };
+
+// Strip Vietnamese diacritics
+const removeDiacritics = (str: string): string => {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+};
+
 const relationMap: Record<string, string> = {
   "Cha": "父", "Mẹ": "母", "Anh": "兄", "Chị": "姉", "Em trai": "弟", "Em gái": "妹",
   "Anh trai": "兄", "Chị gái": "姉",
@@ -383,7 +394,7 @@ serve(async (req) => {
     // === Row 3: 英字表記 ===
     rowHeights.set(3, 24);
     label(3, 2, "英字表記"); merge(3, 2, 3, 4);
-    data(3, 5, (p.full_name || "").toUpperCase()); merge(3, 5, 3, 28);
+    data(3, 5, removeDiacritics(p.full_name || "").toUpperCase()); merge(3, 5, 3, 28);
 
     // === Row 4: 生年月日 + 性別 ===
     rowHeights.set(4, 24);
@@ -638,12 +649,7 @@ serve(async (req) => {
     center(r, 23, p.class_attitude || ""); merge(r, 23, r, 25);
     label(r, 26, "授業態度\n[ 優・良・可・未 ]"); merge(r, 26, r, LC);
 
-    // === 備考 header ===
-    r++;
-    rowHeights.set(r, 20);
-    header(r, 0, "備考"); merge(r, 0, r, LC);
-
-    // (備考 data row removed per user request)
+    // (備考 removed per user request)
 
     const maxRow = r;
 
