@@ -469,9 +469,8 @@ serve(async (req) => {
     r++;
     rowHeights.set(r, 20);
     center(r, 0, p.prior_residence_status === "Có" ? "有" : "無"); merge(r, 0, r, 9);
-    label(r, 10, "目的 ("); merge(r, 10, r, 11);
-    data(r, 12, ""); merge(r, 12, r, 35);
-    data(r, 36, ")");
+    label(r, 10, "目的"); merge(r, 10, r, 11);
+    data(r, 12, "（　　　　　　　　　　　　　　　　　　　　　　　　）"); merge(r, 12, r, LC);
 
     // === 家族構成 ===
     r++;
