@@ -638,7 +638,7 @@ serve(async (req) => {
 
     // === Attitude row 1: 飲酒, 喫煙, 性自認, 性格 ===
     r++;
-    rowHeights.set(r, 45);
+    rowHeights.set(r, 24);
     center(r, 0, p.drinking === "Không" ? "無" : p.drinking || "無"); merge(r, 0, r, 1);
     label(r, 2, "飲酒\n[ 多・少・無 ]"); merge(r, 2, r, 4);
     center(r, 5, p.smoking === "Không" ? "無" : p.smoking || "無"); merge(r, 5, r, 6);
