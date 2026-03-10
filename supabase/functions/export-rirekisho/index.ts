@@ -138,7 +138,7 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
 ${colsXml}
 <sheetData>${sheetDataXml}</sheetData>
 ${mergesXml}
-<pageMargins left="0.3" right="0.3" top="0.2" bottom="0.2" header="0.1" footer="0.1"/>
+<pageMargins left="0.15" right="0.15" top="0.15" bottom="0.15" header="0.05" footer="0.05"/>
 <pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="1"/>
 ${drawingRef}
 </worksheet>`;
