@@ -74,7 +74,7 @@ ${strings.map(s => `<si><t>${escapeXml(s)}</t></si>`).join("\n")}
 <fills count="3">
 <fill><patternFill patternType="none"/></fill>
 <fill><patternFill patternType="gray125"/></fill>
-<fill><patternFill patternType="solid"><fgColor rgb="FFF4D9A0"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFF4C27A"/></patternFill></fill>
 </fills>
 <borders count="2">
 <border><left/><right/><top/><bottom/></border>
