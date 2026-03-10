@@ -660,7 +660,11 @@ serve(async (req) => {
     center(r, 23, p.class_attitude || ""); merge(r, 23, r, 25);
     label(r, 26, "授業態度\n[ 優・良・可・未 ]"); merge(r, 26, r, LC);
 
-    // === 備考 (removed per user request) ===
+    // === 備考 ===
+    r++;
+    rowHeights.set(r, 20);
+    label(r, 0, "備考"); merge(r, 0, r, 2);
+    data(r, 3, p.rirekisho_remarks || ""); merge(r, 3, r, LC);
 
     const maxRow = r;
 
