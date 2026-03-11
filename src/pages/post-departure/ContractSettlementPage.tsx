@@ -210,6 +210,7 @@ export default function ContractSettlementPage() {
                 <TableHead>Nghiệp đoàn</TableHead>
                 <TableHead>Ngành nghề</TableHead>
                 <TableHead className="w-28 text-center">Ngày XC</TableHead>
+                <TableHead className="w-28 text-center">Ngày thanh lý</TableHead>
                 <TableHead className="w-28 text-center">Ngày về nước</TableHead>
                 <TableHead className="w-20 text-center">HĐ (năm)</TableHead>
               </TableRow>
