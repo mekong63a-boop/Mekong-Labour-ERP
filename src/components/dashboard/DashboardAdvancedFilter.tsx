@@ -77,6 +77,8 @@ interface TraineeResult {
   return_date: string | null;
   early_return_date: string | null;
   absconded_date: string | null;
+  expected_return_date: string | null;
+  contract_end_date: string | null;
   // For studying filter
   class_id: string | null;
   // Joined relations
