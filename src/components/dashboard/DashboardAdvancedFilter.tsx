@@ -420,6 +420,7 @@ export default function DashboardAdvancedFilter() {
                       <TableHead className="w-24">Ngày đậu</TableHead>
                       <TableHead className="w-20">Nguồn</TableHead>
                       <TableHead className="w-24">Ngày ĐK</TableHead>
+                      <TableHead className="min-w-[140px]">Địa chỉ mới (sáp nhập)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
