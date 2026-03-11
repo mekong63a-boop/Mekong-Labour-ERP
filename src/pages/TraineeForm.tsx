@@ -733,6 +733,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       nyukan_entry_date: currentFormData.nyukan_entry_date || null,
       coe_date: currentFormData.coe_date || null,
       departure_date: currentFormData.departure_date || null,
+      settlement_date: currentFormData.settlement_date || null,
       absconded_date: currentFormData.absconded_date || null,
       early_return_date: currentFormData.early_return_date || null,
       early_return_reason: currentFormData.early_return_reason || null,
