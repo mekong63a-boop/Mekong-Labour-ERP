@@ -41,15 +41,16 @@ import { useNavigate } from "react-router-dom";
 // RULE: Không có bất kỳ mục nào liên quan đến visa
 // =============================================================================
 const EVENT_TYPES = [
-  { value: "registered", label: "Đăng ký mới", dateField: "registration_date", color: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" },
-  { value: "entry", label: "Nhập học", dateField: "entry_date", color: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" },
-  { value: "interview_pass", label: "Đậu phỏng vấn", dateField: "interview_pass_date", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300" },
-  { value: "document_submit", label: "Nộp hồ sơ", dateField: "document_submission_date", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300" },
-  { value: "coe", label: "Cấp COE", dateField: "coe_date", color: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300" },
-  { value: "departure", label: "Xuất cảnh", dateField: "departure_date", color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300" },
-  { value: "return", label: "Hoàn thành hợp đồng", dateField: "return_date", color: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300" },
-  { value: "early_return", label: "Về trước hạn", dateField: "early_return_date", color: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300" },
-  { value: "absconded", label: "Bỏ trốn", dateField: "absconded_date", color: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300" },
+  { value: "registered", label: "Đăng ký mới", dateField: "registration_date", color: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300", noDateRequired: false },
+  { value: "studying", label: "Đang học", dateField: "entry_date", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300", noDateRequired: true },
+  { value: "entry", label: "Nhập học", dateField: "entry_date", color: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300", noDateRequired: false },
+  { value: "interview_pass", label: "Đậu phỏng vấn", dateField: "interview_pass_date", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300", noDateRequired: false },
+  { value: "document_submit", label: "Nộp hồ sơ", dateField: "document_submission_date", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300", noDateRequired: false },
+  { value: "coe", label: "Cấp COE", dateField: "coe_date", color: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300", noDateRequired: false },
+  { value: "departure", label: "Xuất cảnh", dateField: "departure_date", color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300", noDateRequired: false },
+  { value: "return", label: "Hoàn thành hợp đồng", dateField: "return_date", color: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300", noDateRequired: false },
+  { value: "early_return", label: "Về trước hạn", dateField: "early_return_date", color: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300", noDateRequired: false },
+  { value: "absconded", label: "Bỏ trốn", dateField: "absconded_date", color: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300", noDateRequired: false },
 ] as const;
 
 type EventTypeValue = typeof EVENT_TYPES[number]["value"];
@@ -64,6 +65,7 @@ interface TraineeResult {
   trainee_type: string | null;
   progression_stage: string | null;
   source: string | null;
+  permanent_address_new: string | null;
   // Date fields
   created_at: string | null;
   registration_date: string | null;
@@ -75,6 +77,8 @@ interface TraineeResult {
   return_date: string | null;
   early_return_date: string | null;
   absconded_date: string | null;
+  // For studying filter
+  class_id: string | null;
   // Joined relations
   companies: { name: string | null; name_japanese: string | null } | null;
   unions: { name: string | null; name_japanese: string | null } | null;
@@ -126,30 +130,50 @@ export default function DashboardAdvancedFilter() {
   const selectedEvent = EVENT_TYPES.find((e) => e.value === eventType);
 
   // Build query key based on search params
+  const isNoDateEvent = selectedEvent?.noDateRequired;
   const queryKey = useMemo(() => {
-    if (!searchTriggered || !eventType || !fromDate || !toDate) return null;
+    if (!searchTriggered || !eventType) return null;
+    if (isNoDateEvent) return ["dashboard-advanced-filter", eventType, "no-date"];
+    if (!fromDate || !toDate) return null;
     return [
       "dashboard-advanced-filter",
       eventType,
       format(fromDate, "yyyy-MM-dd"),
       format(toDate, "yyyy-MM-dd"),
     ];
-  }, [searchTriggered, eventType, fromDate, toDate]);
+  }, [searchTriggered, eventType, fromDate, toDate, isNoDateEvent]);
 
   const { data: results = [], isLoading } = useQuery({
     queryKey: queryKey || ["dashboard-advanced-filter-idle"],
     queryFn: async () => {
-      if (!selectedEvent || !fromDate || !toDate) return [];
+      if (!selectedEvent) return [];
 
+      const selectFields = "id, trainee_code, full_name, gender, birth_date, birthplace, trainee_type, progression_stage, source, permanent_address_new, class_id, created_at, registration_date, entry_date, interview_pass_date, document_submission_date, coe_date, departure_date, return_date, early_return_date, absconded_date, companies:receiving_company_id(name, name_japanese), unions:union_id(name, name_japanese), job_categories:job_category_id(name, name_japanese)";
+
+      // Special case: "Đang học" - get currently studying trainees
+      if (eventType === "studying") {
+        const terminalStages = ['Xuất cảnh', 'Đang làm việc', 'Hoàn thành hợp đồng', 'Bỏ trốn', 'Về trước hạn'];
+        const { data, error } = await supabase
+          .from("trainees")
+          .select(selectFields)
+          .not("class_id", "is", null)
+          .is("departure_date", null)
+          .not("progression_stage", "in", `(${terminalStages.join(",")})`)
+          .order("full_name", { ascending: true })
+          .limit(5000);
+        if (error) throw error;
+        return (data as TraineeResult[]) || [];
+      }
+
+      // Normal date-range filter
+      if (!fromDate || !toDate) return [];
       const dateField = selectedEvent.dateField;
       const from = format(fromDate, "yyyy-MM-dd");
       const to = format(toDate, "yyyy-MM-dd");
 
       const { data, error } = await supabase
         .from("trainees")
-        .select(
-          "id, trainee_code, full_name, gender, birth_date, birthplace, trainee_type, progression_stage, source, created_at, registration_date, entry_date, interview_pass_date, document_submission_date, coe_date, departure_date, return_date, early_return_date, absconded_date, companies:receiving_company_id(name, name_japanese), unions:union_id(name, name_japanese), job_categories:job_category_id(name, name_japanese)"
-        )
+        .select(selectFields)
         .gte(dateField, from)
         .lte(dateField, to + "T23:59:59")
         .order(dateField, { ascending: true })
@@ -166,16 +190,16 @@ export default function DashboardAdvancedFilter() {
       toast.error("Vui lòng chọn loại sự kiện");
       return;
     }
-    if (!fromDate || !toDate) {
+    if (!selectedEvent?.noDateRequired && (!fromDate || !toDate)) {
       toast.error("Vui lòng chọn khoảng thời gian");
       return;
     }
-    if (fromDate > toDate) {
+    if (!selectedEvent?.noDateRequired && fromDate && toDate && fromDate > toDate) {
       toast.error("Ngày bắt đầu phải trước ngày kết thúc");
       return;
     }
     setSearchTriggered(true);
-  }, [eventType, fromDate, toDate]);
+  }, [eventType, fromDate, toDate, selectedEvent]);
 
   const handleExport = useCallback(() => {
     if (!results.length || !selectedEvent) return;
@@ -201,6 +225,7 @@ export default function DashboardAdvancedFilter() {
         "Ngày đậu": isPassed(t.progression_stage) && t.interview_pass_date ? formatVietnameseDate(t.interview_pass_date) : "",
         "Nguồn": t.source || "",
         "Ngày đăng ký": t.registration_date ? formatVietnameseDate(t.registration_date) : "",
+        "Địa chỉ mới (sau sáp nhập)": t.permanent_address_new || "",
       }));
 
       const ws = XLSX.utils.json_to_sheet(exportData);
@@ -395,6 +420,7 @@ export default function DashboardAdvancedFilter() {
                       <TableHead className="w-24">Ngày đậu</TableHead>
                       <TableHead className="w-20">Nguồn</TableHead>
                       <TableHead className="w-24">Ngày ĐK</TableHead>
+                      <TableHead className="min-w-[140px]">Địa chỉ mới (sáp nhập)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -435,6 +461,7 @@ export default function DashboardAdvancedFilter() {
                           <TableCell className="text-xs">
                             {t.registration_date ? formatVietnameseDate(t.registration_date) : "—"}
                           </TableCell>
+                          <TableCell className="text-xs">{t.permanent_address_new || "—"}</TableCell>
                         </TableRow>
                       );
                     })}
