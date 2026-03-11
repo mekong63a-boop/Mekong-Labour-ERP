@@ -220,6 +220,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     job_category_id: "",
     contract_term: "",
   });
+  // REF to always have the latest projectInterviewData for async callbacks (prevents closure staleness)
+  const projectDataRef = useRef(projectInterviewData);
+  projectDataRef.current = projectInterviewData;
   const [projectLoaded, setProjectLoaded] = useState(false);
   const [formLoaded, setFormLoaded] = useState(false);
 
