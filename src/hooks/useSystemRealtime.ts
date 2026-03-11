@@ -314,6 +314,7 @@ export function useManualRefresh() {
     queryClient.invalidateQueries({ queryKey: ["order-trainee-counts"] });
     queryClient.invalidateQueries({ queryKey: ["order-trainees"] });
     queryClient.invalidateQueries({ queryKey: ["interview-history"] });
+    queryClient.invalidateQueries({ queryKey: ["order-stats"] });
     
     queryClient.refetchQueries({ queryKey: ["orders"], type: "active" });
   };
