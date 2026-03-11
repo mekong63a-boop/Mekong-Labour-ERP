@@ -381,17 +381,28 @@ export function useManualRefresh() {
     // Handbook
     queryClient.invalidateQueries({ queryKey: ["handbook-entries"] });
 
-    // Contract Settlement
-    queryClient.invalidateQueries({ queryKey: ["contract-settlement-trainees"] });
-
-    // Post-departure
+    // Post-departure & Contract Settlement
     queryClient.invalidateQueries({ queryKey: ["post-departure-trainees"] });
     queryClient.invalidateQueries({ queryKey: ["post-departure-stats-by-year"] });
     queryClient.invalidateQueries({ queryKey: ["post-departure-chart-data"] });
-    queryClient.refetchQueries({ queryKey: ["contract-settlement-trainees"], type: "active" });
+    queryClient.invalidateQueries({ queryKey: ["post-departure-by-type"] });
+    queryClient.invalidateQueries({ queryKey: ["post-departure-kpi-cards"] });
+    queryClient.invalidateQueries({ queryKey: ["contract-settlement-trainees"] });
     queryClient.refetchQueries({ queryKey: ["post-departure-trainees"], type: "active" });
-    
+    queryClient.refetchQueries({ queryKey: ["contract-settlement-trainees"], type: "active" });
+    queryClient.refetchQueries({ queryKey: ["post-departure-chart-data"], type: "active" });
+
+    // Legal
+    queryClient.invalidateQueries({ queryKey: ["legal-company-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["legal-summary-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["legal-trainee-type-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["legal-dkhd-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["legal-tpc-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["legal-trainees-by-type"] });
+    queryClient.invalidateQueries({ queryKey: ["legal-company-trainees"] });
+
     // Violations/Blacklist
+    queryClient.invalidateQueries({ queryKey: ["blacklist-entries"] });
     queryClient.invalidateQueries({ queryKey: ["blacklist"] });
     queryClient.invalidateQueries({ queryKey: ["trainee-reviews"] });
     
