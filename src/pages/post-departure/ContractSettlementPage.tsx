@@ -1,4 +1,5 @@
-// Thanh lý hợp đồng - hiển thị học viên đã hoàn thành hợp đồng và về nước
+// Thanh lý hợp đồng - hiển thị học viên có ngày biến động (bỏ trốn, về trước hạn, hoàn thành HĐ)
+// Phân loại: Đã thanh lý (có settlement_date) vs Chưa thanh lý (chưa có settlement_date)
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,21 +21,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileCheck, Search } from "lucide-react";
+import { FileCheck, Search, CheckCircle2, Clock } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ExportButtonWithColumns } from "@/components/ui/export-button-with-columns";
+import { cn } from "@/lib/utils";
 
 function useContractSettlementTrainees() {
   return useQuery({
     queryKey: ["contract-settlement-trainees"],
     queryFn: async () => {
+      // Lấy tất cả HV có ngày biến động: bỏ trốn, về trước hạn, hoàn thành HĐ, hoặc đã có ngày thanh lý
       const { data: trainees, error } = await supabase
         .from("trainees")
         .select(
-          "id,trainee_code,full_name,gender,trainee_type,departure_date,return_date,settlement_date,contract_term,contract_end_date,receiving_company_id,union_id,job_category_id,notes"
+          "id,trainee_code,full_name,gender,trainee_type,progression_stage,departure_date,return_date,early_return_date,absconded_date,settlement_date,contract_term,contract_end_date,receiving_company_id,union_id,job_category_id,notes"
         )
-        .not("settlement_date", "is", null)
-        .order("settlement_date", { ascending: false });
+        .or("absconded_date.not.is.null,early_return_date.not.is.null,return_date.not.is.null,settlement_date.not.is.null")
+        .order("settlement_date", { ascending: false, nullsFirst: false });
 
       if (error) throw error;
 
@@ -69,16 +72,33 @@ function useContractSettlementTrainees() {
   });
 }
 
+// Xác định lý do kết thúc HĐ
+function getEndReason(t: any): { label: string; color: string } {
+  if (t.absconded_date) return { label: "Bỏ trốn", color: "bg-red-100 text-red-700" };
+  if (t.early_return_date) return { label: "Về trước hạn", color: "bg-orange-100 text-orange-700" };
+  if (t.return_date) return { label: "Hoàn thành HĐ", color: "bg-blue-100 text-blue-700" };
+  return { label: "—", color: "" };
+}
+
+// Xác định ngày kết thúc (ngày biến động cuối)
+function getEndDate(t: any): string | null {
+  return t.absconded_date || t.early_return_date || t.return_date || null;
+}
+
 export default function ContractSettlementPage() {
   const { data: trainees, isLoading, isError, error } = useContractSettlementTrainees();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [settlementFilter, setSettlementFilter] = useState<string>("all"); // all | settled | unsettled
 
+  // Year options dựa trên ngày kết thúc (biến động)
   const yearOptions = useMemo(() => {
     if (!trainees) return [];
     const years = new Set<string>();
     trainees.forEach(t => {
-      if ((t as any).settlement_date) years.add((t as any).settlement_date.substring(0, 4));
+      const endDate = getEndDate(t);
+      if (endDate) years.add(endDate.substring(0, 4));
+      if (t.settlement_date) years.add(t.settlement_date.substring(0, 4));
     });
     return Array.from(years).sort((a, b) => b.localeCompare(a));
   }, [trainees]);
@@ -87,10 +107,22 @@ export default function ContractSettlementPage() {
     if (!trainees) return [];
     let result = trainees;
 
+    // Filter by year (theo ngày kết thúc hoặc ngày thanh lý)
     if (selectedYear !== "all") {
-      result = result.filter(t => (t as any).settlement_date?.startsWith(selectedYear));
+      result = result.filter(t => {
+        const endDate = getEndDate(t);
+        return endDate?.startsWith(selectedYear) || t.settlement_date?.startsWith(selectedYear);
+      });
     }
 
+    // Filter by settlement status
+    if (settlementFilter === "settled") {
+      result = result.filter(t => !!t.settlement_date);
+    } else if (settlementFilter === "unsettled") {
+      result = result.filter(t => !t.settlement_date);
+    }
+
+    // Search
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(t =>
@@ -100,7 +132,7 @@ export default function ContractSettlementPage() {
     }
 
     return result;
-  }, [trainees, selectedYear, searchQuery]);
+  }, [trainees, selectedYear, settlementFilter, searchQuery]);
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "—";
@@ -109,23 +141,36 @@ export default function ContractSettlementPage() {
 
   // Stats
   const stats = useMemo(() => {
-    const total = filtered.length;
-    const male = filtered.filter(t => t.gender === "Nam").length;
-    const female = filtered.filter(t => t.gender === "Nữ").length;
-    return { total, male, female };
-  }, [filtered]);
+    if (!trainees) return { total: 0, settled: 0, unsettled: 0, filteredTotal: 0 };
+    
+    // Tổng số trong danh sách (sau lọc năm, trước lọc trạng thái thanh lý)
+    let yearFiltered = trainees;
+    if (selectedYear !== "all") {
+      yearFiltered = yearFiltered.filter(t => {
+        const endDate = getEndDate(t);
+        return endDate?.startsWith(selectedYear) || t.settlement_date?.startsWith(selectedYear);
+      });
+    }
+
+    const total = yearFiltered.length;
+    const settled = yearFiltered.filter(t => !!t.settlement_date).length;
+    const unsettled = yearFiltered.filter(t => !t.settlement_date).length;
+    return { total, settled, unsettled, filteredTotal: filtered.length };
+  }, [trainees, selectedYear, filtered]);
 
   const exportColumns = [
     { key: "trainee_code", label: "Mã HV" },
     { key: "full_name", label: "Họ và tên" },
     { key: "gender", label: "Giới tính" },
     { key: "trainee_type", label: "Đối tượng" },
+    { key: "end_reason", label: "Lý do" },
     { key: "company_name", label: "Công ty" },
     { key: "union_name", label: "Nghiệp đoàn" },
     { key: "job_category_name", label: "Ngành nghề" },
     { key: "departure_date", label: "Ngày xuất cảnh" },
+    { key: "end_date", label: "Ngày kết thúc" },
     { key: "settlement_date", label: "Ngày thanh lý" },
-    { key: "return_date", label: "Ngày về nước" },
+    { key: "settlement_status", label: "Trạng thái TL" },
     { key: "contract_term", label: "Thời hạn HĐ" },
   ];
 
@@ -139,26 +184,50 @@ export default function ContractSettlementPage() {
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats Cards - clickable to filter */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="p-4 rounded-lg border bg-blue-50 border-blue-200">
-          <p className="text-sm font-medium text-blue-600">Tổng thanh lý</p>
+        <button
+          onClick={() => setSettlementFilter("all")}
+          className={cn(
+            "p-4 rounded-lg border text-left transition-all",
+            settlementFilter === "all" ? "bg-blue-50 border-blue-300 ring-2 ring-blue-200" : "hover:bg-muted/50"
+          )}
+        >
+          <p className="text-sm font-medium text-blue-600">Tổng cộng</p>
           <p className="text-3xl font-bold text-foreground mt-1">{stats.total}</p>
-        </div>
-        <div className="p-4 rounded-lg border">
-          <p className="text-sm font-medium text-muted-foreground">Nam</p>
-          <p className="text-3xl font-bold text-foreground mt-1">{stats.male}</p>
-        </div>
-        <div className="p-4 rounded-lg border">
-          <p className="text-sm font-medium text-muted-foreground">Nữ</p>
-          <p className="text-3xl font-bold text-foreground mt-1">{stats.female}</p>
-        </div>
+        </button>
+        <button
+          onClick={() => setSettlementFilter("settled")}
+          className={cn(
+            "p-4 rounded-lg border text-left transition-all",
+            settlementFilter === "settled" ? "bg-emerald-50 border-emerald-300 ring-2 ring-emerald-200" : "hover:bg-muted/50"
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            <p className="text-sm font-medium text-emerald-600">Đã thanh lý</p>
+          </div>
+          <p className="text-3xl font-bold text-foreground mt-1">{stats.settled}</p>
+        </button>
+        <button
+          onClick={() => setSettlementFilter("unsettled")}
+          className={cn(
+            "p-4 rounded-lg border text-left transition-all",
+            settlementFilter === "unsettled" ? "bg-amber-50 border-amber-300 ring-2 ring-amber-200" : "hover:bg-muted/50"
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-amber-600" />
+            <p className="text-sm font-medium text-amber-600">Chưa thanh lý</p>
+          </div>
+          <p className="text-3xl font-bold text-foreground mt-1">{stats.unsettled}</p>
+        </button>
       </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Năm thanh lý:</span>
+          <span className="text-sm text-muted-foreground">Năm:</span>
           <Select value={selectedYear} onValueChange={setSelectedYear}>
             <SelectTrigger className="w-28">
               <SelectValue placeholder="Tất cả" />
@@ -207,47 +276,66 @@ export default function ContractSettlementPage() {
                 <TableHead>Họ và tên</TableHead>
                 <TableHead className="w-16 text-center">GT</TableHead>
                 <TableHead>Đối tượng</TableHead>
+                <TableHead>Lý do</TableHead>
                 <TableHead>Công ty</TableHead>
                 <TableHead>Nghiệp đoàn</TableHead>
-                <TableHead>Ngành nghề</TableHead>
                 <TableHead className="w-28 text-center">Ngày XC</TableHead>
+                <TableHead className="w-28 text-center">Ngày kết thúc</TableHead>
                 <TableHead className="w-28 text-center">Ngày thanh lý</TableHead>
-                <TableHead className="w-28 text-center">Ngày về nước</TableHead>
-                <TableHead className="w-20 text-center">HĐ (năm)</TableHead>
+                <TableHead className="w-28 text-center">Trạng thái</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((t, idx) => (
-                <TableRow key={t.id} className="hover:bg-muted/30">
-                  <TableCell className="text-center text-muted-foreground text-xs">{idx + 1}</TableCell>
-                  <TableCell className="font-mono text-sm">{t.trainee_code}</TableCell>
-                  <TableCell className="font-medium uppercase">{t.full_name}</TableCell>
-                  <TableCell className="text-center text-sm">{t.gender || "—"}</TableCell>
-                  <TableCell className="text-sm">
-                    {t.trainee_type ? (
-                      <Badge variant="outline" className="text-xs">{t.trainee_type}</Badge>
-                    ) : "—"}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {t.company?.name_japanese
-                      ? `${t.company.name_japanese}`
-                      : t.company?.name || "—"}
-                  </TableCell>
-                  <TableCell className="text-sm">{t.union?.name || "—"}</TableCell>
-                  <TableCell className="text-sm">{t.job_category?.name || "—"}</TableCell>
-                  <TableCell className="text-center text-sm">{formatDate(t.departure_date)}</TableCell>
-                  <TableCell className="text-center text-sm font-medium text-emerald-600">{formatDate((t as any).settlement_date)}</TableCell>
-                  <TableCell className="text-center text-sm font-medium text-blue-600">{formatDate(t.return_date)}</TableCell>
-                  <TableCell className="text-center text-sm">{t.contract_term || 3}</TableCell>
-                </TableRow>
-              ))}
+              {filtered.map((t, idx) => {
+                const endReason = getEndReason(t);
+                const endDate = getEndDate(t);
+                const isSettled = !!t.settlement_date;
+
+                return (
+                  <TableRow key={t.id} className="hover:bg-muted/30">
+                    <TableCell className="text-center text-muted-foreground text-xs">{idx + 1}</TableCell>
+                    <TableCell className="font-mono text-sm">{t.trainee_code}</TableCell>
+                    <TableCell className="font-medium uppercase">{t.full_name}</TableCell>
+                    <TableCell className="text-center text-sm">{t.gender || "—"}</TableCell>
+                    <TableCell className="text-sm">
+                      {t.trainee_type ? (
+                        <Badge variant="outline" className="text-xs">{t.trainee_type}</Badge>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {endReason.label !== "—" ? (
+                        <Badge className={cn("text-xs", endReason.color)}>{endReason.label}</Badge>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {t.company?.name_japanese || t.company?.name || "—"}
+                    </TableCell>
+                    <TableCell className="text-sm">{t.union?.name || "—"}</TableCell>
+                    <TableCell className="text-center text-sm">{formatDate(t.departure_date)}</TableCell>
+                    <TableCell className="text-center text-sm">{formatDate(endDate)}</TableCell>
+                    <TableCell className={cn(
+                      "text-center text-sm font-medium",
+                      isSettled ? "text-emerald-600" : "text-muted-foreground"
+                    )}>
+                      {isSettled ? formatDate(t.settlement_date) : "—"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {isSettled ? (
+                        <Badge className="bg-emerald-100 text-emerald-700 text-xs">Đã thanh lý</Badge>
+                      ) : (
+                        <Badge className="bg-amber-100 text-amber-700 text-xs">Chưa thanh lý</Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
       )}
 
       <div className="text-sm text-muted-foreground">
-        Hiển thị {filtered.length} / {trainees?.length || 0} học viên đã thanh lý hợp đồng
+        Hiển thị {filtered.length} / {stats.total} học viên
       </div>
     </div>
   );
