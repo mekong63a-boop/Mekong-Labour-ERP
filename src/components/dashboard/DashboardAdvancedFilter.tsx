@@ -150,7 +150,7 @@ export default function DashboardAdvancedFilter() {
     queryFn: async () => {
       if (!selectedEvent) return [];
 
-      const selectFields = "id, trainee_code, full_name, gender, birth_date, birthplace, trainee_type, progression_stage, source, permanent_address_new, class_id, created_at, registration_date, entry_date, interview_pass_date, document_submission_date, coe_date, departure_date, return_date, early_return_date, absconded_date, companies:receiving_company_id(name, name_japanese), unions:union_id(name, name_japanese), job_categories:job_category_id(name, name_japanese)";
+      const selectFields = "id, trainee_code, full_name, gender, birth_date, birthplace, trainee_type, progression_stage, source, permanent_address_new, class_id, created_at, registration_date, entry_date, interview_pass_date, document_submission_date, coe_date, departure_date, return_date, early_return_date, absconded_date, expected_return_date, contract_end_date, companies:receiving_company_id(name, name_japanese), unions:union_id(name, name_japanese), job_categories:job_category_id(name, name_japanese)";
 
       // Special case: "Đang học" - get currently studying trainees
       if (eventType === "studying") {
