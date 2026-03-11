@@ -157,7 +157,7 @@ export default function ContractSettlementPage() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Năm về nước:</span>
+          <span className="text-sm text-muted-foreground">Năm thanh lý:</span>
           <Select value={selectedYear} onValueChange={setSelectedYear}>
             <SelectTrigger className="w-28">
               <SelectValue placeholder="Tất cả" />
