@@ -138,6 +138,8 @@ export const REALTIME_GROUPS = {
   DORMITORY: 'dormitory',
   POST_DEPARTURE: 'post-departure',
   PARTNERS: 'partners',
+  LEGAL: 'legal',
+  VIOLATIONS: 'violations',
 } as const;
 
 export const QUERY_KEY_BUNDLES = {
@@ -197,6 +199,7 @@ export const QUERY_KEY_BUNDLES = {
     ["order-trainee-counts"],
     ["order-trainees"],
     ["interview-history"],
+    ["order-stats"],
   ],
   dormitory: [
     ["dormitories"],
@@ -211,6 +214,7 @@ export const QUERY_KEY_BUNDLES = {
   postDeparture: [
     ["post-departure-trainees"],
     ["post-departure-stats-by-year"],
+    ["post-departure-chart-data"],
     ["post-departure-by-type"],
     ["post-departure-kpi-cards"],
     ["contract-settlement-trainees"],
@@ -221,5 +225,19 @@ export const QUERY_KEY_BUNDLES = {
     ["job_categories"],
     ["company-trainee-counts"],
     ["union-trainee-counts"],
+  ],
+  legal: [
+    ["legal-company-stats"],
+    ["legal-summary-stats"],
+    ["legal-trainee-type-stats"],
+    ["legal-dkhd-stats"],
+    ["legal-tpc-stats"],
+    ["legal-trainees-by-type"],
+    ["legal-company-trainees"],
+  ],
+  violations: [
+    ["blacklist-entries"],
+    ["blacklist"],
+    ["trainee-reviews"],
   ],
 } as const;
