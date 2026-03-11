@@ -467,6 +467,12 @@ export default function DashboardAdvancedFilter() {
                           <TableCell className="text-xs">
                             {t.registration_date ? formatVietnameseDate(t.registration_date) : "—"}
                           </TableCell>
+                          <TableCell className="text-xs">
+                            {t.departure_date ? formatVietnameseDate(t.departure_date) : "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {t.return_date ? formatVietnameseDate(t.return_date) : "—"}
+                          </TableCell>
                           <TableCell className="text-xs">{t.permanent_address_new || "—"}</TableCell>
                         </TableRow>
                       );
