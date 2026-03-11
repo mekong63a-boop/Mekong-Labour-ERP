@@ -89,6 +89,12 @@ export function useSystemRealtime() {
           // Queue partners (receiving_company_id, union_id changes affect trainee counts)
           // TODO: Chuyển sang PostgreSQL View để tối ưu hiệu suất cho quy mô lớn
           queueInvalidation(REALTIME_GROUPS.PARTNERS, QUERY_KEY_BUNDLES.partners, false);
+          
+          // Queue legal (document_status, progression_stage changes affect legal stats)
+          queueInvalidation(REALTIME_GROUPS.LEGAL, QUERY_KEY_BUNDLES.legal, false);
+          
+          // Queue violations (trainee changes may affect blacklist display)
+          queueInvalidation(REALTIME_GROUPS.VIOLATIONS, QUERY_KEY_BUNDLES.violations, false);
         }
       )
       
