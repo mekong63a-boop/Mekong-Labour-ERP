@@ -374,6 +374,16 @@ export function useManualRefresh() {
     
     // Handbook
     queryClient.invalidateQueries({ queryKey: ["handbook-entries"] });
+
+    // Contract Settlement
+    queryClient.invalidateQueries({ queryKey: ["contract-settlement-trainees"] });
+
+    // Post-departure
+    queryClient.invalidateQueries({ queryKey: ["post-departure-trainees"] });
+    queryClient.invalidateQueries({ queryKey: ["post-departure-stats-by-year"] });
+    queryClient.invalidateQueries({ queryKey: ["post-departure-chart-data"] });
+    queryClient.refetchQueries({ queryKey: ["contract-settlement-trainees"], type: "active" });
+    queryClient.refetchQueries({ queryKey: ["post-departure-trainees"], type: "active" });
     
     // Violations/Blacklist
     queryClient.invalidateQueries({ queryKey: ["blacklist"] });
