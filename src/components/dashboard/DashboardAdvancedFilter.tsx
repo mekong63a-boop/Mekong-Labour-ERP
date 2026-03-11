@@ -424,6 +424,8 @@ export default function DashboardAdvancedFilter() {
                       <TableHead className="w-24">Ngày đậu</TableHead>
                       <TableHead className="w-20">Nguồn</TableHead>
                       <TableHead className="w-24">Ngày ĐK</TableHead>
+                      <TableHead className="w-24">Ngày XC</TableHead>
+                      <TableHead className="w-24">Ngày HT HĐ</TableHead>
                       <TableHead className="min-w-[140px]">Địa chỉ mới (sáp nhập)</TableHead>
                     </TableRow>
                   </TableHeader>
