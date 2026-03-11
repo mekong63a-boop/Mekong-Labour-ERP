@@ -78,7 +78,7 @@ export default function ContractSettlementPage() {
     if (!trainees) return [];
     const years = new Set<string>();
     trainees.forEach(t => {
-      if (t.return_date) years.add(t.return_date.substring(0, 4));
+      if ((t as any).settlement_date) years.add((t as any).settlement_date.substring(0, 4));
     });
     return Array.from(years).sort((a, b) => b.localeCompare(a));
   }, [trainees]);
