@@ -225,6 +225,7 @@ export default function DashboardAdvancedFilter() {
         "Ngày đậu": isPassed(t.progression_stage) && t.interview_pass_date ? formatVietnameseDate(t.interview_pass_date) : "",
         "Nguồn": t.source || "",
         "Ngày đăng ký": t.registration_date ? formatVietnameseDate(t.registration_date) : "",
+        "Địa chỉ mới (sau sáp nhập)": t.permanent_address_new || "",
       }));
 
       const ws = XLSX.utils.json_to_sheet(exportData);
