@@ -124,6 +124,7 @@ export default function ContractSettlementPage() {
     { key: "union_name", label: "Nghiệp đoàn" },
     { key: "job_category_name", label: "Ngành nghề" },
     { key: "departure_date", label: "Ngày xuất cảnh" },
+    { key: "settlement_date", label: "Ngày thanh lý" },
     { key: "return_date", label: "Ngày về nước" },
     { key: "contract_term", label: "Thời hạn HĐ" },
   ];
