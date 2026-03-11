@@ -65,6 +65,7 @@ interface TraineeResult {
   trainee_type: string | null;
   progression_stage: string | null;
   source: string | null;
+  permanent_address_new: string | null;
   // Date fields
   created_at: string | null;
   registration_date: string | null;
@@ -76,6 +77,8 @@ interface TraineeResult {
   return_date: string | null;
   early_return_date: string | null;
   absconded_date: string | null;
+  // For studying filter
+  class_id: string | null;
   // Joined relations
   companies: { name: string | null; name_japanese: string | null } | null;
   unions: { name: string | null; name_japanese: string | null } | null;
