@@ -22,6 +22,7 @@ import GlossaryPage from "./pages/glossary/GlossaryPage";
 import OrderList from "./pages/orders/OrderList";
 import InternalUnionPage from "./pages/internal-union/InternalUnionPage";
 import PostDeparturePage from "./pages/post-departure/PostDeparturePage";
+import ContractSettlementPage from "./pages/post-departure/ContractSettlementPage";
 import PartnerList from "./pages/partners/PartnerList";
 import CompanyForm from "./pages/partners/CompanyForm";
 import UnionForm from "./pages/partners/UnionForm";
@@ -362,6 +363,14 @@ function AppWithQueryClient() {
                 element={
                   <MenuProtectedRoute menuKey="post_departure">
                     <PostDeparturePage />
+                  </MenuProtectedRoute>
+                }
+              />
+              <Route
+                path="/post-departure/contract-settlement"
+                element={
+                  <MenuProtectedRoute menuKey="post_departure">
+                    <ContractSettlementPage />
                   </MenuProtectedRoute>
                 }
               />
