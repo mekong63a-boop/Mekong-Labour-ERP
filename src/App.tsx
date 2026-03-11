@@ -366,6 +366,14 @@ function AppWithQueryClient() {
                   </MenuProtectedRoute>
                 }
               />
+              <Route
+                path="/post-departure/contract-settlement"
+                element={
+                  <MenuProtectedRoute menuKey="post_departure">
+                    <ContractSettlementPage />
+                  </MenuProtectedRoute>
+                }
+              />
 
               {/* Internal Ops */}
               <Route
