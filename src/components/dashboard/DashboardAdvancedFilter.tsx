@@ -130,30 +130,50 @@ export default function DashboardAdvancedFilter() {
   const selectedEvent = EVENT_TYPES.find((e) => e.value === eventType);
 
   // Build query key based on search params
+  const isNoDateEvent = selectedEvent?.noDateRequired;
   const queryKey = useMemo(() => {
-    if (!searchTriggered || !eventType || !fromDate || !toDate) return null;
+    if (!searchTriggered || !eventType) return null;
+    if (isNoDateEvent) return ["dashboard-advanced-filter", eventType, "no-date"];
+    if (!fromDate || !toDate) return null;
     return [
       "dashboard-advanced-filter",
       eventType,
       format(fromDate, "yyyy-MM-dd"),
       format(toDate, "yyyy-MM-dd"),
     ];
-  }, [searchTriggered, eventType, fromDate, toDate]);
+  }, [searchTriggered, eventType, fromDate, toDate, isNoDateEvent]);
 
   const { data: results = [], isLoading } = useQuery({
     queryKey: queryKey || ["dashboard-advanced-filter-idle"],
     queryFn: async () => {
-      if (!selectedEvent || !fromDate || !toDate) return [];
+      if (!selectedEvent) return [];
 
+      const selectFields = "id, trainee_code, full_name, gender, birth_date, birthplace, trainee_type, progression_stage, source, permanent_address_new, class_id, created_at, registration_date, entry_date, interview_pass_date, document_submission_date, coe_date, departure_date, return_date, early_return_date, absconded_date, companies:receiving_company_id(name, name_japanese), unions:union_id(name, name_japanese), job_categories:job_category_id(name, name_japanese)";
+
+      // Special case: "Đang học" - get currently studying trainees
+      if (eventType === "studying") {
+        const terminalStages = ['Xuất cảnh', 'Đang làm việc', 'Hoàn thành hợp đồng', 'Bỏ trốn', 'Về trước hạn'];
+        const { data, error } = await supabase
+          .from("trainees")
+          .select(selectFields)
+          .not("class_id", "is", null)
+          .is("departure_date", null)
+          .not("progression_stage", "in", `(${terminalStages.join(",")})`)
+          .order("full_name", { ascending: true })
+          .limit(5000);
+        if (error) throw error;
+        return (data as TraineeResult[]) || [];
+      }
+
+      // Normal date-range filter
+      if (!fromDate || !toDate) return [];
       const dateField = selectedEvent.dateField;
       const from = format(fromDate, "yyyy-MM-dd");
       const to = format(toDate, "yyyy-MM-dd");
 
       const { data, error } = await supabase
         .from("trainees")
-        .select(
-          "id, trainee_code, full_name, gender, birth_date, birthplace, trainee_type, progression_stage, source, created_at, registration_date, entry_date, interview_pass_date, document_submission_date, coe_date, departure_date, return_date, early_return_date, absconded_date, companies:receiving_company_id(name, name_japanese), unions:union_id(name, name_japanese), job_categories:job_category_id(name, name_japanese)"
-        )
+        .select(selectFields)
         .gte(dateField, from)
         .lte(dateField, to + "T23:59:59")
         .order(dateField, { ascending: true })
