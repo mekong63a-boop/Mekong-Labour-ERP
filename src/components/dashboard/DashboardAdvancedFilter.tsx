@@ -41,15 +41,16 @@ import { useNavigate } from "react-router-dom";
 // RULE: Không có bất kỳ mục nào liên quan đến visa
 // =============================================================================
 const EVENT_TYPES = [
-  { value: "registered", label: "Đăng ký mới", dateField: "registration_date", color: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" },
-  { value: "entry", label: "Nhập học", dateField: "entry_date", color: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" },
-  { value: "interview_pass", label: "Đậu phỏng vấn", dateField: "interview_pass_date", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300" },
-  { value: "document_submit", label: "Nộp hồ sơ", dateField: "document_submission_date", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300" },
-  { value: "coe", label: "Cấp COE", dateField: "coe_date", color: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300" },
-  { value: "departure", label: "Xuất cảnh", dateField: "departure_date", color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300" },
-  { value: "return", label: "Hoàn thành hợp đồng", dateField: "return_date", color: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300" },
-  { value: "early_return", label: "Về trước hạn", dateField: "early_return_date", color: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300" },
-  { value: "absconded", label: "Bỏ trốn", dateField: "absconded_date", color: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300" },
+  { value: "registered", label: "Đăng ký mới", dateField: "registration_date", color: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300", noDateRequired: false },
+  { value: "studying", label: "Đang học", dateField: "entry_date", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300", noDateRequired: true },
+  { value: "entry", label: "Nhập học", dateField: "entry_date", color: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300", noDateRequired: false },
+  { value: "interview_pass", label: "Đậu phỏng vấn", dateField: "interview_pass_date", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300", noDateRequired: false },
+  { value: "document_submit", label: "Nộp hồ sơ", dateField: "document_submission_date", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300", noDateRequired: false },
+  { value: "coe", label: "Cấp COE", dateField: "coe_date", color: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300", noDateRequired: false },
+  { value: "departure", label: "Xuất cảnh", dateField: "departure_date", color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300", noDateRequired: false },
+  { value: "return", label: "Hoàn thành hợp đồng", dateField: "return_date", color: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300", noDateRequired: false },
+  { value: "early_return", label: "Về trước hạn", dateField: "early_return_date", color: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300", noDateRequired: false },
+  { value: "absconded", label: "Bỏ trốn", dateField: "absconded_date", color: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300", noDateRequired: false },
 ] as const;
 
 type EventTypeValue = typeof EVENT_TYPES[number]["value"];
