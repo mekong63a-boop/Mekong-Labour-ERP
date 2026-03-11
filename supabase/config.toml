@@ -1,8 +1,6 @@
 [functions.scan-cccd]
 verify_jwt = false
 
-[functions.google-drive-upload]
-verify_jwt = false
 
 [functions.weekly-backup]
 verify_jwt = false

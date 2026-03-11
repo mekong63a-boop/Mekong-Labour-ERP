@@ -63,11 +63,6 @@ export const useTraineeKPIs = () => useQuery({
   staleTime: 30 * 1000, // 30 seconds for fresher data
 });
 
-export const useTraineeByStage = () => useQuery({
-  queryKey: ["dashboard-trainee-by-stage"],
-  queryFn: () => queryView("dashboard_trainee_by_stage") as Promise<StageData[]>,
-  staleTime: 30 * 1000,
-});
 
 export const useTraineeByStatus = () => useQuery({
   queryKey: ["dashboard-trainee-by-status"],
