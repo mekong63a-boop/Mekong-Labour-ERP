@@ -1,0 +1,1 @@
+ALTER TABLE public.trainees ADD COLUMN settlement_date date;

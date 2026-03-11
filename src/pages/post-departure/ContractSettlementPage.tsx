@@ -31,11 +31,10 @@ function useContractSettlementTrainees() {
       const { data: trainees, error } = await supabase
         .from("trainees")
         .select(
-          "id,trainee_code,full_name,gender,trainee_type,departure_date,return_date,contract_term,contract_end_date,receiving_company_id,union_id,job_category_id,notes"
+          "id,trainee_code,full_name,gender,trainee_type,departure_date,return_date,settlement_date,contract_term,contract_end_date,receiving_company_id,union_id,job_category_id,notes"
         )
-        .eq("progression_stage", "Hoàn thành hợp đồng")
-        .not("return_date", "is", null)
-        .order("return_date", { ascending: false });
+        .not("settlement_date", "is", null)
+        .order("settlement_date", { ascending: false });
 
       if (error) throw error;
 
@@ -79,7 +78,7 @@ export default function ContractSettlementPage() {
     if (!trainees) return [];
     const years = new Set<string>();
     trainees.forEach(t => {
-      if (t.return_date) years.add(t.return_date.substring(0, 4));
+      if ((t as any).settlement_date) years.add((t as any).settlement_date.substring(0, 4));
     });
     return Array.from(years).sort((a, b) => b.localeCompare(a));
   }, [trainees]);
@@ -89,7 +88,7 @@ export default function ContractSettlementPage() {
     let result = trainees;
 
     if (selectedYear !== "all") {
-      result = result.filter(t => t.return_date?.startsWith(selectedYear));
+      result = result.filter(t => (t as any).settlement_date?.startsWith(selectedYear));
     }
 
     if (searchQuery) {
@@ -125,6 +124,7 @@ export default function ContractSettlementPage() {
     { key: "union_name", label: "Nghiệp đoàn" },
     { key: "job_category_name", label: "Ngành nghề" },
     { key: "departure_date", label: "Ngày xuất cảnh" },
+    { key: "settlement_date", label: "Ngày thanh lý" },
     { key: "return_date", label: "Ngày về nước" },
     { key: "contract_term", label: "Thời hạn HĐ" },
   ];
@@ -158,7 +158,7 @@ export default function ContractSettlementPage() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">Năm về nước:</span>
+          <span className="text-sm text-muted-foreground">Năm thanh lý:</span>
           <Select value={selectedYear} onValueChange={setSelectedYear}>
             <SelectTrigger className="w-28">
               <SelectValue placeholder="Tất cả" />
@@ -211,6 +211,7 @@ export default function ContractSettlementPage() {
                 <TableHead>Nghiệp đoàn</TableHead>
                 <TableHead>Ngành nghề</TableHead>
                 <TableHead className="w-28 text-center">Ngày XC</TableHead>
+                <TableHead className="w-28 text-center">Ngày thanh lý</TableHead>
                 <TableHead className="w-28 text-center">Ngày về nước</TableHead>
                 <TableHead className="w-20 text-center">HĐ (năm)</TableHead>
               </TableRow>
@@ -235,6 +236,7 @@ export default function ContractSettlementPage() {
                   <TableCell className="text-sm">{t.union?.name || "—"}</TableCell>
                   <TableCell className="text-sm">{t.job_category?.name || "—"}</TableCell>
                   <TableCell className="text-center text-sm">{formatDate(t.departure_date)}</TableCell>
+                  <TableCell className="text-center text-sm font-medium text-emerald-600">{formatDate((t as any).settlement_date)}</TableCell>
                   <TableCell className="text-center text-sm font-medium text-blue-600">{formatDate(t.return_date)}</TableCell>
                   <TableCell className="text-center text-sm">{t.contract_term || 3}</TableCell>
                 </TableRow>
