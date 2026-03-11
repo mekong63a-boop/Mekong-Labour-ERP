@@ -844,16 +844,18 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
 
     // Project/Interview: Always update trainee's draft fields
     // NOTE: interview_date does NOT exist in trainees table - it's only in interview_history
+    // Use ref to guarantee latest data (prevents closure staleness - same pattern as formDataRef)
+    const currentProjectData = projectDataRef.current;
     {
       const { error: updErr } = await supabase
         .from("trainees")
         .update({
-          receiving_company_id: projectInterviewData.receiving_company_id || null,
-          union_id: projectInterviewData.union_id || null,
-          job_category_id: projectInterviewData.job_category_id || null,
-          expected_entry_month: projectInterviewData.expected_entry_month || null,
-          contract_term: projectInterviewData.contract_term
-            ? parseFloat(projectInterviewData.contract_term)
+          receiving_company_id: currentProjectData.receiving_company_id || null,
+          union_id: currentProjectData.union_id || null,
+          job_category_id: currentProjectData.job_category_id || null,
+          expected_entry_month: currentProjectData.expected_entry_month || null,
+          contract_term: currentProjectData.contract_term
+            ? parseFloat(currentProjectData.contract_term)
             : null,
         })
         .eq("id", traineeId);
@@ -862,15 +864,15 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
 
     // Auto-finalize interview history when interview_date is present
     // This eliminates the need for users to click a separate "Lưu lịch sử phỏng vấn" button
-    if (projectInterviewData.interview_date) {
+    if (currentProjectData.interview_date) {
       const { error: intErr } = await supabase.rpc("finalize_interview_draft", {
         p_trainee_id: traineeId,
-        p_interview_date: projectInterviewData.interview_date,
+        p_interview_date: currentProjectData.interview_date,
         p_result: null,
-        p_company_id: projectInterviewData.receiving_company_id || null,
-        p_union_id: projectInterviewData.union_id || null,
-        p_job_category_id: projectInterviewData.job_category_id || null,
-        p_expected_entry_month: projectInterviewData.expected_entry_month || null,
+        p_company_id: currentProjectData.receiving_company_id || null,
+        p_union_id: currentProjectData.union_id || null,
+        p_job_category_id: currentProjectData.job_category_id || null,
+        p_expected_entry_month: currentProjectData.expected_entry_month || null,
       });
       if (intErr) throw intErr;
     }
