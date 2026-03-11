@@ -1936,6 +1936,7 @@ export type Database = {
           reserve_date: string | null
           return_date: string | null
           rirekisho_remarks: string | null
+          settlement_date: string | null
           shirt_size: string | null
           shoe_size: string | null
           simple_status: Database["public"]["Enums"]["simple_status"] | null
@@ -2065,6 +2066,7 @@ export type Database = {
           reserve_date?: string | null
           return_date?: string | null
           rirekisho_remarks?: string | null
+          settlement_date?: string | null
           shirt_size?: string | null
           shoe_size?: string | null
           simple_status?: Database["public"]["Enums"]["simple_status"] | null
@@ -2194,6 +2196,7 @@ export type Database = {
           reserve_date?: string | null
           return_date?: string | null
           rirekisho_remarks?: string | null
+          settlement_date?: string | null
           shirt_size?: string | null
           shoe_size?: string | null
           simple_status?: Database["public"]["Enums"]["simple_status"] | null
