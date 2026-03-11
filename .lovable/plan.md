@@ -1,84 +1,72 @@
-# BẢN CHỐT TRẠNG THÁI HỆ THỐNG - Ngày 07/03/2026
 
-> ⚠️ **CẢNH BÁO**: Toàn bộ hệ thống dưới đây đã được kiểm tra và CỐ ĐỊNH.
-> KHÔNG được tự ý thay đổi bất kỳ mục nào mà không có yêu cầu rõ ràng từ người dùng.
 
----
+# Kế hoạch Dọn dẹp Hệ thống (System Cleanup)
 
-## 1. MODULE BÁO CÁO & TRA CỨU (`/reports`)
+## Tổng quan
 
-### TraineeProfileView (UI Tra cứu hồ sơ 360°)
-- ✅ **Không có** phần "Lớp học" (đã loại bỏ)
-- ✅ **Không có** phần "Nhật ký hệ thống" / Audit Logs (đã loại bỏ)
-- ✅ **Không có** phần "Địa chỉ tạm trú" (đã loại bỏ)
-- ✅ Nhãn chuyên cần đầy đủ tiếng Việt:
-  - `present` → "Có mặt"
-  - `absent` → "Vắng"
-  - `late` → "Đi trễ"
-  - `excused` → "Nghỉ có phép"
-  - `unexcused` → "Nghỉ không phép"
-- ✅ Thông tin Công ty/Nghiệp đoàn CHỈ hiển thị cho học viên đã đậu PV
-- ✅ Bảng điểm hiển thị cột "Điểm" (score/max_score) + "Đánh giá"
+Loại bỏ toàn bộ hệ thống workflow "bóng" không sử dụng, giữ `trainees.progression_stage` là SSOT duy nhất.
 
-### Edge Function `export-trainee-pdf`
-- ✅ **Đã loại bỏ** phần "Lớp học" (dòng 602: comment "ĐÃ LOẠI BỎ THEO YÊU CẦU")
-- ✅ **Đã loại bỏ** phần "Nhật ký hệ thống" (dòng 881: comment "ĐÃ LOẠI BỎ THEO YÊU CẦU")
-- ✅ statusLabels đầy đủ: `unexcused` → "Nghỉ không phép", `excused` → "Nghỉ có phép"
-- ✅ **Đã deploy** ngày 07/03/2026
+## Phạm vi xóa
 
----
+### 1. Database Migration (1 migration SQL)
 
-## 2. MODULE ĐÀO TẠO (`/education`)
+**Xóa 3 triggers trên bảng `trainees`/`trainee_workflow`:**
+- `trigger_auto_create_workflow` (on trainees INSERT)
+- `trigger_sync_trainee_status` (on trainee_workflow UPDATE)
+- `trigger_workflow_transition` (on trainee_workflow UPDATE)
+- `update_trainee_workflow_updated_at` (on trainee_workflow UPDATE)
 
-### Education Dashboard
-- ✅ Thống kê từ database view `education_interview_stats` (không tính toán frontend)
-- ✅ Logic: "Đã đậu" = `progression_stage != 'Chưa đậu'`; "Chưa đậu" = `progression_stage IS NULL OR = 'Chưa đậu'`
-- ✅ Danh sách vắng/trễ filter: `["late", "excused", "unexcused"]`
-- ✅ Labels tiếng Việt: "Trễ", "Có phép", "Không phép"
+**Xóa 2 views:**
+- `trainees_with_workflow`
+- `dashboard_trainee_by_stage`
 
-### Sĩ số
-- ✅ "Đang học" = có `class_id` + `departure_date IS NULL` + không thuộc giai đoạn kết thúc
+**Xóa 5 bảng (theo thứ tự dependency):**
+1. `trainee_workflow_history` (FK → trainee_workflow)
+2. `trainee_workflow` (FK → trainees)
+3. `master_stage_transitions` (FK → master_trainee_stages)
+4. `master_terminated_reasons`
+5. `master_trainee_stages`
 
----
+**Xóa 10 functions:**
+1. `auto_create_trainee_workflow()`
+2. `sync_trainee_status_from_workflow()`
+3. `log_workflow_transition()`
+4. `transition_trainee_stage()`
+5. `get_trainee_workflow()`
+6. `map_progression_to_workflow_stage()`
+7. `workflow_stage_label()`
+8. `rpc_transition_trainee_stage()`
+9. `rpc_get_stage_timeline()`
+10. `rpc_get_allowed_transitions()`
 
-## 3. MODULE KTX (`/dormitory`)
+**Cập nhật 2 functions đang tham chiếu workflow:**
+- `get_trainee_full_profile()` — xóa phần query `trainee_workflow` và `trainee_workflow_history`, xóa trường `workflow`/`workflow_history` khỏi output
+- `export_trainees_report()` — xóa JOIN `trainee_workflow`, xóa cột `current_stage`/`sub_status`
 
-### DormitoryPage
-- ✅ Cột **"Tình trạng PV"** hiển thị trong danh sách cư dân
-- ✅ Logic: progression_stage khác 'Chưa đậu' → Badge default; ngược lại → "Chưa đậu" (secondary)
-- ✅ SearchableSelect cho chuyển KTX (tìm theo Mã/Tên)
-- ✅ Logic tránh trùng lặp khi chuyển đi-về cùng ngày
+### 2. Edge Function
+- Xóa `supabase/functions/google-drive-upload/index.ts`
+- Xóa config trong `supabase/config.toml`
 
----
+### 3. Frontend (xóa 3 file)
+- `src/components/trainees/StageTransitionPanel.tsx`
+- `src/components/trainees/StageTimeline.tsx` (cũng import từ useStageTransition)
+- `src/hooks/useStageTransition.ts`
+- `src/hooks/useGoogleDriveUpload.ts`
 
-## 4. AI CHATBOT (Edge Function `ai-chat`)
+### 4. Frontend (sửa 2 file)
+- `src/pages/TraineeDetail.tsx` — xóa import `useStageTimeline`, xóa `stageData`, xóa badge hiển thị `currentStage` (thay bằng hiển thị `trainee.progression_stage` trực tiếp)
+- `src/hooks/useDashboardTrainee.ts` — xóa hook `useTraineeByStage` (không ai dùng)
 
-### Logic truy vấn dữ liệu
-- ✅ KTX: Phân tách đậu/chưa đậu từ `dormitory_residents` join `trainees.progression_stage`
-- ✅ Đào tạo: Học viên đang học = `class_id NOT NULL + departure_date IS NULL + không thuộc giai đoạn kết thúc`
-- ✅ Phỏng vấn (chung): `eq('progression_stage', 'Đậu phỏng vấn')` — KHÔNG tính Xuất cảnh/Bỏ trốn
-- ✅ Anti-hallucination: Quy tắc chống bịa đặt ưu tiên cao nhất
-- ✅ **Đã deploy** ngày 07/03/2026
+### 5. Không thay đổi
+- Bảng `trainees` và cột `progression_stage` — giữ nguyên, vẫn là SSOT
+- View `trainee_stage_counts` — giữ nguyên (đọc từ `trainees.progression_stage`)
+- Tất cả 31 file frontend đang đọc `progression_stage` — không đổi
+- Trigger `audit_trainees_changes` và `trigger_calculate_return_date` — giữ nguyên
 
----
+## Thứ tự thực hiện
 
-## 5. CÁC QUY TẮC CỐ ĐỊNH
+1. Tạo migration SQL xóa triggers → views → tables → functions, cập nhật 2 functions
+2. Xóa file frontend + edge function
+3. Sửa `TraineeDetail.tsx` dùng `progression_stage` trực tiếp
+4. Xóa config `google-drive-upload` trong `config.toml`
 
-1. **SSOT (Single Source of Truth)**: Mỗi nghiệp vụ chỉ 1 nguồn dữ liệu, 1 luồng xử lý
-2. **Brain/Hands**: Supabase = logic; Lovable = UI hiển thị
-3. **Export đồng bộ**: Mọi cột mới trên UI phải cập nhật ngay vào `export-configs.ts`
-4. **Edge Function**: Phải deploy sau khi sửa code, nếu không thay đổi không có hiệu lực
-5. **Tầm nhìn 20 năm**: Kiến trúc cho 40.000+ học viên, 50+ user đồng thời
-
----
-
-## 6. DATABASE VIEWS ĐÃ CHỐT
-
-- `education_interview_stats`: Đếm đậu/chưa đậu PV theo giới tính (đã sửa logic ngày 07/03)
-- `dashboard_education_total`: Tổng sĩ số đang học
-- `dormitories_with_occupancy`: KTX kèm số người ở hiện tại
-- `education_stats`: Tổng giáo viên/lớp học
-
----
-
-*Bản chốt này là tài liệu tham chiếu để đảm bảo không có regression trong tương lai.*
