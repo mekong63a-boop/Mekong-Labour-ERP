@@ -166,6 +166,7 @@ interface FormData {
   nyukan_entry_date: string;
   coe_date: string;
   departure_date: string;
+  settlement_date: string;
   absconded_date: string;
   early_return_date: string;
   early_return_reason: string;
