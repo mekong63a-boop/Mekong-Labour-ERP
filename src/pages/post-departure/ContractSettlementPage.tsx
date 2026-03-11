@@ -1,3 +1,4 @@
+// Thanh lý hợp đồng - hiển thị học viên đã hoàn thành hợp đồng và về nước
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
