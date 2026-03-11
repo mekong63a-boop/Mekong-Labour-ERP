@@ -77,6 +77,8 @@ interface TraineeResult {
   return_date: string | null;
   early_return_date: string | null;
   absconded_date: string | null;
+  expected_return_date: string | null;
+  contract_end_date: string | null;
   // For studying filter
   class_id: string | null;
   // Joined relations
@@ -148,7 +150,7 @@ export default function DashboardAdvancedFilter() {
     queryFn: async () => {
       if (!selectedEvent) return [];
 
-      const selectFields = "id, trainee_code, full_name, gender, birth_date, birthplace, trainee_type, progression_stage, source, permanent_address_new, class_id, created_at, registration_date, entry_date, interview_pass_date, document_submission_date, coe_date, departure_date, return_date, early_return_date, absconded_date, companies:receiving_company_id(name, name_japanese), unions:union_id(name, name_japanese), job_categories:job_category_id(name, name_japanese)";
+      const selectFields = "id, trainee_code, full_name, gender, birth_date, birthplace, trainee_type, progression_stage, source, permanent_address_new, class_id, created_at, registration_date, entry_date, interview_pass_date, document_submission_date, coe_date, departure_date, return_date, early_return_date, absconded_date, expected_return_date, contract_end_date, companies:receiving_company_id(name, name_japanese), unions:union_id(name, name_japanese), job_categories:job_category_id(name, name_japanese)";
 
       // Special case: "Đang học" - get currently studying trainees
       if (eventType === "studying") {
@@ -225,6 +227,8 @@ export default function DashboardAdvancedFilter() {
         "Ngày đậu": isPassed(t.progression_stage) && t.interview_pass_date ? formatVietnameseDate(t.interview_pass_date) : "",
         "Nguồn": t.source || "",
         "Ngày đăng ký": t.registration_date ? formatVietnameseDate(t.registration_date) : "",
+        "Ngày xuất cảnh": t.departure_date ? formatVietnameseDate(t.departure_date) : "",
+        "Ngày HT HĐ/về nước": t.return_date ? formatVietnameseDate(t.return_date) : "",
         "Địa chỉ mới (sau sáp nhập)": t.permanent_address_new || "",
       }));
 
@@ -420,6 +424,8 @@ export default function DashboardAdvancedFilter() {
                       <TableHead className="w-24">Ngày đậu</TableHead>
                       <TableHead className="w-20">Nguồn</TableHead>
                       <TableHead className="w-24">Ngày ĐK</TableHead>
+                      <TableHead className="w-24">Ngày XC</TableHead>
+                      <TableHead className="w-24">Ngày HT HĐ</TableHead>
                       <TableHead className="min-w-[140px]">Địa chỉ mới (sáp nhập)</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -460,6 +466,12 @@ export default function DashboardAdvancedFilter() {
                           <TableCell className="text-xs">{t.source || "—"}</TableCell>
                           <TableCell className="text-xs">
                             {t.registration_date ? formatVietnameseDate(t.registration_date) : "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {t.departure_date ? formatVietnameseDate(t.departure_date) : "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {t.return_date ? formatVietnameseDate(t.return_date) : "—"}
                           </TableCell>
                           <TableCell className="text-xs">{t.permanent_address_new || "—"}</TableCell>
                         </TableRow>
