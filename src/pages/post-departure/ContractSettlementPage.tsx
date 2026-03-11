@@ -31,11 +31,10 @@ function useContractSettlementTrainees() {
       const { data: trainees, error } = await supabase
         .from("trainees")
         .select(
-          "id,trainee_code,full_name,gender,trainee_type,departure_date,return_date,contract_term,contract_end_date,receiving_company_id,union_id,job_category_id,notes"
+          "id,trainee_code,full_name,gender,trainee_type,departure_date,return_date,settlement_date,contract_term,contract_end_date,receiving_company_id,union_id,job_category_id,notes"
         )
-        .eq("progression_stage", "Hoàn thành hợp đồng")
-        .not("return_date", "is", null)
-        .order("return_date", { ascending: false });
+        .not("settlement_date", "is", null)
+        .order("settlement_date", { ascending: false });
 
       if (error) throw error;
 
