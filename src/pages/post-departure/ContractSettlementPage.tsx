@@ -88,7 +88,7 @@ export default function ContractSettlementPage() {
     let result = trainees;
 
     if (selectedYear !== "all") {
-      result = result.filter(t => t.return_date?.startsWith(selectedYear));
+      result = result.filter(t => (t as any).settlement_date?.startsWith(selectedYear));
     }
 
     if (searchQuery) {
