@@ -190,16 +190,16 @@ export default function DashboardAdvancedFilter() {
       toast.error("Vui lòng chọn loại sự kiện");
       return;
     }
-    if (!fromDate || !toDate) {
+    if (!selectedEvent?.noDateRequired && (!fromDate || !toDate)) {
       toast.error("Vui lòng chọn khoảng thời gian");
       return;
     }
-    if (fromDate > toDate) {
+    if (!selectedEvent?.noDateRequired && fromDate && toDate && fromDate > toDate) {
       toast.error("Ngày bắt đầu phải trước ngày kết thúc");
       return;
     }
     setSearchTriggered(true);
-  }, [eventType, fromDate, toDate]);
+  }, [eventType, fromDate, toDate, selectedEvent]);
 
   const handleExport = useCallback(() => {
     if (!results.length || !selectedEvent) return;
