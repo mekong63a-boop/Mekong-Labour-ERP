@@ -213,6 +213,7 @@ export const QUERY_KEY_BUNDLES = {
     ["post-departure-stats-by-year"],
     ["post-departure-by-type"],
     ["post-departure-kpi-cards"],
+    ["contract-settlement-trainees"],
   ],
   partners: [
     ["companies"],
