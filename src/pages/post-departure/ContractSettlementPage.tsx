@@ -235,6 +235,7 @@ export default function ContractSettlementPage() {
                   <TableCell className="text-sm">{t.union?.name || "—"}</TableCell>
                   <TableCell className="text-sm">{t.job_category?.name || "—"}</TableCell>
                   <TableCell className="text-center text-sm">{formatDate(t.departure_date)}</TableCell>
+                  <TableCell className="text-center text-sm font-medium text-emerald-600">{formatDate((t as any).settlement_date)}</TableCell>
                   <TableCell className="text-center text-sm font-medium text-blue-600">{formatDate(t.return_date)}</TableCell>
                   <TableCell className="text-center text-sm">{t.contract_term || 3}</TableCell>
                 </TableRow>
