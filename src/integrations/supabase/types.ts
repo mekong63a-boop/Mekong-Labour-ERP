@@ -2984,6 +2984,7 @@ export type Database = {
         | "Hủy"
         | "Đang ở Nhật"
         | "Rời công ty"
+        | "Đã đậu"
       trainee_status:
         | "New"
         | "Interview_Passed"
@@ -3166,6 +3167,7 @@ export const Constants = {
         "Hủy",
         "Đang ở Nhật",
         "Rời công ty",
+        "Đã đậu",
       ],
       trainee_status: [
         "New",
