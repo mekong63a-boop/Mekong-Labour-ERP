@@ -509,7 +509,7 @@ serve(async (req) => {
     const drawRow = (label: string, value: string | null) => {
       checkPage();
       drawText(label + ":", margin, y, 9, false);
-      drawText(value || "—", margin + 140, y, 9, false);
+      drawText(cleanValue(value), margin + 140, y, 9, false);
       y -= lineHeight;
     };
 
