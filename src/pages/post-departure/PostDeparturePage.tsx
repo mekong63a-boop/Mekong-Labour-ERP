@@ -144,11 +144,11 @@ export default function PostDeparturePage() {
   // SSOT: dùng cùng nguồn dữ liệu với bảng danh sách để đảm bảo số liệu khớp
   const typeStats = useMemo(() => {
     const result: Record<string, number> = {
-      "Thực tập sinh": 0,
-      "TTS số 3": 0,
-      "Du học sinh": 0,
-      "Kỹ năng đặc định": 0,
-      "Kỹ sư": 0,
+      "TTS": 0,
+      "TTS3": 0,
+      "DuHoc": 0,
+      "KyNang": 0,
+      "KySu": 0,
     };
 
     if (!trainees) return result;
