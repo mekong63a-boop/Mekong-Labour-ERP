@@ -1879,7 +1879,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                 </div>
 
                 {/* Status-specific dates */}
-                {formData.simple_status === "Bảo lưu" && (
+                {formData.simple_status === "BaoLuu" && (
                   <div className="space-y-2">
                     <Label>Ngày bảo lưu</Label>
                     <Input
