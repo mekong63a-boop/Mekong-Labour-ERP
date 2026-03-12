@@ -822,7 +822,7 @@ serve(async (req) => {
           cleanValue(m.birth_year),
           m.occupation || "---",
           m.location || "---",
-          m.living_together === true ? "Sống chung" : m.living_together === false ? "Sống riêng" : "---",
+          formatLivingTogether(m.living_together),
         ])
       );
     }
