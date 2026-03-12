@@ -36,6 +36,8 @@ import { JapanRelativesForm, JapanRelativeItem } from "@/components/trainees/for
 import { ProjectInterviewForm } from "@/components/trainees/forms/ProjectInterviewForm";
 import { useEducationHistory, useWorkHistory, useFamilyMembers, useJapanRelatives, useInterviewHistory } from "@/hooks/useTraineeHistory";
 import { useDuplicateCheck, getDuplicateErrorMessage } from "@/hooks/useDuplicateCheck";
+import { usePresence } from "@/hooks/usePresence";
+import { PresenceIndicator } from "@/components/trainees/PresenceIndicator";
 
 // Photo file states removed - no more draft system
 
@@ -199,6 +201,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   const { isAdmin, isPrimaryAdmin } = useUserRole();
   const { canViewUnmasked } = useDataMasking();
   const toggleLockMutation = useToggleTraineeLock();
+  const { onlineUsers } = usePresence(traineeId ? `trainee-edit:${traineeId}` : null);
   
   // Admin và Nhân viên cấp cao có thể xem/sửa trường nhạy cảm
   const canEditSensitiveFields = canViewUnmasked;
@@ -1089,6 +1092,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
               </div>
             </div>
             <div className="flex items-center gap-2 pointer-events-auto">
+              {isEditMode && <PresenceIndicator onlineUsers={onlineUsers} />}
               {/* Lock/Unlock button - for all Admins in edit mode */}
               {isEditMode && isAdmin && traineeId && (
                 <Button

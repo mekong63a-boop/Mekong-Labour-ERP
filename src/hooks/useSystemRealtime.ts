@@ -24,7 +24,7 @@ import {
  * - permissions: user_roles, menus, user_menu_permissions, department_menu_permissions
  * 
  * Bảng LỚN KHÔNG dùng realtime (dùng manual refresh):
- * - orders, companies, unions
+ * - companies, unions
  */
 export function useSystemRealtime() {
   const queryClient = useQueryClient();
@@ -98,6 +98,16 @@ export function useSystemRealtime() {
         }
       )
       
+      // ========== ORDERS (debounced) ==========
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        (payload) => {
+          console.log('[Realtime] Orders changed (queued):', payload.eventType);
+          queueInvalidation(REALTIME_GROUPS.ORDERS, QUERY_KEY_BUNDLES.orders, true);
+        }
+      )
+      
       // ========== INTERVIEW HISTORY (debounced) ==========
       .on(
         'postgres_changes',
@@ -105,6 +115,8 @@ export function useSystemRealtime() {
         (payload) => {
           console.log('[Realtime] Interview history changed (queued):', payload.eventType);
           queueInvalidation(REALTIME_GROUPS.ORDERS, QUERY_KEY_BUNDLES.orders, false);
+          // Also refresh trainee data (trigger may update trainee fields)
+          queueInvalidation(REALTIME_GROUPS.TRAINEES, QUERY_KEY_BUNDLES.trainees, true);
         }
       )
       

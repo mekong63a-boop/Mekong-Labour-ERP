@@ -12,6 +12,9 @@ import { PersonalInfoTab } from "@/components/trainees/tabs/PersonalInfoTab";
 import { PersonalHistoryTab } from "@/components/trainees/tabs/PersonalHistoryTab";
 import { ProjectInterviewTab } from "@/components/trainees/tabs/ProjectInterviewTab";
 import { useUserRole } from "@/hooks/useUserRole";
+import { usePresence } from "@/hooks/usePresence";
+import { PresenceIndicator } from "@/components/trainees/PresenceIndicator";
+import { getStageLabel, getTypeLabel } from "@/lib/enum-labels";
 
 export default function TraineeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +22,7 @@ export default function TraineeDetail() {
   const { data: trainee, isLoading, error } = useTrainee(id || "");
   const { isAdmin } = useUserRole();
   const [isExporting, setIsExporting] = useState(false);
+  const { onlineUsers } = usePresence(id ? `trainee-detail:${id}` : null);
 
   const handleExportRirekisho = async () => {
     if (!trainee?.trainee_code) return;
@@ -108,18 +112,19 @@ export default function TraineeDetail() {
               )}
               {trainee.progression_stage && (
                 <Badge variant="outline">
-                  {trainee.progression_stage}
+                  {getStageLabel(trainee.progression_stage)}
                 </Badge>
               )}
             </div>
             <p className="text-muted-foreground text-sm">
-              {trainee.trainee_type || "Thực tập sinh"} • 
+              {getTypeLabel(trainee.trainee_type) || "Thực tập sinh"} • 
               {trainee.furigana && ` ${trainee.furigana} •`} 
               {trainee.gender || "—"}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <PresenceIndicator onlineUsers={onlineUsers} />
           <Button
             variant="outline"
             onClick={handleExportRirekisho}
