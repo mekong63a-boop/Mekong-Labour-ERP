@@ -41,8 +41,7 @@ import {
 } from "lucide-react";
 import { TraineeProfile } from "../hooks/useTraineeProfile";
 import { formatVietnameseDate, formatVietnameseMonthYearRange } from "@/lib/vietnamese-utils";
-import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { } from "@/integrations/supabase/client";
 
 interface TraineeProfileViewProps {
   profile: TraineeProfile;
