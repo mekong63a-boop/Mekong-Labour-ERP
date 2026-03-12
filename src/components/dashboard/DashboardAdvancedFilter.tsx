@@ -431,7 +431,7 @@ export default function DashboardAdvancedFilter() {
                   </TableHeader>
                   <TableBody>
                     {results.map((t, idx) => {
-                      const passed = t.progression_stage && t.progression_stage !== "Chưa đậu";
+                      const passed = t.progression_stage && t.progression_stage !== "ChuaDau";
                       return (
                         <TableRow
                           key={t.id}

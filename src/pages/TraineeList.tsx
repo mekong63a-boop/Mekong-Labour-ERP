@@ -539,11 +539,11 @@ export default function TraineeList() {
             {baseColumns}
             <TableCell>
               <Badge className={getStatusBadgeClass(trainee.progression_stage)}>
-                {trainee.progression_stage || "Chưa đậu"}
+                {getStageLabel(trainee.progression_stage)}
               </Badge>
             </TableCell>
             <TableCell>
-              <Badge variant="outline">{trainee.simple_status || "Đăng ký mới"}</Badge>
+              <Badge variant="outline">{getStatusLabel(trainee.simple_status)}</Badge>
             </TableCell>
             <TableCell className="text-sm">{isNotPassed ? "—" : getCompanyName(trainee.receiving_company)}</TableCell>
             <TableCell className="text-sm">{isNotPassed ? "—" : getUnionName(trainee.union)}</TableCell>
