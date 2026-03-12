@@ -441,7 +441,7 @@ Deno.serve(async (req) => {
 
     // Query system data based on the latest user message
     const latestUserMsg = messages[messages.length - 1]?.content || "";
-    const queryResults = await querySystemData(latestUserMsg, serviceClient);
+    const queryResults = await querySystemData(latestUserMsg, authClient);
 
     let dataContext = "";
     if (queryResults.length > 0) {
