@@ -43,10 +43,13 @@ import { PresenceIndicator } from "@/components/trainees/PresenceIndicator";
 // Photo file states removed - no more draft system
 
 // Options
-const TRAINEE_TYPES = ["Thực tập sinh", "Kỹ năng đặc định", "Kỹ sư", "Du học sinh", "Thực tập sinh số 3"];
+// Slug → Label options for enum Selects
+const TRAINEE_TYPE_OPTIONS = Object.entries(TRAINEE_TYPE_LABELS).map(([slug, label]) => ({ value: slug, label }));
+const SIMPLE_STATUS_OPTIONS = Object.entries(SIMPLE_STATUS_LABELS).map(([slug, label]) => ({ value: slug, label }));
+const PROGRESSION_STAGE_OPTIONS = Object.entries(PROGRESSION_STAGE_LABELS).map(([slug, label]) => ({ value: slug, label }));
+
 const GENDERS = ["Nam", "Nữ"];
 const MARITAL_STATUSES = ["Độc thân", "Đã kết hôn", "Ly hôn", "Góa"];
-const SIMPLE_STATUSES = ["Đăng ký mới", "Đang học", "Bảo lưu", "Dừng chương trình", "Không học", "Hủy", "Đang ở Nhật", "Rời công ty"];
 const EDUCATION_LEVELS = ["THCS", "THPT", "TTGDTX", "TRUNG CẤP", "CAO ĐẲNG", "ĐẠI HỌC"];
 const ETHNICITIES = ["Kinh", "Tày", "Thái", "Mường", "Khmer", "Nùng", "H'Mông", "Dao", "Gia Rai", "Ê Đê", "Ba Na", "Khác"];
 const BLOOD_GROUPS = ["A", "B", "AB", "O"];
