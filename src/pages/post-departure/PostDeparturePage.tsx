@@ -285,10 +285,10 @@ export default function PostDeparturePage() {
 
     // Filter by status (dùng trạng thái hiện tại)
     if (selectedStatus) {
-      if (selectedStatus === "Đang làm việc") {
+      if (selectedStatus === "DangLamViec") {
         result = result.filter(t => {
           const s = getDisplayStatus(t);
-          return s === "Đang làm việc";
+          return s === "DangLamViec";
         });
       } else {
         result = result.filter(t => getDisplayStatus(t) === selectedStatus);
