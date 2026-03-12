@@ -263,8 +263,8 @@ async function querySystemData(userMessage: string, supabase: SupabaseClient): P
         .limit(200);
       
       // Tách rõ ràng: đậu PV vs chưa đậu PV (dựa trên progression_stage)
-      const passedAndStudying = (studyingTrainees || []).filter(t => t.progression_stage && t.progression_stage !== 'Chưa đậu');
-      const notPassedAndStudying = (studyingTrainees || []).filter(t => !t.progression_stage || t.progression_stage === 'Chưa đậu');
+      const passedAndStudying = (studyingTrainees || []).filter(t => t.progression_stage && t.progression_stage !== 'ChuaDau');
+      const notPassedAndStudying = (studyingTrainees || []).filter(t => !t.progression_stage || t.progression_stage === 'ChuaDau');
       
       // 6d. Sĩ số từ view (nguồn đối chiếu)
       const { data: educationTotal } = await supabase
