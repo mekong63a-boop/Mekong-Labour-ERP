@@ -355,9 +355,9 @@ export default function SystemMonitorContent() {
                   </p>
                 )}
               </div>
-              {lastResult.success && (lastResult as any).rootFolderLink && (
+              {lastResult.success && lastResult.rootFolderLink && (
                 <a
-                  href={(lastResult as any).rootFolderLink}
+                  href={lastResult.rootFolderLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors shrink-0"
