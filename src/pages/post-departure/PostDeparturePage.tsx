@@ -458,10 +458,10 @@ export default function PostDeparturePage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
         {/* Đang ở Nhật */}
         <button
-          onClick={() => handleStatusClick("Đang làm việc")}
+          onClick={() => handleStatusClick("DangLamViec")}
           className={cn(
             "p-4 rounded-lg border-2 text-left transition-all hover:shadow-md",
-            selectedStatus === "Đang làm việc"
+            selectedStatus === "DangLamViec"
               ? "border-green-500 bg-green-50"
               : "border-border hover:border-green-300"
           )}
