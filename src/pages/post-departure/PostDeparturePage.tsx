@@ -202,32 +202,29 @@ export default function PostDeparturePage() {
     
     // Không lọc năm → trạng thái hiện tại
     if (!year || year === "all") {
-      if (stage === "Đang làm việc" || stage === "Xuất cảnh") return "Đang làm việc";
-      if (stage === "Về trước hạn") return "Về trước hạn";
-      if (stage === "Bỏ trốn") return "Bỏ trốn";
-      if (stage === "Hoàn thành hợp đồng") return "Hoàn thành hợp đồng";
+      if (stage === "DangLamViec" || stage === "DaXuatCanh") return "DangLamViec";
+      if (stage === "VeNuocSom") return "VeNuocSom";
+      if (stage === "BoTron") return "BoTron";
+      if (stage === "HoanThanhHD") return "HoanThanhHD";
       return stage;
     }
 
-    // Có lọc năm → kiểm tra sự kiện đã xảy ra trong/trước năm đó chưa
     const yearNum = parseInt(year);
+    const yearEnd = `${yearNum}-12-31`;
+
     const eventInOrBefore = (dateStr: string | null) => {
       if (!dateStr) return false;
-      return parseInt(dateStr.substring(0, 4)) <= yearNum;
-    };
-    const eventInYear = (dateStr: string | null) => {
-      if (!dateStr) return false;
-      return dateStr.startsWith(year);
+      return dateStr <= yearEnd;
     };
 
     // Ưu tiên: Bỏ trốn > Về trước hạn > Hoàn thành HĐ > Đang làm việc
-    if (stage === "Bỏ trốn" && eventInOrBefore(trainee.absconded_date)) return "Bỏ trốn";
-    if (stage === "Về trước hạn" && eventInOrBefore(trainee.early_return_date)) return "Về trước hạn";
-    if (stage === "Hoàn thành hợp đồng" && eventInOrBefore(trainee.return_date)) return "Hoàn thành hợp đồng";
+    if (stage === "BoTron" && eventInOrBefore(trainee.absconded_date)) return "BoTron";
+    if (stage === "VeNuocSom" && eventInOrBefore(trainee.early_return_date)) return "VeNuocSom";
+    if (stage === "HoanThanhHD" && eventInOrBefore(trainee.return_date)) return "HoanThanhHD";
     
     // Sự kiện chưa xảy ra tại năm đó → vẫn đang làm việc
-    if (["Bỏ trốn", "Về trước hạn", "Hoàn thành hợp đồng"].includes(stage)) return "Đang làm việc";
-    if (stage === "Đang làm việc" || stage === "Xuất cảnh") return "Đang làm việc";
+    if (["BoTron", "VeNuocSom", "HoanThanhHD"].includes(stage)) return "DangLamViec";
+    if (stage === "DangLamViec" || stage === "DaXuatCanh") return "DangLamViec";
     return stage;
   };
 
