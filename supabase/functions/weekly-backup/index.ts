@@ -35,7 +35,7 @@ const BACKUP_TABLES = [
   { name: 'audit_logs', display: 'Nhật ký' },
 ];
 
-// All public tables for full dump (superset of BACKUP_TABLES)
+// All public tables for full dump
 const FULL_DUMP_TABLES = [
   'trainees', 'orders', 'companies', 'unions', 'classes', 'teachers',
   'attendance', 'test_scores', 'user_roles', 'profiles', 'family_members',
@@ -50,59 +50,36 @@ const FULL_DUMP_TABLES = [
   'user_access_versions', 'ai_chat_messages',
 ];
 
-async function getAccessToken(serviceAccount: any): Promise<string> {
-  const header = { alg: "RS256", typ: "JWT" };
-  const now = Math.floor(Date.now() / 1000);
-  const claim = {
-    iss: serviceAccount.client_email,
-    scope: "https://www.googleapis.com/auth/drive.file",
-    aud: "https://oauth2.googleapis.com/token",
-    exp: now + 3600,
-    iat: now,
-  };
+// ============================================================
+// OAuth2 Refresh Token Flow (thay thế Service Account)
+// Sử dụng dung lượng My Drive của mekong63a@gmail.com
+// ============================================================
+async function getAccessTokenViaRefreshToken(): Promise<string> {
+  const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
+  const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
+  const refreshToken = Deno.env.get('GOOGLE_REFRESH_TOKEN');
 
-  const encoder = new TextEncoder();
-  const headerB64 = btoa(JSON.stringify(header)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-  const claimB64 = btoa(JSON.stringify(claim)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-  const signatureInput = `${headerB64}.${claimB64}`;
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error('Missing OAuth2 credentials: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, or GOOGLE_REFRESH_TOKEN');
+  }
 
-  const privateKeyPem = serviceAccount.private_key;
-  const pemContents = privateKeyPem
-    .replace(/-----BEGIN PRIVATE KEY-----/, '')
-    .replace(/-----END PRIVATE KEY-----/, '')
-    .replace(/\s/g, '');
-  
-  const binaryKey = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
-  
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8",
-    binaryKey,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-
-  const signature = await crypto.subtle.sign(
-    "RSASSA-PKCS1-v1_5",
-    cryptoKey,
-    encoder.encode(signatureInput)
-  );
-
-  const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
-    .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-
-  const jwt = `${signatureInput}.${signatureB64}`;
-
-  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+  const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token',
+    }),
   });
 
   const tokenData = await tokenResponse.json();
   if (!tokenData.access_token) {
-    throw new Error(`Failed to get access token: ${JSON.stringify(tokenData)}`);
+    throw new Error(`Failed to get access token via refresh token: ${JSON.stringify(tokenData)}`);
   }
+
+  console.log('[AUTH] ✓ Access token obtained via OAuth2 Refresh Token');
   return tokenData.access_token;
 }
 
@@ -139,72 +116,18 @@ async function findOrCreateFolder(accessToken: string, folderName: string, paren
     body: JSON.stringify(metadata),
   });
   const createData = await createResponse.json();
-  return createData.id;
-}
-
-const OWNER_EMAIL = 'mekong63a@gmail.com';
-
-/**
- * Share a file/folder with the owner email as 'writer' (Editor).
- * Skips silently if already shared.
- */
-async function shareWithOwner(accessToken: string, fileId: string, email: string): Promise<void> {
-  try {
-    // Check existing permissions first
-    const listRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${fileId}/permissions?fields=permissions(emailAddress,role)`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
-    const listData = await listRes.json();
-    
-    const alreadyShared = listData.permissions?.some(
-      (p: any) => p.emailAddress?.toLowerCase() === email.toLowerCase()
-    );
-    if (alreadyShared) {
-      console.log(`[SHARE] Already shared with ${email}: ${fileId}`);
-      return;
-    }
-
-    const res = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${fileId}/permissions?sendNotificationEmail=false`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'user',
-          role: 'writer',
-          emailAddress: email,
-        }),
-      }
-    );
-
-    if (!res.ok) {
-      const errData = await res.json();
-      console.warn(`[SHARE] Permission warning for ${fileId}:`, errData);
-    } else {
-      console.log(`[SHARE] ✓ Shared ${fileId} with ${email} as Editor`);
-    }
-  } catch (err) {
-    console.warn(`[SHARE] Non-critical error sharing ${fileId}:`, err);
+  if (createData.error) {
+    throw new Error(`Failed to create folder '${folderName}': ${JSON.stringify(createData.error)}`);
   }
+  return createData.id;
 }
 
 async function createFolderPath(accessToken: string, folderPath: string): Promise<string> {
   const folders = folderPath.split('/').filter(f => f.length > 0);
   let parentId: string | undefined;
-  const createdFolderIds: string[] = [];
 
   for (const folder of folders) {
     parentId = await findOrCreateFolder(accessToken, folder, parentId);
-    createdFolderIds.push(parentId);
-  }
-
-  // Share all folders in the path with the owner
-  for (const folderId of createdFolderIds) {
-    await shareWithOwner(accessToken, folderId, OWNER_EMAIL);
   }
 
   return parentId!;
@@ -263,7 +186,6 @@ async function uploadToGoogleDrive(
   );
   const footerPart = encoder.encode(`\r\n--${boundary}--`);
 
-  // Combine parts
   const multipartBody = new Uint8Array(headerPart.length + contentBytes.length + footerPart.length);
   multipartBody.set(headerPart, 0);
   multipartBody.set(contentBytes, headerPart.length);
@@ -289,9 +211,6 @@ async function uploadToGoogleDrive(
   return { id: uploadData.id, webViewLink: uploadData.webViewLink };
 }
 
-/**
- * Compress string content to gzip using Web Streams API
- */
 async function gzipCompress(text: string): Promise<Uint8Array> {
   const encoder = new TextEncoder();
   const inputBytes = encoder.encode(text);
@@ -342,11 +261,10 @@ serve(async (req) => {
   const cronHeader = req.headers.get('x-cron-secret');
 
   if (cronHeader && cronSecret && cronHeader === cronSecret) {
-    // Authenticated via cron secret
     isScheduled = true;
     console.log('Backup triggered by scheduled cron job');
   } else {
-    // SECURITY: Validate JWT - only authenticated admins can run backups
+    // SECURITY: Validate JWT
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Unauthorized: Missing token' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -385,13 +303,7 @@ serve(async (req) => {
   try {
     console.log(`Backup initiated by: ${callerEmail} (scheduled: ${isScheduled})`);
 
-    // Get credentials
-    const serviceAccountJson = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-    if (!serviceAccountJson) {
-      throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON not configured');
-    }
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error('Supabase credentials not configured');
     }
@@ -399,10 +311,12 @@ serve(async (req) => {
     // Initialize Supabase client with service role
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get Google Drive access
-    console.log('Getting Google Drive access...');
-    const serviceAccount = JSON.parse(serviceAccountJson);
-    const accessToken = await getAccessToken(serviceAccount);
+    // ============================================================
+    // Get Google Drive access via OAuth2 Refresh Token
+    // Files will be created directly on mekong63a@gmail.com's My Drive
+    // ============================================================
+    console.log('[AUTH] Getting Google Drive access via OAuth2...');
+    const accessToken = await getAccessTokenViaRefreshToken();
 
     // Generate date-based folder path
     const now = new Date();
@@ -412,13 +326,13 @@ serve(async (req) => {
     const weekNum = getWeekNumber(now);
     const dateStr = `${year}${month}${day}`;
     
-    // Get/create root folder and capture its ID for the response link
+    // Get/create root folder on My Drive
     const rootFolderId = await findOrCreateFolder(accessToken, 'Mekong-Labour-Hub');
-    await shareWithOwner(accessToken, rootFolderId, OWNER_EMAIL);
     backupLog.rootFolderLink = `https://drive.google.com/drive/folders/${rootFolderId}`;
+    console.log(`[FOLDER] Root folder: ${backupLog.rootFolderLink}`);
 
     // ============================================================
-    // PHASE 1: CSV Backup (giữ nguyên logic cũ)
+    // PHASE 1: CSV Backup
     // ============================================================
     const weekFolder = `Mekong-Labour-Hub/backups/weekly/${year}/Week-${String(weekNum).padStart(2, '0')}`;
     console.log(`[CSV] Creating folder: ${weekFolder}`);
@@ -485,7 +399,6 @@ serve(async (req) => {
     // ============================================================
     console.log('[DUMP] Starting Full Database Dump...');
 
-    // 2a. Get schema dump via RPC
     console.log('[DUMP] Extracting schema (DDL, Views, Functions, Triggers, RLS)...');
     const { data: schemaDump, error: schemaError } = await supabase.rpc('generate_schema_dump');
     
@@ -500,7 +413,6 @@ serve(async (req) => {
     fullSql += '-- ========================\n\n';
     fullSql += 'BEGIN;\n\n';
 
-    // 2b. Generate INSERT statements for each table via RPC
     let totalDataRows = 0;
     for (const tableName of FULL_DUMP_TABLES) {
       try {
@@ -517,7 +429,6 @@ serve(async (req) => {
 
         if (insertsSql && insertsSql.trim().length > 0) {
           fullSql += insertsSql;
-          // Count INSERT lines
           const insertCount = (insertsSql.match(/^INSERT INTO/gm) || []).length;
           totalDataRows += insertCount;
           console.log(`[DUMP] ✓ ${tableName}: ${insertCount} rows`);
@@ -538,12 +449,10 @@ serve(async (req) => {
     fullSql += `-- Or: gunzip -c Mekong_Full_Backup_${dateStr}.sql.gz | psql\n`;
     fullSql += `-- ============================================\n`;
 
-    // 2c. Gzip compress
     console.log(`[DUMP] Compressing... (raw size: ${formatBytes(new TextEncoder().encode(fullSql).length)})`);
     const gzippedData = await gzipCompress(fullSql);
     console.log(`[DUMP] Compressed size: ${formatBytes(gzippedData.length)}`);
 
-    // 2d. Upload to full_dumps folder
     const dumpFolder = `Mekong-Labour-Hub/backups/full_dumps`;
     console.log(`[DUMP] Uploading to ${dumpFolder}...`);
     const dumpFolderId = await createFolderPath(accessToken, dumpFolder);
