@@ -112,7 +112,7 @@ export default function TraineeDetail() {
               )}
               {trainee.progression_stage && (
                 <Badge variant="outline">
-                  {trainee.progression_stage}
+                  {getStageLabel(trainee.progression_stage)}
                 </Badge>
               )}
             </div>
