@@ -333,13 +333,18 @@ serve(async (req) => {
     const traineeCode = url.searchParams.get("trainee_code");
     if (!traineeCode) return new Response(JSON.stringify({ error: "trainee_code is required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+    // SECURITY: Mandatory JWT validation
     const authHeader = req.headers.get("Authorization");
-    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader || "" } } });
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized: Missing token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
-    if (authHeader) {
-      const token = authHeader.replace("Bearer ", "");
-      const { error } = await supabase.auth.getUser(token);
-      if (error) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { error: authError } = await supabase.auth.getUser(token);
+    if (authError) {
+      return new Response(JSON.stringify({ error: "Unauthorized: Invalid token" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const { data: p, error: rpcErr } = await supabase.rpc("get_trainee_full_profile", { p_trainee_code: traineeCode });
