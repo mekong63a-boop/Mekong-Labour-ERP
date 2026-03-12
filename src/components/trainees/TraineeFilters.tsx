@@ -60,7 +60,7 @@ export function TraineeFilters({
             <SelectItem value="all">Tất cả giai đoạn</SelectItem>
             {progressionStages.map((stage) => (
               <SelectItem key={stage} value={stage}>
-                {stage}
+                {PROGRESSION_STAGE_LABELS[stage] || stage}
               </SelectItem>
             ))}
           </SelectContent>

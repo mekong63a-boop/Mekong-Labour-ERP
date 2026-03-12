@@ -81,7 +81,7 @@ function useClassStudentsDetailed(classId: string) {
         .from("trainees")
         .select("id, trainee_code, full_name, birth_date, birthplace, simple_status, progression_stage")
         .eq("class_id", classId)
-        .eq("simple_status", "Đang học") // Chỉ lấy học viên đang học
+        .eq("simple_status", "DangHoc") // Chỉ lấy học viên đang học
         .order("full_name");
       if (error) throw error;
       return data || [];

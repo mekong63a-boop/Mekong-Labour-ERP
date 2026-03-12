@@ -311,7 +311,7 @@ export default function LegalPage() {
         `)
         .eq("trainee_type", selectedType as any)
         .not("receiving_company_id", "is", null)
-        .eq("progression_stage", 'Đậu phỏng vấn')
+        .eq("progression_stage", 'DauPV')
         .order("full_name");
 
       if (error) throw error;
@@ -326,7 +326,7 @@ export default function LegalPage() {
     queryFn: async () => {
       if (!selectedCompanyBatch) return [];
       
-      // Query tất cả học viên của công ty có progression_stage = 'Đậu phỏng vấn'
+      // Query tất cả học viên của công ty có progression_stage = 'DauPV'
       // Không filter theo interview_pass_date vì có thể chưa được nhập
       const { data, error } = await supabase
         .from("trainees")
@@ -371,7 +371,7 @@ export default function LegalPage() {
           current_situation
         `)
         .eq("receiving_company_id", selectedCompanyBatch.company_id)
-        .eq("progression_stage", 'Đậu phỏng vấn')
+        .eq("progression_stage", 'DauPV')
         .order("full_name");
 
       if (error) throw error;

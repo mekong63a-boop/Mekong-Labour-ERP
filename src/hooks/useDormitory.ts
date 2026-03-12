@@ -44,7 +44,7 @@ export interface DormitoryResident {
 
 // BUSINESS RULE: Chỉ học viên có simple_status "Đang học" hoặc "Đăng ký mới" mới hiển thị trong danh sách KTX
 // Khi chuyển sang "Bảo lưu" hoặc các trạng thái khác sẽ tự động checkout KTX
-const ELIGIBLE_DORMITORY_STATUSES = ["Đang học", "Đăng ký mới"] as const;
+const ELIGIBLE_DORMITORY_STATUSES = ["DangHoc", "DangKyMoi"] as const;
 
 // Hook to get all dormitories
 export function useDormitories() {

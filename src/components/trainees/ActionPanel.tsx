@@ -132,7 +132,7 @@ export function ActionPanel({ trainee }: ActionPanelProps) {
                 variant="destructive"
                 className="w-full"
                 onClick={handleCancel}
-                disabled={updateTrainee.isPending || trainee.simple_status === "Hủy"}
+                disabled={updateTrainee.isPending || trainee.simple_status === "Huy"}
               >
                 Hủy thực tập sinh
               </Button>
