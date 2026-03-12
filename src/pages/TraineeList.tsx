@@ -199,7 +199,7 @@ export default function TraineeList() {
     );
 
     switch (progressionKey) {
-      case "Đậu phỏng vấn":
+      case "DauPV":
         return (
           <TableRow className="bg-muted/50">
             {baseColumns}
@@ -211,7 +211,7 @@ export default function TraineeList() {
             <TableHead className="w-20 text-center">Thao tác</TableHead>
           </TableRow>
         );
-      case "Nộp hồ sơ":
+      case "NopHS":
         return (
           <TableRow className="bg-muted/50">
             {baseColumns}
@@ -259,7 +259,7 @@ export default function TraineeList() {
             <TableHead className="w-20 text-center">Thao tác</TableHead>
           </TableRow>
         );
-      case "Xuất cảnh":
+      case "DaXuatCanh":
         return (
           <TableRow className="bg-muted/50">
             {baseColumns}
@@ -272,7 +272,7 @@ export default function TraineeList() {
             <TableHead className="w-20 text-center">Thao tác</TableHead>
           </TableRow>
         );
-      case "Đang làm việc":
+      case "DangLamViec":
         return (
           <TableRow className="bg-muted/50">
             {baseColumns}
@@ -283,7 +283,7 @@ export default function TraineeList() {
             <TableHead className="w-20 text-center">Thao tác</TableHead>
           </TableRow>
         );
-      case "Bỏ trốn":
+      case "BoTron":
         return (
           <TableRow className="bg-muted/50">
             {baseColumns}
@@ -295,7 +295,7 @@ export default function TraineeList() {
             <TableHead className="w-20 text-center">Thao tác</TableHead>
           </TableRow>
         );
-      case "Về trước hạn":
+      case "VeNuocSom":
         return (
           <TableRow className="bg-muted/50">
             {baseColumns}
@@ -308,7 +308,7 @@ export default function TraineeList() {
             <TableHead className="w-20 text-center">Thao tác</TableHead>
           </TableRow>
         );
-      case "Hoàn thành hợp đồng":
+      case "HoanThanhHD":
         return (
           <TableRow className="bg-muted/50">
             {baseColumns}
@@ -320,7 +320,7 @@ export default function TraineeList() {
             <TableHead className="w-20 text-center">Thao tác</TableHead>
           </TableRow>
         );
-      case "Chưa đậu":
+      case "ChuaDau":
         return (
           <TableRow className="bg-muted/50">
             {baseColumns}
