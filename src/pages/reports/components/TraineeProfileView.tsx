@@ -239,11 +239,12 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
           </div>
           <div className="flex items-center gap-2">
             <Button
+              id="export-pdf-btn"
               variant="outline"
               size="sm"
               onClick={handleExportPDF}
               disabled={isExporting}
-              className="gap-2"
+              className="gap-2 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 border-yellow-500 font-medium"
             >
               {isExporting ? (
                 <>
@@ -596,7 +597,9 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                             <TableCell className="text-xs py-1.5">{member.relationship}</TableCell>
                             <TableCell className="text-xs py-1.5">{member.birth_year || "—"}</TableCell>
                             <TableCell className="text-xs py-1.5">{member.occupation || "—"}</TableCell>
-                            <TableCell className="text-xs py-1.5">{member.location || "—"}</TableCell>
+                            <TableCell className="text-xs py-1.5">
+                              {member.location === "O" ? "Sống chung" : member.location === "X" ? "Sống riêng" : member.location || "—"}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
