@@ -24,7 +24,7 @@ import {
  * - permissions: user_roles, menus, user_menu_permissions, department_menu_permissions
  * 
  * Bảng LỚN KHÔNG dùng realtime (dùng manual refresh):
- * - orders, companies, unions
+ * - companies, unions
  */
 export function useSystemRealtime() {
   const queryClient = useQueryClient();
