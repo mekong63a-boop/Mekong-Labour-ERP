@@ -317,8 +317,8 @@ async function querySystemData(userMessage: string, supabase: SupabaseClient): P
         progression_stage: r.trainee?.progression_stage,
         gender: r.trainee?.gender,
       }));
-      const ktxPassed = ktxResidents.filter(r => r.progression_stage && r.progression_stage !== 'Chưa đậu');
-      const ktxNotPassed = ktxResidents.filter(r => !r.progression_stage || r.progression_stage === 'Chưa đậu');
+      const ktxPassed = ktxResidents.filter(r => r.progression_stage && r.progression_stage !== 'ChuaDau');
+      const ktxNotPassed = ktxResidents.filter(r => !r.progression_stage || r.progression_stage === 'ChuaDau');
       
       results.push({ 
         label: 'Thông tin KTX', 
