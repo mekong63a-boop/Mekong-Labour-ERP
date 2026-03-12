@@ -474,23 +474,34 @@ serve(async (req) => {
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
 
-    // Multi-font strategy with local static regular fonts encoded via Base64
-    // - Roboto-Regular: Vietnamese/Latin
-    // - NotoSansJP-Regular: Japanese (Katakana/Kanji)
-    const [robotoFileBytes, jpFileBytes] = await Promise.all([
-      Deno.readFile(new URL("./Roboto-Regular.ttf", import.meta.url)),
-      Deno.readFile(new URL("./NotoSansJP-Regular.otf", import.meta.url)),
-    ]);
+    // Multi-font strategy with resilient loading:
+    // 1) local bundled font file
+    // 2) remote fallback URL
+    // 3) standard PDF fonts (last resort, avoids 500)
+    let font: any;
+    let fontBold: any;
+    let fontJp: any;
+    let fontJpBold: any;
 
-    const robotoBase64 = bytesToBase64(robotoFileBytes);
-    const jpBase64 = bytesToBase64(jpFileBytes);
+    try {
+      const [robotoFileBytes, jpFileBytes] = await Promise.all([
+        getRobotoFontBytes(),
+        getNotoJpFontBytes(),
+      ]);
 
-    console.log(`Fonts loaded locally: Roboto=${robotoFileBytes.byteLength}B, NotoSansJP=${jpFileBytes.byteLength}B`);
+      console.log(`Fonts loaded: Roboto=${robotoFileBytes.byteLength}B, NotoSansJP=${jpFileBytes.byteLength}B`);
 
-    const font = await pdfDoc.embedFont(base64ToBytes(robotoBase64), { subset: false });
-    const fontBold = font;
-    const fontJp = await pdfDoc.embedFont(base64ToBytes(jpBase64), { subset: false });
-    const fontJpBold = fontJp;
+      font = await pdfDoc.embedFont(robotoFileBytes, { subset: false });
+      fontBold = font;
+      fontJp = await pdfDoc.embedFont(jpFileBytes, { subset: false });
+      fontJpBold = fontJp;
+    } catch (fontError) {
+      console.error("Custom font loading failed, fallback to StandardFonts", fontError);
+      font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+      fontJp = font;
+      fontJpBold = fontBold;
+    }
 
     let page = pdfDoc.addPage([595.28, 841.89]);
     const { width, height } = page.getSize();
