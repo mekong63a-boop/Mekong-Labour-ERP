@@ -1901,7 +1901,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   </div>
                 )}
 
-                {formData.simple_status === "Hủy" && (
+                {formData.simple_status === "Huy" && (
                   <div className="space-y-2">
                     <Label>Ngày hủy</Label>
                     <Input
