@@ -1,5 +1,6 @@
 // ReportsPage - Tra cứu hồ sơ & Tra cứu nâng cao
-import { FileSpreadsheet, UserSearch, Search } from "lucide-react";
+import { FileSpreadsheet, UserSearch, Search, FileDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TraineeSearchBox } from "./components/TraineeSearchBox";
