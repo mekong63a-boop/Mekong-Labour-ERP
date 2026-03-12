@@ -2948,6 +2948,7 @@ export type Database = {
         Args: { _assigned_by: string; _department: string; _permissions: Json }
         Returns: undefined
       }
+      setup_backup_cron: { Args: never; Returns: undefined }
       touch_user_access_version: {
         Args: { _user_id: string }
         Returns: undefined
