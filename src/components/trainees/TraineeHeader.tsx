@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Trainee } from "@/types/trainee";
+import { getStageLabel, getStatusLabel, getTypeLabel } from "@/lib/enum-labels";
 
 interface TraineeHeaderProps {
   trainee: Trainee;
@@ -18,14 +19,19 @@ export function TraineeHeader({ trainee }: TraineeHeaderProps) {
         </p>
       </div>
       <div className="flex gap-2">
+        {trainee.trainee_type && (
+          <Badge variant="outline" className="text-sm">
+            {getTypeLabel(trainee.trainee_type)}
+          </Badge>
+        )}
         {trainee.simple_status && (
           <Badge variant="outline" className="text-sm">
-            {trainee.simple_status}
+            {getStatusLabel(trainee.simple_status)}
           </Badge>
         )}
         {trainee.progression_stage && (
           <Badge variant="secondary" className="text-sm">
-            {trainee.progression_stage}
+            {getStageLabel(trainee.progression_stage)}
           </Badge>
         )}
       </div>

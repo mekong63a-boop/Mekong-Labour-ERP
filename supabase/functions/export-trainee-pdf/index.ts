@@ -215,19 +215,41 @@ interface TraineeProfile {
   error?: string;
 }
 
-const stageLabels: Record<string, string> = {
-  registered: "Đăng ký",
-  enrolled: "Nhập học",
-  training: "Đào tạo",
-  interview_passed: "Đậu phỏng vấn",
-  document_processing: "Xử lý hồ sơ",
-  ready_to_depart: "Sẵn sàng xuất cảnh",
-  departed: "Đã xuất cảnh",
-  post_departure: "Sau xuất cảnh",
-  terminated: "Kết thúc",
-  trained: "Đào tạo",
-  dormitory: "Ký túc xá",
-  archived: "Lưu trữ",
+// ===== CENTRAL ENUM MAPPING (mirror of src/lib/enum-labels.ts) =====
+const PROGRESSION_STAGE_LABELS: Record<string, string> = {
+  ChuaDau: 'Chưa đậu',
+  DauPV: 'Đậu phỏng vấn',
+  NopHS: 'Nộp hồ sơ',
+  OTIT: 'OTIT',
+  Nyukan: 'Nyukan',
+  COE: 'COE',
+  Visa: 'Visa',
+  DaoTao: 'Đào tạo',
+  DaXuatCanh: 'Xuất cảnh',
+  DangLamViec: 'Đang làm việc',
+  BoTron: 'Bỏ trốn',
+  VeNuocSom: 'Về trước hạn',
+  HoanThanhHD: 'Hoàn thành HĐ',
+};
+
+const SIMPLE_STATUS_LABELS: Record<string, string> = {
+  DangKyMoi: 'Đăng ký mới',
+  DangHoc: 'Đang học',
+  DaDau: 'Đã đậu',
+  BaoLuu: 'Bảo lưu',
+  DungChuongTrinh: 'Dừng chương trình',
+  KhongHoc: 'Không học',
+  Huy: 'Hủy',
+  DangONhat: 'Đang ở Nhật',
+  RoiCongTy: 'Rời công ty',
+};
+
+const TRAINEE_TYPE_LABELS: Record<string, string> = {
+  TTS: 'Thực tập sinh',
+  KyNang: 'Kỹ năng đặc định',
+  KySu: 'Kỹ sư',
+  DuHoc: 'Du học sinh',
+  TTS3: 'Thực tập sinh số 3',
 };
 
 const statusLabels: Record<string, string> = {
@@ -286,9 +308,19 @@ async function fetchWithTimeout(url: string, timeoutMs = 8000): Promise<ArrayBuf
   }
 }
 
-function getStageLabel(stage: string | null): string {
-  if (!stage) return "—";
-  return stageLabels[stage] || stage;
+function getStageLabel(slug: string | null): string {
+  if (!slug) return "Chưa đậu";
+  return PROGRESSION_STAGE_LABELS[slug] || slug;
+}
+
+function getStatusLabelFn(slug: string | null): string {
+  if (!slug) return "Đăng ký mới";
+  return SIMPLE_STATUS_LABELS[slug] || slug;
+}
+
+function getTypeLabel(slug: string | null): string {
+  if (!slug) return "—";
+  return TRAINEE_TYPE_LABELS[slug] || slug;
 }
 
 serve(async (req) => {
@@ -521,6 +553,12 @@ serve(async (req) => {
     drawText(trainee.full_name, headerX, y, 12, true);
     y -= lineHeight;
     drawText(`Mã: ${trainee.trainee_code}`, headerX, y, 10, false);
+    y -= lineHeight;
+    // Badge: progression_stage + simple_status
+    const stageBadge = getStageLabel(trainee.progression_stage);
+    const statusBadge = getStatusLabelFn(trainee.simple_status);
+    const typeBadge = getTypeLabel(trainee.trainee_type);
+    drawText(`[${stageBadge}]  ${statusBadge}  •  ${typeBadge}`, headerX, y, 9, true);
     if (trainee.photo_url) {
       y = height - margin - photoSize - 20;
     } else {
@@ -534,7 +572,7 @@ serve(async (req) => {
     drawRow("Phiên âm", trainee.furigana);
     drawRow("Ngày sinh", formatDate(trainee.birth_date));
     drawRow("Giới tính", trainee.gender);
-    drawRow("Loại hình", trainee.trainee_type);
+    drawRow("Loại hình", getTypeLabel(trainee.trainee_type));
     drawRow("Nơi sinh", trainee.birthplace);
     drawRow("Dân tộc", trainee.ethnicity);
     drawRow("Tôn giáo", trainee.religion);
@@ -588,15 +626,21 @@ serve(async (req) => {
     drawRow("Sở thích", trainee.hobbies);
 
     // ========== 6. CÔNG TY & NGHIỆP ĐOÀN ==========
-    const hasPassedInterview = trainee.progression_stage &&
-      trainee.progression_stage !== "ChuaDau" &&
-      trainee.progression_stage !== "";
+    // Rollback logic: if ChuaDau, company/union/job info should show '---'
+    const isRolledBack = !trainee.progression_stage || trainee.progression_stage === "ChuaDau";
+    const hasCompanyData = trainee.company?.name || trainee.union?.name || trainee.job_category?.name;
 
-    if (hasPassedInterview) {
+    if (!isRolledBack && hasCompanyData) {
       drawSection("CÔNG TY & NGHIỆP ĐOÀN");
       drawRowBilingual("Công ty tiếp nhận", formatBilingual(trainee.company?.name_japanese, trainee.company?.name));
       drawRowBilingual("Nghiệp đoàn", formatBilingual(trainee.union?.name_japanese, trainee.union?.name));
       drawRowBilingual("Ngành nghề", formatBilingual(trainee.job_category?.name_japanese, trainee.job_category?.name));
+    } else if (isRolledBack) {
+      // Show section with dashes to indicate rollback state
+      drawSection("CÔNG TY & NGHIỆP ĐOÀN");
+      drawRow("Công ty tiếp nhận", "---");
+      drawRow("Nghiệp đoàn", "---");
+      drawRow("Ngành nghề", "---");
     }
 
     // ========== 7. LỚP HỌC — ĐÃ LOẠI BỎ THEO YÊU CẦU ==========
@@ -645,9 +689,12 @@ serve(async (req) => {
 
     // ========== 10. MỐC THỜI GIAN ==========
     drawSection("MỐC THỜI GIAN");
+    drawRow("Trạng thái hiện tại", getStageLabel(trainee.progression_stage));
+    drawRow("Tình trạng", getStatusLabelFn(trainee.simple_status));
     drawRow("Ngày đăng ký", formatDate(trainee.registration_date || trainee.entry_date));
     drawRow("Số lần PV", trainee.interview_count?.toString() || null);
-    drawRow("Ngày đậu PV", formatDate(trainee.interview_pass_date));
+    // Hide interview_pass_date if rolled back to ChuaDau
+    drawRow("Ngày đậu PV", isRolledBack ? "---" : formatDate(trainee.interview_pass_date));
     drawRow("Ngày nộp hồ sơ", formatDate(trainee.document_submission_date));
     drawRow("Nộp OTIT", formatDate(trainee.otit_entry_date));
     drawRow("Nộp Nyukan", formatDate(trainee.nyukan_entry_date));
@@ -683,20 +730,37 @@ serve(async (req) => {
       drawSection("KINH NGHIỆM LÀM VIỆC");
       for (const work of trainee.work_history) {
         checkPage(60);
-        drawText(work.company_name, margin, y, 9, true);
-        y -= lineHeight;
-        const parts: string[] = [];
-        if (work.position) parts.push(`Vị trí: ${work.position}`);
-        if (work.start_date || work.end_date) {
-          parts.push(`${formatDate(work.start_date)} - ${formatDate(work.end_date) || 'nay'}`);
+        // Company name on its own line, no truncation
+        const companyLine = sanitizeText(work.company_name || "");
+        const companyFont = getFont(companyLine, true);
+        const maxCompanyWidth = contentWidth;
+        if (companyFont.widthOfTextAtSize(companyLine, 9) > maxCompanyWidth) {
+          // Wrap long company names
+          const wrappedLines = wrapTextByWidth(companyLine, maxCompanyWidth, 9);
+          for (const wl of wrappedLines) {
+            drawText(wl, margin, y, 9, true);
+            y -= lineHeight;
+          }
+        } else {
+          drawText(companyLine, margin, y, 9, true);
+          y -= lineHeight;
         }
-        if (parts.length > 0) {
-          drawText(parts.join("  |  "), margin + 10, y, 8, false);
+        // Position and date range on a single line
+        const detailParts: string[] = [];
+        if (work.position) detailParts.push(`Vị trí: ${work.position}`);
+        if (work.start_date || work.end_date) {
+          const startStr = formatDate(work.start_date);
+          const endStr = work.end_date ? formatDate(work.end_date) : "nay";
+          detailParts.push(`Thời gian: ${startStr} - ${endStr}`);
+        }
+        if (detailParts.length > 0) {
+          drawText(detailParts.join("  |  "), margin + 10, y, 8, false);
           y -= lineHeight;
         }
         if (work.responsibilities) {
           y = drawMultilineText(work.responsibilities, margin, y, 8, 10);
         }
+        y -= 3; // spacing between entries
       }
     }
 
