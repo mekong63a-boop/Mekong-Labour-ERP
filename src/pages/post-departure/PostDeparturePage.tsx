@@ -338,11 +338,11 @@ export default function PostDeparturePage() {
   // Get return date info based on progression stage
   const getReturnDateInfo = (trainee: any): { date: string; label: string; colorClass: string } => {
     switch (trainee.progression_stage) {
-      case "Bỏ trốn":
+      case "BoTron":
         return { date: formatDate(trainee.absconded_date), label: "Ngày bỏ trốn", colorClass: "text-red-600 font-medium" };
-      case "Về trước hạn":
+      case "VeNuocSom":
         return { date: formatDate(trainee.early_return_date), label: "Ngày về", colorClass: "text-orange-600" };
-      case "Hoàn thành hợp đồng":
+      case "HoanThanhHD":
         return { date: formatDate(trainee.return_date), label: "Ngày về nước", colorClass: "text-blue-600" };
       default:
         return { date: "-", label: "", colorClass: "" };
@@ -351,11 +351,11 @@ export default function PostDeparturePage() {
 
   const getStatusBadge = (stage: string | null) => {
     const colorMap: Record<string, string> = {
-      "Xuất cảnh": "bg-indigo-100 text-indigo-700",
-      "Đang làm việc": "bg-green-100 text-green-700",
-      "Hoàn thành hợp đồng": "bg-blue-100 text-blue-700",
-      "Bỏ trốn": "bg-red-100 text-red-700",
-      "Về trước hạn": "bg-orange-100 text-orange-700",
+      DaXuatCanh: "bg-indigo-100 text-indigo-700",
+      DangLamViec: "bg-green-100 text-green-700",
+      HoanThanhHD: "bg-blue-100 text-blue-700",
+      BoTron: "bg-red-100 text-red-700",
+      VeNuocSom: "bg-orange-100 text-orange-700",
     };
     return colorMap[stage || ""] || "bg-muted text-muted-foreground";
   };
