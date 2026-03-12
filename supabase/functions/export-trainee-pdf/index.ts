@@ -783,14 +783,15 @@ serve(async (req) => {
     if (trainee.family_members && trainee.family_members.length > 0) {
       drawSection("THÀNH VIÊN GIA ĐÌNH");
       drawTable(
-        ["Họ tên", "Quan hệ", "Năm sinh", "Nghề nghiệp", "Nơi ở"],
-        [110, 70, 60, 100, 120],
+        ["Họ tên", "Quan hệ", "Năm sinh", "Nghề nghiệp", "Nơi ở", "Sống chung"],
+        [100, 60, 50, 90, 100, 60],
         trainee.family_members.map(m => [
-          m.full_name,
-          m.relationship,
-          m.birth_year?.toString() || "—",
-          m.occupation || "—",
-          m.location || "—",
+          m.full_name || "---",
+          m.relationship || "---",
+          cleanValue(m.birth_year),
+          m.occupation || "---",
+          m.location || "---",
+          m.living_together === true ? "Sống chung" : m.living_together === false ? "Sống riêng" : "---",
         ])
       );
     }
