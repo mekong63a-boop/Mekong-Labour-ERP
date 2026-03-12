@@ -147,6 +147,7 @@ interface TraineeProfile {
     start_date: string | null;
     end_date: string | null;
     responsibilities: string | null;
+    income: string | null;
   }>;
   family_members: Array<{
     id: string;
@@ -155,6 +156,7 @@ interface TraineeProfile {
     birth_year: number | null;
     occupation: string | null;
     location: string | null;
+    living_together: boolean | null;
   }>;
   japan_relatives: Array<{
     id: string;
@@ -260,11 +262,23 @@ const statusLabels: Record<string, string> = {
   unexcused: "Nghỉ không phép",
 };
 
+// Clean value: replace '0', empty, null with '---'
+function cleanValue(val: string | number | null | undefined): string {
+  if (val === null || val === undefined) return "---";
+  const s = String(val).trim();
+  if (s === "" || s === "0") return "---";
+  return s;
+}
+
 function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "—";
+  if (!dateStr) return "---";
   try {
     const date = new Date(dateStr);
-    return `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1).toString().padStart(2, "0")}/${date.getFullYear()}`;
+    if (isNaN(date.getTime())) return dateStr;
+    const dd = date.getDate().toString().padStart(2, "0");
+    const mm = (date.getMonth() + 1).toString().padStart(2, "0");
+    const yyyy = date.getFullYear().toString();
+    return `${dd}/${mm}/${yyyy}`;
   } catch {
     return dateStr;
   }
@@ -376,14 +390,15 @@ serve(async (req) => {
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
 
+    // Use Noto Sans for ALL text (supports Vietnamese + Japanese + Latin)
+    const notoSansRegularUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/vietnamese-400-normal.ttf";
+    const notoSansBoldUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/vietnamese-700-normal.ttf";
     const notoSansJpRegularUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-400-normal.ttf";
     const notoSansJpBoldUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-700-normal.ttf";
-    const robotoRegularUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Me5WZLCzYlKw.ttf";
-    const robotoBoldUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlvAx05IsDqlA.ttf";
 
     const [regularFontBytes, boldFontBytes, jpRegularBytes, jpBoldBytes] = await Promise.all([
-      fetchWithTimeout(robotoRegularUrl),
-      fetchWithTimeout(robotoBoldUrl),
+      fetchWithTimeout(notoSansRegularUrl),
+      fetchWithTimeout(notoSansBoldUrl),
       fetchWithTimeout(notoSansJpRegularUrl),
       fetchWithTimeout(notoSansJpBoldUrl),
     ]);
@@ -494,7 +509,7 @@ serve(async (req) => {
     const drawRow = (label: string, value: string | null) => {
       checkPage();
       drawText(label + ":", margin, y, 9, false);
-      drawText(value || "—", margin + 140, y, 9, false);
+      drawText(cleanValue(value), margin + 140, y, 9, false);
       y -= lineHeight;
     };
 
@@ -521,7 +536,7 @@ serve(async (req) => {
         checkPage();
         xOff = margin;
         for (let i = 0; i < row.length; i++) {
-          const cellText = (row[i] || "—").substring(0, 40);
+          const cellText = cleanValue(row[i]).substring(0, 40);
           drawText(cellText, xOff, y, 8, false);
           xOff += colWidths[i];
         }
@@ -768,14 +783,15 @@ serve(async (req) => {
     if (trainee.family_members && trainee.family_members.length > 0) {
       drawSection("THÀNH VIÊN GIA ĐÌNH");
       drawTable(
-        ["Họ tên", "Quan hệ", "Năm sinh", "Nghề nghiệp", "Nơi ở"],
-        [110, 70, 60, 100, 120],
+        ["Họ tên", "Quan hệ", "Năm sinh", "Nghề nghiệp", "Nơi ở", "Sống chung"],
+        [100, 60, 50, 90, 100, 60],
         trainee.family_members.map(m => [
-          m.full_name,
-          m.relationship,
-          m.birth_year?.toString() || "—",
-          m.occupation || "—",
-          m.location || "—",
+          m.full_name || "---",
+          m.relationship || "---",
+          cleanValue(m.birth_year),
+          m.occupation || "---",
+          m.location || "---",
+          m.living_together === true ? "Sống chung" : m.living_together === false ? "Sống riêng" : "---",
         ])
       );
     }
