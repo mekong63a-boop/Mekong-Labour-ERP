@@ -536,7 +536,7 @@ serve(async (req) => {
         checkPage();
         xOff = margin;
         for (let i = 0; i < row.length; i++) {
-          const cellText = (row[i] || "—").substring(0, 40);
+          const cellText = cleanValue(row[i]).substring(0, 40);
           drawText(cellText, xOff, y, 8, false);
           xOff += colWidths[i];
         }
