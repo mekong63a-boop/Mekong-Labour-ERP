@@ -120,6 +120,7 @@ export default function SystemMonitorContent() {
   const [tableFilter, setTableFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(subDays(new Date(), 7));
   const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
+  const { runBackup, isRunning, lastResult } = useBackup();
   
   const canAccess = isAdmin;
   
