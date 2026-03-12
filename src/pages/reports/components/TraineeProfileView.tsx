@@ -596,7 +596,9 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
                             <TableCell className="text-xs py-1.5">{member.relationship}</TableCell>
                             <TableCell className="text-xs py-1.5">{member.birth_year || "—"}</TableCell>
                             <TableCell className="text-xs py-1.5">{member.occupation || "—"}</TableCell>
-                            <TableCell className="text-xs py-1.5">{member.location || "—"}</TableCell>
+                            <TableCell className="text-xs py-1.5">
+                              {member.location === "O" ? "Sống chung" : member.location === "X" ? "Sống riêng" : member.location || "—"}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
