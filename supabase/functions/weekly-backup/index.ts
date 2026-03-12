@@ -412,6 +412,11 @@ serve(async (req) => {
     const weekNum = getWeekNumber(now);
     const dateStr = `${year}${month}${day}`;
     
+    // Get/create root folder and capture its ID for the response link
+    const rootFolderId = await findOrCreateFolder(accessToken, 'Mekong-Labour-Hub');
+    await shareWithOwner(accessToken, rootFolderId, OWNER_EMAIL);
+    backupLog.rootFolderLink = `https://drive.google.com/drive/folders/${rootFolderId}`;
+
     // ============================================================
     // PHASE 1: CSV Backup (giữ nguyên logic cũ)
     // ============================================================
