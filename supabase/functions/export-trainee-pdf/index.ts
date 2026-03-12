@@ -10,6 +10,11 @@ const corsHeaders = {
 
 const SUPABASE_URL = "https://bcltzwpnhfpbfiuhfkxi.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjbHR6d3BuaGZwYmZpdWhma3hpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyOTU0NDQsImV4cCI6MjA4Mzg3MTQ0NH0.ktTKQxMCXGhXaaa5OkfDrx9I0-YPESh8Z4kHNBQkCJ4";
+const ROBOTO_FONT_FALLBACK_URL = "https://raw.githubusercontent.com/googlefonts/roboto/main/src/hinted/Roboto-Regular.ttf";
+const NOTO_JP_FONT_FALLBACK_URL = "https://raw.githubusercontent.com/frappe/fonts/master/usr_share_fonts/noto/NotoSansJP-Regular.otf";
+
+let cachedRobotoFontBytes: Uint8Array | null = null;
+let cachedNotoJpFontBytes: Uint8Array | null = null;
 
 interface AttendanceRecord {
   id: string;
