@@ -64,7 +64,7 @@ export function ActionPanel({ trainee }: ActionPanelProps) {
       await updateTrainee.mutateAsync({
         id: trainee.id,
         updates: {
-          simple_status: "Hủy",
+          simple_status: "Huy",
         },
       });
       toast({ title: "Đã hủy thực tập sinh" });
