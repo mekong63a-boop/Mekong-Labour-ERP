@@ -12,6 +12,9 @@ import { PersonalInfoTab } from "@/components/trainees/tabs/PersonalInfoTab";
 import { PersonalHistoryTab } from "@/components/trainees/tabs/PersonalHistoryTab";
 import { ProjectInterviewTab } from "@/components/trainees/tabs/ProjectInterviewTab";
 import { useUserRole } from "@/hooks/useUserRole";
+import { usePresence } from "@/hooks/usePresence";
+import { PresenceIndicator } from "@/components/trainees/PresenceIndicator";
+import { getStageLabel, getTypeLabel } from "@/lib/enum-labels";
 
 export default function TraineeDetail() {
   const { id } = useParams<{ id: string }>();
