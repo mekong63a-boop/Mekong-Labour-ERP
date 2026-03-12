@@ -475,7 +475,7 @@ export default function PostDeparturePage() {
           onClick={() => handleStatusClick("VeNuocSom")}
           className={cn(
             "p-4 rounded-lg border text-left transition-all hover:shadow-md",
-            selectedStatus === "Về trước hạn"
+            selectedStatus === "VeNuocSom"
               ? "border-orange-500 bg-orange-50"
               : "border-border hover:border-orange-300"
           )}
