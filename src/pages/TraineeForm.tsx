@@ -199,6 +199,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
   const { isAdmin, isPrimaryAdmin } = useUserRole();
   const { canViewUnmasked } = useDataMasking();
   const toggleLockMutation = useToggleTraineeLock();
+  const { onlineUsers } = usePresence(traineeId ? `trainee-edit:${traineeId}` : null);
   
   // Admin và Nhân viên cấp cao có thể xem/sửa trường nhạy cảm
   const canEditSensitiveFields = canViewUnmasked;
