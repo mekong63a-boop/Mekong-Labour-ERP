@@ -919,7 +919,7 @@ serve(async (req) => {
           m.relationship || "---",
           cleanValue(m.birth_year),
           m.occupation || "---",
-          formatLivingTogether(m.living_together),
+          formatLivingTogether(m.location ?? m.living_together),
         ]),
         [4] // center "Nơi ở" column
       );

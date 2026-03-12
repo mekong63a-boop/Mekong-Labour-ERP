@@ -44,7 +44,26 @@ export default function ReportsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <TraineeSearchBox onSearch={searchTrainee} isLoading={isSearching} />
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <TraineeSearchBox onSearch={searchTrainee} isLoading={isSearching} />
+                </div>
+                {profile && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Trigger export from profile view
+                      const exportBtn = document.getElementById('export-pdf-btn');
+                      if (exportBtn) exportBtn.click();
+                    }}
+                    className="gap-2 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 border-yellow-500 font-medium shrink-0"
+                  >
+                    <FileDown className="h-4 w-4" />
+                    Xuất PDF
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
 

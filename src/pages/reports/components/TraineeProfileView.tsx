@@ -238,25 +238,6 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportPDF}
-              disabled={isExporting}
-              className="gap-2"
-            >
-              {isExporting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Đang xuất...
-                </>
-              ) : (
-                <>
-                  <FileDown className="h-4 w-4" />
-                  Xuất PDF
-                </>
-              )}
-            </Button>
             <Button variant="ghost" size="icon" onClick={onClose}>
               <X className="h-4 w-4" />
             </Button>
