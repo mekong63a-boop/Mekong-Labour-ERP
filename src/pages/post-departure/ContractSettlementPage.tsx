@@ -1,4 +1,4 @@
-// Thanh lý hợp đồng - hiển thị học viên có ngày biến động (bỏ trốn, về trước hạn, hoàn thành HĐ)
+// Thanh lý hợp đồng - hiển thị học viên có ngày biến động (BoTron, VeNuocSom, HoanThanhHD)
 // Phân loại: Đã thanh lý (có settlement_date) vs Chưa thanh lý (chưa có settlement_date)
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -25,6 +25,7 @@ import { FileCheck, Search, CheckCircle2, Clock } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ExportButtonWithColumns } from "@/components/ui/export-button-with-columns";
 import { cn } from "@/lib/utils";
+import { PROGRESSION_STAGE_LABELS, getStageLabel, getTypeLabel } from "@/lib/enum-labels";
 
 function useContractSettlementTrainees() {
   return useQuery({
