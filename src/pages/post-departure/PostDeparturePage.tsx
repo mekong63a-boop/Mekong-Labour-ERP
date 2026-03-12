@@ -27,6 +27,8 @@ import { ExportButtonWithColumns } from '@/components/ui/export-button-with-colu
 import { EXPORT_CONFIGS } from '@/lib/export-configs';
 import { cn } from "@/lib/utils";
 
+import { PROGRESSION_STAGE_LABELS, TRAINEE_TYPE_LABELS, getStageLabel, getTypeLabel } from "@/lib/enum-labels";
+
 import {
   BarChart,
   Bar,
@@ -40,19 +42,19 @@ import {
 
 // Status categories based on progression_stage
 const STATUS_FILTERS = [
-  { value: "DangLamViec", label: "Đang ở Nhật", color: "text-green-600" },
+  { value: "DangLamViec", label: PROGRESSION_STAGE_LABELS.DangLamViec, color: "text-green-600" },
   { value: "VeNuocSom", label: "Về giữa chừng", color: "text-orange-600" },
-  { value: "BoTron", label: "Bỏ trốn", color: "text-red-600" },
-  { value: "HoanThanhHD", label: "Hoàn thành HĐ", color: "text-blue-600" },
+  { value: "BoTron", label: PROGRESSION_STAGE_LABELS.BoTron, color: "text-red-600" },
+  { value: "HoanThanhHD", label: PROGRESSION_STAGE_LABELS.HoanThanhHD, color: "text-blue-600" },
 ];
 
 // Trainee type config with icons
 const TRAINEE_TYPES = [
-  { value: "TTS", label: "Thực tập sinh", icon: GraduationCap },
+  { value: "TTS", label: TRAINEE_TYPE_LABELS.TTS, icon: GraduationCap },
   { value: "TTS3", label: "TTS số 3", icon: GraduationCap },
-  { value: "DuHoc", label: "Du học sinh", icon: Plane },
-  { value: "KyNang", label: "Kỹ năng đặc định", icon: Key },
-  { value: "KySu", label: "Kỹ sư", icon: Briefcase },
+  { value: "DuHoc", label: TRAINEE_TYPE_LABELS.DuHoc, icon: Plane },
+  { value: "KyNang", label: TRAINEE_TYPE_LABELS.KyNang, icon: Key },
+  { value: "KySu", label: TRAINEE_TYPE_LABELS.KySu, icon: Briefcase },
 ];
 
 // Hook to fetch post-departure trainees
