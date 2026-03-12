@@ -421,21 +421,26 @@ serve(async (req) => {
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
 
-    // Use Noto Sans JP for ALL text — it covers Latin, Vietnamese diacritics, AND Japanese
-    // This single font family handles everything, no separate Vietnamese font needed
+    // Multi-font strategy:
+    // - Roboto (full Vietnamese/Latin rendering)
+    // - Noto Sans JP (Japanese rendering)
+    // Both are loaded and embedded via Base64 to keep glyph coverage stable.
+    const robotoRegularUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.ttf";
+    const robotoBoldUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc9.ttf";
     const notoSansJpRegularUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-400-normal.ttf";
     const notoSansJpBoldUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-700-normal.ttf";
 
-    const [jpRegularBytes, jpBoldBytes] = await Promise.all([
-      fetchWithTimeout(notoSansJpRegularUrl),
-      fetchWithTimeout(notoSansJpBoldUrl),
+    const [robotoRegularBase64, robotoBoldBase64, jpRegularBase64, jpBoldBase64] = await Promise.all([
+      fetchFontAsBase64(robotoRegularUrl),
+      fetchFontAsBase64(robotoBoldUrl),
+      fetchFontAsBase64(notoSansJpRegularUrl),
+      fetchFontAsBase64(notoSansJpBoldUrl),
     ]);
 
-    const fontJp = await pdfDoc.embedFont(jpRegularBytes);
-    const fontJpBold = await pdfDoc.embedFont(jpBoldBytes);
-    // Use JP font for everything — it has full Latin + Vietnamese + Japanese coverage
-    const font = fontJp;
-    const fontBold = fontJpBold;
+    const font = await pdfDoc.embedFont(base64ToBytes(robotoRegularBase64), { subset: false });
+    const fontBold = await pdfDoc.embedFont(base64ToBytes(robotoBoldBase64), { subset: false });
+    const fontJp = await pdfDoc.embedFont(base64ToBytes(jpRegularBase64), { subset: false });
+    const fontJpBold = await pdfDoc.embedFont(base64ToBytes(jpBoldBase64), { subset: false });
 
     let page = pdfDoc.addPage([595.28, 841.89]);
     const { width, height } = page.getSize();
