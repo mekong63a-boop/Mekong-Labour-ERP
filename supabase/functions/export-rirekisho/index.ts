@@ -325,7 +325,7 @@ const relationMap: Record<string, string> = {
 
 // ====== Main handler ======
 serve(async (req) => {
-  const corsHeaders = makeCorsHeaders(req.headers.get('Origin') || '');
+  
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {

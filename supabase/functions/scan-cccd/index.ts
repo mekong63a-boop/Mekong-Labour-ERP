@@ -18,7 +18,6 @@ interface CCCDData {
 }
 
 serve(async (req) => {
-  const corsHeaders = makeCorsHeaders(req.headers.get('Origin') || '');
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
