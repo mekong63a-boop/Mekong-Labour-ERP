@@ -262,11 +262,23 @@ const statusLabels: Record<string, string> = {
   unexcused: "Nghỉ không phép",
 };
 
+// Clean value: replace '0', empty, null with '---'
+function cleanValue(val: string | number | null | undefined): string {
+  if (val === null || val === undefined) return "---";
+  const s = String(val).trim();
+  if (s === "" || s === "0") return "---";
+  return s;
+}
+
 function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "—";
+  if (!dateStr) return "---";
   try {
     const date = new Date(dateStr);
-    return `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1).toString().padStart(2, "0")}/${date.getFullYear()}`;
+    if (isNaN(date.getTime())) return dateStr;
+    const dd = date.getDate().toString().padStart(2, "0");
+    const mm = (date.getMonth() + 1).toString().padStart(2, "0");
+    const yyyy = date.getFullYear().toString();
+    return `${dd}/${mm}/${yyyy}`;
   } catch {
     return dateStr;
   }
