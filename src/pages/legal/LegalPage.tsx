@@ -228,7 +228,7 @@ export default function LegalPage() {
       const { data, error } = await supabase
         .from("trainees")
         .select("dkhd_code, gender, ptl_date")
-        .eq("progression_stage", 'Đậu phỏng vấn')
+        .eq("progression_stage", 'DauPV')
         .not("dkhd_code", "is", null);
 
       if (error) throw error;
