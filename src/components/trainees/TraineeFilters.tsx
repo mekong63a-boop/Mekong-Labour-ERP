@@ -39,7 +39,7 @@ export function TraineeFilters({
             <SelectItem value="all">Tất cả trạng thái</SelectItem>
             {simpleStatuses.map((status) => (
               <SelectItem key={status} value={status}>
-                {status}
+                {SIMPLE_STATUS_LABELS[status] || status}
               </SelectItem>
             ))}
           </SelectContent>
