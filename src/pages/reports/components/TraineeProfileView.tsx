@@ -159,12 +159,12 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
       }
 
       const response = await fetch(
-        `https://bcltzwpnhfpbfiuhfkxi.supabase.co/functions/v1/export-trainee-pdf?trainee_code=${encodeURIComponent(profile.trainee_code)}`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-trainee-pdf?trainee_code=${encodeURIComponent(profile.trainee_code)}`,
         {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
-            apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjbHR6d3BuaGZwYmZpdWhma3hpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyOTU0NDQsImV4cCI6MjA4Mzg3MTQ0NH0.ktTKQxMCXGhXaaa5OkfDrx9I0-YPESh8Z4kHNBQkCJ4",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "",
           },
         }
       );

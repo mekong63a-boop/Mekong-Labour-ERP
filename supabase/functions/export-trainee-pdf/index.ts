@@ -5,7 +5,7 @@ import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const SUPABASE_URL = "https://bcltzwpnhfpbfiuhfkxi.supabase.co";
@@ -286,9 +286,9 @@ function formatDate(dateStr: string | null): string {
 }
 
 function formatLivingTogether(value: boolean | string | number | null | undefined): string {
-  // DB: living_together=true means O (sống riêng), false means X (sống chung) per business logic
-  if (value === true || value === 1 || value === "1" || value === "true") return "Sống riêng";
-  if (value === false || value === 0 || value === "0" || value === "false") return "Sống chung";
+  // Business rule: O/true => Sống chung, X/false => Sống riêng
+  if (value === true || value === 1 || value === "1" || value === "true" || value === "O" || value === "o") return "Sống chung";
+  if (value === false || value === 0 || value === "0" || value === "false" || value === "X" || value === "x") return "Sống riêng";
   return "---";
 }
 
@@ -371,12 +371,21 @@ function getTypeLabel(slug: string | null): string {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
     const url = new URL(req.url);
-    const traineeCode = url.searchParams.get("trainee_code");
+    let traineeCode = url.searchParams.get("trainee_code");
+
+    if (!traineeCode) {
+      try {
+        const body = await req.json();
+        traineeCode = body?.trainee_code || body?.traineeCode || null;
+      } catch {
+        // ignore non-JSON body for GET requests
+      }
+    }
 
     if (!traineeCode) {
       return new Response(
@@ -422,26 +431,22 @@ serve(async (req) => {
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
 
-    // Multi-font strategy using FULL variable fonts from Google Fonts GitHub repo:
-    // - Roboto VF: Complete Vietnamese/Latin/Latin-ext glyph coverage (all diacritics)
-    // - Noto Sans JP VF: Complete Japanese/CJK glyph coverage
-    // Both served via jsdelivr CDN from verified paths in google/fonts repo.
-    // Use Roboto VF for Vietnamese, static NotoSansJP-Regular for Japanese (pdf-lib handles static fonts better)
-    const robotoUrl = "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/roboto/Roboto%5Bwdth%2Cwght%5D.ttf";
-    const notoSansJpUrl = "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/notosansjp/static/NotoSansJP-Regular.ttf";
-
-    console.log("Fetching fonts from jsdelivr CDN...");
-    const [robotoBytes, jpBytes] = await Promise.all([
-      fetchWithTimeout(robotoUrl, 30000),
-      fetchWithTimeout(notoSansJpUrl, 30000),
+    // Multi-font strategy with local static regular fonts encoded via Base64
+    // - Roboto-Regular: Vietnamese/Latin
+    // - NotoSansJP-Regular: Japanese (Katakana/Kanji)
+    const [robotoFileBytes, jpFileBytes] = await Promise.all([
+      Deno.readFile(new URL("./Roboto-Regular.ttf", import.meta.url)),
+      Deno.readFile(new URL("./NotoSansJP-Regular.otf", import.meta.url)),
     ]);
-    console.log(`Fonts fetched: Roboto=${robotoBytes.byteLength}B, NotoSansJP=${jpBytes.byteLength}B`);
 
-    // Variable fonts embed with default instance (Regular 400 weight)
-    // Bold is simulated via font size difference (headers use larger size)
-    const font = await pdfDoc.embedFont(new Uint8Array(robotoBytes), { subset: false });
-    const fontBold = font; // Same variable font - bold effect via size
-    const fontJp = await pdfDoc.embedFont(new Uint8Array(jpBytes), { subset: false });
+    const robotoBase64 = bytesToBase64(robotoFileBytes);
+    const jpBase64 = bytesToBase64(jpFileBytes);
+
+    console.log(`Fonts loaded locally: Roboto=${robotoFileBytes.byteLength}B, NotoSansJP=${jpFileBytes.byteLength}B`);
+
+    const font = await pdfDoc.embedFont(base64ToBytes(robotoBase64), { subset: false });
+    const fontBold = font;
+    const fontJp = await pdfDoc.embedFont(base64ToBytes(jpBase64), { subset: false });
     const fontJpBold = fontJp;
 
     let page = pdfDoc.addPage([595.28, 841.89]);
@@ -464,20 +469,45 @@ serve(async (req) => {
       page.drawText(safeText, { x, y: yPos, size, font: fontToUse, color: rgb(0, 0, 0) });
     };
 
-    const drawBilingualValue = (value: string, x: number, yPos: number, size = 9, bold = false) => {
-      const safeValue = sanitizeText(value || "");
-      const match = safeValue.match(/^(.*)\s\((.*)\)$/);
-      if (!match) {
-        drawTextWithFont(safeValue, x, yPos, size, getFont(safeValue, bold), bold);
-        return;
+    const drawScriptAwareText = (text: string, x: number, yPos: number, size = 9, bold = false) => {
+      const safeText = sanitizeText(text || "");
+      if (!safeText) return;
+
+      let cursorX = x;
+      let run = "";
+      let runIsJp: boolean | null = null;
+
+      const flushRun = () => {
+        if (!run || runIsJp === null) return;
+        const runFont = runIsJp ? (bold ? fontJpBold : fontJp) : (bold ? fontBold : font);
+        const safeRun = sanitizeText(run);
+        page.drawText(safeRun, { x: cursorX, y: yPos, size, font: runFont, color: rgb(0, 0, 0) });
+        cursorX += runFont.widthOfTextAtSize(safeRun, size);
+        run = "";
+      };
+
+      for (const ch of [...safeText]) {
+        const charIsJp = containsCJK(ch);
+        if (runIsJp === null) {
+          runIsJp = charIsJp;
+          run = ch;
+          continue;
+        }
+
+        if (charIsJp === runIsJp) {
+          run += ch;
+        } else {
+          flushRun();
+          runIsJp = charIsJp;
+          run = ch;
+        }
       }
-      const jpPart = (match[1] || "").trimEnd();
-      const vnPart = match[2] || "";
-      const jpFont = bold ? fontJpBold : fontJp;
-      const vnFont = bold ? fontBold : font;
-      drawTextWithFont(jpPart, x, yPos, size, jpFont, bold);
-      const jpWidth = jpFont.widthOfTextAtSize(sanitizeText(jpPart), size);
-      drawTextWithFont(` (${vnPart})`, x + jpWidth, yPos, size, vnFont, bold);
+
+      flushRun();
+    };
+
+    const drawBilingualValue = (value: string, x: number, yPos: number, size = 9, bold = false) => {
+      drawScriptAwareText(value || "—", x, yPos, size, bold);
     };
 
     const drawText = (text: string, x: number, yPos: number, size = 9, bold = false) => {
