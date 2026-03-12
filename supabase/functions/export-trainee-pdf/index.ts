@@ -826,16 +826,16 @@ serve(async (req) => {
     if (trainee.family_members && trainee.family_members.length > 0) {
       drawSection("THÀNH VIÊN GIA ĐÌNH");
       drawTable(
-        ["Họ tên", "Quan hệ", "Năm sinh", "Nghề nghiệp", "Nơi ở", "Sống chung"],
-        [100, 60, 50, 90, 100, 60],
+        ["Họ tên", "Quan hệ", "Năm sinh", "Nghề nghiệp", "Nơi ở"],
+        [120, 70, 60, 110, 100],
         trainee.family_members.map(m => [
           m.full_name || "---",
           m.relationship || "---",
           cleanValue(m.birth_year),
           m.occupation || "---",
-          m.location || "---",
           formatLivingTogether(m.living_together),
-        ])
+        ]),
+        [4] // center "Nơi ở" column
       );
     }
 
