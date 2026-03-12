@@ -794,18 +794,15 @@ serve(async (req) => {
           drawText(companyLine, margin, y, 9, true);
           y -= lineHeight;
         }
-        // Position and date range on a single line
-        const detailParts: string[] = [];
-        if (work.position) detailParts.push(`Vị trí: ${work.position}`);
-        if (work.start_date || work.end_date) {
-          const startStr = formatDate(work.start_date);
-          const endStr = work.end_date ? formatDate(work.end_date) : "nay";
-          detailParts.push(`Thời gian: ${startStr} - ${endStr}`);
-        }
-        if (detailParts.length > 0) {
-          drawText(detailParts.join("  |  "), margin + 10, y, 8, false);
-          y -= lineHeight;
-        }
+        // Position and date range rendered in fixed zones (avoid broken spacing/date wraps)
+        const positionText = cleanValue(work.position);
+        const dateRangeText = `${formatDate(work.start_date)} - ${work.end_date ? formatDate(work.end_date) : "nay"}`;
+
+        drawText("Vị trí:", margin + 10, y, 8, false);
+        drawText(positionText, margin + 45, y, 8, false);
+        drawText("Thời gian:", margin + 220, y, 8, false);
+        drawText(dateRangeText, margin + 270, y, 8, false);
+        y -= lineHeight;
         if (work.responsibilities) {
           y = drawMultilineText(work.responsibilities, margin, y, 8, 10);
         }
