@@ -40,10 +40,10 @@ import {
 
 // Status categories based on progression_stage
 const STATUS_FILTERS = [
-  { value: "Đang làm việc", label: "Đang ở Nhật", color: "text-green-600" },
-  { value: "Về trước hạn", label: "Về giữa chừng", color: "text-orange-600" },
-  { value: "Bỏ trốn", label: "Bỏ trốn", color: "text-red-600" },
-  { value: "Hoàn thành hợp đồng", label: "Hoàn thành HĐ", color: "text-blue-600" },
+  { value: "DangLamViec", label: "Đang ở Nhật", color: "text-green-600" },
+  { value: "VeNuocSom", label: "Về giữa chừng", color: "text-orange-600" },
+  { value: "BoTron", label: "Bỏ trốn", color: "text-red-600" },
+  { value: "HoanThanhHD", label: "Hoàn thành HĐ", color: "text-blue-600" },
 ];
 
 // Trainee type config with icons
