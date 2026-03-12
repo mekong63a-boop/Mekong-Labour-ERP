@@ -2690,7 +2690,9 @@ export type Database = {
       trainee_stage_counts: {
         Row: {
           count: number | null
-          stage: string | null
+          progression_stage:
+            | Database["public"]["Enums"]["progression_stage"]
+            | null
         }
         Relationships: []
       }
