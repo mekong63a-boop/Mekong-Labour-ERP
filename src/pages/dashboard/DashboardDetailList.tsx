@@ -316,9 +316,9 @@ export default function DashboardDetailList() {
 
   // Helper function to get status display for in_japan filter
   const getInJapanStatus = (trainee: typeof trainees[0]) => {
-    if (trainee.progression_stage === "BoTron") return "Bỏ trốn";
+    if (trainee.progression_stage === "BoTron") return getStageLabel("BoTron");
     if (trainee.progression_stage === "VeNuocSom") return "Về giữa chừng";
-    if (trainee.progression_stage === "HoanThanhHD") return "Hoàn thành HĐ";
+    if (trainee.progression_stage === "HoanThanhHD") return getStageLabel("HoanThanhHD");
     return "Đang ở Nhật";
   };
 
