@@ -376,7 +376,16 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const traineeCode = url.searchParams.get("trainee_code");
+    let traineeCode = url.searchParams.get("trainee_code");
+
+    if (!traineeCode) {
+      try {
+        const body = await req.json();
+        traineeCode = body?.trainee_code || body?.traineeCode || null;
+      } catch {
+        // ignore non-JSON body for GET requests
+      }
+    }
 
     if (!traineeCode) {
       return new Response(
