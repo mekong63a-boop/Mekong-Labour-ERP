@@ -466,15 +466,16 @@ serve(async (req) => {
       const safeValue = sanitizeText(value || "");
       const match = safeValue.match(/^(.*)\s\((.*)\)$/);
       if (!match) {
-        drawTextWithFont(safeValue, x, yPos, size, bold ? fontJpBold : fontJp, bold);
+        drawTextWithFont(safeValue, x, yPos, size, getFont(safeValue, bold), bold);
         return;
       }
       const jpPart = (match[1] || "").trimEnd();
       const vnPart = match[2] || "";
       const jpFont = bold ? fontJpBold : fontJp;
+      const vnFont = bold ? fontBold : font;
       drawTextWithFont(jpPart, x, yPos, size, jpFont, bold);
       const jpWidth = jpFont.widthOfTextAtSize(sanitizeText(jpPart), size);
-      drawTextWithFont(` (${vnPart})`, x + jpWidth, yPos, size, jpFont, bold);
+      drawTextWithFont(` (${vnPart})`, x + jpWidth, yPos, size, vnFont, bold);
     };
 
     const drawText = (text: string, x: number, yPos: number, size = 9, bold = false) => {
