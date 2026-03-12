@@ -939,10 +939,23 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
 
         await saveHistoryItems(traineeId);
       } else {
-        // Create new trainee
+        // Create new trainee - MERGE project data into initial INSERT
+        // so all fields are saved in a single operation
+        const currentProjectData = projectDataRef.current;
+        const mergedData = {
+          ...traineeData,
+          receiving_company_id: currentProjectData.receiving_company_id || null,
+          union_id: currentProjectData.union_id || null,
+          job_category_id: currentProjectData.job_category_id || null,
+          expected_entry_month: currentProjectData.expected_entry_month || null,
+          contract_term: currentProjectData.contract_term
+            ? parseFloat(currentProjectData.contract_term)
+            : null,
+        };
+
         const { data: newTrainee, error } = await supabase
           .from("trainees")
-          .insert(traineeData)
+          .insert(mergedData)
           .select()
           .single();
 
@@ -963,6 +976,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
           }
         }
 
+        // Save history items (education, work, family, japan relatives)
+        // For new trainees, skip the project data UPDATE inside saveHistoryItems
+        // since we already merged it above
         await saveHistoryItems(finalTraineeId);
       }
 
