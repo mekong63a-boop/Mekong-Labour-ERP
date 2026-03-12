@@ -117,7 +117,7 @@ export default function TraineeDetail() {
               )}
             </div>
             <p className="text-muted-foreground text-sm">
-              {trainee.trainee_type || "Thực tập sinh"} • 
+              {getTypeLabel(trainee.trainee_type) || "Thực tập sinh"} • 
               {trainee.furigana && ` ${trainee.furigana} •`} 
               {trainee.gender || "—"}
             </p>
