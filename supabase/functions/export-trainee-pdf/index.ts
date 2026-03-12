@@ -390,14 +390,15 @@ serve(async (req) => {
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
 
+    // Use Noto Sans for ALL text (supports Vietnamese + Japanese + Latin)
+    const notoSansRegularUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/vietnamese-400-normal.ttf";
+    const notoSansBoldUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/vietnamese-700-normal.ttf";
     const notoSansJpRegularUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-400-normal.ttf";
     const notoSansJpBoldUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-700-normal.ttf";
-    const robotoRegularUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Me5WZLCzYlKw.ttf";
-    const robotoBoldUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlvAx05IsDqlA.ttf";
 
     const [regularFontBytes, boldFontBytes, jpRegularBytes, jpBoldBytes] = await Promise.all([
-      fetchWithTimeout(robotoRegularUrl),
-      fetchWithTimeout(robotoBoldUrl),
+      fetchWithTimeout(notoSansRegularUrl),
+      fetchWithTimeout(notoSansBoldUrl),
       fetchWithTimeout(notoSansJpRegularUrl),
       fetchWithTimeout(notoSansJpBoldUrl),
     ]);
