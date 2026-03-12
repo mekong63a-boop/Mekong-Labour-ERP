@@ -335,6 +335,34 @@ async function fetchWithTimeout(url: string, timeoutMs = 8000): Promise<ArrayBuf
   }
 }
 
+async function getRobotoFontBytes(): Promise<Uint8Array> {
+  if (cachedRobotoFontBytes) return cachedRobotoFontBytes;
+
+  try {
+    cachedRobotoFontBytes = await Deno.readFile(new URL("./Roboto-Regular.ttf", import.meta.url));
+    return cachedRobotoFontBytes;
+  } catch (localError) {
+    console.warn("Roboto local file missing, fallback to remote", localError);
+    const buffer = await fetchWithTimeout(ROBOTO_FONT_FALLBACK_URL, 30000);
+    cachedRobotoFontBytes = new Uint8Array(buffer);
+    return cachedRobotoFontBytes;
+  }
+}
+
+async function getNotoJpFontBytes(): Promise<Uint8Array> {
+  if (cachedNotoJpFontBytes) return cachedNotoJpFontBytes;
+
+  try {
+    cachedNotoJpFontBytes = await Deno.readFile(new URL("./NotoSansJP-Regular.otf", import.meta.url));
+    return cachedNotoJpFontBytes;
+  } catch (localError) {
+    console.warn("NotoSansJP local file missing, fallback to remote", localError);
+    const buffer = await fetchWithTimeout(NOTO_JP_FONT_FALLBACK_URL, 30000);
+    cachedNotoJpFontBytes = new Uint8Array(buffer);
+    return cachedNotoJpFontBytes;
+  }
+}
+
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
   const chunkSize = 0x8000;
