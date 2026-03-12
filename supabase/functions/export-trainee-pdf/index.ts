@@ -147,6 +147,7 @@ interface TraineeProfile {
     start_date: string | null;
     end_date: string | null;
     responsibilities: string | null;
+    income: string | null;
   }>;
   family_members: Array<{
     id: string;
@@ -155,6 +156,7 @@ interface TraineeProfile {
     birth_year: number | null;
     occupation: string | null;
     location: string | null;
+    living_together: boolean | null;
   }>;
   japan_relatives: Array<{
     id: string;
