@@ -263,7 +263,7 @@ export default function LegalPage() {
       const { data, error } = await supabase
         .from("trainees")
         .select("tpc_code, gender, ptl_date")
-        .eq("progression_stage", 'Đậu phỏng vấn')
+        .eq("progression_stage", 'DauPV')
         .not("tpc_code", "is", null);
 
       if (error) throw error;
