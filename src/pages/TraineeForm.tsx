@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { PROGRESSION_STAGE_LABELS, SIMPLE_STATUS_LABELS, TRAINEE_TYPE_LABELS, getStageLabel, getStatusLabel, getTypeLabel } from "@/lib/enum-labels";
 import { PhotoUpload, uploadPhoto } from "@/components/trainees/PhotoUpload";
 import { LineQRUpload, uploadLineQR } from "@/components/trainees/LineQRUpload";
 import { useTrainee, useUpdateTrainee, useToggleTraineeLock } from "@/hooks/useTrainees";
@@ -42,10 +43,13 @@ import { PresenceIndicator } from "@/components/trainees/PresenceIndicator";
 // Photo file states removed - no more draft system
 
 // Options
-const TRAINEE_TYPES = ["Thực tập sinh", "Kỹ năng đặc định", "Kỹ sư", "Du học sinh", "Thực tập sinh số 3"];
+// Slug → Label options for enum Selects
+const TRAINEE_TYPE_OPTIONS = Object.entries(TRAINEE_TYPE_LABELS).map(([slug, label]) => ({ value: slug, label }));
+const SIMPLE_STATUS_OPTIONS = Object.entries(SIMPLE_STATUS_LABELS).map(([slug, label]) => ({ value: slug, label }));
+const PROGRESSION_STAGE_OPTIONS = Object.entries(PROGRESSION_STAGE_LABELS).map(([slug, label]) => ({ value: slug, label }));
+
 const GENDERS = ["Nam", "Nữ"];
 const MARITAL_STATUSES = ["Độc thân", "Đã kết hôn", "Ly hôn", "Góa"];
-const SIMPLE_STATUSES = ["Đăng ký mới", "Đang học", "Bảo lưu", "Dừng chương trình", "Không học", "Hủy", "Đang ở Nhật", "Rời công ty"];
 const EDUCATION_LEVELS = ["THCS", "THPT", "TTGDTX", "TRUNG CẤP", "CAO ĐẲNG", "ĐẠI HỌC"];
 const ETHNICITIES = ["Kinh", "Tày", "Thái", "Mường", "Khmer", "Nùng", "H'Mông", "Dao", "Gia Rai", "Ê Đê", "Ba Na", "Khác"];
 const BLOOD_GROUPS = ["A", "B", "AB", "O"];
@@ -66,14 +70,7 @@ const PROVINCES = [
   "Tây Ninh", "Thái Bình", "Thái Nguyên", "Thanh Hóa", "Thừa Thiên Huế", "Tiền Giang",
   "TP. Hồ Chí Minh", "Trà Vinh", "Tuyên Quang", "Vĩnh Long", "Vĩnh Phúc", "Yên Bái"
 ];
-const PROGRESSION_STAGES = [
-  "Chưa đậu", "Đậu phỏng vấn", "Nộp hồ sơ", "OTIT", "Nyukan", "COE",
-  "Xuất cảnh", "Đang làm việc", "Hoàn thành hợp đồng", "Bỏ trốn", "Về trước hạn"
-];
-// Display labels for progression stages
-const PROGRESSION_STAGE_LABELS: Record<string, string> = {
-  "Hoàn thành hợp đồng": "Hoàn thành HĐ/ về nước"
-};
+// PROGRESSION_STAGES and SIMPLE_STATUSES are now derived from enum-labels.ts above
 
 // Japanese language certificate options
 const JAPANESE_CERTIFICATES = [
@@ -294,7 +291,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     trainee_code: "",
     full_name: "",
     furigana: "",
-    trainee_type: "Thực tập sinh",
+    trainee_type: "TTS",
     birth_date: "",
     birthplace: "",
     gender: "",
@@ -322,8 +319,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     parent_phone_2_relation: "",
     parent_phone_3: "",
     parent_phone_3_relation: "",
-    simple_status: "Đăng ký mới",
-    progression_stage: "Chưa đậu",
+    simple_status: "DangKyMoi",
+    progression_stage: "ChuaDau",
     registration_date: format(new Date(), "yyyy-MM-dd"),
     height: "",
     vision_left: "",
@@ -425,8 +422,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         parent_phone_2_relation: (trainee as any).parent_phone_2_relation || "",
         parent_phone_3: (trainee as any).parent_phone_3 || "",
         parent_phone_3_relation: (trainee as any).parent_phone_3_relation || "",
-        simple_status: trainee.simple_status || "Đăng ký mới",
-        progression_stage: trainee.progression_stage || "Chưa đậu",
+        simple_status: trainee.simple_status || "DangKyMoi",
+        progression_stage: trainee.progression_stage || "ChuaDau",
         registration_date: trainee.registration_date || format(new Date(), "yyyy-MM-dd"),
         height: trainee.height?.toString() || "",
         vision_left: trainee.vision_left?.toString() || "",
@@ -661,13 +658,10 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       ? currentFormData.ssw_certificate.join(", ") 
       : currentFormData.ssw_certificate;
 
-    // Valid progression stages from enum
-    const validProgressionStages = [
-      "Chưa đậu", "Đậu phỏng vấn", "Nộp hồ sơ", "OTIT", "Nyukan", "COE", "Visa",
-      "Xuất cảnh", "Đang làm việc", "Hoàn thành hợp đồng", "Bỏ trốn", "Về trước hạn"
-    ] as const;
+    // Valid progression stages - use slug keys from enum-labels
+    const validProgressionSlugs = Object.keys(PROGRESSION_STAGE_LABELS);
     
-    const progressionStage = validProgressionStages.includes(currentFormData.progression_stage as any)
+    const progressionStage = validProgressionSlugs.includes(currentFormData.progression_stage)
       ? (currentFormData.progression_stage as Database["public"]["Enums"]["progression_stage"])
       : null;
 
@@ -945,10 +939,23 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
 
         await saveHistoryItems(traineeId);
       } else {
-        // Create new trainee
+        // Create new trainee - MERGE project data into initial INSERT
+        // so all fields are saved in a single operation
+        const currentProjectData = projectDataRef.current;
+        const mergedData = {
+          ...traineeData,
+          receiving_company_id: currentProjectData.receiving_company_id || null,
+          union_id: currentProjectData.union_id || null,
+          job_category_id: currentProjectData.job_category_id || null,
+          expected_entry_month: currentProjectData.expected_entry_month || null,
+          contract_term: currentProjectData.contract_term
+            ? parseFloat(currentProjectData.contract_term)
+            : null,
+        };
+
         const { data: newTrainee, error } = await supabase
           .from("trainees")
-          .insert(traineeData)
+          .insert(mergedData)
           .select()
           .single();
 
@@ -969,6 +976,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
           }
         }
 
+        // Save history items (education, work, family, japan relatives)
+        // For new trainees, skip the project data UPDATE inside saveHistoryItems
+        // since we already merged it above
         await saveHistoryItems(finalTraineeId);
       }
 
@@ -1212,8 +1222,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                       <SelectValue placeholder="Chọn đối tượng" />
                     </SelectTrigger>
                     <SelectContent>
-                      {TRAINEE_TYPES.map((type) => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      {TRAINEE_TYPE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -1839,8 +1849,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                       <SelectValue placeholder="Chọn tình trạng" />
                     </SelectTrigger>
                     <SelectContent>
-                      {SIMPLE_STATUSES.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      {SIMPLE_STATUS_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -1853,10 +1863,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                       <SelectValue placeholder="Chọn giai đoạn" />
                     </SelectTrigger>
                     <SelectContent>
-                      {PROGRESSION_STAGES.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {PROGRESSION_STAGE_LABELS[s] || s}
-                        </SelectItem>
+                      {PROGRESSION_STAGE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
