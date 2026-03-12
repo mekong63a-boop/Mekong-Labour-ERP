@@ -36,6 +36,8 @@ import { JapanRelativesForm, JapanRelativeItem } from "@/components/trainees/for
 import { ProjectInterviewForm } from "@/components/trainees/forms/ProjectInterviewForm";
 import { useEducationHistory, useWorkHistory, useFamilyMembers, useJapanRelatives, useInterviewHistory } from "@/hooks/useTraineeHistory";
 import { useDuplicateCheck, getDuplicateErrorMessage } from "@/hooks/useDuplicateCheck";
+import { usePresence } from "@/hooks/usePresence";
+import { PresenceIndicator } from "@/components/trainees/PresenceIndicator";
 
 // Photo file states removed - no more draft system
 
