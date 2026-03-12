@@ -40,7 +40,7 @@ import {
 } from "lucide-react";
 import { TraineeProfile } from "../hooks/useTraineeProfile";
 import { formatVietnameseDate, formatVietnameseMonthYearRange } from "@/lib/vietnamese-utils";
-import { } from "@/integrations/supabase/client";
+
 
 interface TraineeProfileViewProps {
   profile: TraineeProfile;
