@@ -308,9 +308,19 @@ async function fetchWithTimeout(url: string, timeoutMs = 8000): Promise<ArrayBuf
   }
 }
 
-function getStageLabel(stage: string | null): string {
-  if (!stage) return "—";
-  return stageLabels[stage] || stage;
+function getStageLabel(slug: string | null): string {
+  if (!slug) return "Chưa đậu";
+  return PROGRESSION_STAGE_LABELS[slug] || slug;
+}
+
+function getStatusLabelFn(slug: string | null): string {
+  if (!slug) return "Đăng ký mới";
+  return SIMPLE_STATUS_LABELS[slug] || slug;
+}
+
+function getTypeLabel(slug: string | null): string {
+  if (!slug) return "—";
+  return TRAINEE_TYPE_LABELS[slug] || slug;
 }
 
 serve(async (req) => {
