@@ -122,7 +122,6 @@ const getStatusLabel = (status: string) => {
 const DEPARTED_STAGES = ["Xuất cảnh", "Đang làm việc", "Bỏ trốn", "Về trước hạn", "Hoàn thành hợp đồng"];
 
 export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps) {
-  const [isExporting, setIsExporting] = useState(false);
 
   // Check nếu học viên đã xuất cảnh
   const isDeparted = profile.departure_date || 
@@ -140,69 +139,9 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
     terminated: "Kết thúc",
   };
 
-  // Helper to get stage label
   const getStageLabel = (stage: string | null) => {
     if (!stage) return "—";
     return stageLabels[stage] || stage;
-  };
-
-  const handleExportPDF = async () => {
-    setIsExporting(true);
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-
-      if (!token) {
-        toast.error("Vui lòng đăng nhập lại");
-        return;
-      }
-
-      const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/export-trainee-pdf?trainee_code=${encodeURIComponent(profile.trainee_code)}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            apikey: SUPABASE_PUBLISHABLE_KEY,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Lỗi xuất PDF");
-      }
-
-      const blob = await response.blob();
-      
-      // Lấy tên file từ header Content-Disposition của server
-      const contentDisposition = response.headers.get("Content-Disposition");
-      let filename = `${profile.trainee_code} - ${profile.full_name}.pdf`;
-      
-      if (contentDisposition) {
-        // Parse RFC 5987 format: filename*=UTF-8''<encoded>
-        const match = contentDisposition.match(/filename\*=UTF-8''(.+)/);
-        if (match) {
-          filename = decodeURIComponent(match[1]);
-        }
-      }
-      
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast.success("Đã tải PDF thành công");
-    } catch (error) {
-      console.error("Export PDF error:", error);
-      toast.error((error as Error).message || "Lỗi xuất PDF");
-    } finally {
-      setIsExporting(false);
-    }
   };
 
   return (
