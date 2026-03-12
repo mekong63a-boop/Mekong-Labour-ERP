@@ -291,7 +291,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     trainee_code: "",
     full_name: "",
     furigana: "",
-    trainee_type: "Thực tập sinh",
+    trainee_type: "TTS",
     birth_date: "",
     birthplace: "",
     gender: "",
