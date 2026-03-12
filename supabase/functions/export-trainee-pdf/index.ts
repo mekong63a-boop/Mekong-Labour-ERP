@@ -390,23 +390,21 @@ serve(async (req) => {
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
 
-    // Use Noto Sans for ALL text (supports Vietnamese + Japanese + Latin)
-    const notoSansRegularUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/vietnamese-400-normal.ttf";
-    const notoSansBoldUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/vietnamese-700-normal.ttf";
+    // Use Noto Sans JP for ALL text — it covers Latin, Vietnamese diacritics, AND Japanese
+    // This single font family handles everything, no separate Vietnamese font needed
     const notoSansJpRegularUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-400-normal.ttf";
     const notoSansJpBoldUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-700-normal.ttf";
 
-    const [regularFontBytes, boldFontBytes, jpRegularBytes, jpBoldBytes] = await Promise.all([
-      fetchWithTimeout(notoSansRegularUrl),
-      fetchWithTimeout(notoSansBoldUrl),
+    const [jpRegularBytes, jpBoldBytes] = await Promise.all([
       fetchWithTimeout(notoSansJpRegularUrl),
       fetchWithTimeout(notoSansJpBoldUrl),
     ]);
 
-    const font = await pdfDoc.embedFont(regularFontBytes);
-    const fontBold = await pdfDoc.embedFont(boldFontBytes);
     const fontJp = await pdfDoc.embedFont(jpRegularBytes);
     const fontJpBold = await pdfDoc.embedFont(jpBoldBytes);
+    // Use JP font for everything — it has full Latin + Vietnamese + Japanese coverage
+    const font = fontJp;
+    const fontBold = fontJpBold;
 
     let page = pdfDoc.addPage([595.28, 841.89]);
     const { width, height } = page.getSize();
