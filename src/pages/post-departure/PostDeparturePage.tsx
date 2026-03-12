@@ -406,7 +406,7 @@ export default function PostDeparturePage() {
             allColumns={EXPORT_CONFIGS.post_departure.columns}
             fileName={`${EXPORT_CONFIGS.post_departure.fileName}${exportTraineeType !== 'all' ? `-${exportTraineeType.replace(/\s+/g, '-').toLowerCase()}` : ''}`}
             filters={{ 
-              progression_stage: ['Xuất cảnh', 'Đang làm việc', 'Hoàn thành hợp đồng', 'Bỏ trốn', 'Về trước hạn'],
+              progression_stage: ['DaXuatCanh', 'DangLamViec', 'HoanThanhHD', 'BoTron', 'VeNuocSom'],
               ...(exportTraineeType !== 'all' && { trainee_type: exportTraineeType })
             }}
             title={`Xuất danh sách ${exportTraineeType !== 'all' ? exportTraineeType : 'sau xuất cảnh'}`}
