@@ -257,10 +257,10 @@ export default function PostDeparturePage() {
     let working = 0, earlyReturn = 0, absconded = 0, completed = 0;
     filtered.forEach(t => {
       const status = getDisplayStatusForYear(t, yearFilter);
-      if (status === "Đang làm việc") working++;
-      else if (status === "Về trước hạn") earlyReturn++;
-      else if (status === "Bỏ trốn") absconded++;
-      else if (status === "Hoàn thành hợp đồng") completed++;
+      if (status === "DangLamViec") working++;
+      else if (status === "VeNuocSom") earlyReturn++;
+      else if (status === "BoTron") absconded++;
+      else if (status === "HoanThanhHD") completed++;
     });
 
     return {
