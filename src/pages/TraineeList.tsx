@@ -139,11 +139,11 @@ export default function TraineeList() {
 
   const getStatusBadgeClass = (stage: string | null) => {
     switch (stage) {
-      case "Chưa đậu":
+      case "ChuaDau":
         return "bg-muted text-muted-foreground";
-      case "Đậu phỏng vấn":
+      case "DauPV":
         return "bg-green-100 text-green-800";
-      case "Nộp hồ sơ":
+      case "NopHS":
         return "bg-blue-100 text-blue-800";
       case "OTIT":
         return "bg-cyan-100 text-cyan-800";
@@ -153,14 +153,14 @@ export default function TraineeList() {
         return "bg-orange-100 text-orange-800";
       case "Visa":
         return "bg-purple-100 text-purple-800";
-      case "Xuất cảnh":
-      case "Đang làm việc":
+      case "DaXuatCanh":
+      case "DangLamViec":
         return "bg-primary/10 text-primary";
-      case "Hoàn thành hợp đồng":
+      case "HoanThanhHD":
         return "bg-emerald-100 text-emerald-800";
-      case "Bỏ trốn":
+      case "BoTron":
         return "bg-red-100 text-red-800";
-      case "Về trước hạn":
+      case "VeNuocSom":
         return "bg-yellow-100 text-yellow-800";
       default:
         return "bg-muted text-muted-foreground";
