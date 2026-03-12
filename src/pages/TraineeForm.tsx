@@ -658,13 +658,10 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       ? currentFormData.ssw_certificate.join(", ") 
       : currentFormData.ssw_certificate;
 
-    // Valid progression stages from enum
-    const validProgressionStages = [
-      "Chưa đậu", "Đậu phỏng vấn", "Nộp hồ sơ", "OTIT", "Nyukan", "COE", "Visa",
-      "Xuất cảnh", "Đang làm việc", "Hoàn thành hợp đồng", "Bỏ trốn", "Về trước hạn"
-    ] as const;
+    // Valid progression stages - use slug keys from enum-labels
+    const validProgressionSlugs = Object.keys(PROGRESSION_STAGE_LABELS);
     
-    const progressionStage = validProgressionStages.includes(currentFormData.progression_stage as any)
+    const progressionStage = validProgressionSlugs.includes(currentFormData.progression_stage)
       ? (currentFormData.progression_stage as Database["public"]["Enums"]["progression_stage"])
       : null;
 
