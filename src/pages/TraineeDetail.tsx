@@ -124,6 +124,7 @@ export default function TraineeDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <PresenceIndicator onlineUsers={onlineUsers} />
           <Button
             variant="outline"
             onClick={handleExportRirekisho}
