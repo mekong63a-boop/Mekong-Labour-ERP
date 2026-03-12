@@ -421,26 +421,26 @@ serve(async (req) => {
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
 
-    // Multi-font strategy:
-    // - Roboto (full Vietnamese/Latin rendering)
-    // - Noto Sans JP (Japanese rendering)
-    // Both are loaded and embedded via Base64 to keep glyph coverage stable.
-    const robotoRegularUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.ttf";
-    const robotoBoldUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc9.ttf";
-    const notoSansJpRegularUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-400-normal.ttf";
-    const notoSansJpBoldUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-700-normal.ttf";
+    // Multi-font strategy using FULL variable fonts from Google Fonts GitHub repo:
+    // - Roboto VF: Complete Vietnamese/Latin/Latin-ext glyph coverage (all diacritics)
+    // - Noto Sans JP VF: Complete Japanese/CJK glyph coverage
+    // Both served via jsdelivr CDN from verified paths in google/fonts repo.
+    const robotoUrl = "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/roboto/Roboto%5Bwdth%2Cwght%5D.ttf";
+    const notoSansJpUrl = "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/notosansjp/NotoSansJP%5Bwght%5D.ttf";
 
-    const [robotoRegularBase64, robotoBoldBase64, jpRegularBase64, jpBoldBase64] = await Promise.all([
-      fetchFontAsBase64(robotoRegularUrl),
-      fetchFontAsBase64(robotoBoldUrl),
-      fetchFontAsBase64(notoSansJpRegularUrl),
-      fetchFontAsBase64(notoSansJpBoldUrl),
+    console.log("Fetching fonts from jsdelivr CDN...");
+    const [robotoBytes, jpBytes] = await Promise.all([
+      fetchWithTimeout(robotoUrl, 30000),
+      fetchWithTimeout(notoSansJpUrl, 30000),
     ]);
+    console.log(`Fonts fetched: Roboto=${robotoBytes.byteLength}B, NotoSansJP=${jpBytes.byteLength}B`);
 
-    const font = await pdfDoc.embedFont(base64ToBytes(robotoRegularBase64), { subset: false });
-    const fontBold = await pdfDoc.embedFont(base64ToBytes(robotoBoldBase64), { subset: false });
-    const fontJp = await pdfDoc.embedFont(base64ToBytes(jpRegularBase64), { subset: false });
-    const fontJpBold = await pdfDoc.embedFont(base64ToBytes(jpBoldBase64), { subset: false });
+    // Variable fonts embed with default instance (Regular 400 weight)
+    // Bold is simulated via font size difference (headers use larger size)
+    const font = await pdfDoc.embedFont(new Uint8Array(robotoBytes), { subset: false });
+    const fontBold = font; // Same variable font - bold effect via size
+    const fontJp = await pdfDoc.embedFont(new Uint8Array(jpBytes), { subset: false });
+    const fontJpBold = fontJp;
 
     let page = pdfDoc.addPage([595.28, 841.89]);
     const { width, height } = page.getSize();
