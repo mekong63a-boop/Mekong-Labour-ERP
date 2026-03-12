@@ -689,9 +689,12 @@ serve(async (req) => {
 
     // ========== 10. MỐC THỜI GIAN ==========
     drawSection("MỐC THỜI GIAN");
+    drawRow("Trạng thái hiện tại", getStageLabel(trainee.progression_stage));
+    drawRow("Tình trạng", getStatusLabelFn(trainee.simple_status));
     drawRow("Ngày đăng ký", formatDate(trainee.registration_date || trainee.entry_date));
     drawRow("Số lần PV", trainee.interview_count?.toString() || null);
-    drawRow("Ngày đậu PV", formatDate(trainee.interview_pass_date));
+    // Hide interview_pass_date if rolled back to ChuaDau
+    drawRow("Ngày đậu PV", isRolledBack ? "---" : formatDate(trainee.interview_pass_date));
     drawRow("Ngày nộp hồ sơ", formatDate(trainee.document_submission_date));
     drawRow("Nộp OTIT", formatDate(trainee.otit_entry_date));
     drawRow("Nộp Nyukan", formatDate(trainee.nyukan_entry_date));
