@@ -271,17 +271,24 @@ function cleanValue(val: string | number | null | undefined): string {
 }
 
 function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "---";
+  const raw = (dateStr || "").trim();
+  if (!raw || raw === "0") return "---";
   try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr;
+    const date = new Date(raw);
+    if (isNaN(date.getTime())) return raw;
     const dd = date.getDate().toString().padStart(2, "0");
     const mm = (date.getMonth() + 1).toString().padStart(2, "0");
     const yyyy = date.getFullYear().toString();
     return `${dd}/${mm}/${yyyy}`;
   } catch {
-    return dateStr;
+    return raw;
   }
+}
+
+function formatLivingTogether(value: boolean | string | number | null | undefined): string {
+  if (value === true || value === 1 || value === "1" || value === "true") return "Sống chung";
+  if (value === false || value === 0 || value === "0" || value === "false") return "Sống riêng";
+  return "---";
 }
 
 function formatBilingual(japanese: string | null | undefined, vietnamese: string | null | undefined): string {
@@ -320,6 +327,30 @@ async function fetchWithTimeout(url: string, timeoutMs = 8000): Promise<ArrayBuf
     clearTimeout(timeoutId);
     throw e;
   }
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
+
+function base64ToBytes(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function fetchFontAsBase64(url: string, timeoutMs = 20000): Promise<string> {
+  const buffer = await fetchWithTimeout(url, timeoutMs);
+  return bytesToBase64(new Uint8Array(buffer));
 }
 
 function getStageLabel(slug: string | null): string {
@@ -390,21 +421,26 @@ serve(async (req) => {
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
 
-    // Use Noto Sans JP for ALL text — it covers Latin, Vietnamese diacritics, AND Japanese
-    // This single font family handles everything, no separate Vietnamese font needed
+    // Multi-font strategy:
+    // - Roboto (full Vietnamese/Latin rendering)
+    // - Noto Sans JP (Japanese rendering)
+    // Both are loaded and embedded via Base64 to keep glyph coverage stable.
+    const robotoRegularUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.ttf";
+    const robotoBoldUrl = "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc9.ttf";
     const notoSansJpRegularUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-400-normal.ttf";
     const notoSansJpBoldUrl = "https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-jp@latest/japanese-700-normal.ttf";
 
-    const [jpRegularBytes, jpBoldBytes] = await Promise.all([
-      fetchWithTimeout(notoSansJpRegularUrl),
-      fetchWithTimeout(notoSansJpBoldUrl),
+    const [robotoRegularBase64, robotoBoldBase64, jpRegularBase64, jpBoldBase64] = await Promise.all([
+      fetchFontAsBase64(robotoRegularUrl),
+      fetchFontAsBase64(robotoBoldUrl),
+      fetchFontAsBase64(notoSansJpRegularUrl),
+      fetchFontAsBase64(notoSansJpBoldUrl),
     ]);
 
-    const fontJp = await pdfDoc.embedFont(jpRegularBytes);
-    const fontJpBold = await pdfDoc.embedFont(jpBoldBytes);
-    // Use JP font for everything — it has full Latin + Vietnamese + Japanese coverage
-    const font = fontJp;
-    const fontBold = fontJpBold;
+    const font = await pdfDoc.embedFont(base64ToBytes(robotoRegularBase64), { subset: false });
+    const fontBold = await pdfDoc.embedFont(base64ToBytes(robotoBoldBase64), { subset: false });
+    const fontJp = await pdfDoc.embedFont(base64ToBytes(jpRegularBase64), { subset: false });
+    const fontJpBold = await pdfDoc.embedFont(base64ToBytes(jpBoldBase64), { subset: false });
 
     let page = pdfDoc.addPage([595.28, 841.89]);
     const { width, height } = page.getSize();
@@ -430,15 +466,16 @@ serve(async (req) => {
       const safeValue = sanitizeText(value || "");
       const match = safeValue.match(/^(.*)\s\((.*)\)$/);
       if (!match) {
-        drawTextWithFont(safeValue, x, yPos, size, bold ? fontJpBold : fontJp, bold);
+        drawTextWithFont(safeValue, x, yPos, size, getFont(safeValue, bold), bold);
         return;
       }
       const jpPart = (match[1] || "").trimEnd();
       const vnPart = match[2] || "";
       const jpFont = bold ? fontJpBold : fontJp;
+      const vnFont = bold ? fontBold : font;
       drawTextWithFont(jpPart, x, yPos, size, jpFont, bold);
       const jpWidth = jpFont.widthOfTextAtSize(sanitizeText(jpPart), size);
-      drawTextWithFont(` (${vnPart})`, x + jpWidth, yPos, size, jpFont, bold);
+      drawTextWithFont(` (${vnPart})`, x + jpWidth, yPos, size, vnFont, bold);
     };
 
     const drawText = (text: string, x: number, yPos: number, size = 9, bold = false) => {
@@ -758,18 +795,15 @@ serve(async (req) => {
           drawText(companyLine, margin, y, 9, true);
           y -= lineHeight;
         }
-        // Position and date range on a single line
-        const detailParts: string[] = [];
-        if (work.position) detailParts.push(`Vị trí: ${work.position}`);
-        if (work.start_date || work.end_date) {
-          const startStr = formatDate(work.start_date);
-          const endStr = work.end_date ? formatDate(work.end_date) : "nay";
-          detailParts.push(`Thời gian: ${startStr} - ${endStr}`);
-        }
-        if (detailParts.length > 0) {
-          drawText(detailParts.join("  |  "), margin + 10, y, 8, false);
-          y -= lineHeight;
-        }
+        // Position and date range rendered in fixed zones (avoid broken spacing/date wraps)
+        const positionText = cleanValue(work.position);
+        const dateRangeText = `${formatDate(work.start_date)} - ${work.end_date ? formatDate(work.end_date) : "nay"}`;
+
+        drawText("Vị trí:", margin + 10, y, 8, false);
+        drawText(positionText, margin + 45, y, 8, false);
+        drawText("Thời gian:", margin + 220, y, 8, false);
+        drawText(dateRangeText, margin + 270, y, 8, false);
+        y -= lineHeight;
         if (work.responsibilities) {
           y = drawMultilineText(work.responsibilities, margin, y, 8, 10);
         }
@@ -789,7 +823,7 @@ serve(async (req) => {
           cleanValue(m.birth_year),
           m.occupation || "---",
           m.location || "---",
-          m.living_together === true ? "Sống chung" : m.living_together === false ? "Sống riêng" : "---",
+          formatLivingTogether(m.living_together),
         ])
       );
     }
