@@ -488,29 +488,29 @@ export default function PostDeparturePage() {
 
         {/* Bỏ trốn */}
         <button
-          onClick={() => handleStatusClick("Bỏ trốn")}
+          onClick={() => handleStatusClick("BoTron")}
           className={cn(
             "p-4 rounded-lg border text-left transition-all hover:shadow-md",
-            selectedStatus === "Bỏ trốn"
+            selectedStatus === "BoTron"
               ? "border-red-500 bg-red-50"
               : "border-border hover:border-red-300"
           )}
         >
-          <p className="text-sm font-medium text-red-600">Bỏ trốn</p>
+          <p className="text-sm font-medium text-red-600">{PROGRESSION_STAGE_LABELS.BoTron}</p>
           <p className="text-3xl font-bold text-foreground mt-1">{stats.absconded}</p>
         </button>
 
         {/* Hoàn thành HĐ */}
         <button
-          onClick={() => handleStatusClick("Hoàn thành hợp đồng")}
+          onClick={() => handleStatusClick("HoanThanhHD")}
           className={cn(
             "p-4 rounded-lg border text-left transition-all hover:shadow-md",
-            selectedStatus === "Hoàn thành hợp đồng"
+            selectedStatus === "HoanThanhHD"
               ? "border-blue-500 bg-blue-50"
               : "border-border hover:border-blue-300"
           )}
         >
-          <p className="text-sm font-medium text-blue-600">Hoàn thành HĐ</p>
+          <p className="text-sm font-medium text-blue-600">{PROGRESSION_STAGE_LABELS.HoanThanhHD}</p>
           <p className="text-3xl font-bold text-foreground mt-1">{stats.completed}</p>
         </button>
 
