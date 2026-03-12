@@ -271,17 +271,24 @@ function cleanValue(val: string | number | null | undefined): string {
 }
 
 function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "---";
+  const raw = (dateStr || "").trim();
+  if (!raw || raw === "0") return "---";
   try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr;
+    const date = new Date(raw);
+    if (isNaN(date.getTime())) return raw;
     const dd = date.getDate().toString().padStart(2, "0");
     const mm = (date.getMonth() + 1).toString().padStart(2, "0");
     const yyyy = date.getFullYear().toString();
     return `${dd}/${mm}/${yyyy}`;
   } catch {
-    return dateStr;
+    return raw;
   }
+}
+
+function formatLivingTogether(value: boolean | string | number | null | undefined): string {
+  if (value === true || value === 1 || value === "1" || value === "true") return "Sống chung";
+  if (value === false || value === 0 || value === "0" || value === "false") return "Sống riêng";
+  return "---";
 }
 
 function formatBilingual(japanese: string | null | undefined, vietnamese: string | null | undefined): string {
