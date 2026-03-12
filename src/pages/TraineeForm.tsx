@@ -2026,7 +2026,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   </>
                 )}
 
-                {formData.progression_stage === "Hoàn thành hợp đồng" && (
+                {formData.progression_stage === "HoanThanhHD" && (
                   <div className="space-y-2">
                     <Label>Ngày về nước</Label>
                     <Input
