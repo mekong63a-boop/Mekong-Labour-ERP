@@ -553,6 +553,12 @@ serve(async (req) => {
     drawText(trainee.full_name, headerX, y, 12, true);
     y -= lineHeight;
     drawText(`Mã: ${trainee.trainee_code}`, headerX, y, 10, false);
+    y -= lineHeight;
+    // Badge: progression_stage + simple_status
+    const stageBadge = getStageLabel(trainee.progression_stage);
+    const statusBadge = getStatusLabelFn(trainee.simple_status);
+    const typeBadge = getTypeLabel(trainee.trainee_type);
+    drawText(`[${stageBadge}]  ${statusBadge}  •  ${typeBadge}`, headerX, y, 9, true);
     if (trainee.photo_url) {
       y = height - margin - photoSize - 20;
     } else {
