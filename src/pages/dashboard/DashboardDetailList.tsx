@@ -15,6 +15,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Eye } from "lucide-react";
 import { formatVietnameseDate } from "@/lib/vietnamese-utils";
+import { getStageLabel } from "@/lib/enum-labels";
 
 // Filter type definitions
 type FilterType = 
