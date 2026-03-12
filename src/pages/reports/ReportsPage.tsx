@@ -1,5 +1,6 @@
 // ReportsPage - Tra cứu hồ sơ & Tra cứu nâng cao
-import { FileSpreadsheet, UserSearch, Search, FileDown } from "lucide-react";
+import { useState } from "react";
+import { FileSpreadsheet, UserSearch, Search, FileDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,9 +8,55 @@ import { TraineeSearchBox } from "./components/TraineeSearchBox";
 import { TraineeProfileView } from "./components/TraineeProfileView";
 import { useTraineeProfile } from "./hooks/useTraineeProfile";
 import DashboardAdvancedFilter from "@/components/dashboard/DashboardAdvancedFilter";
+import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function ReportsPage() {
   const { profile, isLoading: isSearching, searchTrainee, clearProfile } = useTraineeProfile();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportPDF = async () => {
+    if (!profile) return;
+    setIsExporting(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) { toast.error("Vui lòng đăng nhập lại"); return; }
+
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/export-trainee-pdf?trainee_code=${encodeURIComponent(profile.trainee_code)}`,
+        { method: "GET", headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_PUBLISHABLE_KEY } }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Lỗi xuất PDF");
+      }
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get("Content-Disposition");
+      let filename = `${profile.trainee_code} - ${profile.full_name}.pdf`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename\*=UTF-8''(.+)/);
+        if (match) filename = decodeURIComponent(match[1]);
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("Đã tải PDF thành công");
+    } catch (error) {
+      console.error("Export PDF error:", error);
+      toast.error((error as Error).message || "Lỗi xuất PDF");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -53,14 +100,15 @@ export default function ReportsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      // Trigger export from profile view
-                      const exportBtn = document.getElementById('export-pdf-btn');
-                      if (exportBtn) exportBtn.click();
-                    }}
+                    onClick={handleExportPDF}
+                    disabled={isExporting}
                     className="gap-2 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 border-yellow-500 font-medium shrink-0"
                   >
-                    <FileDown className="h-4 w-4" />
+                    {isExporting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileDown className="h-4 w-4" />
+                    )}
                     Xuất PDF
                   </Button>
                 )}
