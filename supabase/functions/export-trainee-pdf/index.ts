@@ -556,12 +556,17 @@ serve(async (req) => {
     };
 
     // ---- drawTable helper ----
-    const drawTable = (headers: string[], colWidths: number[], rows: string[][]) => {
+    const drawTable = (headers: string[], colWidths: number[], rows: string[][], centerCols: number[] = []) => {
       // Header row
       checkPage(60);
       let xOff = margin;
       for (let i = 0; i < headers.length; i++) {
-        drawText(headers[i], xOff, y, 8, true);
+        if (centerCols.includes(i)) {
+          const tw = font.widthOfTextAtSize(sanitizeText(headers[i]), 8);
+          drawText(headers[i], xOff + (colWidths[i] - tw) / 2, y, 8, true);
+        } else {
+          drawText(headers[i], xOff, y, 8, true);
+        }
         xOff += colWidths[i];
       }
       y -= lineHeight;
@@ -572,7 +577,13 @@ serve(async (req) => {
         xOff = margin;
         for (let i = 0; i < row.length; i++) {
           const cellText = cleanValue(row[i]).substring(0, 40);
-          drawText(cellText, xOff, y, 8, false);
+          const cellFont = getFont(cellText, false);
+          if (centerCols.includes(i)) {
+            const tw = cellFont.widthOfTextAtSize(sanitizeText(cellText), 8);
+            page.drawText(sanitizeText(cellText), { x: xOff + (colWidths[i] - tw) / 2, y, size: 8, font: cellFont, color: rgb(0, 0, 0) });
+          } else {
+            page.drawText(sanitizeText(cellText), { x: xOff, y, size: 8, font: cellFont, color: rgb(0, 0, 0) });
+          }
           xOff += colWidths[i];
         }
         y -= lineHeight - 2;
