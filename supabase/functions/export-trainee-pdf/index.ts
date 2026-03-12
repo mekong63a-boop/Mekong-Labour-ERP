@@ -403,9 +403,9 @@ serve(async (req) => {
     }
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
-        JSON.stringify({ error: "Authorization header required" }),
+        JSON.stringify({ error: "Unauthorized: Missing token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -413,6 +413,16 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
+
+    // SECURITY: Explicit JWT validation
+    const token = authHeader.replace("Bearer ", "");
+    const { error: authError } = await supabase.auth.getUser(token);
+    if (authError) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Invalid token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const { data: profile, error: rpcError } = await supabase.rpc("get_trainee_full_profile", {
       p_trainee_code: traineeCode,
