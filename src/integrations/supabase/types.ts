@@ -2963,28 +2963,30 @@ export type Database = {
       gender: "Male" | "Female" | "Other"
       processing_stage: "OTIT" | "Nyukan" | "COE" | "Visa"
       progression_stage:
-        | "Chưa đậu"
-        | "Đậu phỏng vấn"
-        | "Nộp hồ sơ"
+        | "ChuaDau"
+        | "DauPV"
+        | "NopHS"
         | "OTIT"
         | "Nyukan"
         | "COE"
         | "Visa"
-        | "Xuất cảnh"
-        | "Đang làm việc"
-        | "Hoàn thành hợp đồng"
-        | "Bỏ trốn"
-        | "Về trước hạn"
+        | "DaXuatCanh"
+        | "DangLamViec"
+        | "HoanThanhHD"
+        | "BoTron"
+        | "VeNuocSom"
+        | "DaoTao"
       simple_status:
-        | "Đăng ký mới"
-        | "Đang học"
-        | "Bảo lưu"
-        | "Dừng chương trình"
-        | "Không học"
-        | "Hủy"
-        | "Đang ở Nhật"
-        | "Rời công ty"
+        | "DangKyMoi"
+        | "DangHoc"
+        | "BaoLuu"
+        | "DungChuongTrinh"
+        | "KhongHoc"
+        | "Huy"
+        | "DangONhat"
+        | "RoiCongTy"
         | "Đã đậu"
+        | "DaDau"
       trainee_status:
         | "New"
         | "Interview_Passed"
@@ -2996,12 +2998,7 @@ export type Database = {
         | "Absconded"
         | "Early_Return"
         | "Completed"
-      trainee_type:
-        | "Thực tập sinh"
-        | "Kỹ năng đặc định"
-        | "Kỹ sư"
-        | "Du học sinh"
-        | "Thực tập sinh số 3"
+      trainee_type: "TTS" | "KyNang" | "KySu" | "DuHoc" | "TTS3"
       user_account_status: "pending" | "active" | "suspended" | "deleted"
       user_role: "admin" | "staff"
     }
@@ -3145,29 +3142,31 @@ export const Constants = {
       gender: ["Male", "Female", "Other"],
       processing_stage: ["OTIT", "Nyukan", "COE", "Visa"],
       progression_stage: [
-        "Chưa đậu",
-        "Đậu phỏng vấn",
-        "Nộp hồ sơ",
+        "ChuaDau",
+        "DauPV",
+        "NopHS",
         "OTIT",
         "Nyukan",
         "COE",
         "Visa",
-        "Xuất cảnh",
-        "Đang làm việc",
-        "Hoàn thành hợp đồng",
-        "Bỏ trốn",
-        "Về trước hạn",
+        "DaXuatCanh",
+        "DangLamViec",
+        "HoanThanhHD",
+        "BoTron",
+        "VeNuocSom",
+        "DaoTao",
       ],
       simple_status: [
-        "Đăng ký mới",
-        "Đang học",
-        "Bảo lưu",
-        "Dừng chương trình",
-        "Không học",
-        "Hủy",
-        "Đang ở Nhật",
-        "Rời công ty",
+        "DangKyMoi",
+        "DangHoc",
+        "BaoLuu",
+        "DungChuongTrinh",
+        "KhongHoc",
+        "Huy",
+        "DangONhat",
+        "RoiCongTy",
         "Đã đậu",
+        "DaDau",
       ],
       trainee_status: [
         "New",
@@ -3181,13 +3180,7 @@ export const Constants = {
         "Early_Return",
         "Completed",
       ],
-      trainee_type: [
-        "Thực tập sinh",
-        "Kỹ năng đặc định",
-        "Kỹ sư",
-        "Du học sinh",
-        "Thực tập sinh số 3",
-      ],
+      trainee_type: ["TTS", "KyNang", "KySu", "DuHoc", "TTS3"],
       user_account_status: ["pending", "active", "suspended", "deleted"],
       user_role: ["admin", "staff"],
     },
