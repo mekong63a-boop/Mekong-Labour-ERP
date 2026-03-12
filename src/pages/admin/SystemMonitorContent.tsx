@@ -42,10 +42,12 @@ import {
   Eye,
   CheckCircle,
   XCircle,
-  
   Calendar,
   LogIn,
   LogOut,
+  HardDrive,
+  Loader2,
+  ExternalLink,
 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useSessionHeartbeat } from "@/hooks/useSessionHeartbeat";
