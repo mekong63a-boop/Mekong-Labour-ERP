@@ -209,7 +209,7 @@ export default function DashboardAdvancedFilter() {
 
     try {
       // Business rule: "Chưa đậu" không hiển thị công ty/nghiệp đoàn/ngành nghề/ngày đậu
-      const isPassed = (stage: string | null) => stage && stage !== "Chưa đậu";
+      const isPassed = (stage: string | null) => stage && stage !== "ChuaDau";
 
       const exportData = results.map((t, idx) => ({
         STT: idx + 1,
