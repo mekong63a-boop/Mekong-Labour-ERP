@@ -1847,10 +1847,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                       <SelectValue placeholder="Chọn giai đoạn" />
                     </SelectTrigger>
                     <SelectContent>
-                      {PROGRESSION_STAGES.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {PROGRESSION_STAGE_LABELS[s] || s}
-                        </SelectItem>
+                      {PROGRESSION_STAGE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
