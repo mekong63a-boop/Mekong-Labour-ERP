@@ -730,20 +730,37 @@ serve(async (req) => {
       drawSection("KINH NGHIỆM LÀM VIỆC");
       for (const work of trainee.work_history) {
         checkPage(60);
-        drawText(work.company_name, margin, y, 9, true);
-        y -= lineHeight;
-        const parts: string[] = [];
-        if (work.position) parts.push(`Vị trí: ${work.position}`);
-        if (work.start_date || work.end_date) {
-          parts.push(`${formatDate(work.start_date)} - ${formatDate(work.end_date) || 'nay'}`);
+        // Company name on its own line, no truncation
+        const companyLine = sanitizeText(work.company_name || "");
+        const companyFont = getFont(companyLine, true);
+        const maxCompanyWidth = contentWidth;
+        if (companyFont.widthOfTextAtSize(companyLine, 9) > maxCompanyWidth) {
+          // Wrap long company names
+          const wrappedLines = wrapTextByWidth(companyLine, maxCompanyWidth, 9);
+          for (const wl of wrappedLines) {
+            drawText(wl, margin, y, 9, true);
+            y -= lineHeight;
+          }
+        } else {
+          drawText(companyLine, margin, y, 9, true);
+          y -= lineHeight;
         }
-        if (parts.length > 0) {
-          drawText(parts.join("  |  "), margin + 10, y, 8, false);
+        // Position and date range on a single line
+        const detailParts: string[] = [];
+        if (work.position) detailParts.push(`Vị trí: ${work.position}`);
+        if (work.start_date || work.end_date) {
+          const startStr = formatDate(work.start_date);
+          const endStr = work.end_date ? formatDate(work.end_date) : "nay";
+          detailParts.push(`Thời gian: ${startStr} - ${endStr}`);
+        }
+        if (detailParts.length > 0) {
+          drawText(detailParts.join("  |  "), margin + 10, y, 8, false);
           y -= lineHeight;
         }
         if (work.responsibilities) {
           y = drawMultilineText(work.responsibilities, margin, y, 8, 10);
         }
+        y -= 3; // spacing between entries
       }
     }
 
