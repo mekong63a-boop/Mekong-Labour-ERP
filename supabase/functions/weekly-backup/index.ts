@@ -273,34 +273,48 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // SECURITY: Validate JWT - only authenticated admins can run backups
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return new Response(JSON.stringify({ error: 'Unauthorized: Missing token' }), {
-      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
-
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-  const authClient = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
+  let callerEmail = 'scheduled-cron';
+  let isScheduled = false;
 
-  const token = authHeader.replace('Bearer ', '');
-  const { data: claimsData, error: claimsError } = await authClient.auth.getUser(token);
-  if (claimsError || !claimsData?.user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized: Invalid token' }), {
-      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
+  // Check for cron secret (scheduled runs)
+  const cronSecret = Deno.env.get('BACKUP_CRON_SECRET');
+  const authHeader = req.headers.get('Authorization');
+  const cronHeader = req.headers.get('x-cron-secret');
 
-  // Check admin role
-  const { data: roleData } = await authClient.from('user_roles').select('role').eq('user_id', claimsData.user.id).single();
-  if (!roleData || roleData.role !== 'admin') {
-    return new Response(JSON.stringify({ error: 'Forbidden: Admin only' }), {
-      status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  if (cronHeader && cronSecret && cronHeader === cronSecret) {
+    // Authenticated via cron secret
+    isScheduled = true;
+    console.log('Backup triggered by scheduled cron job');
+  } else {
+    // SECURITY: Validate JWT - only authenticated admins can run backups
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized: Missing token' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
     });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await authClient.auth.getUser(token);
+    if (claimsError || !claimsData?.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized: Invalid token' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Check admin role
+    const { data: roleData } = await authClient.from('user_roles').select('role').eq('user_id', claimsData.user.id).single();
+    if (!roleData || roleData.role !== 'admin') {
+      return new Response(JSON.stringify({ error: 'Forbidden: Admin only' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    callerEmail = claimsData.user.email || 'admin';
   }
 
   const backupLog: BackupLog = {
