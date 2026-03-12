@@ -83,6 +83,7 @@ import {
 import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useCanAccessMenu } from "@/hooks/useMenuPermissions";
+import { getStageLabel } from "@/lib/enum-labels";
 
 export default function DormitoryPage() {
   // Permission check for dormitory menu

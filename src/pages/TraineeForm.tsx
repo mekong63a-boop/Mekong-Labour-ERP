@@ -1994,7 +1994,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                 <CardTitle className="text-lg">Sau xuất cảnh</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {formData.progression_stage === "Bỏ trốn" && (
+                {formData.progression_stage === "BoTron" && (
                   <div className="space-y-2">
                     <Label>Ngày bỏ trốn</Label>
                     <Input
