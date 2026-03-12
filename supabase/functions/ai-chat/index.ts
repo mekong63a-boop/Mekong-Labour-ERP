@@ -1,16 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const ALLOWED_ORIGINS = [
-  'https://erpmekong.lovable.app',
-  'https://id-preview--9f3f1469-8172-4000-a36b-0ee267d0ded9.lovable.app',
-];
-
-function makeCorsHeaders(origin: string) {
-  return {
-    'Access-Control-Allow-Origin': ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-  };
-}
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+};
 
 const SYSTEM_PROMPT = `Bạn là Chuyên gia quản lý lao động xuất khẩu Nhật Bản tại Công ty Mekong.
 BẮT BUỘC: Luôn trả lời bằng tiếng Việt, không ngoại lệ, kể cả khi người dùng hỏi bằng ngôn ngữ khác.
