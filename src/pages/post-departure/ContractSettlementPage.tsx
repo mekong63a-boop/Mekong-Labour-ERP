@@ -75,9 +75,9 @@ function useContractSettlementTrainees() {
 
 // Xác định lý do kết thúc HĐ
 function getEndReason(t: any): { label: string; color: string } {
-  if (t.absconded_date) return { label: "Bỏ trốn", color: "bg-red-100 text-red-700" };
-  if (t.early_return_date) return { label: "Về trước hạn", color: "bg-orange-100 text-orange-700" };
-  if (t.return_date) return { label: "Hoàn thành HĐ", color: "bg-blue-100 text-blue-700" };
+  if (t.absconded_date) return { label: PROGRESSION_STAGE_LABELS.BoTron, color: "bg-red-100 text-red-700" };
+  if (t.early_return_date) return { label: PROGRESSION_STAGE_LABELS.VeNuocSom, color: "bg-orange-100 text-orange-700" };
+  if (t.return_date) return { label: PROGRESSION_STAGE_LABELS.HoanThanhHD, color: "bg-blue-100 text-blue-700" };
   return { label: "—", color: "" };
 }
 
