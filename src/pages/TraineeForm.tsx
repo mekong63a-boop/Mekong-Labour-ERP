@@ -1986,9 +1986,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
           </div>
 
           {/* Post-departure status */}
-          {(formData.progression_stage === "Bỏ trốn" || 
-            formData.progression_stage === "Về trước hạn" || 
-            formData.progression_stage === "Hoàn thành hợp đồng") && (
+          {(formData.progression_stage === "BoTron" || 
+            formData.progression_stage === "VeNuocSom" || 
+            formData.progression_stage === "HoanThanhHD") && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Sau xuất cảnh</CardTitle>
