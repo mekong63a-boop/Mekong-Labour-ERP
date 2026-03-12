@@ -585,23 +585,23 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       // Nếu chuyển sang "Hủy" hoặc "Dừng chương trình" hoặc trạng thái terminal khác
       if (field === "simple_status") {
         if (
-          value === "Hủy" ||
-          value === "Dừng chương trình" ||
-          value === "Không học" ||
-          value === "Rời công ty"
+          value === "Huy" ||
+          value === "DungChuongTrinh" ||
+          value === "KhongHoc" ||
+          value === "RoiCongTy"
         ) {
           // Auto remove từ dormitory and classes sẽ được xử lý bởi RPC backend
         }
 
         // BUSINESS RULE: Xóa date không liên quan khi đổi simple_status
         // Đảm bảo dữ liệu sạch - không giữ date của trạng thái cũ
-        if (value !== "Bảo lưu") {
+        if (value !== "BaoLuu") {
           newData.reserve_date = "";
         }
-        if (value !== "Hủy") {
+        if (value !== "Huy") {
           newData.cancel_date = "";
         }
-        if (value !== "Dừng chương trình") {
+        if (value !== "DungChuongTrinh") {
           newData.stop_date = "";
         }
       }
@@ -609,19 +609,19 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       // Auto remove dormitory and classes when progression_stage changes (back-end handles this)
       if (field === "progression_stage") {
         if (
-          value === "Xuất cảnh" ||
-          value === "Đang làm việc" ||
-          value === "Hoàn thành hợp đồng" ||
-          value === "Bỏ trốn" ||
-          value === "Về trước hạn"
+          value === "DaXuatCanh" ||
+          value === "DangLamViec" ||
+          value === "HoanThanhHD" ||
+          value === "BoTron" ||
+          value === "VeNuocSom"
         ) {
           // Auto removal logic is on the backend via RPC
         }
 
         // Reset dates when returning to early stages
         if (
-          value === "Chưa đậu" ||
-          value === "Đậu phỏng vấn"
+          value === "ChuaDau" ||
+          value === "DauPV"
         ) {
           newData.otit_entry_date = "";
           newData.nyukan_entry_date = "";
