@@ -30,10 +30,10 @@ export default function TraineeDetail() {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token || "";
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "bcltzwpnhfpbfiuhfkxi";
+      const projectId = "bcltzwpnhfpbfiuhfkxi";
       const res = await fetch(
         `https://${projectId}.supabase.co/functions/v1/export-rirekisho?trainee_code=${encodeURIComponent(trainee.trainee_code)}`,
-        { headers: { Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "" } }
+        { headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_PUBLISHABLE_KEY } }
       );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));

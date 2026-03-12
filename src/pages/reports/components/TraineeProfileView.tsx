@@ -159,12 +159,12 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
       }
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-trainee-pdf?trainee_code=${encodeURIComponent(profile.trainee_code)}`,
+        `${SUPABASE_URL}/functions/v1/export-trainee-pdf?trainee_code=${encodeURIComponent(profile.trainee_code)}`,
         {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "",
+            apikey: SUPABASE_PUBLISHABLE_KEY,
           },
         }
       );
