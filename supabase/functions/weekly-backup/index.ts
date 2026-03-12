@@ -12,6 +12,7 @@ interface BackupLog {
   csvFileLinks?: Record<string, string>;
   fullDumpLink?: string;
   fullDumpSize?: string;
+  rootFolderLink?: string;
   error?: string;
   tables?: Record<string, number>;
 }
