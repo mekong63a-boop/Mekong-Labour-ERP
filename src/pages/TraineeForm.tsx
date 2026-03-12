@@ -1206,8 +1206,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                       <SelectValue placeholder="Chọn đối tượng" />
                     </SelectTrigger>
                     <SelectContent>
-                      {TRAINEE_TYPES.map((type) => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      {TRAINEE_TYPE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
