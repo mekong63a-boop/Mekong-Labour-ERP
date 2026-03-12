@@ -8,11 +8,6 @@ import { StageCounts } from '@/components/trainees/StageTabsGrid';
 // SYSTEM RULE: Logic tính toán nằm ở Supabase, frontend chỉ hiển thị
 // =============================================================================
 
-interface StageCountRow {
-  stage: string;
-  count: number;
-}
-
 export function useTraineeStageCounts() {
   return useQuery({
     queryKey: ['trainee-stage-counts'],
@@ -26,28 +21,34 @@ export function useTraineeStageCounts() {
 
       if (error) throw error;
 
-      // Build counts object từ view data
+      // Build counts object từ view data (view returns progression_stage, count)
       const counts: StageCounts = {
         all: 0,
-        'Chưa đậu': 0,
-        'Đậu phỏng vấn': 0,
-        'Nộp hồ sơ': 0,
+        'ChuaDau': 0,
+        'DauPV': 0,
+        'NopHS': 0,
         'OTIT': 0,
         'Nyukan': 0,
         'COE': 0,
         'Visa': 0,
-        'Xuất cảnh': 0,
-        'Đang làm việc': 0,
-        'Bỏ trốn': 0,
-        'Về trước hạn': 0,
-        'Hoàn thành hợp đồng': 0,
+        'DaXuatCanh': 0,
+        'DangLamViec': 0,
+        'BoTron': 0,
+        'VeNuocSom': 0,
+        'HoanThanhHD': 0,
       };
 
-      (data as StageCountRow[])?.forEach(({ stage, count }) => {
-        if (stage in counts) {
-          counts[stage as keyof StageCounts] = count;
+      data?.forEach((row: any) => {
+        const stage = row.progression_stage;
+        if (stage && stage in counts) {
+          counts[stage as keyof StageCounts] = row.count;
         }
       });
+
+      // Calculate total
+      counts.all = Object.entries(counts)
+        .filter(([key]) => key !== 'all')
+        .reduce((sum, [, val]) => sum + val, 0);
 
       if (process.env.NODE_ENV === 'development') {
         console.log(`[StageCounts] ${(performance.now() - startTime).toFixed(0)}ms (via DB view)`, counts);

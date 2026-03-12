@@ -82,16 +82,16 @@ export default function PartnerList() {
 
   // Danh sách các trạng thái được tính là "đậu phỏng vấn trở về sau"
   const PASSED_STAGES = [
-    "Đậu phỏng vấn",
-    "Nộp hồ sơ",
+    "DauPV",
+    "NopHS",
     "OTIT",
     "Nyukan",
     "COE",
-    "Xuất cảnh",
-    "Đang làm việc",
-    "Bỏ trốn",
-    "Về trước hạn",
-    "Hoàn thành hợp đồng",
+    "DaXuatCanh",
+    "DangLamViec",
+    "BoTron",
+    "VeNuocSom",
+    "HoanThanhHD",
   ] as const;
 
   // Fetch trainee counts for companies - CHỈ tính những học viên đã đậu phỏng vấn trở về sau

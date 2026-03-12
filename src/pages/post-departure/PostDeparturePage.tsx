@@ -67,11 +67,11 @@ function usePostDepartureTrainees() {
           "id,trainee_code,full_name,progression_stage,departure_date,contract_term,contract_end_date,return_date,early_return_date,absconded_date,notes,receiving_company_id,trainee_type"
         )
         .in("progression_stage", [
-          "Xuất cảnh",
-          "Đang làm việc",
-          "Hoàn thành hợp đồng",
-          "Bỏ trốn",
-          "Về trước hạn",
+          "DaXuatCanh",
+          "DangLamViec",
+          "HoanThanhHD",
+          "BoTron",
+          "VeNuocSom",
         ])
         .order("departure_date", { ascending: false });
 

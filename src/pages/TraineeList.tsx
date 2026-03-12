@@ -532,7 +532,7 @@ export default function TraineeList() {
         );
       default:
         // Default columns for "Tất cả"
-        const isNotPassed = !trainee.progression_stage || trainee.progression_stage === "Chưa đậu";
+        const isNotPassed = !trainee.progression_stage || trainee.progression_stage === "ChuaDau";
         return (
           <>
             {baseColumns}

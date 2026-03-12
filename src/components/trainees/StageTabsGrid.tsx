@@ -1,26 +1,27 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { PROGRESSION_STAGE_LABELS } from "@/lib/enum-labels";
 
 // =============================================================================
 // KHÓA CỨNG: Tên tab UI cho quản lý học viên
 // SOURCE OF TRUTH cho nghiệp vụ vận hành
-// KHÔNG ĐƯỢC sinh từ ENUM, KHÔNG ĐƯỢC map từ backend
+// Keys map to DB enum slugs, labels display Vietnamese
 // =============================================================================
 
 export interface StageCounts {
   all: number;
-  'Chưa đậu': number;
-  'Đậu phỏng vấn': number;
-  'Nộp hồ sơ': number;
+  'ChuaDau': number;
+  'DauPV': number;
+  'NopHS': number;
   'OTIT': number;
   'Nyukan': number;
   'COE': number;
   'Visa': number;
-  'Xuất cảnh': number;
-  'Đang làm việc': number;
-  'Bỏ trốn': number;
-  'Về trước hạn': number;
-  'Hoàn thành hợp đồng': number;
+  'DaXuatCanh': number;
+  'DangLamViec': number;
+  'BoTron': number;
+  'VeNuocSom': number;
+  'HoanThanhHD': number;
 }
 
 interface StageTabConfig {
@@ -29,22 +30,22 @@ interface StageTabConfig {
   key: keyof StageCounts;
 }
 
-// HARDCODED TAB CONFIG - KHÔNG ĐƯỢC THAY ĐỔI
+// HARDCODED TAB CONFIG - Keys = DB enum slugs
 export const STAGE_TABS: StageTabConfig[] = [
   { value: "all", label: "Tất cả", key: "all" },
-  { value: "chua_dau", label: "Chưa đậu", key: "Chưa đậu" },
-  { value: "dau_pv", label: "Đậu phỏng vấn", key: "Đậu phỏng vấn" },
-  { value: "nop_hs", label: "Nộp hồ sơ", key: "Nộp hồ sơ" },
+  { value: "chua_dau", label: "Chưa đậu", key: "ChuaDau" },
+  { value: "dau_pv", label: "Đậu phỏng vấn", key: "DauPV" },
+  { value: "nop_hs", label: "Nộp hồ sơ", key: "NopHS" },
   { value: "otit", label: "OTIT", key: "OTIT" },
   { value: "nyukan", label: "Nyukan", key: "Nyukan" },
   { value: "coe", label: "COE", key: "COE" },
-  { value: "xuat_canh", label: "Xuất cảnh", key: "Xuất cảnh" },
-  { value: "bo_tron", label: "Bỏ trốn", key: "Bỏ trốn" },
-  { value: "ve_truoc", label: "Về trước hạn", key: "Về trước hạn" },
-  { value: "hoan_thanh", label: "Hoàn thành HĐ / về nước", key: "Hoàn thành hợp đồng" },
+  { value: "xuat_canh", label: "Xuất cảnh", key: "DaXuatCanh" },
+  { value: "bo_tron", label: "Bỏ trốn", key: "BoTron" },
+  { value: "ve_truoc", label: "Về trước hạn", key: "VeNuocSom" },
+  { value: "hoan_thanh", label: "Hoàn thành HĐ / về nước", key: "HoanThanhHD" },
 ];
 
-// Mapping 1 chiều: UI tab key → progression_stage value
+// Mapping 1 chiều: UI tab key → progression_stage value (DB slug)
 export function getProgressionStageFromTab(tabValue: string): string | null {
   const tab = STAGE_TABS.find(t => t.value === tabValue);
   if (!tab || tab.key === 'all') return null;
