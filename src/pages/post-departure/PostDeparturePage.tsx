@@ -389,13 +389,13 @@ export default function PostDeparturePage() {
             <SelectTrigger className="w-[180px] h-9">
               <SelectValue placeholder="Chọn đối tượng xuất" />
             </SelectTrigger>
-            <SelectContent>
+              <SelectContent>
               <SelectItem value="all">Tất cả đối tượng</SelectItem>
-              <SelectItem value="Thực tập sinh">Thực tập sinh</SelectItem>
-              <SelectItem value="TTS số 3">TTS số 3</SelectItem>
-              <SelectItem value="Du học sinh">Du học sinh</SelectItem>
-              <SelectItem value="Kỹ năng đặc định">Kỹ năng đặc định</SelectItem>
-              <SelectItem value="Kỹ sư">Kỹ sư</SelectItem>
+              <SelectItem value="TTS">Thực tập sinh</SelectItem>
+              <SelectItem value="TTS3">TTS số 3</SelectItem>
+              <SelectItem value="DuHoc">Du học sinh</SelectItem>
+              <SelectItem value="KyNang">Kỹ năng đặc định</SelectItem>
+              <SelectItem value="KySu">Kỹ sư</SelectItem>
             </SelectContent>
           </Select>
           <ExportButtonWithColumns
