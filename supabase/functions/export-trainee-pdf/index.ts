@@ -626,15 +626,21 @@ serve(async (req) => {
     drawRow("Sở thích", trainee.hobbies);
 
     // ========== 6. CÔNG TY & NGHIỆP ĐOÀN ==========
-    const hasPassedInterview = trainee.progression_stage &&
-      trainee.progression_stage !== "ChuaDau" &&
-      trainee.progression_stage !== "";
+    // Rollback logic: if ChuaDau, company/union/job info should show '---'
+    const isRolledBack = !trainee.progression_stage || trainee.progression_stage === "ChuaDau";
+    const hasCompanyData = trainee.company?.name || trainee.union?.name || trainee.job_category?.name;
 
-    if (hasPassedInterview) {
+    if (!isRolledBack && hasCompanyData) {
       drawSection("CÔNG TY & NGHIỆP ĐOÀN");
       drawRowBilingual("Công ty tiếp nhận", formatBilingual(trainee.company?.name_japanese, trainee.company?.name));
       drawRowBilingual("Nghiệp đoàn", formatBilingual(trainee.union?.name_japanese, trainee.union?.name));
       drawRowBilingual("Ngành nghề", formatBilingual(trainee.job_category?.name_japanese, trainee.job_category?.name));
+    } else if (isRolledBack) {
+      // Show section with dashes to indicate rollback state
+      drawSection("CÔNG TY & NGHIỆP ĐOÀN");
+      drawRow("Công ty tiếp nhận", "---");
+      drawRow("Nghiệp đoàn", "---");
+      drawRow("Ngành nghề", "---");
     }
 
     // ========== 7. LỚP HỌC — ĐÃ LOẠI BỎ THEO YÊU CẦU ==========
