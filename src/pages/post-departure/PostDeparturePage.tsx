@@ -472,7 +472,7 @@ export default function PostDeparturePage() {
 
         {/* Về giữa chừng */}
         <button
-          onClick={() => handleStatusClick("Về trước hạn")}
+          onClick={() => handleStatusClick("VeNuocSom")}
           className={cn(
             "p-4 rounded-lg border text-left transition-all hover:shadow-md",
             selectedStatus === "Về trước hạn"
