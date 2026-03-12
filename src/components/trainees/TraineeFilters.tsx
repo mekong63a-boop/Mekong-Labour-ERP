@@ -50,8 +50,7 @@ export function TraineeFilters({
         <Select
           value={progressionStage || "all"}
           onValueChange={(v) => {
-            const dbValue = v === "Hoàn thành HĐ/ về nước" ? "Hoàn thành hợp đồng" : v;
-            onProgressionStageChange(dbValue === "all" ? null : dbValue);
+            onProgressionStageChange(v === "all" ? null : v);
           }}
         >
           <SelectTrigger>
