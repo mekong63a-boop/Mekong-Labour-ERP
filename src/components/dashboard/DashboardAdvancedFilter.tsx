@@ -154,7 +154,7 @@ export default function DashboardAdvancedFilter() {
 
       // Special case: "Đang học" - get currently studying trainees
       if (eventType === "studying") {
-        const terminalStages = ['Xuất cảnh', 'Đang làm việc', 'Hoàn thành hợp đồng', 'Bỏ trốn', 'Về trước hạn'];
+        const terminalStages = ['DaXuatCanh', 'DangLamViec', 'HoanThanhHD', 'BoTron', 'VeNuocSom'];
         const { data, error } = await supabase
           .from("trainees")
           .select(selectFields)
