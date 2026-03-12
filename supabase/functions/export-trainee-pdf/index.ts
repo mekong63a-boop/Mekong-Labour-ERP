@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { PDFDocument, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import fontkit from "https://esm.sh/@pdf-lib/fontkit@1.1.1";
 
 const corsHeaders = {
@@ -10,6 +10,11 @@ const corsHeaders = {
 
 const SUPABASE_URL = "https://bcltzwpnhfpbfiuhfkxi.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjbHR6d3BuaGZwYmZpdWhma3hpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyOTU0NDQsImV4cCI6MjA4Mzg3MTQ0NH0.ktTKQxMCXGhXaaa5OkfDrx9I0-YPESh8Z4kHNBQkCJ4";
+const ROBOTO_FONT_FALLBACK_URL = "https://raw.githubusercontent.com/googlefonts/roboto/main/src/hinted/Roboto-Regular.ttf";
+const NOTO_JP_FONT_FALLBACK_URL = "https://raw.githubusercontent.com/frappe/fonts/master/usr_share_fonts/noto/NotoSansJP-Regular.otf";
+
+let cachedRobotoFontBytes: Uint8Array | null = null;
+let cachedNotoJpFontBytes: Uint8Array | null = null;
 
 interface AttendanceRecord {
   id: string;
@@ -330,6 +335,34 @@ async function fetchWithTimeout(url: string, timeoutMs = 8000): Promise<ArrayBuf
   }
 }
 
+async function getRobotoFontBytes(): Promise<Uint8Array> {
+  if (cachedRobotoFontBytes) return cachedRobotoFontBytes;
+
+  try {
+    cachedRobotoFontBytes = await Deno.readFile(new URL("./Roboto-Regular.ttf", import.meta.url));
+    return cachedRobotoFontBytes;
+  } catch (localError) {
+    console.warn("Roboto local file missing, fallback to remote", localError);
+    const buffer = await fetchWithTimeout(ROBOTO_FONT_FALLBACK_URL, 30000);
+    cachedRobotoFontBytes = new Uint8Array(buffer);
+    return cachedRobotoFontBytes;
+  }
+}
+
+async function getNotoJpFontBytes(): Promise<Uint8Array> {
+  if (cachedNotoJpFontBytes) return cachedNotoJpFontBytes;
+
+  try {
+    cachedNotoJpFontBytes = await Deno.readFile(new URL("./NotoSansJP-Regular.otf", import.meta.url));
+    return cachedNotoJpFontBytes;
+  } catch (localError) {
+    console.warn("NotoSansJP local file missing, fallback to remote", localError);
+    const buffer = await fetchWithTimeout(NOTO_JP_FONT_FALLBACK_URL, 30000);
+    cachedNotoJpFontBytes = new Uint8Array(buffer);
+    return cachedNotoJpFontBytes;
+  }
+}
+
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
   const chunkSize = 0x8000;
@@ -441,23 +474,34 @@ serve(async (req) => {
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
 
-    // Multi-font strategy with local static regular fonts encoded via Base64
-    // - Roboto-Regular: Vietnamese/Latin
-    // - NotoSansJP-Regular: Japanese (Katakana/Kanji)
-    const [robotoFileBytes, jpFileBytes] = await Promise.all([
-      Deno.readFile(new URL("./Roboto-Regular.ttf", import.meta.url)),
-      Deno.readFile(new URL("./NotoSansJP-Regular.otf", import.meta.url)),
-    ]);
+    // Multi-font strategy with resilient loading:
+    // 1) local bundled font file
+    // 2) remote fallback URL
+    // 3) standard PDF fonts (last resort, avoids 500)
+    let font: any;
+    let fontBold: any;
+    let fontJp: any;
+    let fontJpBold: any;
 
-    const robotoBase64 = bytesToBase64(robotoFileBytes);
-    const jpBase64 = bytesToBase64(jpFileBytes);
+    try {
+      const [robotoFileBytes, jpFileBytes] = await Promise.all([
+        getRobotoFontBytes(),
+        getNotoJpFontBytes(),
+      ]);
 
-    console.log(`Fonts loaded locally: Roboto=${robotoFileBytes.byteLength}B, NotoSansJP=${jpFileBytes.byteLength}B`);
+      console.log(`Fonts loaded: Roboto=${robotoFileBytes.byteLength}B, NotoSansJP=${jpFileBytes.byteLength}B`);
 
-    const font = await pdfDoc.embedFont(base64ToBytes(robotoBase64), { subset: false });
-    const fontBold = font;
-    const fontJp = await pdfDoc.embedFont(base64ToBytes(jpBase64), { subset: false });
-    const fontJpBold = fontJp;
+      font = await pdfDoc.embedFont(robotoFileBytes, { subset: false });
+      fontBold = font;
+      fontJp = await pdfDoc.embedFont(jpFileBytes, { subset: false });
+      fontJpBold = fontJp;
+    } catch (fontError) {
+      console.error("Custom font loading failed, fallback to StandardFonts", fontError);
+      font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+      fontJp = font;
+      fontJpBold = fontBold;
+    }
 
     let page = pdfDoc.addPage([595.28, 841.89]);
     const { width, height } = page.getSize();
