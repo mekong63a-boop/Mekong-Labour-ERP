@@ -164,7 +164,7 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "",
           },
         }
       );
