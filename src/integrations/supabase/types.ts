@@ -2786,6 +2786,8 @@ export type Database = {
         }
         Returns: string
       }
+      generate_schema_dump: { Args: never; Returns: string }
+      generate_table_inserts: { Args: { _table_name: string }; Returns: string }
       get_confirmed_user_ids: {
         Args: never
         Returns: {
