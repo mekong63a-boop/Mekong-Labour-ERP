@@ -572,7 +572,7 @@ serve(async (req) => {
     drawRow("Phiên âm", trainee.furigana);
     drawRow("Ngày sinh", formatDate(trainee.birth_date));
     drawRow("Giới tính", trainee.gender);
-    drawRow("Loại hình", trainee.trainee_type);
+    drawRow("Loại hình", getTypeLabel(trainee.trainee_type));
     drawRow("Nơi sinh", trainee.birthplace);
     drawRow("Dân tộc", trainee.ethnicity);
     drawRow("Tôn giáo", trainee.religion);
