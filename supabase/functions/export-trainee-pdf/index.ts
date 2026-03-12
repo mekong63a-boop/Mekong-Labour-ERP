@@ -556,12 +556,17 @@ serve(async (req) => {
     };
 
     // ---- drawTable helper ----
-    const drawTable = (headers: string[], colWidths: number[], rows: string[][]) => {
+    const drawTable = (headers: string[], colWidths: number[], rows: string[][], centerCols: number[] = []) => {
       // Header row
       checkPage(60);
       let xOff = margin;
       for (let i = 0; i < headers.length; i++) {
-        drawText(headers[i], xOff, y, 8, true);
+        if (centerCols.includes(i)) {
+          const tw = font.widthOfTextAtSize(sanitizeText(headers[i]), 8);
+          drawText(headers[i], xOff + (colWidths[i] - tw) / 2, y, 8, true);
+        } else {
+          drawText(headers[i], xOff, y, 8, true);
+        }
         xOff += colWidths[i];
       }
       y -= lineHeight;
@@ -572,7 +577,13 @@ serve(async (req) => {
         xOff = margin;
         for (let i = 0; i < row.length; i++) {
           const cellText = cleanValue(row[i]).substring(0, 40);
-          drawText(cellText, xOff, y, 8, false);
+          const cellFont = getFont(cellText, false);
+          if (centerCols.includes(i)) {
+            const tw = cellFont.widthOfTextAtSize(sanitizeText(cellText), 8);
+            page.drawText(sanitizeText(cellText), { x: xOff + (colWidths[i] - tw) / 2, y, size: 8, font: cellFont, color: rgb(0, 0, 0) });
+          } else {
+            page.drawText(sanitizeText(cellText), { x: xOff, y, size: 8, font: cellFont, color: rgb(0, 0, 0) });
+          }
           xOff += colWidths[i];
         }
         y -= lineHeight - 2;
@@ -815,16 +826,16 @@ serve(async (req) => {
     if (trainee.family_members && trainee.family_members.length > 0) {
       drawSection("THÀNH VIÊN GIA ĐÌNH");
       drawTable(
-        ["Họ tên", "Quan hệ", "Năm sinh", "Nghề nghiệp", "Nơi ở", "Sống chung"],
-        [100, 60, 50, 90, 100, 60],
+        ["Họ tên", "Quan hệ", "Năm sinh", "Nghề nghiệp", "Nơi ở"],
+        [120, 70, 60, 110, 100],
         trainee.family_members.map(m => [
           m.full_name || "---",
           m.relationship || "---",
           cleanValue(m.birth_year),
           m.occupation || "---",
-          m.location || "---",
           formatLivingTogether(m.living_together),
-        ])
+        ]),
+        [4] // center "Nơi ở" column
       );
     }
 
