@@ -5,6 +5,7 @@ interface BackupResult {
   timestamp: string;
   success: boolean;
   csvFileLink?: string;
+  rootFolderLink?: string;
   error?: string;
   rowCount?: number;
 }
