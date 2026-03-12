@@ -22,6 +22,7 @@ export default function TraineeDetail() {
   const { data: trainee, isLoading, error } = useTrainee(id || "");
   const { isAdmin } = useUserRole();
   const [isExporting, setIsExporting] = useState(false);
+  const { onlineUsers } = usePresence(id ? `trainee-detail:${id}` : null);
 
   const handleExportRirekisho = async () => {
     if (!trainee?.trainee_code) return;
