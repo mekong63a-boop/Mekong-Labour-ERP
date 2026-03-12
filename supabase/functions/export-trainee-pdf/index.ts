@@ -286,8 +286,9 @@ function formatDate(dateStr: string | null): string {
 }
 
 function formatLivingTogether(value: boolean | string | number | null | undefined): string {
-  if (value === true || value === 1 || value === "1" || value === "true") return "Sống chung";
-  if (value === false || value === 0 || value === "0" || value === "false") return "Sống riêng";
+  // DB: living_together=true means O (sống riêng), false means X (sống chung) per business logic
+  if (value === true || value === 1 || value === "1" || value === "true") return "Sống riêng";
+  if (value === false || value === 0 || value === "0" || value === "false") return "Sống chung";
   return "---";
 }
 
