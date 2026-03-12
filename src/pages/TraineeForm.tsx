@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { PROGRESSION_STAGE_LABELS, SIMPLE_STATUS_LABELS, TRAINEE_TYPE_LABELS, getStageLabel, getStatusLabel, getTypeLabel } from "@/lib/enum-labels";
 import { PhotoUpload, uploadPhoto } from "@/components/trainees/PhotoUpload";
 import { LineQRUpload, uploadLineQR } from "@/components/trainees/LineQRUpload";
 import { useTrainee, useUpdateTrainee, useToggleTraineeLock } from "@/hooks/useTrainees";
