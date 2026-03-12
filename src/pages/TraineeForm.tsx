@@ -1092,6 +1092,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
               </div>
             </div>
             <div className="flex items-center gap-2 pointer-events-auto">
+              {isEditMode && <PresenceIndicator onlineUsers={onlineUsers} />}
               {/* Lock/Unlock button - for all Admins in edit mode */}
               {isEditMode && isAdmin && traineeId && (
                 <Button
