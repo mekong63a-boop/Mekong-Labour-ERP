@@ -25,6 +25,7 @@ import {
 import { Plus, Search, Eye, RefreshCw, Trash2, Lock, LockOpen } from "lucide-react";
 import { addYears } from "date-fns";
 import { formatVietnameseDate } from "@/lib/vietnamese-utils";
+import { getStageLabel, getStatusLabel } from "@/lib/enum-labels";
 import { usePagination } from "@/hooks/usePagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTraineesPaginated, TraineeListItem } from "@/hooks/useTraineesPaginated";
