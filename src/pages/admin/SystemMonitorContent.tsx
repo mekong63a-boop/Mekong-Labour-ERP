@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useSessionHeartbeat } from "@/hooks/useSessionHeartbeat";
+import { useBackup } from "@/hooks/useBackup";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
   Popover,
