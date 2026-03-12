@@ -1833,8 +1833,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                       <SelectValue placeholder="Chọn tình trạng" />
                     </SelectTrigger>
                     <SelectContent>
-                      {SIMPLE_STATUSES.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      {SIMPLE_STATUS_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
