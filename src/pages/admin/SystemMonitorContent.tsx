@@ -250,6 +250,23 @@ export default function SystemMonitorContent() {
     return ACTION_LABELS[action] || { label: action, icon: Activity, color: "bg-gray-100 text-gray-800" };
   };
 
+  const [showBackupDialog, setShowBackupDialog] = useState(false);
+
+  const handleRunBackup = async () => {
+    setShowBackupDialog(true);
+    const result = await runBackup();
+    if (result.success) {
+      toast.success("Sao lưu toàn diện hoàn tất!", {
+        description: `${result.rowCount || 0} bản ghi đã được xuất.`,
+        duration: 10000,
+      });
+    } else {
+      toast.error("Sao lưu thất bại", {
+        description: result.error || "Vui lòng thử lại sau.",
+      });
+      setShowBackupDialog(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -290,6 +307,94 @@ export default function SystemMonitorContent() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Backup Card */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <HardDrive className="h-5 w-5 text-primary" />
+              Sao lưu dữ liệu
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Xuất toàn bộ dữ liệu (CSV + SQL Full Dump) lên Google Drive
+            </p>
+          </div>
+          <Button
+            onClick={handleRunBackup}
+            disabled={isRunning}
+            className="gap-2"
+            size="lg"
+          >
+            {isRunning ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <HardDrive className="h-4 w-4" />
+            )}
+            {isRunning ? "Đang sao lưu..." : "Kích hoạt Sao lưu toàn diện (CSV + SQL Full Dump)"}
+          </Button>
+        </CardHeader>
+        {lastResult && (
+          <CardContent>
+            <div className={`flex items-center gap-3 p-3 rounded-lg ${lastResult.success ? 'bg-green-50 border border-green-200' : 'bg-destructive/10 border border-destructive/20'}`}>
+              {lastResult.success ? (
+                <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
+              ) : (
+                <XCircle className="h-5 w-5 text-destructive shrink-0" />
+              )}
+              <div className="flex-1">
+                <p className={`text-sm font-medium ${lastResult.success ? 'text-green-800' : 'text-destructive'}`}>
+                  {lastResult.success ? "Sao lưu thành công!" : "Sao lưu thất bại"}
+                </p>
+                {lastResult.error && (
+                  <p className="text-xs text-destructive mt-1">{lastResult.error}</p>
+                )}
+                {lastResult.rowCount !== undefined && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Đã xuất {lastResult.rowCount} bản ghi
+                  </p>
+                )}
+              </div>
+              {lastResult.success && (lastResult as any).rootFolderLink && (
+                <a
+                  href={(lastResult as any).rootFolderLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors shrink-0"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Mở Google Drive
+                </a>
+              )}
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Backup Progress Dialog */}
+      <Dialog open={showBackupDialog && isRunning} onOpenChange={(open) => !isRunning && setShowBackupDialog(open)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              Đang sao lưu toàn diện...
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Đang trích xuất 43 bảng dữ liệu và đẩy lên Google Drive... Vui lòng đợi.
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="h-2 flex-1 bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-primary rounded-full animate-pulse w-2/3" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Quá trình này có thể mất 1-3 phút tùy thuộc vào dung lượng dữ liệu.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Tabs defaultValue="history" className="space-y-4">
         <TabsList>
