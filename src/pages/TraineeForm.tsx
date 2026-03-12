@@ -585,23 +585,23 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       // Nếu chuyển sang "Hủy" hoặc "Dừng chương trình" hoặc trạng thái terminal khác
       if (field === "simple_status") {
         if (
-          value === "Hủy" ||
-          value === "Dừng chương trình" ||
-          value === "Không học" ||
-          value === "Rời công ty"
+          value === "Huy" ||
+          value === "DungChuongTrinh" ||
+          value === "KhongHoc" ||
+          value === "RoiCongTy"
         ) {
           // Auto remove từ dormitory and classes sẽ được xử lý bởi RPC backend
         }
 
         // BUSINESS RULE: Xóa date không liên quan khi đổi simple_status
         // Đảm bảo dữ liệu sạch - không giữ date của trạng thái cũ
-        if (value !== "Bảo lưu") {
+        if (value !== "BaoLuu") {
           newData.reserve_date = "";
         }
-        if (value !== "Hủy") {
+        if (value !== "Huy") {
           newData.cancel_date = "";
         }
-        if (value !== "Dừng chương trình") {
+        if (value !== "DungChuongTrinh") {
           newData.stop_date = "";
         }
       }
@@ -609,19 +609,19 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       // Auto remove dormitory and classes when progression_stage changes (back-end handles this)
       if (field === "progression_stage") {
         if (
-          value === "Xuất cảnh" ||
-          value === "Đang làm việc" ||
-          value === "Hoàn thành hợp đồng" ||
-          value === "Bỏ trốn" ||
-          value === "Về trước hạn"
+          value === "DaXuatCanh" ||
+          value === "DangLamViec" ||
+          value === "HoanThanhHD" ||
+          value === "BoTron" ||
+          value === "VeNuocSom"
         ) {
           // Auto removal logic is on the backend via RPC
         }
 
         // Reset dates when returning to early stages
         if (
-          value === "Chưa đậu" ||
-          value === "Đậu phỏng vấn"
+          value === "ChuaDau" ||
+          value === "DauPV"
         ) {
           newData.otit_entry_date = "";
           newData.nyukan_entry_date = "";
@@ -1879,7 +1879,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                 </div>
 
                 {/* Status-specific dates */}
-                {formData.simple_status === "Bảo lưu" && (
+                {formData.simple_status === "BaoLuu" && (
                   <div className="space-y-2">
                     <Label>Ngày bảo lưu</Label>
                     <Input
@@ -1890,7 +1890,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   </div>
                 )}
 
-                {formData.simple_status === "Dừng chương trình" && (
+                {formData.simple_status === "DungChuongTrinh" && (
                   <div className="space-y-2">
                     <Label>Ngày dừng chương trình</Label>
                     <Input
@@ -1901,7 +1901,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   </div>
                 )}
 
-                {formData.simple_status === "Hủy" && (
+                {formData.simple_status === "Huy" && (
                   <div className="space-y-2">
                     <Label>Ngày hủy</Label>
                     <Input
@@ -1986,15 +1986,15 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
           </div>
 
           {/* Post-departure status */}
-          {(formData.progression_stage === "Bỏ trốn" || 
-            formData.progression_stage === "Về trước hạn" || 
-            formData.progression_stage === "Hoàn thành hợp đồng") && (
+          {(formData.progression_stage === "BoTron" || 
+            formData.progression_stage === "VeNuocSom" || 
+            formData.progression_stage === "HoanThanhHD") && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Sau xuất cảnh</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {formData.progression_stage === "Bỏ trốn" && (
+                {formData.progression_stage === "BoTron" && (
                   <div className="space-y-2">
                     <Label>Ngày bỏ trốn</Label>
                     <Input
@@ -2005,7 +2005,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   </div>
                 )}
 
-                {formData.progression_stage === "Về trước hạn" && (
+                {formData.progression_stage === "VeNuocSom" && (
                   <>
                     <div className="space-y-2">
                       <Label>Ngày về trước hạn</Label>
@@ -2026,7 +2026,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   </>
                 )}
 
-                {formData.progression_stage === "Hoàn thành hợp đồng" && (
+                {formData.progression_stage === "HoanThanhHD" && (
                   <div className="space-y-2">
                     <Label>Ngày về nước</Label>
                     <Input

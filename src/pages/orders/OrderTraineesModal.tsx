@@ -178,7 +178,7 @@ export function OrderTraineesModal({
                 <TableBody>
                   {trainees.map((trainee, index) => {
                     // Đậu = progression_stage không phải "Chưa đậu" và không null
-                    const isPassed = trainee.progression_stage && trainee.progression_stage !== "Chưa đậu";
+                    const isPassed = trainee.progression_stage && trainee.progression_stage !== "ChuaDau";
                     return (
                       <TableRow key={trainee.id}>
                         <TableCell className="text-muted-foreground">

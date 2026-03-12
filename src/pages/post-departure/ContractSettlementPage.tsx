@@ -1,4 +1,4 @@
-// Thanh lý hợp đồng - hiển thị học viên có ngày biến động (bỏ trốn, về trước hạn, hoàn thành HĐ)
+// Thanh lý hợp đồng - hiển thị học viên có ngày biến động (BoTron, VeNuocSom, HoanThanhHD)
 // Phân loại: Đã thanh lý (có settlement_date) vs Chưa thanh lý (chưa có settlement_date)
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -25,6 +25,7 @@ import { FileCheck, Search, CheckCircle2, Clock } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ExportButtonWithColumns } from "@/components/ui/export-button-with-columns";
 import { cn } from "@/lib/utils";
+import { PROGRESSION_STAGE_LABELS, getStageLabel, getTypeLabel } from "@/lib/enum-labels";
 
 function useContractSettlementTrainees() {
   return useQuery({
@@ -74,9 +75,9 @@ function useContractSettlementTrainees() {
 
 // Xác định lý do kết thúc HĐ
 function getEndReason(t: any): { label: string; color: string } {
-  if (t.absconded_date) return { label: "Bỏ trốn", color: "bg-red-100 text-red-700" };
-  if (t.early_return_date) return { label: "Về trước hạn", color: "bg-orange-100 text-orange-700" };
-  if (t.return_date) return { label: "Hoàn thành HĐ", color: "bg-blue-100 text-blue-700" };
+  if (t.absconded_date) return { label: PROGRESSION_STAGE_LABELS.BoTron, color: "bg-red-100 text-red-700" };
+  if (t.early_return_date) return { label: PROGRESSION_STAGE_LABELS.VeNuocSom, color: "bg-orange-100 text-orange-700" };
+  if (t.return_date) return { label: PROGRESSION_STAGE_LABELS.HoanThanhHD, color: "bg-blue-100 text-blue-700" };
   return { label: "—", color: "" };
 }
 
@@ -299,7 +300,7 @@ export default function ContractSettlementPage() {
                     <TableCell className="text-center text-sm">{t.gender || "—"}</TableCell>
                     <TableCell className="text-sm">
                       {t.trainee_type ? (
-                        <Badge variant="outline" className="text-xs">{t.trainee_type}</Badge>
+                        <Badge variant="outline" className="text-xs">{getTypeLabel(t.trainee_type)}</Badge>
                       ) : "—"}
                     </TableCell>
                     <TableCell className="text-sm">

@@ -15,6 +15,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Eye } from "lucide-react";
 import { formatVietnameseDate } from "@/lib/vietnamese-utils";
+import { getStageLabel } from "@/lib/enum-labels";
 
 // Filter type definitions
 type FilterType = 
@@ -281,13 +282,13 @@ export default function DashboardDetailList() {
         case "registered_new":
           return true; // Already filtered by date
         case "not_studying":
-          return !t.enrollment_status || t.enrollment_status === "Chưa học";
+          return !t.enrollment_status || t.enrollment_status === "ChuaHoc";
         case "studying":
-          return t.enrollment_status === "Đang học" || t.simple_status === "DangHoc";
+          return t.enrollment_status === "DangHoc" || t.simple_status === "DangHoc";
         case "reserved":
-          return t.enrollment_status === "Bảo lưu" || t.simple_status === "BaoLuu";
+          return t.enrollment_status === "BaoLuu" || t.simple_status === "BaoLuu";
         case "cancelled":
-          return t.simple_status === "Huy" || t.enrollment_status === "Đã hủy";
+          return t.simple_status === "Huy" || t.enrollment_status === "DaHuy";
         case "passed_interview":
           // Chỉ lấy học viên có progression_stage từ "DauPV" đến "COE" (chưa xuất cảnh)
           const validStages = ["DauPV", "NopHS", "OTIT", "Nyukan", "COE"];
@@ -315,9 +316,9 @@ export default function DashboardDetailList() {
 
   // Helper function to get status display for in_japan filter
   const getInJapanStatus = (trainee: typeof trainees[0]) => {
-    if (trainee.progression_stage === "BoTron") return "Bỏ trốn";
+    if (trainee.progression_stage === "BoTron") return getStageLabel("BoTron");
     if (trainee.progression_stage === "VeNuocSom") return "Về giữa chừng";
-    if (trainee.progression_stage === "HoanThanhHD") return "Hoàn thành HĐ";
+    if (trainee.progression_stage === "HoanThanhHD") return getStageLabel("HoanThanhHD");
     return "Đang ở Nhật";
   };
 
@@ -508,7 +509,7 @@ export default function DashboardDetailList() {
                       )}
                       {showStatusColumn && (
                         <TableCell className="text-sm">
-                          {trainee.progression_stage || "Đậu phỏng vấn"}
+                          {getStageLabel(trainee.progression_stage)}
                         </TableCell>
                       )}
                       {showClassColumn && (

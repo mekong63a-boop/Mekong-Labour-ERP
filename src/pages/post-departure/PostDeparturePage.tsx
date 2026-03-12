@@ -27,6 +27,8 @@ import { ExportButtonWithColumns } from '@/components/ui/export-button-with-colu
 import { EXPORT_CONFIGS } from '@/lib/export-configs';
 import { cn } from "@/lib/utils";
 
+import { PROGRESSION_STAGE_LABELS, TRAINEE_TYPE_LABELS, getStageLabel, getTypeLabel } from "@/lib/enum-labels";
+
 import {
   BarChart,
   Bar,
@@ -40,19 +42,19 @@ import {
 
 // Status categories based on progression_stage
 const STATUS_FILTERS = [
-  { value: "DangLamViec", label: "Đang ở Nhật", color: "text-green-600" },
+  { value: "DangLamViec", label: PROGRESSION_STAGE_LABELS.DangLamViec, color: "text-green-600" },
   { value: "VeNuocSom", label: "Về giữa chừng", color: "text-orange-600" },
-  { value: "BoTron", label: "Bỏ trốn", color: "text-red-600" },
-  { value: "HoanThanhHD", label: "Hoàn thành HĐ", color: "text-blue-600" },
+  { value: "BoTron", label: PROGRESSION_STAGE_LABELS.BoTron, color: "text-red-600" },
+  { value: "HoanThanhHD", label: PROGRESSION_STAGE_LABELS.HoanThanhHD, color: "text-blue-600" },
 ];
 
 // Trainee type config with icons
 const TRAINEE_TYPES = [
-  { value: "TTS", label: "Thực tập sinh", icon: GraduationCap },
+  { value: "TTS", label: TRAINEE_TYPE_LABELS.TTS, icon: GraduationCap },
   { value: "TTS3", label: "TTS số 3", icon: GraduationCap },
-  { value: "DuHoc", label: "Du học sinh", icon: Plane },
-  { value: "KyNang", label: "Kỹ năng đặc định", icon: Key },
-  { value: "KySu", label: "Kỹ sư", icon: Briefcase },
+  { value: "DuHoc", label: TRAINEE_TYPE_LABELS.DuHoc, icon: Plane },
+  { value: "KyNang", label: TRAINEE_TYPE_LABELS.KyNang, icon: Key },
+  { value: "KySu", label: TRAINEE_TYPE_LABELS.KySu, icon: Briefcase },
 ];
 
 // Hook to fetch post-departure trainees
@@ -336,11 +338,11 @@ export default function PostDeparturePage() {
   // Get return date info based on progression stage
   const getReturnDateInfo = (trainee: any): { date: string; label: string; colorClass: string } => {
     switch (trainee.progression_stage) {
-      case "Bỏ trốn":
+      case "BoTron":
         return { date: formatDate(trainee.absconded_date), label: "Ngày bỏ trốn", colorClass: "text-red-600 font-medium" };
-      case "Về trước hạn":
+      case "VeNuocSom":
         return { date: formatDate(trainee.early_return_date), label: "Ngày về", colorClass: "text-orange-600" };
-      case "Hoàn thành hợp đồng":
+      case "HoanThanhHD":
         return { date: formatDate(trainee.return_date), label: "Ngày về nước", colorClass: "text-blue-600" };
       default:
         return { date: "-", label: "", colorClass: "" };
@@ -349,11 +351,11 @@ export default function PostDeparturePage() {
 
   const getStatusBadge = (stage: string | null) => {
     const colorMap: Record<string, string> = {
-      "Xuất cảnh": "bg-indigo-100 text-indigo-700",
-      "Đang làm việc": "bg-green-100 text-green-700",
-      "Hoàn thành hợp đồng": "bg-blue-100 text-blue-700",
-      "Bỏ trốn": "bg-red-100 text-red-700",
-      "Về trước hạn": "bg-orange-100 text-orange-700",
+      DaXuatCanh: "bg-indigo-100 text-indigo-700",
+      DangLamViec: "bg-green-100 text-green-700",
+      HoanThanhHD: "bg-blue-100 text-blue-700",
+      BoTron: "bg-red-100 text-red-700",
+      VeNuocSom: "bg-orange-100 text-orange-700",
     };
     return colorMap[stage || ""] || "bg-muted text-muted-foreground";
   };
@@ -391,11 +393,11 @@ export default function PostDeparturePage() {
             </SelectTrigger>
               <SelectContent>
               <SelectItem value="all">Tất cả đối tượng</SelectItem>
-              <SelectItem value="TTS">Thực tập sinh</SelectItem>
-              <SelectItem value="TTS3">TTS số 3</SelectItem>
-              <SelectItem value="DuHoc">Du học sinh</SelectItem>
-              <SelectItem value="KyNang">Kỹ năng đặc định</SelectItem>
-              <SelectItem value="KySu">Kỹ sư</SelectItem>
+              <SelectItem value="TTS">{TRAINEE_TYPE_LABELS.TTS}</SelectItem>
+              <SelectItem value="TTS3">{TRAINEE_TYPE_LABELS.TTS3}</SelectItem>
+              <SelectItem value="DuHoc">{TRAINEE_TYPE_LABELS.DuHoc}</SelectItem>
+              <SelectItem value="KyNang">{TRAINEE_TYPE_LABELS.KyNang}</SelectItem>
+              <SelectItem value="KySu">{TRAINEE_TYPE_LABELS.KySu}</SelectItem>
             </SelectContent>
           </Select>
           <ExportButtonWithColumns
@@ -404,7 +406,7 @@ export default function PostDeparturePage() {
             allColumns={EXPORT_CONFIGS.post_departure.columns}
             fileName={`${EXPORT_CONFIGS.post_departure.fileName}${exportTraineeType !== 'all' ? `-${exportTraineeType.replace(/\s+/g, '-').toLowerCase()}` : ''}`}
             filters={{ 
-              progression_stage: ['Xuất cảnh', 'Đang làm việc', 'Hoàn thành hợp đồng', 'Bỏ trốn', 'Về trước hạn'],
+              progression_stage: ['DaXuatCanh', 'DangLamViec', 'HoanThanhHD', 'BoTron', 'VeNuocSom'],
               ...(exportTraineeType !== 'all' && { trainee_type: exportTraineeType })
             }}
             title={`Xuất danh sách ${exportTraineeType !== 'all' ? exportTraineeType : 'sau xuất cảnh'}`}
@@ -486,29 +488,29 @@ export default function PostDeparturePage() {
 
         {/* Bỏ trốn */}
         <button
-          onClick={() => handleStatusClick("Bỏ trốn")}
+          onClick={() => handleStatusClick("BoTron")}
           className={cn(
             "p-4 rounded-lg border text-left transition-all hover:shadow-md",
-            selectedStatus === "Bỏ trốn"
+            selectedStatus === "BoTron"
               ? "border-red-500 bg-red-50"
               : "border-border hover:border-red-300"
           )}
         >
-          <p className="text-sm font-medium text-red-600">Bỏ trốn</p>
+          <p className="text-sm font-medium text-red-600">{PROGRESSION_STAGE_LABELS.BoTron}</p>
           <p className="text-3xl font-bold text-foreground mt-1">{stats.absconded}</p>
         </button>
 
         {/* Hoàn thành HĐ */}
         <button
-          onClick={() => handleStatusClick("Hoàn thành hợp đồng")}
+          onClick={() => handleStatusClick("HoanThanhHD")}
           className={cn(
             "p-4 rounded-lg border text-left transition-all hover:shadow-md",
-            selectedStatus === "Hoàn thành hợp đồng"
+            selectedStatus === "HoanThanhHD"
               ? "border-blue-500 bg-blue-50"
               : "border-border hover:border-blue-300"
           )}
         >
-          <p className="text-sm font-medium text-blue-600">Hoàn thành HĐ</p>
+          <p className="text-sm font-medium text-blue-600">{PROGRESSION_STAGE_LABELS.HoanThanhHD}</p>
           <p className="text-3xl font-bold text-foreground mt-1">{stats.completed}</p>
         </button>
 
@@ -634,7 +636,7 @@ export default function PostDeparturePage() {
                   </TableCell>
                   <TableCell className="text-center">
                     <Badge className={getStatusBadge(trainee.progression_stage)}>
-                      {trainee.progression_stage || "-"}
+                      {getStageLabel(trainee.progression_stage)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-center text-sm">

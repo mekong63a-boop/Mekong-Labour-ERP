@@ -589,7 +589,7 @@ serve(async (req) => {
 
     // ========== 6. CÔNG TY & NGHIỆP ĐOÀN ==========
     const hasPassedInterview = trainee.progression_stage &&
-      trainee.progression_stage !== "Chưa đậu" &&
+      trainee.progression_stage !== "ChuaDau" &&
       trainee.progression_stage !== "";
 
     if (hasPassedInterview) {

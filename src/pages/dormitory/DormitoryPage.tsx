@@ -83,6 +83,7 @@ import {
 import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useCanAccessMenu } from "@/hooks/useMenuPermissions";
+import { getStageLabel } from "@/lib/enum-labels";
 
 export default function DormitoryPage() {
   // Permission check for dormitory menu
@@ -913,13 +914,11 @@ export default function DormitoryPage() {
                         </TableCell>
                         <TableCell>
                           <Badge variant={
-                            res.trainee?.progression_stage && res.trainee.progression_stage !== 'Chưa đậu'
+                            res.trainee?.progression_stage && res.trainee.progression_stage !== 'ChuaDau'
                               ? 'default'
                               : 'secondary'
                           }>
-                            {res.trainee?.progression_stage && res.trainee.progression_stage !== 'Chưa đậu'
-                              ? res.trainee.progression_stage
-                              : 'Chưa đậu'}
+                            {getStageLabel(res.trainee?.progression_stage)}
                           </Badge>
                         </TableCell>
                         <TableCell>{res.room_number || "—"}</TableCell>
