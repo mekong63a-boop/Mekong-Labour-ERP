@@ -154,7 +154,7 @@ export default function DashboardAdvancedFilter() {
 
       // Special case: "Đang học" - get currently studying trainees
       if (eventType === "studying") {
-        const terminalStages = ['Xuất cảnh', 'Đang làm việc', 'Hoàn thành hợp đồng', 'Bỏ trốn', 'Về trước hạn'];
+        const terminalStages = ['DaXuatCanh', 'DangLamViec', 'HoanThanhHD', 'BoTron', 'VeNuocSom'];
         const { data, error } = await supabase
           .from("trainees")
           .select(selectFields)
@@ -209,7 +209,7 @@ export default function DashboardAdvancedFilter() {
 
     try {
       // Business rule: "Chưa đậu" không hiển thị công ty/nghiệp đoàn/ngành nghề/ngày đậu
-      const isPassed = (stage: string | null) => stage && stage !== "Chưa đậu";
+      const isPassed = (stage: string | null) => stage && stage !== "ChuaDau";
 
       const exportData = results.map((t, idx) => ({
         STT: idx + 1,
@@ -431,7 +431,7 @@ export default function DashboardAdvancedFilter() {
                   </TableHeader>
                   <TableBody>
                     {results.map((t, idx) => {
-                      const passed = t.progression_stage && t.progression_stage !== "Chưa đậu";
+                      const passed = t.progression_stage && t.progression_stage !== "ChuaDau";
                       return (
                         <TableRow
                           key={t.id}

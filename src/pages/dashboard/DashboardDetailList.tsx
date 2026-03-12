@@ -283,25 +283,25 @@ export default function DashboardDetailList() {
         case "not_studying":
           return !t.enrollment_status || t.enrollment_status === "Chưa học";
         case "studying":
-          return t.enrollment_status === "Đang học" || t.simple_status === "Đang học";
+          return t.enrollment_status === "Đang học" || t.simple_status === "DangHoc";
         case "reserved":
-          return t.enrollment_status === "Bảo lưu" || t.simple_status === "Bảo lưu";
+          return t.enrollment_status === "Bảo lưu" || t.simple_status === "BaoLuu";
         case "cancelled":
-          return t.simple_status === "Hủy" || t.enrollment_status === "Đã hủy";
+          return t.simple_status === "Huy" || t.enrollment_status === "Đã hủy";
         case "passed_interview":
-          // Chỉ lấy học viên có progression_stage từ "Đậu phỏng vấn" đến "COE" (chưa xuất cảnh)
-          const validStages = ["Đậu phỏng vấn", "Nộp hồ sơ", "OTIT", "Nyukan", "COE"];
+          // Chỉ lấy học viên có progression_stage từ "DauPV" đến "COE" (chưa xuất cảnh)
+          const validStages = ["DauPV", "NopHS", "OTIT", "Nyukan", "COE"];
           return validStages.includes(t.progression_stage as string) && !t.departure_date;
         case "departed_tts":
-          return t.departure_date && t.trainee_type === "Thực tập sinh";
+          return t.departure_date && t.trainee_type === "TTS";
         case "departed_tts3":
-          return t.departure_date && t.trainee_type === "Thực tập sinh số 3";
+          return t.departure_date && t.trainee_type === "TTS3";
         case "departed_student":
-          return t.departure_date && t.trainee_type === "Du học sinh";
+          return t.departure_date && t.trainee_type === "DuHoc";
         case "departed_knd":
-          return t.departure_date && t.trainee_type === "Kỹ năng đặc định";
+          return t.departure_date && t.trainee_type === "KyNang";
         case "departed_engineer":
-          return t.departure_date && t.trainee_type === "Kỹ sư";
+          return t.departure_date && t.trainee_type === "KySu";
         case "departed_total":
           return !!t.departure_date;
         case "in_japan":
@@ -315,9 +315,9 @@ export default function DashboardDetailList() {
 
   // Helper function to get status display for in_japan filter
   const getInJapanStatus = (trainee: typeof trainees[0]) => {
-    if (trainee.progression_stage === "Bỏ trốn") return "Bỏ trốn";
-    if (trainee.progression_stage === "Về trước hạn") return "Về giữa chừng";
-    if (trainee.progression_stage === "Hoàn thành hợp đồng") return "Hoàn thành HĐ";
+    if (trainee.progression_stage === "BoTron") return "Bỏ trốn";
+    if (trainee.progression_stage === "VeNuocSom") return "Về giữa chừng";
+    if (trainee.progression_stage === "HoanThanhHD") return "Hoàn thành HĐ";
     return "Đang ở Nhật";
   };
 

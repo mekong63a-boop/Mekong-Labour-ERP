@@ -94,8 +94,8 @@ interface UseTraineesPaginatedResult {
 
 // Valid progression stages for type safety
 const VALID_PROGRESSION_STAGES: ProgressionStage[] = [
-  'Chưa đậu', 'Đậu phỏng vấn', 'Nộp hồ sơ', 'OTIT', 'Nyukan', 'COE', 'Visa',
-  'Xuất cảnh', 'Đang làm việc', 'Hoàn thành hợp đồng', 'Bỏ trốn', 'Về trước hạn'
+  'ChuaDau', 'DauPV', 'NopHS', 'OTIT', 'Nyukan', 'COE', 'Visa',
+  'DaXuatCanh', 'DangLamViec', 'HoanThanhHD', 'BoTron', 'VeNuocSom', 'DaoTao'
 ];
 
 /**

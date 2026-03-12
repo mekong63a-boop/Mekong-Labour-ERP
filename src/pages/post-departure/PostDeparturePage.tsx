@@ -40,19 +40,19 @@ import {
 
 // Status categories based on progression_stage
 const STATUS_FILTERS = [
-  { value: "Đang làm việc", label: "Đang ở Nhật", color: "text-green-600" },
-  { value: "Về trước hạn", label: "Về giữa chừng", color: "text-orange-600" },
-  { value: "Bỏ trốn", label: "Bỏ trốn", color: "text-red-600" },
-  { value: "Hoàn thành hợp đồng", label: "Hoàn thành HĐ", color: "text-blue-600" },
+  { value: "DangLamViec", label: "Đang ở Nhật", color: "text-green-600" },
+  { value: "VeNuocSom", label: "Về giữa chừng", color: "text-orange-600" },
+  { value: "BoTron", label: "Bỏ trốn", color: "text-red-600" },
+  { value: "HoanThanhHD", label: "Hoàn thành HĐ", color: "text-blue-600" },
 ];
 
 // Trainee type config with icons
 const TRAINEE_TYPES = [
-  { value: "Thực tập sinh", label: "Thực tập sinh", icon: GraduationCap },
-  { value: "TTS số 3", label: "TTS số 3", icon: GraduationCap },
-  { value: "Du học sinh", label: "Du học sinh", icon: Plane },
-  { value: "Kỹ năng đặc định", label: "Kỹ năng đặc định", icon: Key },
-  { value: "Kỹ sư", label: "Kỹ sư", icon: Briefcase },
+  { value: "TTS", label: "Thực tập sinh", icon: GraduationCap },
+  { value: "TTS3", label: "TTS số 3", icon: GraduationCap },
+  { value: "DuHoc", label: "Du học sinh", icon: Plane },
+  { value: "KyNang", label: "Kỹ năng đặc định", icon: Key },
+  { value: "KySu", label: "Kỹ sư", icon: Briefcase },
 ];
 
 // Hook to fetch post-departure trainees
@@ -67,11 +67,11 @@ function usePostDepartureTrainees() {
           "id,trainee_code,full_name,progression_stage,departure_date,contract_term,contract_end_date,return_date,early_return_date,absconded_date,notes,receiving_company_id,trainee_type"
         )
         .in("progression_stage", [
-          "Xuất cảnh",
-          "Đang làm việc",
-          "Hoàn thành hợp đồng",
-          "Bỏ trốn",
-          "Về trước hạn",
+          "DaXuatCanh",
+          "DangLamViec",
+          "HoanThanhHD",
+          "BoTron",
+          "VeNuocSom",
         ])
         .order("departure_date", { ascending: false });
 
@@ -144,11 +144,11 @@ export default function PostDeparturePage() {
   // SSOT: dùng cùng nguồn dữ liệu với bảng danh sách để đảm bảo số liệu khớp
   const typeStats = useMemo(() => {
     const result: Record<string, number> = {
-      "Thực tập sinh": 0,
-      "TTS số 3": 0,
-      "Du học sinh": 0,
-      "Kỹ năng đặc định": 0,
-      "Kỹ sư": 0,
+      "TTS": 0,
+      "TTS3": 0,
+      "DuHoc": 0,
+      "KyNang": 0,
+      "KySu": 0,
     };
 
     if (!trainees) return result;
@@ -202,32 +202,29 @@ export default function PostDeparturePage() {
     
     // Không lọc năm → trạng thái hiện tại
     if (!year || year === "all") {
-      if (stage === "Đang làm việc" || stage === "Xuất cảnh") return "Đang làm việc";
-      if (stage === "Về trước hạn") return "Về trước hạn";
-      if (stage === "Bỏ trốn") return "Bỏ trốn";
-      if (stage === "Hoàn thành hợp đồng") return "Hoàn thành hợp đồng";
+      if (stage === "DangLamViec" || stage === "DaXuatCanh") return "DangLamViec";
+      if (stage === "VeNuocSom") return "VeNuocSom";
+      if (stage === "BoTron") return "BoTron";
+      if (stage === "HoanThanhHD") return "HoanThanhHD";
       return stage;
     }
 
-    // Có lọc năm → kiểm tra sự kiện đã xảy ra trong/trước năm đó chưa
     const yearNum = parseInt(year);
+    const yearEnd = `${yearNum}-12-31`;
+
     const eventInOrBefore = (dateStr: string | null) => {
       if (!dateStr) return false;
-      return parseInt(dateStr.substring(0, 4)) <= yearNum;
-    };
-    const eventInYear = (dateStr: string | null) => {
-      if (!dateStr) return false;
-      return dateStr.startsWith(year);
+      return dateStr <= yearEnd;
     };
 
     // Ưu tiên: Bỏ trốn > Về trước hạn > Hoàn thành HĐ > Đang làm việc
-    if (stage === "Bỏ trốn" && eventInOrBefore(trainee.absconded_date)) return "Bỏ trốn";
-    if (stage === "Về trước hạn" && eventInOrBefore(trainee.early_return_date)) return "Về trước hạn";
-    if (stage === "Hoàn thành hợp đồng" && eventInOrBefore(trainee.return_date)) return "Hoàn thành hợp đồng";
+    if (stage === "BoTron" && eventInOrBefore(trainee.absconded_date)) return "BoTron";
+    if (stage === "VeNuocSom" && eventInOrBefore(trainee.early_return_date)) return "VeNuocSom";
+    if (stage === "HoanThanhHD" && eventInOrBefore(trainee.return_date)) return "HoanThanhHD";
     
     // Sự kiện chưa xảy ra tại năm đó → vẫn đang làm việc
-    if (["Bỏ trốn", "Về trước hạn", "Hoàn thành hợp đồng"].includes(stage)) return "Đang làm việc";
-    if (stage === "Đang làm việc" || stage === "Xuất cảnh") return "Đang làm việc";
+    if (["BoTron", "VeNuocSom", "HoanThanhHD"].includes(stage)) return "DangLamViec";
+    if (stage === "DangLamViec" || stage === "DaXuatCanh") return "DangLamViec";
     return stage;
   };
 
@@ -260,10 +257,10 @@ export default function PostDeparturePage() {
     let working = 0, earlyReturn = 0, absconded = 0, completed = 0;
     filtered.forEach(t => {
       const status = getDisplayStatusForYear(t, yearFilter);
-      if (status === "Đang làm việc") working++;
-      else if (status === "Về trước hạn") earlyReturn++;
-      else if (status === "Bỏ trốn") absconded++;
-      else if (status === "Hoàn thành hợp đồng") completed++;
+      if (status === "DangLamViec") working++;
+      else if (status === "VeNuocSom") earlyReturn++;
+      else if (status === "BoTron") absconded++;
+      else if (status === "HoanThanhHD") completed++;
     });
 
     return {
@@ -288,10 +285,10 @@ export default function PostDeparturePage() {
 
     // Filter by status (dùng trạng thái hiện tại)
     if (selectedStatus) {
-      if (selectedStatus === "Đang làm việc") {
+      if (selectedStatus === "DangLamViec") {
         result = result.filter(t => {
           const s = getDisplayStatus(t);
-          return s === "Đang làm việc";
+          return s === "DangLamViec";
         });
       } else {
         result = result.filter(t => getDisplayStatus(t) === selectedStatus);
@@ -392,13 +389,13 @@ export default function PostDeparturePage() {
             <SelectTrigger className="w-[180px] h-9">
               <SelectValue placeholder="Chọn đối tượng xuất" />
             </SelectTrigger>
-            <SelectContent>
+              <SelectContent>
               <SelectItem value="all">Tất cả đối tượng</SelectItem>
-              <SelectItem value="Thực tập sinh">Thực tập sinh</SelectItem>
-              <SelectItem value="TTS số 3">TTS số 3</SelectItem>
-              <SelectItem value="Du học sinh">Du học sinh</SelectItem>
-              <SelectItem value="Kỹ năng đặc định">Kỹ năng đặc định</SelectItem>
-              <SelectItem value="Kỹ sư">Kỹ sư</SelectItem>
+              <SelectItem value="TTS">Thực tập sinh</SelectItem>
+              <SelectItem value="TTS3">TTS số 3</SelectItem>
+              <SelectItem value="DuHoc">Du học sinh</SelectItem>
+              <SelectItem value="KyNang">Kỹ năng đặc định</SelectItem>
+              <SelectItem value="KySu">Kỹ sư</SelectItem>
             </SelectContent>
           </Select>
           <ExportButtonWithColumns
@@ -461,10 +458,10 @@ export default function PostDeparturePage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
         {/* Đang ở Nhật */}
         <button
-          onClick={() => handleStatusClick("Đang làm việc")}
+          onClick={() => handleStatusClick("DangLamViec")}
           className={cn(
             "p-4 rounded-lg border-2 text-left transition-all hover:shadow-md",
-            selectedStatus === "Đang làm việc"
+            selectedStatus === "DangLamViec"
               ? "border-green-500 bg-green-50"
               : "border-border hover:border-green-300"
           )}
@@ -475,10 +472,10 @@ export default function PostDeparturePage() {
 
         {/* Về giữa chừng */}
         <button
-          onClick={() => handleStatusClick("Về trước hạn")}
+          onClick={() => handleStatusClick("VeNuocSom")}
           className={cn(
             "p-4 rounded-lg border text-left transition-all hover:shadow-md",
-            selectedStatus === "Về trước hạn"
+            selectedStatus === "VeNuocSom"
               ? "border-orange-500 bg-orange-50"
               : "border-border hover:border-orange-300"
           )}

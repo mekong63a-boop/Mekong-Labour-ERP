@@ -6,6 +6,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Constants } from "@/integrations/supabase/types";
+import { PROGRESSION_STAGE_LABELS, SIMPLE_STATUS_LABELS } from "@/lib/enum-labels";
 
 interface TraineeFiltersProps {
   simpleStatus: string | null;
@@ -22,8 +23,7 @@ export function TraineeFilters({
 }: TraineeFiltersProps) {
   const simpleStatuses = Constants.public.Enums.simple_status;
   const progressionStages = Constants.public.Enums.progression_stage
-    .filter((s) => s !== "Visa" && s !== "Đang làm việc")
-    .map((s) => (s === "Hoàn thành hợp đồng" ? "Hoàn thành HĐ/ về nước" : s));
+    .filter((s) => s !== "Visa" && s !== "DangLamViec");
 
   return (
     <div className="flex gap-4 mb-4">
@@ -39,7 +39,7 @@ export function TraineeFilters({
             <SelectItem value="all">Tất cả trạng thái</SelectItem>
             {simpleStatuses.map((status) => (
               <SelectItem key={status} value={status}>
-                {status}
+                {SIMPLE_STATUS_LABELS[status] || status}
               </SelectItem>
             ))}
           </SelectContent>
@@ -50,8 +50,7 @@ export function TraineeFilters({
         <Select
           value={progressionStage || "all"}
           onValueChange={(v) => {
-            const dbValue = v === "Hoàn thành HĐ/ về nước" ? "Hoàn thành hợp đồng" : v;
-            onProgressionStageChange(dbValue === "all" ? null : dbValue);
+            onProgressionStageChange(v === "all" ? null : v);
           }}
         >
           <SelectTrigger>
@@ -61,7 +60,7 @@ export function TraineeFilters({
             <SelectItem value="all">Tất cả giai đoạn</SelectItem>
             {progressionStages.map((stage) => (
               <SelectItem key={stage} value={stage}>
-                {stage}
+                {PROGRESSION_STAGE_LABELS[stage] || stage}
               </SelectItem>
             ))}
           </SelectContent>

@@ -49,15 +49,15 @@ const getProvince = (birthplace: string | null): string => {
 // Map progression_stage to display status
 const getStatusDisplay = (stage: string | null): { label: string; color: string } => {
   const stageMap: Record<string, { label: string; color: string }> = {
-    "Đậu phỏng vấn": { label: "Đậu PV", color: "bg-green-100 text-green-700 border-green-200" },
-    "Nộp hồ sơ": { label: "Nộp hồ sơ", color: "bg-blue-100 text-blue-700 border-blue-200" },
+    "DauPV": { label: "Đậu PV", color: "bg-green-100 text-green-700 border-green-200" },
+    "NopHS": { label: "Nộp hồ sơ", color: "bg-blue-100 text-blue-700 border-blue-200" },
     "OTIT": { label: "OTIT", color: "bg-purple-100 text-purple-700 border-purple-200" },
     "Nyukan": { label: "Nyukan", color: "bg-indigo-100 text-indigo-700 border-indigo-200" },
     "COE": { label: "COE", color: "bg-cyan-100 text-cyan-700 border-cyan-200" },
-    "Xuất cảnh": { label: "Xuất cảnh", color: "bg-primary/10 text-primary border-primary/20" },
-    "Bỏ trốn": { label: "Bỏ trốn", color: "bg-red-100 text-red-700 border-red-200" },
-    "Về trước HĐ": { label: "Về trước HĐ", color: "bg-orange-100 text-orange-700 border-orange-200" },
-    "Hoàn thành HĐ": { label: "Hoàn thành HĐ", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+    "DaXuatCanh": { label: "Xuất cảnh", color: "bg-primary/10 text-primary border-primary/20" },
+    "BoTron": { label: "Bỏ trốn", color: "bg-red-100 text-red-700 border-red-200" },
+    "VeNuocSom": { label: "Về trước HĐ", color: "bg-orange-100 text-orange-700 border-orange-200" },
+    "HoanThanhHD": { label: "Hoàn thành HĐ", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   };
   return stageMap[stage || ""] || { label: stage || "-", color: "bg-gray-100 text-gray-700 border-gray-200" };
 };
@@ -65,11 +65,11 @@ const getStatusDisplay = (stage: string | null): { label: string; color: string 
 // Map trainee_type to display
 const getTypeDisplay = (type: string | null): string => {
   const typeMap: Record<string, string> = {
-    "tts": "TTS",
-    "tts3": "TTS3",
-    "student": "Du học sinh",
-    "knd": "KNĐ",
-    "engineer": "Kỹ sư",
+    "TTS": "TTS",
+    "TTS3": "TTS3",
+    "DuHoc": "Du học sinh",
+    "KyNang": "KNĐ",
+    "KySu": "Kỹ sư",
   };
   return typeMap[type || ""] || type || "-";
 };
@@ -92,16 +92,16 @@ export default function CompanyTraineesModal({
 
   // Danh sách các trạng thái được tính là "đậu phỏng vấn trở về sau"
   const PASSED_STAGES = [
-    "Đậu phỏng vấn",
-    "Nộp hồ sơ",
+    "DauPV",
+    "NopHS",
     "OTIT",
     "Nyukan",
     "COE",
-    "Xuất cảnh",
-    "Đang làm việc",
-    "Bỏ trốn",
-    "Về trước hạn",
-    "Hoàn thành hợp đồng",
+    "DaXuatCanh",
+    "DangLamViec",
+    "BoTron",
+    "VeNuocSom",
+    "HoanThanhHD",
   ] as const;
 
   const fetchTrainees = async () => {

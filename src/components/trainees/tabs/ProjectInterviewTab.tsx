@@ -58,7 +58,7 @@ export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
 
   // Check if trainee has passed interview (to determine if we should show "Chờ kết quả")
   const hasPassedInterview = trainee.progression_stage && 
-    trainee.progression_stage !== "Chưa đậu";
+    trainee.progression_stage !== "ChuaDau";
 
   const getResultBadge = (result: string | null, isLatestInterview: boolean) => {
     switch (result?.toLowerCase()) {
@@ -156,7 +156,7 @@ export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
               <p className="text-xs text-muted-foreground">Đậu phỏng vấn</p>
               <p className="font-medium text-sm mt-1">
                 {/* Chỉ hiển thị ngày đậu phỏng vấn nếu học viên THỰC SỰ đã đậu (không phải "Chưa đậu") */}
-                {trainee.progression_stage && trainee.progression_stage !== "Chưa đậu"
+                {trainee.progression_stage && trainee.progression_stage !== "ChuaDau"
                   ? (trainee.interview_pass_date 
                       ? formatDate(trainee.interview_pass_date)
                       : interviews && interviews.length > 0 && interviews.some((i: any) => 

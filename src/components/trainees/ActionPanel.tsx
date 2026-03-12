@@ -64,7 +64,7 @@ export function ActionPanel({ trainee }: ActionPanelProps) {
       await updateTrainee.mutateAsync({
         id: trainee.id,
         updates: {
-          simple_status: "Hủy",
+          simple_status: "Huy",
         },
       });
       toast({ title: "Đã hủy thực tập sinh" });
@@ -132,7 +132,7 @@ export function ActionPanel({ trainee }: ActionPanelProps) {
                 variant="destructive"
                 className="w-full"
                 onClick={handleCancel}
-                disabled={updateTrainee.isPending || trainee.simple_status === "Hủy"}
+                disabled={updateTrainee.isPending || trainee.simple_status === "Huy"}
               >
                 Hủy thực tập sinh
               </Button>

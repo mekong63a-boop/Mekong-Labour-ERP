@@ -292,7 +292,7 @@ export function useAvailableTrainees() {
         .from("trainees")
         .select("id, trainee_code, full_name, class_id, simple_status")
         .is("class_id", null)
-        .eq("simple_status", "Đang học") // Chỉ học viên đang học
+        .eq("simple_status", "DangHoc") // Chỉ học viên đang học
         .is("departure_date", null) // Loại bỏ học viên đã xuất cảnh
         .order("full_name");
       if (error) throw error;
