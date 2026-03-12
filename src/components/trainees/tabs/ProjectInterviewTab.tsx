@@ -58,7 +58,7 @@ export function ProjectInterviewTab({ trainee }: ProjectInterviewTabProps) {
 
   // Check if trainee has passed interview (to determine if we should show "Chờ kết quả")
   const hasPassedInterview = trainee.progression_stage && 
-    trainee.progression_stage !== "Chưa đậu";
+    trainee.progression_stage !== "ChuaDau";
 
   const getResultBadge = (result: string | null, isLatestInterview: boolean) => {
     switch (result?.toLowerCase()) {
