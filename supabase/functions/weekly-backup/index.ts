@@ -216,6 +216,36 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // SECURITY: Validate JWT - only authenticated admins can run backups
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return new Response(JSON.stringify({ error: 'Unauthorized: Missing token' }), {
+      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+  const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const token = authHeader.replace('Bearer ', '');
+  const { data: claimsData, error: claimsError } = await authClient.auth.getUser(token);
+  if (claimsError || !claimsData?.user) {
+    return new Response(JSON.stringify({ error: 'Unauthorized: Invalid token' }), {
+      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Check admin role
+  const { data: roleData } = await authClient.from('user_roles').select('role').eq('user_id', claimsData.user.id).single();
+  if (!roleData || roleData.role !== 'admin') {
+    return new Response(JSON.stringify({ error: 'Forbidden: Admin only' }), {
+      status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   const backupLog: BackupLog = {
     timestamp: new Date().toISOString(),
     success: false,
@@ -224,7 +254,7 @@ serve(async (req) => {
   };
 
   try {
-    console.log('Starting comprehensive weekly backup...');
+    console.log(`Backup initiated by admin: ${claimsData.user.email}`);
 
     // Get credentials
     const serviceAccountJson = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON');
