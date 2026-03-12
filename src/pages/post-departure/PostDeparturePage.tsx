@@ -636,7 +636,7 @@ export default function PostDeparturePage() {
                   </TableCell>
                   <TableCell className="text-center">
                     <Badge className={getStatusBadge(trainee.progression_stage)}>
-                      {trainee.progression_stage || "-"}
+                      {getStageLabel(trainee.progression_stage)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-center text-sm">

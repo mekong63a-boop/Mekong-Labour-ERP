@@ -300,7 +300,7 @@ export default function ContractSettlementPage() {
                     <TableCell className="text-center text-sm">{t.gender || "—"}</TableCell>
                     <TableCell className="text-sm">
                       {t.trainee_type ? (
-                        <Badge variant="outline" className="text-xs">{t.trainee_type}</Badge>
+                        <Badge variant="outline" className="text-xs">{getTypeLabel(t.trainee_type)}</Badge>
                       ) : "—"}
                     </TableCell>
                     <TableCell className="text-sm">

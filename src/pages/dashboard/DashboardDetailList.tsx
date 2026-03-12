@@ -509,7 +509,7 @@ export default function DashboardDetailList() {
                       )}
                       {showStatusColumn && (
                         <TableCell className="text-sm">
-                          {trainee.progression_stage || "Đậu phỏng vấn"}
+                          {getStageLabel(trainee.progression_stage)}
                         </TableCell>
                       )}
                       {showClassColumn && (

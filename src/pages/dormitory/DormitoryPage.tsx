@@ -913,13 +913,11 @@ export default function DormitoryPage() {
                         </TableCell>
                         <TableCell>
                           <Badge variant={
-                            res.trainee?.progression_stage && res.trainee.progression_stage !== 'Chưa đậu'
+                            res.trainee?.progression_stage && res.trainee.progression_stage !== 'ChuaDau'
                               ? 'default'
                               : 'secondary'
                           }>
-                            {res.trainee?.progression_stage && res.trainee.progression_stage !== 'Chưa đậu'
-                              ? res.trainee.progression_stage
-                              : 'Chưa đậu'}
+                            {getStageLabel(res.trainee?.progression_stage)}
                           </Badge>
                         </TableCell>
                         <TableCell>{res.room_number || "—"}</TableCell>
