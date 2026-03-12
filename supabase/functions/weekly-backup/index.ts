@@ -325,7 +325,7 @@ serve(async (req) => {
   };
 
   try {
-    console.log(`Backup initiated by admin: ${claimsData.user.email}`);
+    console.log(`Backup initiated by: ${callerEmail} (scheduled: ${isScheduled})`);
 
     // Get credentials
     const serviceAccountJson = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON');
