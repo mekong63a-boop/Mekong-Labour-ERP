@@ -10,6 +10,8 @@ interface BackupLog {
   timestamp: string;
   success: boolean;
   csvFileLinks?: Record<string, string>;
+  fullDumpLink?: string;
+  fullDumpSize?: string;
   error?: string;
   tables?: Record<string, number>;
 }
@@ -30,6 +32,21 @@ const BACKUP_TABLES = [
   { name: 'education_history', display: 'Học vấn' },
   { name: 'work_history', display: 'Kinh nghiệm' },
   { name: 'audit_logs', display: 'Nhật ký' },
+];
+
+// All public tables for full dump (superset of BACKUP_TABLES)
+const FULL_DUMP_TABLES = [
+  'trainees', 'orders', 'companies', 'unions', 'classes', 'teachers',
+  'attendance', 'test_scores', 'user_roles', 'profiles', 'family_members',
+  'education_history', 'work_history', 'audit_logs', 'job_categories',
+  'class_teachers', 'dormitories', 'dormitory_residents', 'enrollment_history',
+  'handbook_entries', 'interview_history', 'japan_relatives', 'katakana_names',
+  'login_attempts', 'menus', 'pending_registrations', 'trainee_reviews',
+  'union_members', 'union_transactions', 'user_menu_permissions',
+  'user_sessions', 'department_members', 'department_menu_permissions',
+  'departments', 'cccd_places', 'passport_places', 'hobbies', 'religions',
+  'referral_sources', 'policy_categories', 'vocabulary',
+  'user_access_versions', 'ai_chat_messages',
 ];
 
 async function getAccessToken(serviceAccount: any): Promise<string> {
@@ -167,7 +184,7 @@ async function uploadToGoogleDrive(
   accessToken: string,
   folderId: string,
   fileName: string,
-  content: string,
+  content: Uint8Array | string,
   mimeType: string
 ): Promise<{ id: string; webViewLink: string }> {
   const boundary = '-------314159265358979323846';
@@ -177,22 +194,25 @@ async function uploadToGoogleDrive(
   });
 
   const encoder = new TextEncoder();
-  const contentBytes = encoder.encode(content);
+  const contentBytes = typeof content === 'string' ? encoder.encode(content) : content;
 
-  const multipartBody = new Uint8Array([
-    ...encoder.encode(
-      `--${boundary}\r\n` +
-      `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
-      `${metadata}\r\n` +
-      `--${boundary}\r\n` +
-      `Content-Type: ${mimeType}\r\n\r\n`
-    ),
-    ...contentBytes,
-    ...encoder.encode(`\r\n--${boundary}--`),
-  ]);
+  const headerPart = encoder.encode(
+    `--${boundary}\r\n` +
+    `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+    `${metadata}\r\n` +
+    `--${boundary}\r\n` +
+    `Content-Type: ${mimeType}\r\n\r\n`
+  );
+  const footerPart = encoder.encode(`\r\n--${boundary}--`);
+
+  // Combine parts
+  const multipartBody = new Uint8Array(headerPart.length + contentBytes.length + footerPart.length);
+  multipartBody.set(headerPart, 0);
+  multipartBody.set(contentBytes, headerPart.length);
+  multipartBody.set(footerPart, headerPart.length + contentBytes.length);
 
   const uploadResponse = await fetch(
-    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink",
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink,size",
     {
       method: "POST",
       headers: {
@@ -209,6 +229,43 @@ async function uploadToGoogleDrive(
   }
   
   return { id: uploadData.id, webViewLink: uploadData.webViewLink };
+}
+
+/**
+ * Compress string content to gzip using Web Streams API
+ */
+async function gzipCompress(text: string): Promise<Uint8Array> {
+  const encoder = new TextEncoder();
+  const inputBytes = encoder.encode(text);
+  
+  const stream = new Blob([inputBytes]).stream();
+  const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
+  const reader = compressedStream.getReader();
+  
+  const chunks: Uint8Array[] = [];
+  let totalLength = 0;
+  
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    totalLength += value.length;
+  }
+  
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+  
+  return result;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
 }
 
 serve(async (req) => {
@@ -258,7 +315,6 @@ serve(async (req) => {
 
     // Get credentials
     const serviceAccountJson = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!serviceAccountJson) {
@@ -282,16 +338,18 @@ serve(async (req) => {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     const weekNum = getWeekNumber(now);
+    const dateStr = `${year}${month}${day}`;
     
-    // Create folder structure: Mekong-Labour-Hub/backups/weekly/2026/Week-03/
+    // ============================================================
+    // PHASE 1: CSV Backup (giữ nguyên logic cũ)
+    // ============================================================
     const weekFolder = `Mekong-Labour-Hub/backups/weekly/${year}/Week-${String(weekNum).padStart(2, '0')}`;
-    console.log(`Creating folder structure: ${weekFolder}`);
-    const folderId = await createFolderPath(accessToken, weekFolder);
+    console.log(`[CSV] Creating folder: ${weekFolder}`);
+    const csvFolderId = await createFolderPath(accessToken, weekFolder);
 
-    // Backup each table
     for (const table of BACKUP_TABLES) {
       try {
-        console.log(`Backing up ${table.name}...`);
+        console.log(`[CSV] Backing up ${table.name}...`);
         
         const { data, error } = await supabase
           .from(table.name)
@@ -299,7 +357,7 @@ serve(async (req) => {
           .order('created_at', { ascending: false });
 
         if (error) {
-          console.error(`Error fetching ${table.name}:`, error);
+          console.error(`[CSV] Error fetching ${table.name}:`, error);
           backupLog.tables![table.name] = -1;
           continue;
         }
@@ -308,50 +366,135 @@ serve(async (req) => {
         backupLog.tables![table.name] = rowCount;
 
         if (rowCount === 0) {
-          console.log(`${table.name}: No data to backup`);
+          console.log(`[CSV] ${table.name}: No data`);
           continue;
         }
 
-        // Convert to CSV
         const csvContent = convertToCSV(data);
         const fileName = `${year}-${month}-${day}_${table.name}.csv`;
 
-        // Upload
         const uploadResult = await uploadToGoogleDrive(
           accessToken,
-          folderId,
+          csvFolderId,
           fileName,
           csvContent,
           'text/csv'
         );
 
         backupLog.csvFileLinks![table.name] = uploadResult.webViewLink;
-        console.log(`✓ ${table.name}: ${rowCount} rows backed up`);
+        console.log(`[CSV] ✓ ${table.name}: ${rowCount} rows`);
       } catch (tableError) {
-        console.error(`Error backing up ${table.name}:`, tableError);
+        console.error(`[CSV] Error backing up ${table.name}:`, tableError);
         backupLog.tables![table.name] = -1;
       }
     }
 
-    // Create summary file
-    const summaryContent = JSON.stringify({
-      backup_date: now.toISOString(),
-      week_number: weekNum,
-      tables: backupLog.tables,
-      total_rows: Object.values(backupLog.tables!).reduce((a, b) => a + (b > 0 ? b : 0), 0),
-    }, null, 2);
-
+    // CSV summary file
     await uploadToGoogleDrive(
       accessToken,
-      folderId,
+      csvFolderId,
       `${year}-${month}-${day}_backup_summary.json`,
-      summaryContent,
+      JSON.stringify({
+        backup_date: now.toISOString(),
+        week_number: weekNum,
+        tables: backupLog.tables,
+        total_rows: Object.values(backupLog.tables!).reduce((a, b) => a + (b > 0 ? b : 0), 0),
+      }, null, 2),
       'application/json'
     );
 
+    // ============================================================
+    // PHASE 2: Full Database Dump (Schema + Data → .sql.gz)
+    // ============================================================
+    console.log('[DUMP] Starting Full Database Dump...');
+
+    // 2a. Get schema dump via RPC
+    console.log('[DUMP] Extracting schema (DDL, Views, Functions, Triggers, RLS)...');
+    const { data: schemaDump, error: schemaError } = await supabase.rpc('generate_schema_dump');
+    
+    if (schemaError) {
+      console.error('[DUMP] Schema dump error:', schemaError);
+      throw new Error(`Schema dump failed: ${schemaError.message}`);
+    }
+
+    let fullSql = schemaDump || '';
+    fullSql += '\n-- ========================\n';
+    fullSql += '-- DATA (INSERT STATEMENTS)\n';
+    fullSql += '-- ========================\n\n';
+    fullSql += 'BEGIN;\n\n';
+
+    // 2b. Generate INSERT statements for each table via RPC
+    let totalDataRows = 0;
+    for (const tableName of FULL_DUMP_TABLES) {
+      try {
+        console.log(`[DUMP] Generating INSERTs for ${tableName}...`);
+        const { data: insertsSql, error: insertError } = await supabase.rpc('generate_table_inserts', {
+          _table_name: tableName,
+        });
+
+        if (insertError) {
+          console.warn(`[DUMP] Skip ${tableName}: ${insertError.message}`);
+          fullSql += `-- SKIPPED: ${tableName} (error: ${insertError.message})\n\n`;
+          continue;
+        }
+
+        if (insertsSql && insertsSql.trim().length > 0) {
+          fullSql += insertsSql;
+          // Count INSERT lines
+          const insertCount = (insertsSql.match(/^INSERT INTO/gm) || []).length;
+          totalDataRows += insertCount;
+          console.log(`[DUMP] ✓ ${tableName}: ${insertCount} rows`);
+        } else {
+          fullSql += `-- ${tableName}: empty table\n\n`;
+        }
+      } catch (err) {
+        console.warn(`[DUMP] Error on ${tableName}:`, err);
+        fullSql += `-- SKIPPED: ${tableName} (runtime error)\n\n`;
+      }
+    }
+
+    fullSql += 'COMMIT;\n\n';
+    fullSql += `-- ============================================\n`;
+    fullSql += `-- End of Full Dump\n`;
+    fullSql += `-- Total data rows: ${totalDataRows}\n`;
+    fullSql += `-- To restore: psql -f Mekong_Full_Backup_${dateStr}.sql\n`;
+    fullSql += `-- Or: gunzip -c Mekong_Full_Backup_${dateStr}.sql.gz | psql\n`;
+    fullSql += `-- ============================================\n`;
+
+    // 2c. Gzip compress
+    console.log(`[DUMP] Compressing... (raw size: ${formatBytes(new TextEncoder().encode(fullSql).length)})`);
+    const gzippedData = await gzipCompress(fullSql);
+    console.log(`[DUMP] Compressed size: ${formatBytes(gzippedData.length)}`);
+
+    // 2d. Upload to full_dumps folder
+    const dumpFolder = `Mekong-Labour-Hub/backups/full_dumps`;
+    console.log(`[DUMP] Uploading to ${dumpFolder}...`);
+    const dumpFolderId = await createFolderPath(accessToken, dumpFolder);
+
+    const dumpFileName = `Mekong_Full_Backup_${dateStr}.sql.gz`;
+    const dumpUploadResult = await uploadToGoogleDrive(
+      accessToken,
+      dumpFolderId,
+      dumpFileName,
+      gzippedData,
+      'application/gzip'
+    );
+
+    backupLog.fullDumpLink = dumpUploadResult.webViewLink;
+    backupLog.fullDumpSize = formatBytes(gzippedData.length);
+    console.log(`[DUMP] ✓ Full dump uploaded: ${dumpFileName} (${formatBytes(gzippedData.length)})`);
+    console.log(`[DUMP] ✓ Link: ${dumpUploadResult.webViewLink}`);
+
+    // ============================================================
+    // DONE
+    // ============================================================
     backupLog.success = true;
-    console.log('Backup completed successfully!');
-    console.log('Backup Summary:', JSON.stringify(backupLog.tables, null, 2));
+    console.log('========================================');
+    console.log('BACKUP COMPLETED SUCCESSFULLY!');
+    console.log(`CSV tables: ${Object.keys(backupLog.tables!).length}`);
+    console.log(`Full dump: ${dumpFileName} (${formatBytes(gzippedData.length)})`);
+    console.log(`Total data rows in dump: ${totalDataRows}`);
+    console.log('========================================');
 
     return new Response(
       JSON.stringify(backupLog),
