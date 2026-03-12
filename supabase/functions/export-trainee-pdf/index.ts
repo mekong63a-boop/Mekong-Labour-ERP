@@ -286,8 +286,9 @@ function formatDate(dateStr: string | null): string {
 }
 
 function formatLivingTogether(value: boolean | string | number | null | undefined): string {
-  if (value === true || value === 1 || value === "1" || value === "true") return "Sống chung";
-  if (value === false || value === 0 || value === "0" || value === "false") return "Sống riêng";
+  // DB: living_together=true means O (sống riêng), false means X (sống chung) per business logic
+  if (value === true || value === 1 || value === "1" || value === "true") return "Sống riêng";
+  if (value === false || value === 0 || value === "0" || value === "false") return "Sống chung";
   return "---";
 }
 
@@ -425,8 +426,9 @@ serve(async (req) => {
     // - Roboto VF: Complete Vietnamese/Latin/Latin-ext glyph coverage (all diacritics)
     // - Noto Sans JP VF: Complete Japanese/CJK glyph coverage
     // Both served via jsdelivr CDN from verified paths in google/fonts repo.
+    // Use Roboto VF for Vietnamese, static NotoSansJP-Regular for Japanese (pdf-lib handles static fonts better)
     const robotoUrl = "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/roboto/Roboto%5Bwdth%2Cwght%5D.ttf";
-    const notoSansJpUrl = "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/notosansjp/NotoSansJP%5Bwght%5D.ttf";
+    const notoSansJpUrl = "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/notosansjp/static/NotoSansJP-Regular.ttf";
 
     console.log("Fetching fonts from jsdelivr CDN...");
     const [robotoBytes, jpBytes] = await Promise.all([
