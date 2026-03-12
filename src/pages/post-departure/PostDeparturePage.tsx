@@ -48,11 +48,11 @@ const STATUS_FILTERS = [
 
 // Trainee type config with icons
 const TRAINEE_TYPES = [
-  { value: "Thực tập sinh", label: "Thực tập sinh", icon: GraduationCap },
-  { value: "TTS số 3", label: "TTS số 3", icon: GraduationCap },
-  { value: "Du học sinh", label: "Du học sinh", icon: Plane },
-  { value: "Kỹ năng đặc định", label: "Kỹ năng đặc định", icon: Key },
-  { value: "Kỹ sư", label: "Kỹ sư", icon: Briefcase },
+  { value: "TTS", label: "Thực tập sinh", icon: GraduationCap },
+  { value: "TTS3", label: "TTS số 3", icon: GraduationCap },
+  { value: "DuHoc", label: "Du học sinh", icon: Plane },
+  { value: "KyNang", label: "Kỹ năng đặc định", icon: Key },
+  { value: "KySu", label: "Kỹ sư", icon: Briefcase },
 ];
 
 // Hook to fetch post-departure trainees
