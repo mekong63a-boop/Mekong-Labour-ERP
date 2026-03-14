@@ -267,7 +267,7 @@ export default function BulkImportPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Badge variant="outline">{fileName}</Badge>
-              <Badge className="bg-green-100 text-green-800">{validRows.length} hợp lệ</Badge>
+              <Badge variant="secondary">{validRows.length} hợp lệ</Badge>
               {errorRows.length > 0 && (
                 <Badge variant="destructive">{errorRows.length} lỗi/trùng</Badge>
               )}
