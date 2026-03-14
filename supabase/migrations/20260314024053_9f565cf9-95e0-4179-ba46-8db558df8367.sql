@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS idx_trainees_cccd_number ON public.trainees (cccd_number);
