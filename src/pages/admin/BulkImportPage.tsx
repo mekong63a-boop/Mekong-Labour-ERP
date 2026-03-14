@@ -178,7 +178,7 @@ export default function BulkImportPage() {
     const BATCH_SIZE = 50;
 
     for (let i = 0; i < validRows.length; i += BATCH_SIZE) {
-      const batch = validRows.slice(i, i + BATCH_SIZE).map(r => r.data);
+      const batch = validRows.slice(i, i + BATCH_SIZE).map(r => r.data as any);
       const { error } = await supabase.from("trainees").insert(batch);
 
       if (error) {
