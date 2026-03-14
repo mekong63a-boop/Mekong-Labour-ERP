@@ -497,7 +497,7 @@ verify_jwt = false
 │   ├── 📁 functions/              # Edge Functions
 │   │   ├── export-trainee-pdf/
 │   │   ├── google-drive-upload/
-│   │   ├── scan-cccd/
+
 │   │   └── weekly-backup/
 │   └── config.toml
 ├── 📁 public/                     # Static assets
