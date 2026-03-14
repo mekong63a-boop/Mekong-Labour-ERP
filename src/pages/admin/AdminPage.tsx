@@ -40,11 +40,19 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-xl font-bold text-foreground">Quản trị hệ thống</h1>
-        <p className="text-sm text-muted-foreground">
-          Giám sát hệ thống và quản lý phòng ban
-        </p>
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Quản trị hệ thống</h1>
+          <p className="text-sm text-muted-foreground">
+            Giám sát hệ thống và quản lý phòng ban
+          </p>
+        </div>
+        <Button asChild variant="outline" className="gap-2">
+          <Link to="/admin/bulk-import">
+            <Upload className="h-4 w-4" />
+            Nhập liệu hàng loạt
+          </Link>
+        </Button>
       </header>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
