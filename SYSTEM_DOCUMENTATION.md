@@ -439,7 +439,7 @@ Hook: `useSecureData.ts`
 
 | Function | Mục Đích | Endpoint |
 |----------|----------|----------|
-| `scan-cccd` | Quét và trích xuất thông tin từ ảnh CCCD | `/functions/v1/scan-cccd` |
+
 | `export-trainee-pdf` | Xuất hồ sơ học viên ra PDF | `/functions/v1/export-trainee-pdf` |
 | `google-drive-upload` | Upload file lên Google Drive | `/functions/v1/google-drive-upload` |
 | `weekly-backup` | Backup dữ liệu định kỳ | `/functions/v1/weekly-backup` |
