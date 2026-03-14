@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Monitor, Building2 } from "lucide-react";
+import { Monitor, Building2, Upload } from "lucide-react";
 import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 // Import content components
 import SystemMonitorContent from "./SystemMonitorContent";
@@ -38,11 +40,19 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-xl font-bold text-foreground">Quản trị hệ thống</h1>
-        <p className="text-sm text-muted-foreground">
-          Giám sát hệ thống và quản lý phòng ban
-        </p>
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Quản trị hệ thống</h1>
+          <p className="text-sm text-muted-foreground">
+            Giám sát hệ thống và quản lý phòng ban
+          </p>
+        </div>
+        <Button asChild variant="outline" className="gap-2">
+          <Link to="/admin/bulk-import">
+            <Upload className="h-4 w-4" />
+            Nhập liệu hàng loạt
+          </Link>
+        </Button>
       </header>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">

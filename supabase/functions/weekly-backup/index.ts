@@ -342,18 +342,34 @@ serve(async (req) => {
       try {
         console.log(`[CSV] Backing up ${table.name}...`);
         
-        const { data, error } = await supabase
-          .from(table.name)
-          .select('*')
-          .order('created_at', { ascending: false });
+        // Paginated fetch to bypass 1000-row limit
+        const allData: any[] = [];
+        const PAGE_SIZE = 1000;
+        let offset = 0;
+        let hasMore = true;
 
-        if (error) {
-          console.error(`[CSV] Error fetching ${table.name}:`, error);
-          backupLog.tables![table.name] = -1;
-          continue;
+        while (hasMore) {
+          const { data: page, error } = await supabase
+            .from(table.name)
+            .select('*')
+            .order('created_at', { ascending: false })
+            .range(offset, offset + PAGE_SIZE - 1);
+
+          if (error) {
+            console.error(`[CSV] Error fetching ${table.name} at offset ${offset}:`, error);
+            throw error;
+          }
+
+          if (page && page.length > 0) {
+            allData.push(...page);
+            offset += page.length;
+            hasMore = page.length === PAGE_SIZE;
+          } else {
+            hasMore = false;
+          }
         }
 
-        const rowCount = data?.length || 0;
+        const rowCount = allData.length;
         backupLog.tables![table.name] = rowCount;
 
         if (rowCount === 0) {
@@ -361,7 +377,7 @@ serve(async (req) => {
           continue;
         }
 
-        const csvContent = convertToCSV(data);
+        const csvContent = convertToCSV(allData);
         const fileName = `${year}-${month}-${day}_${table.name}.csv`;
 
         const uploadResult = await uploadToGoogleDrive(
