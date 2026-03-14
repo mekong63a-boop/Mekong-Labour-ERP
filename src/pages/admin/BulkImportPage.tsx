@@ -388,10 +388,10 @@ export default function BulkImportPage() {
       {step === "done" && importResult && (
         <Card>
           <CardContent className="py-12 text-center">
-            <CheckCircle2 className="h-12 w-12 mx-auto text-green-600 mb-4" />
+            <CheckCircle2 className="h-12 w-12 mx-auto text-primary mb-4" />
             <p className="text-lg font-medium">Hoàn tất nhập liệu!</p>
             <div className="flex justify-center gap-4 mt-2">
-              <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">
+              <Badge variant="secondary" className="text-sm px-3 py-1">
                 {importResult.success} thành công
               </Badge>
               {importResult.failed > 0 && (
