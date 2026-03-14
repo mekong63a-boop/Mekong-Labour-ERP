@@ -317,7 +317,7 @@ Hook: `useSecureData.ts`
 - `PersonalInfoTab.tsx`
 - `PersonalHistoryTab.tsx`
 - `ProjectInterviewTab.tsx`
-- `CCCDScanner.tsx`
+
 
 **Hook chính:** `useTrainees.ts`, `useTraineesPaginated.ts`
 
