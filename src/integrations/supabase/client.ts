@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-export const SUPABASE_URL = "https://bcltzwpnhfpbfiuhfkxi.supabase.co";
-export const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_nQkqreudsHeEhvFbczMJuw_NdUaoXcQ";
+const SUPABASE_URL = "https://bcltzwpnhfpbfiuhfkxi.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjbHR6d3BuaGZwYmZpdWhma3hpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyOTU0NDQsImV4cCI6MjA4Mzg3MTQ0NH0.ktTKQxMCXGhXaaa5OkfDrx9I0-YPESh8Z4kHNBQkCJ4";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -13,8 +13,5 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-    // Đảm bảo Supabase tự đọc token/session từ link reset mật khẩu
-    // (access_token/refresh_token hoặc code) và phát event PASSWORD_RECOVERY.
-    detectSessionInUrl: true,
   }
 });

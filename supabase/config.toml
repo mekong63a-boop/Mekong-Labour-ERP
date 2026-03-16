@@ -1,14 +1,1 @@
-
-[functions.weekly-backup]
-verify_jwt = false
-
-[functions.export-trainee-pdf]
-verify_jwt = false
-
-[functions.ai-chat]
-verify_jwt = false
-
-[functions.export-rirekisho]
-verify_jwt = false
-
 project_id = "bcltzwpnhfpbfiuhfkxi"
