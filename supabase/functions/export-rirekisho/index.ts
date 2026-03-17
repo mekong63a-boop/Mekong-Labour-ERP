@@ -358,7 +358,10 @@ serve(async (req) => {
     }
 
     const { data: p, error: rpcErr } = await supabase.rpc("get_trainee_full_profile", { p_trainee_code: traineeCode });
-    if (rpcErr || !p || p.error) return new Response(JSON.stringify({ error: rpcErr?.message || p?.error || "Not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (rpcErr || !p || p.error) {
+      console.error("RPC error:", rpcErr);
+      return new Response(JSON.stringify({ error: "Không thể xuất Rirekisho. Vui lòng thử lại sau." }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const photoPromise = fetchPhoto(p.photo_url);
 
