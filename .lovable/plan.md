@@ -1,84 +1,31 @@
-# BẢN CHỐT TRẠNG THÁI HỆ THỐNG - Ngày 07/03/2026
 
-> ⚠️ **CẢNH BÁO**: Toàn bộ hệ thống dưới đây đã được kiểm tra và CỐ ĐỊNH.
-> KHÔNG được tự ý thay đổi bất kỳ mục nào mà không có yêu cầu rõ ràng từ người dùng.
+Mục tiêu: chấm dứt lỗi `Legacy API keys are disabled` mà không thay đổi logic nghiệp vụ nào khác.
 
----
+1) Kết quả khám phá (đã xác nhận)
+- `src/integrations/supabase/client.ts` hiện đang dùng:
+  - `SUPABASE_URL = https://bcltzwpnhfpbfiuhfkxi.supabase.co`
+  - `SUPABASE_PUBLISHABLE_KEY = eyJ...` (legacy anon JWT key)
+- Network logs cho thấy mọi request đều gửi header `apikey: eyJ...` và bị 401 với thông báo:
+  - `"Legacy API keys are disabled"`
+- Toàn bộ app dùng chung client này, nên khi key sai thì tất cả auth/rpc/rest đều fail đồng loạt (đúng như ảnh bạn gửi).
 
-## 1. MODULE BÁO CÁO & TRA CỨU (`/reports`)
+2) Nguyên nhân gốc (vì sao “lại bị nữa”)
+- File `client.ts` là file “automatically generated”, nên nếu nguồn cấu hình integration vẫn giữ key cũ thì file sẽ tiếp tục được regenerate về `eyJ...`.
+- Vì legacy key đã bị tắt trong Supabase, app sẽ lặp lại lỗi ngay cả khi UI/logic không đổi.
 
-### TraineeProfileView (UI Tra cứu hồ sơ 360°)
-- ✅ **Không có** phần "Lớp học" (đã loại bỏ)
-- ✅ **Không có** phần "Nhật ký hệ thống" / Audit Logs (đã loại bỏ)
-- ✅ **Không có** phần "Địa chỉ tạm trú" (đã loại bỏ)
-- ✅ Nhãn chuyên cần đầy đủ tiếng Việt:
-  - `present` → "Có mặt"
-  - `absent` → "Vắng"
-  - `late` → "Đi trễ"
-  - `excused` → "Nghỉ có phép"
-  - `unexcused` → "Nghỉ không phép"
-- ✅ Thông tin Công ty/Nghiệp đoàn CHỈ hiển thị cho học viên đã đậu PV
-- ✅ Bảng điểm hiển thị cột "Điểm" (score/max_score) + "Đánh giá"
+3) Kế hoạch xử lý (chỉ xử lý key, KHÔNG đụng phần khác)
+- Bước 1: Cập nhật Supabase integration settings của project để dùng **publishable key mới đang active** (dạng Supabase hiện hành), không dùng legacy `eyJ...`.
+- Bước 2: Regenerate lại `src/integrations/supabase/client.ts` từ integration (không chỉnh tay các module khác).
+- Bước 3: Xác nhận sau regenerate:
+  - `SUPABASE_PUBLISHABLE_KEY` trong `client.ts` đã đổi khỏi `eyJ...`
+  - Không còn chuỗi legacy key trong codebase.
+- Bước 4: Hard refresh preview + đăng nhập lại để đảm bảo bundle mới được nạp.
 
-### Edge Function `export-trainee-pdf`
-- ✅ **Đã loại bỏ** phần "Lớp học" (dòng 602: comment "ĐÃ LOẠI BỎ THEO YÊU CẦU")
-- ✅ **Đã loại bỏ** phần "Nhật ký hệ thống" (dòng 881: comment "ĐÃ LOẠI BỎ THEO YÊU CẦU")
-- ✅ statusLabels đầy đủ: `unexcused` → "Nghỉ không phép", `excused` → "Nghỉ có phép"
-- ✅ **Đã deploy** ngày 07/03/2026
+4) Tiêu chí hoàn tất
+- Network request tới `auth/v1`, `rest/v1`, `rpc/*` không còn gửi `apikey: eyJ...`.
+- Không còn lỗi toast `Legacy API keys are disabled`.
+- Login hoạt động bình thường, các truy vấn role/session/rpc trả về 200 thay vì 401.
 
----
-
-## 2. MODULE ĐÀO TẠO (`/education`)
-
-### Education Dashboard
-- ✅ Thống kê từ database view `education_interview_stats` (không tính toán frontend)
-- ✅ Logic: "Đã đậu" = `progression_stage != 'Chưa đậu'`; "Chưa đậu" = `progression_stage IS NULL OR = 'Chưa đậu'`
-- ✅ Danh sách vắng/trễ filter: `["late", "excused", "unexcused"]`
-- ✅ Labels tiếng Việt: "Trễ", "Có phép", "Không phép"
-
-### Sĩ số
-- ✅ "Đang học" = có `class_id` + `departure_date IS NULL` + không thuộc giai đoạn kết thúc
-
----
-
-## 3. MODULE KTX (`/dormitory`)
-
-### DormitoryPage
-- ✅ Cột **"Tình trạng PV"** hiển thị trong danh sách cư dân
-- ✅ Logic: progression_stage khác 'Chưa đậu' → Badge default; ngược lại → "Chưa đậu" (secondary)
-- ✅ SearchableSelect cho chuyển KTX (tìm theo Mã/Tên)
-- ✅ Logic tránh trùng lặp khi chuyển đi-về cùng ngày
-
----
-
-## 4. AI CHATBOT (Edge Function `ai-chat`)
-
-### Logic truy vấn dữ liệu
-- ✅ KTX: Phân tách đậu/chưa đậu từ `dormitory_residents` join `trainees.progression_stage`
-- ✅ Đào tạo: Học viên đang học = `class_id NOT NULL + departure_date IS NULL + không thuộc giai đoạn kết thúc`
-- ✅ Phỏng vấn (chung): `eq('progression_stage', 'Đậu phỏng vấn')` — KHÔNG tính Xuất cảnh/Bỏ trốn
-- ✅ Anti-hallucination: Quy tắc chống bịa đặt ưu tiên cao nhất
-- ✅ **Đã deploy** ngày 07/03/2026
-
----
-
-## 5. CÁC QUY TẮC CỐ ĐỊNH
-
-1. **SSOT (Single Source of Truth)**: Mỗi nghiệp vụ chỉ 1 nguồn dữ liệu, 1 luồng xử lý
-2. **Brain/Hands**: Supabase = logic; Lovable = UI hiển thị
-3. **Export đồng bộ**: Mọi cột mới trên UI phải cập nhật ngay vào `export-configs.ts`
-4. **Edge Function**: Phải deploy sau khi sửa code, nếu không thay đổi không có hiệu lực
-5. **Tầm nhìn 20 năm**: Kiến trúc cho 40.000+ học viên, 50+ user đồng thời
-
----
-
-## 6. DATABASE VIEWS ĐÃ CHỐT
-
-- `education_interview_stats`: Đếm đậu/chưa đậu PV theo giới tính (đã sửa logic ngày 07/03)
-- `dashboard_education_total`: Tổng sĩ số đang học
-- `dormitories_with_occupancy`: KTX kèm số người ở hiện tại
-- `education_stats`: Tổng giáo viên/lớp học
-
----
-
-*Bản chốt này là tài liệu tham chiếu để đảm bảo không có regression trong tương lai.*
+5) Chi tiết kỹ thuật (để đối chiếu nhanh)
+- Điểm nghẽn hiện tại nằm ở đúng 1 chỗ nguồn: `src/integrations/supabase/client.ts` (key cũ).
+- Các file như `useAuth.ts`, `Login.tsx`, `useSessionHeartbeat.ts`, `AIChatWidget.tsx`, `ReportsPage.tsx`, `TraineeDetail.tsx` đều phụ thuộc key này nên không cần sửa riêng từng file nếu regenerate đúng client.
