@@ -1,11 +1,18 @@
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+const IP_CACHE_KEY = "mekong_cached_ip";
+
 async function fetchPublicIp(): Promise<string | null> {
   try {
+    const cached = sessionStorage.getItem(IP_CACHE_KEY);
+    if (cached) return cached;
+
     const ipResponse = await fetch("https://api.ipify.org?format=json");
     const ipData = (await ipResponse.json()) as { ip?: string };
-    return ipData.ip ?? null;
+    const ip = ipData.ip ?? null;
+    if (ip) sessionStorage.setItem(IP_CACHE_KEY, ip);
+    return ip;
   } catch {
     return null;
   }

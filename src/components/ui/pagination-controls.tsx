@@ -27,7 +27,7 @@ interface PaginationControlsProps {
   showPageSizeSelector?: boolean;
 }
 
-export function PaginationControls({
+export const PaginationControls = React.forwardRef<HTMLDivElement, PaginationControlsProps>(function PaginationControls({
   currentPage,
   totalPages,
   totalItems,
@@ -38,7 +38,7 @@ export function PaginationControls({
   onPageSizeChange,
   isLoading = false,
   showPageSizeSelector = true,
-}: PaginationControlsProps) {
+}, ref) {
   // Generate page numbers to display (max 7 with ellipsis)
   const getPageNumbers = (): (number | 'ellipsis')[] => {
     const pages: (number | 'ellipsis')[] = [];
@@ -71,7 +71,7 @@ export function PaginationControls({
   const displayTo = Math.min(to + 1, totalItems);
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4">
+    <div ref={ref} className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4">
       {/* Info text */}
       <div className="text-sm text-muted-foreground">
         Hiển thị {displayFrom.toLocaleString('vi-VN')}-{displayTo.toLocaleString('vi-VN')} trong tổng số{' '}
@@ -180,4 +180,4 @@ export function PaginationControls({
       </div>
     </div>
   );
-}
+});
