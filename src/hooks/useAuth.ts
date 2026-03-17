@@ -191,6 +191,10 @@ export function useAuthState(): AuthContextType {
       password,
     });
 
+    if (!error) {
+      localStorage.setItem("auth_version", AUTH_VERSION);
+    }
+
     // Record the login attempt (non-blocking)
     void (async () => {
       try {
