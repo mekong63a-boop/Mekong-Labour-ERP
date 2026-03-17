@@ -1129,7 +1129,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error generating PDF:", error);
     return new Response(
-      JSON.stringify({ error: "Failed to generate PDF: " + (error as Error).message }),
+      JSON.stringify({ error: "Lỗi hệ thống khi tạo PDF. Vui lòng thử lại sau." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

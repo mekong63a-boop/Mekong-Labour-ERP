@@ -723,6 +723,7 @@ serve(async (req) => {
       },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    console.error("Rirekisho export error:", err);
+    return new Response(JSON.stringify({ error: "Lỗi hệ thống khi xuất Rirekisho. Vui lòng thử lại sau." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
