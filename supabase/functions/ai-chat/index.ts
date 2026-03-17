@@ -385,6 +385,7 @@ async function querySystemData(userMessage: string, supabase: SupabaseClient): P
 // ============================================================
 
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
