@@ -134,8 +134,20 @@ export function useAuthState(): AuthContextType {
         .subscribe();
     };
 
-    // Init from current session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Force re-auth check: nếu AUTH_VERSION không khớp → signOut
+    const storedVersion = localStorage.getItem("auth_version");
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session && storedVersion !== AUTH_VERSION) {
+        console.warn("[Auth] Version mismatch – forcing re-login");
+        localStorage.removeItem("auth_version");
+        await supabase.auth.signOut();
+        setUser(null);
+        setSession(null);
+        setRole(null);
+        setIsLoading(false);
+        window.location.replace("/login");
+        return;
+      }
       void setupForSession(session);
     });
 
