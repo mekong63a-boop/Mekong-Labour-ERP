@@ -71,7 +71,7 @@ export const PaginationControls = React.forwardRef<HTMLDivElement, PaginationCon
   const displayTo = Math.min(to + 1, totalItems);
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4">
+    <div ref={ref} className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4">
       {/* Info text */}
       <div className="text-sm text-muted-foreground">
         Hiển thị {displayFrom.toLocaleString('vi-VN')}-{displayTo.toLocaleString('vi-VN')} trong tổng số{' '}
@@ -180,4 +180,4 @@ export const PaginationControls = React.forwardRef<HTMLDivElement, PaginationCon
       </div>
     </div>
   );
-}
+});
