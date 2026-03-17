@@ -27,7 +27,7 @@ interface PaginationControlsProps {
   showPageSizeSelector?: boolean;
 }
 
-export function PaginationControls({
+export const PaginationControls = React.forwardRef<HTMLDivElement, PaginationControlsProps>(function PaginationControls({
   currentPage,
   totalPages,
   totalItems,
@@ -38,7 +38,7 @@ export function PaginationControls({
   onPageSizeChange,
   isLoading = false,
   showPageSizeSelector = true,
-}: PaginationControlsProps) {
+}, ref) {
   // Generate page numbers to display (max 7 with ellipsis)
   const getPageNumbers = (): (number | 'ellipsis')[] => {
     const pages: (number | 'ellipsis')[] = [];
