@@ -466,7 +466,7 @@ serve(async (req) => {
     if (rpcError) {
       console.error("RPC error:", rpcError);
       return new Response(
-        JSON.stringify({ error: rpcError.message }),
+        JSON.stringify({ error: "Không thể xuất PDF. Vui lòng thử lại sau." }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
