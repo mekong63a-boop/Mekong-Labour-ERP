@@ -1,6 +1,9 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+
+// Đổi giá trị này để force logout toàn bộ user
+const AUTH_VERSION = "2026-03-17";
 import { markUserSessionInactive, upsertUserSession } from "@/hooks/useSessionHeartbeat";
 
 /**
@@ -131,8 +134,20 @@ export function useAuthState(): AuthContextType {
         .subscribe();
     };
 
-    // Init from current session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Force re-auth check: nếu AUTH_VERSION không khớp → signOut
+    const storedVersion = localStorage.getItem("auth_version");
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session && storedVersion !== AUTH_VERSION) {
+        console.warn("[Auth] Version mismatch – forcing re-login");
+        localStorage.removeItem("auth_version");
+        await supabase.auth.signOut();
+        setUser(null);
+        setSession(null);
+        setRole(null);
+        setIsLoading(false);
+        window.location.replace("/login");
+        return;
+      }
       void setupForSession(session);
     });
 
@@ -175,6 +190,10 @@ export function useAuthState(): AuthContextType {
       email,
       password,
     });
+
+    if (!error) {
+      localStorage.setItem("auth_version", AUTH_VERSION);
+    }
 
     // Record the login attempt (non-blocking)
     void (async () => {
