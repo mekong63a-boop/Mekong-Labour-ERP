@@ -40,7 +40,7 @@ export function useCanEdit() {
       return isSameDay;
     }
 
-    return true; // Default allow for other roles
+    return false; // Default deny for users without recognized roles
   };
 
   /**
