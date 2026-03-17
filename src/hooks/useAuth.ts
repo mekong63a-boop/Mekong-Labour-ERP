@@ -1,6 +1,9 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+
+// Đổi giá trị này để force logout toàn bộ user
+const AUTH_VERSION = "2026-03-17";
 import { markUserSessionInactive, upsertUserSession } from "@/hooks/useSessionHeartbeat";
 
 /**
