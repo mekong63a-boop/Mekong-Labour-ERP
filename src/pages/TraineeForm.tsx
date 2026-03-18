@@ -993,11 +993,24 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       let finalTraineeId = traineeId;
 
       if (isEditMode && traineeId) {
+        // Capture old data for audit before update
+        const oldDataForAudit = trainee ? { ...trainee } : null;
+
         // Update existing trainee
         await updateTraineeMutation.mutateAsync({
           id: traineeId,
           updates: traineeData,
         });
+
+        // Audit log: UPDATE
+        logAudit(
+          "UPDATE",
+          "trainees",
+          traineeId,
+          oldDataForAudit,
+          traineeData,
+          generateAuditDescription("UPDATE", "trainees", currentData.full_name)
+        );
 
         // Upload photos if pending
         if (pendingPhotoFile) {
