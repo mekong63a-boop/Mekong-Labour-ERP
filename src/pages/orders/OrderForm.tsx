@@ -97,7 +97,7 @@ export function OrderForm({ open, onOpenChange, order }: OrderFormProps) {
         image_url: order.image_url,
         notes: order.notes || "",
       });
-      setPreviewImage(order.image_url || null);
+      // previewImage will be set by useSignedUrl hook below
     } else {
       // Generate order code
       const now = new Date();
