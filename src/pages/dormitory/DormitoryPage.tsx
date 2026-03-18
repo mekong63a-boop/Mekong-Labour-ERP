@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { SecureImage } from "@/components/ui/secure-image";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
