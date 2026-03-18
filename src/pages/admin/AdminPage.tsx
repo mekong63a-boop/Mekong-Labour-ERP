@@ -4,8 +4,6 @@ import { Monitor, Building2 } from "lucide-react";
 import { useMenuPermissions } from "@/hooks/useMenuPermissions";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
 
 // Import content components
 import SystemMonitorContent from "./SystemMonitorContent";
