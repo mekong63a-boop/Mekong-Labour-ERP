@@ -61,6 +61,7 @@ export function OrderForm({ open, onOpenChange, order }: OrderFormProps) {
   const { data: jobCategories } = useJobCategories();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const resolvedOrderImage = useSignedUrl(order?.image_url);
   
   const [formData, setFormData] = useState<OrderFormData>({
     code: "",
