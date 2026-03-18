@@ -63,24 +63,11 @@ export function LineQRUpload({ currentQRUrl, onQRChange, traineeCode, previewOnl
       return;
     }
 
-    // Upload immediately (for edit mode)
     setIsUploading(true);
     try {
-      const fileName = `line_qr_${traineeCode || "new"}_${Date.now()}.${file.name.split(".").pop()}`;
-      const filePath = `line-qr/${fileName}`;
+      const storagePath = await uploadToStorage(file, "line-qr", `line_qr_${traineeCode || "new"}`);
 
-      const { error: uploadError } = await supabase.storage
-        .from("trainee-photos")
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("trainee-photos")
-        .getPublicUrl(filePath);
-
-      onQRChange(publicUrl);
-      setPreviewUrl(publicUrl);
+      onQRChange(storagePath);
       setPendingFile(null);
       toast({ title: "Tải ảnh QR thành công" });
     } catch (error: any) {
