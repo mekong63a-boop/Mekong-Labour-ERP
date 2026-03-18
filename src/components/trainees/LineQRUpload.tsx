@@ -22,12 +22,13 @@ export function LineQRUpload({ currentQRUrl, onQRChange, traineeCode, previewOnl
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Update preview when currentQRUrl changes (e.g., when loading existing trainee)
+  const resolvedUrl = useSignedUrl(currentQRUrl);
+
   useEffect(() => {
-    if (currentQRUrl && !pendingFile) {
-      setPreviewUrl(currentQRUrl);
+    if (resolvedUrl && !pendingFile) {
+      setPreviewUrl(resolvedUrl);
     }
-  }, [currentQRUrl, pendingFile]);
+  }, [resolvedUrl, pendingFile]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
