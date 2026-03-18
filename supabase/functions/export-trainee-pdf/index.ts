@@ -480,6 +480,23 @@ serve(async (req) => {
       );
     }
 
+    // SECURITY: Defense-in-depth PII masking
+    // Even though the RPC masks PII, enforce it here as a second layer
+    if (!trainee.can_view_pii) {
+      trainee.phone = null;
+      trainee.zalo = null;
+      trainee.email = null;
+      trainee.facebook = null;
+      trainee.parent_phone_1 = null;
+      trainee.parent_phone_2 = null;
+      trainee.cccd_number = null;
+      trainee.cccd_date = null;
+      trainee.cccd_place = null;
+      trainee.passport_number = null;
+      trainee.passport_date = null;
+      console.log("PII masked for non-privileged user export");
+    }
+
     // Create PDF
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
