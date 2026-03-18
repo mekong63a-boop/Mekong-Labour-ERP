@@ -776,12 +776,18 @@ serve(async (req) => {
     drawRow("Địa chỉ hộ khẩu", trainee.household_address);
 
     // ========== 4. GIẤY TỜ ==========
-    drawSection("GIẤY TỜ");
-    drawRow("Số CCCD", trainee.cccd_number);
-    drawRow("Ngày cấp CCCD", formatDate(trainee.cccd_date));
-    drawRow("Nơi cấp CCCD", trainee.cccd_place);
-    drawRow("Số hộ chiếu", trainee.passport_number);
-    drawRow("Ngày cấp HC", formatDate(trainee.passport_date));
+    if (trainee.can_view_pii) {
+      drawSection("GIẤY TỜ");
+      drawRow("Số CCCD", trainee.cccd_number);
+      drawRow("Ngày cấp CCCD", formatDate(trainee.cccd_date));
+      drawRow("Nơi cấp CCCD", trainee.cccd_place);
+      drawRow("Số hộ chiếu", trainee.passport_number);
+      drawRow("Ngày cấp HC", formatDate(trainee.passport_date));
+    } else {
+      drawSection("GIẤY TỜ");
+      drawText("* Không có quyền xem thông tin giấy tờ", margin, y, 8, false);
+      y -= lineHeight;
+    }
 
     // ========== 5. THỂ CHẤT & SỨC KHỎE ==========
     drawSection("THỂ CHẤT & SỨC KHỎE");
