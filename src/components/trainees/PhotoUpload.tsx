@@ -193,20 +193,7 @@ export function PhotoUpload({ currentPhotoUrl, onPhotoChange, traineeCode, previ
   );
 }
 
-// Helper function to upload a pending photo file
+// Helper function to upload a pending photo file — returns storage PATH
 export async function uploadPhoto(file: File, traineeCode: string): Promise<string> {
-  const fileName = `${traineeCode}_${Date.now()}.${file.name.split(".").pop()}`;
-  const filePath = `photos/${fileName}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("trainee-photos")
-    .upload(filePath, file, { upsert: true });
-
-  if (uploadError) throw uploadError;
-
-  const { data: { publicUrl } } = supabase.storage
-    .from("trainee-photos")
-    .getPublicUrl(filePath);
-
-  return publicUrl;
+  return uploadToStorage(file, "photos", traineeCode);
 }
