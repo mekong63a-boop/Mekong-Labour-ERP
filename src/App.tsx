@@ -34,7 +34,6 @@ import HandbookPage from "./pages/handbook/HandbookPage";
 import ViolationsPage from "./pages/violations/ViolationsPage";
 import ReportsPage from "./pages/reports/ReportsPage";
 import AdminPage from "./pages/admin/AdminPage";
-import BulkImportPage from "./pages/admin/BulkImportPage";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -431,14 +430,6 @@ function AppWithQueryClient() {
                 element={
                   <MenuProtectedRoute menuKey="admin">
                     <AdminPage />
-                  </MenuProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/bulk-import"
-                element={
-                  <MenuProtectedRoute menuKey="admin">
-                    <BulkImportPage />
                   </MenuProtectedRoute>
                 }
               />
