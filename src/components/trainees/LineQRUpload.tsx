@@ -77,7 +77,7 @@ export function LineQRUpload({ currentQRUrl, onQRChange, traineeCode, previewOnl
         description: error.message,
         variant: "destructive",
       });
-      setPreviewUrl(currentQRUrl || null);
+      setPreviewUrl(resolvedUrl || null);
       setPendingFile(null);
     } finally {
       setIsUploading(false);
