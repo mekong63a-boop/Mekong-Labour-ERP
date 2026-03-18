@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuditLog, generateAuditDescription } from "@/hooks/useAuditLog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -879,6 +880,70 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     }
   };
 
+  // Audit log hook
+  const { logAudit } = useAuditLog();
+
+  // Format validation for critical fields
+  const validateFormats = (data: FormData): string[] => {
+    const errors: string[] = [];
+    const today = new Date().toISOString().split("T")[0];
+
+    // CCCD: exactly 12 digits
+    if (data.cccd_number && !/^\d{12}$/.test(data.cccd_number)) {
+      errors.push("CCCD phải gồm đúng 12 chữ số");
+    }
+    // Passport: 1 uppercase letter + 7-8 digits
+    if (data.passport_number && !/^[A-Z]\d{7,8}$/.test(data.passport_number)) {
+      errors.push("Hộ chiếu phải gồm 1 chữ cái in hoa + 7-8 chữ số (VD: C12345678)");
+    }
+    // Phone: 10 digits starting with 0
+    if (data.phone && !/^0\d{9}$/.test(data.phone)) {
+      errors.push("Số điện thoại phải gồm 10 chữ số, bắt đầu bằng 0");
+    }
+    // Parent phones
+    if (data.parent_phone_1 && !/^0\d{9}$/.test(data.parent_phone_1)) {
+      errors.push("SĐT phụ huynh 1 phải gồm 10 chữ số, bắt đầu bằng 0");
+    }
+    if (data.parent_phone_2 && !/^0\d{9}$/.test(data.parent_phone_2)) {
+      errors.push("SĐT phụ huynh 2 phải gồm 10 chữ số, bắt đầu bằng 0");
+    }
+    if (data.parent_phone_3 && !/^0\d{9}$/.test(data.parent_phone_3)) {
+      errors.push("SĐT phụ huynh 3 phải gồm 10 chữ số, bắt đầu bằng 0");
+    }
+    // Email
+    if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+      errors.push("Email không đúng định dạng");
+    }
+    // Height: 100-250
+    if (data.height) {
+      const h = parseFloat(data.height);
+      if (isNaN(h) || h < 100 || h > 250) errors.push("Chiều cao phải từ 100 đến 250 cm");
+    }
+    // Weight: 20-200
+    if (data.weight) {
+      const w = parseFloat(data.weight);
+      if (isNaN(w) || w < 20 || w > 200) errors.push("Cân nặng phải từ 20 đến 200 kg");
+    }
+    // Vision: 0.0-3.0
+    if (data.vision_left) {
+      const v = parseFloat(data.vision_left);
+      if (isNaN(v) || v < 0 || v > 3) errors.push("Thị lực trái phải từ 0.0 đến 3.0");
+    }
+    if (data.vision_right) {
+      const v = parseFloat(data.vision_right);
+      if (isNaN(v) || v < 0 || v > 3) errors.push("Thị lực phải phải từ 0.0 đến 3.0");
+    }
+    // Dates not in future
+    if (data.birth_date && data.birth_date > today) {
+      errors.push("Ngày sinh không được trong tương lai");
+    }
+    if (data.registration_date && data.registration_date > today) {
+      errors.push("Ngày đăng ký không được trong tương lai");
+    }
+
+    return errors;
+  };
+
   // Handle form submit
   const handleSubmit = async () => {
     // Use ref to guarantee latest form data (prevents closure staleness)
@@ -901,6 +966,17 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       return;
     }
 
+    // Format validation
+    const formatErrors = validateFormats(currentData);
+    if (formatErrors.length > 0) {
+      toast({
+        title: "Dữ liệu không hợp lệ",
+        description: formatErrors.join(". "),
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (isCodeDuplicate) {
       toast({
         title: "Lỗi",
@@ -917,11 +993,24 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       let finalTraineeId = traineeId;
 
       if (isEditMode && traineeId) {
+        // Capture old data for audit before update
+        const oldDataForAudit = trainee ? { ...trainee } : null;
+
         // Update existing trainee
         await updateTraineeMutation.mutateAsync({
           id: traineeId,
           updates: traineeData,
         });
+
+        // Audit log: UPDATE
+        logAudit(
+          "UPDATE",
+          "trainees",
+          traineeId,
+          oldDataForAudit,
+          traineeData,
+          generateAuditDescription("UPDATE", "trainees", currentData.full_name)
+        );
 
         // Upload photos if pending
         if (pendingPhotoFile) {
@@ -961,6 +1050,16 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
 
         if (error) throw error;
         finalTraineeId = newTrainee.id;
+
+        // Audit log: INSERT
+        logAudit(
+          "INSERT",
+          "trainees",
+          newTrainee.id,
+          null,
+          mergedData,
+          generateAuditDescription("INSERT", "trainees", currentData.full_name)
+        );
 
         // Upload photos if pending
         if (pendingPhotoFile && finalTraineeId) {
