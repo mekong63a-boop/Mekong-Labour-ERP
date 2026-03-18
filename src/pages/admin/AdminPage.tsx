@@ -45,12 +45,6 @@ export default function AdminPage() {
             Giám sát hệ thống và quản lý phòng ban
           </p>
         </div>
-        <Button asChild variant="outline" className="gap-2">
-          <Link to="/admin/bulk-import">
-            <Upload className="h-4 w-4" />
-            Nhập liệu hàng loạt
-          </Link>
-        </Button>
       </header>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
