@@ -480,6 +480,10 @@ function AppWithQueryClient() {
   );
 }
 
-const App = () => <AppWithQueryClient />;
+const App = () => (
+  <ErrorBoundary>
+    <AppWithQueryClient />
+  </ErrorBoundary>
+);
 
 export default App;
