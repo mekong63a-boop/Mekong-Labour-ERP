@@ -189,20 +189,7 @@ export function LineQRUpload({ currentQRUrl, onQRChange, traineeCode, previewOnl
   );
 }
 
-// Helper function to upload a pending Line QR file
+// Helper function to upload a pending Line QR file — returns storage PATH
 export async function uploadLineQR(file: File, traineeCode: string): Promise<string> {
-  const fileName = `line_qr_${traineeCode}_${Date.now()}.${file.name.split(".").pop()}`;
-  const filePath = `line-qr/${fileName}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("trainee-photos")
-    .upload(filePath, file, { upsert: true });
-
-  if (uploadError) throw uploadError;
-
-  const { data: { publicUrl } } = supabase.storage
-    .from("trainee-photos")
-    .getPublicUrl(filePath);
-
-  return publicUrl;
+  return uploadToStorage(file, "line-qr", `line_qr_${traineeCode}`);
 }
