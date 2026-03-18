@@ -1,85 +1,31 @@
 
+Mục tiêu: chấm dứt lỗi `Legacy API keys are disabled` mà không thay đổi logic nghiệp vụ nào khác.
 
-## Đánh giá bảo mật hệ thống Mekong Labour ERP
+1) Kết quả khám phá (đã xác nhận)
+- `src/integrations/supabase/client.ts` hiện đang dùng:
+  - `SUPABASE_URL = https://bcltzwpnhfpbfiuhfkxi.supabase.co`
+  - `SUPABASE_PUBLISHABLE_KEY = eyJ...` (legacy anon JWT key)
+- Network logs cho thấy mọi request đều gửi header `apikey: eyJ...` và bị 401 với thông báo:
+  - `"Legacy API keys are disabled"`
+- Toàn bộ app dùng chung client này, nên khi key sai thì tất cả auth/rpc/rest đều fail đồng loạt (đúng như ảnh bạn gửi).
 
-### Mức bảo mật hiện tại: **Tốt (8/10)** — có 2 vấn đề cần sửa
+2) Nguyên nhân gốc (vì sao “lại bị nữa”)
+- File `client.ts` là file “automatically generated”, nên nếu nguồn cấu hình integration vẫn giữ key cũ thì file sẽ tiếp tục được regenerate về `eyJ...`.
+- Vì legacy key đã bị tắt trong Supabase, app sẽ lặp lại lỗi ngay cả khi UI/logic không đổi.
 
----
+3) Kế hoạch xử lý (chỉ xử lý key, KHÔNG đụng phần khác)
+- Bước 1: Cập nhật Supabase integration settings của project để dùng **publishable key mới đang active** (dạng Supabase hiện hành), không dùng legacy `eyJ...`.
+- Bước 2: Regenerate lại `src/integrations/supabase/client.ts` từ integration (không chỉnh tay các module khác).
+- Bước 3: Xác nhận sau regenerate:
+  - `SUPABASE_PUBLISHABLE_KEY` trong `client.ts` đã đổi khỏi `eyJ...`
+  - Không còn chuỗi legacy key trong codebase.
+- Bước 4: Hard refresh preview + đăng nhập lại để đảm bảo bundle mới được nạp.
 
-### Những gì đã làm tốt
+4) Tiêu chí hoàn tất
+- Network request tới `auth/v1`, `rest/v1`, `rpc/*` không còn gửi `apikey: eyJ...`.
+- Không còn lỗi toast `Legacy API keys are disabled`.
+- Login hoạt động bình thường, các truy vấn role/session/rpc trả về 200 thay vì 401.
 
-| Lớp bảo mật | Trạng thái |
-|---|---|
-| RLS trên toàn bộ bảng nghiệp vụ | ✅ Đầy đủ, dùng `can_view/insert/update/delete` |
-| 74 hàm SECURITY DEFINER đều có `search_path = public` | ✅ |
-| PII masking (UI + view `trainees_masked`) | ✅ |
-| Edge Functions: CORS allowlist + JWT validation thủ công | ✅ |
-| Login rate limiting (5 lần/15 phút) | ✅ |
-| Primary Admin protection trigger | ✅ |
-| Publishable Key thế hệ mới (`sb_publishable_...`) | ✅ |
-| Legacy JWT keys đã vô hiệu hóa | ✅ |
-| Private storage + Signed URLs cho ảnh | ✅ |
-| Leaked Password Protection đã bật | ✅ |
-| Views dùng `security_invoker = true` | ✅ |
-| Audit logging cho thay đổi nhạy cảm | ✅ |
-| Edge Functions dùng shared auth utility | ✅ |
-
----
-
-### 2 vấn đề cần sửa ngay
-
-#### 1. CRITICAL — Lỗ hổng leo thang đặc quyền qua `is_primary_admin_check`
-
-**Vấn đề**: Hàm `is_primary_admin_check` chỉ kiểm tra `is_primary_admin = true` mà KHÔNG yêu cầu `role = 'admin'`. Nếu Primary Admin vô tình gán `is_primary_admin = true` cho user có `role = 'staff'`, user đó sẽ bypass toàn bộ hệ thống phân quyền.
-
-**Sửa**:
-- Cập nhật hàm `is_primary_admin_check` thêm điều kiện `AND role = 'admin'`
-- Thêm CHECK constraint trên bảng `user_roles`: `is_primary_admin = true` chỉ khi `role = 'admin'`
-
-#### 2. WARN — Thư viện xlsx có lỗ hổng Prototype Pollution + ReDoS
-
-**Vấn đề**: Package `xlsx@0.20.3` vẫn bị đánh dấu có lỗ hổng high severity (Prototype Pollution, ReDoS).
-
-**Sửa**: Đây là phiên bản mới nhất từ SheetJS. Lỗ hổng này ảnh hưởng chủ yếu khi parse file từ nguồn không tin cậy. Giảm thiểu bằng cách validate file trước khi parse (kiểm tra kích thước, định dạng). Không có bản vá nào khác.
-
----
-
-### Lộ trình nâng bảo mật lên 10/10
-
-| # | Hành động | Mức độ | Phạm vi |
-|---|-----------|--------|---------|
-| 1 | Sửa `is_primary_admin_check` + thêm CHECK constraint | 🔴 Critical | Migration SQL |
-| 2 | Mã hóa cột PII (CCCD, hộ chiếu, SĐT) bằng `pgsodium` | 🟡 Quan trọng | Cần thực hiện trên Supabase Dashboard |
-| 3 | Bật MFA (Multi-Factor Authentication) cho Admin | 🟡 Quan trọng | Supabase Auth settings |
-| 4 | Input validation cho file xlsx trước khi parse | 🟢 Tùy chọn | Frontend code |
-
----
-
-### Kế hoạch thực hiện (những gì Lovable có thể làm ngay)
-
-**Migration SQL**:
-```sql
--- 1. Fix is_primary_admin_check
-CREATE OR REPLACE FUNCTION public.is_primary_admin_check(_user_id UUID)
-RETURNS BOOLEAN
-LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM user_roles
-    WHERE user_id = _user_id
-      AND is_primary_admin = true
-      AND role = 'admin'
-  )
-$$;
-
--- 2. Prevent is_primary_admin on non-admin roles
-ALTER TABLE public.user_roles
-ADD CONSTRAINT chk_primary_admin_requires_admin
-CHECK (is_primary_admin = false OR is_primary_admin IS NULL OR role = 'admin');
-```
-
-**Về Supabase Dashboard** (cần bạn tự thực hiện):
-- **Mã hóa cột**: Bật Vault/pgsodium cho các cột CCCD, passport, phone — đây là tính năng cấp database, không thể thực hiện qua Lovable
-- **MFA**: Vào Authentication > Settings > bật MFA cho tài khoản Admin
-
+5) Chi tiết kỹ thuật (để đối chiếu nhanh)
+- Điểm nghẽn hiện tại nằm ở đúng 1 chỗ nguồn: `src/integrations/supabase/client.ts` (key cũ).
+- Các file như `useAuth.ts`, `Login.tsx`, `useSessionHeartbeat.ts`, `AIChatWidget.tsx`, `ReportsPage.tsx`, `TraineeDetail.tsx` đều phụ thuộc key này nên không cần sửa riêng từng file nếu regenerate đúng client.

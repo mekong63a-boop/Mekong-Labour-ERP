@@ -58,6 +58,19 @@ export default function BulkImportPage() {
       return;
     }
 
+    // File size validation (max 10MB)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("File quá lớn. Giới hạn tối đa 10MB.");
+      return;
+    }
+
+    // File size sanity check (reject empty files)
+    if (file.size === 0) {
+      toast.error("File rỗng, vui lòng chọn file khác.");
+      return;
+    }
+
     try {
       const arrayBuffer = await file.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: "array", cellDates: true });
