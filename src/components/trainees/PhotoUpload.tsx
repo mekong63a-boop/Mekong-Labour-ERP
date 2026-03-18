@@ -68,21 +68,10 @@ export function PhotoUpload({ currentPhotoUrl, onPhotoChange, traineeCode, previ
     // Upload immediately (for edit mode)
     setIsUploading(true);
     try {
-      const fileName = `${traineeCode || "new"}_${Date.now()}.${file.name.split(".").pop()}`;
-      const filePath = `photos/${fileName}`;
+      const storagePath = await uploadToStorage(file, "photos", traineeCode || "new");
 
-      const { error: uploadError } = await supabase.storage
-        .from("trainee-photos")
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("trainee-photos")
-        .getPublicUrl(filePath);
-
-      onPhotoChange(publicUrl);
-      setPreviewUrl(publicUrl);
+      onPhotoChange(storagePath);
+      // Keep the blob preview until next load
       setPendingFile(null);
       toast({ title: "Tải ảnh thành công" });
     } catch (error: any) {
