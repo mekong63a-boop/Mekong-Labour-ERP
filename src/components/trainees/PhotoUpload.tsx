@@ -22,12 +22,15 @@ export function PhotoUpload({ currentPhotoUrl, onPhotoChange, traineeCode, previ
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Update preview when currentPhotoUrl changes (e.g., when loading existing trainee)
+  // Resolve stored path to signed URL
+  const resolvedUrl = useSignedUrl(currentPhotoUrl);
+
+  // Update preview when resolved URL changes
   useEffect(() => {
-    if (currentPhotoUrl && !pendingFile) {
-      setPreviewUrl(currentPhotoUrl);
+    if (resolvedUrl && !pendingFile) {
+      setPreviewUrl(resolvedUrl);
     }
-  }, [currentPhotoUrl, pendingFile]);
+  }, [resolvedUrl, pendingFile]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
