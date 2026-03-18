@@ -2,7 +2,7 @@
 
 > **Phiên bản:** Export 04/02/2026  
 > **Lưu ý:** Tài liệu này chỉ liệt kê, không suy diễn.  
-> **STATE MACHINE:** Xem chi tiết tại `docs/STATE_MACHINE.md`
+
 
 ---
 
