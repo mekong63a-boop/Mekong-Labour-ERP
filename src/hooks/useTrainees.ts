@@ -78,9 +78,7 @@ export function useDeleteTrainee() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("trainees")
-        .delete()
-        .eq("id", id);
+        .rpc("soft_delete_trainee", { p_trainee_id: id });
 
       if (error) throw error;
       return id;

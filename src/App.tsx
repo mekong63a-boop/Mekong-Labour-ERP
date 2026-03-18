@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Toaster } from "@/components/ui/toaster";
 import ClassStudentsPage from "@/pages/education/ClassStudentsPage";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -479,6 +480,10 @@ function AppWithQueryClient() {
   );
 }
 
-const App = () => <AppWithQueryClient />;
+const App = () => (
+  <ErrorBoundary>
+    <AppWithQueryClient />
+  </ErrorBoundary>
+);
 
 export default App;
