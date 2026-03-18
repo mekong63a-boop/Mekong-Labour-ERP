@@ -363,6 +363,22 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Không thể xuất Rirekisho. Vui lòng thử lại sau." }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // SECURITY: Defense-in-depth PII masking for Rirekisho export
+    if (!p.can_view_pii) {
+      p.phone = null;
+      p.zalo = null;
+      p.email = null;
+      p.facebook = null;
+      p.parent_phone_1 = null;
+      p.parent_phone_2 = null;
+      p.cccd_number = null;
+      p.cccd_date = null;
+      p.cccd_place = null;
+      p.passport_number = null;
+      p.passport_date = null;
+      console.log("PII masked for non-privileged user rirekisho export");
+    }
+
     const photoPromise = fetchPhoto(p.photo_url);
 
     // ====== Build cells matching original 37-column template EXACTLY ======

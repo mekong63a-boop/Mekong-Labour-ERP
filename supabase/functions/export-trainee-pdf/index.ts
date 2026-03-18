@@ -480,6 +480,23 @@ serve(async (req) => {
       );
     }
 
+    // SECURITY: Defense-in-depth PII masking
+    // Even though the RPC masks PII, enforce it here as a second layer
+    if (!trainee.can_view_pii) {
+      trainee.phone = null;
+      trainee.zalo = null;
+      trainee.email = null;
+      trainee.facebook = null;
+      trainee.parent_phone_1 = null;
+      trainee.parent_phone_2 = null;
+      trainee.cccd_number = null;
+      trainee.cccd_date = null;
+      trainee.cccd_place = null;
+      trainee.passport_number = null;
+      trainee.passport_date = null;
+      console.log("PII masked for non-privileged user export");
+    }
+
     // Create PDF
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
@@ -759,12 +776,18 @@ serve(async (req) => {
     drawRow("Địa chỉ hộ khẩu", trainee.household_address);
 
     // ========== 4. GIẤY TỜ ==========
-    drawSection("GIẤY TỜ");
-    drawRow("Số CCCD", trainee.cccd_number);
-    drawRow("Ngày cấp CCCD", formatDate(trainee.cccd_date));
-    drawRow("Nơi cấp CCCD", trainee.cccd_place);
-    drawRow("Số hộ chiếu", trainee.passport_number);
-    drawRow("Ngày cấp HC", formatDate(trainee.passport_date));
+    if (trainee.can_view_pii) {
+      drawSection("GIẤY TỜ");
+      drawRow("Số CCCD", trainee.cccd_number);
+      drawRow("Ngày cấp CCCD", formatDate(trainee.cccd_date));
+      drawRow("Nơi cấp CCCD", trainee.cccd_place);
+      drawRow("Số hộ chiếu", trainee.passport_number);
+      drawRow("Ngày cấp HC", formatDate(trainee.passport_date));
+    } else {
+      drawSection("GIẤY TỜ");
+      drawText("* Không có quyền xem thông tin giấy tờ", margin, y, 8, false);
+      y -= lineHeight;
+    }
 
     // ========== 5. THỂ CHẤT & SỨC KHỎE ==========
     drawSection("THỂ CHẤT & SỨC KHỎE");
