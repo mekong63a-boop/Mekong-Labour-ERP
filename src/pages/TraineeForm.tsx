@@ -1051,6 +1051,16 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         if (error) throw error;
         finalTraineeId = newTrainee.id;
 
+        // Audit log: INSERT
+        logAudit(
+          "INSERT",
+          "trainees",
+          newTrainee.id,
+          null,
+          mergedData,
+          generateAuditDescription("INSERT", "trainees", currentData.full_name)
+        );
+
         // Upload photos if pending
         if (pendingPhotoFile && finalTraineeId) {
           const photoUrl = await uploadPhoto(pendingPhotoFile, finalTraineeId);
