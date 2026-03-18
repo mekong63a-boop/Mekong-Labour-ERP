@@ -26,8 +26,9 @@ import {
   Order,
 } from "@/hooks/useOrders";
 import { Upload, X, ZoomIn } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { uploadToStorage } from "@/lib/storage-utils";
+import { useSignedUrl } from "@/hooks/useSignedUrl";
 
 interface OrderFormProps {
   open: boolean;
