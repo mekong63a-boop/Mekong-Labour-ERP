@@ -2,8 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { Camera, Upload, X, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useSignedUrl } from "@/hooks/useSignedUrl";
+import { uploadToStorage } from "@/lib/storage-utils";
 
 interface PhotoUploadProps {
   currentPhotoUrl?: string;
