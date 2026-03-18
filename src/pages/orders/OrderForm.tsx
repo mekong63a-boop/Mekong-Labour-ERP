@@ -108,6 +108,13 @@ export function OrderForm({ open, onOpenChange, order }: OrderFormProps) {
     }
   }, [order, open]);
 
+  // Resolve signed URL for existing order image
+  useEffect(() => {
+    if (resolvedOrderImage) {
+      setPreviewImage(resolvedOrderImage);
+    }
+  }, [resolvedOrderImage]);
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
