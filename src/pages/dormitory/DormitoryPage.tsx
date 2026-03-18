@@ -359,9 +359,8 @@ export default function DormitoryPage() {
                       >
                         <div className="flex items-start gap-4">
                           {result.trainee.photo_url ? (
-                            <img
-                              src={result.trainee.photo_url}
-                              alt=""
+                            <SecureImage
+                              storagePath={result.trainee.photo_url}
                               className="h-12 w-12 rounded-full object-cover"
                             />
                           ) : (
