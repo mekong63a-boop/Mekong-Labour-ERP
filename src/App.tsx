@@ -433,14 +433,6 @@ function AppWithQueryClient() {
                   </MenuProtectedRoute>
                 }
               />
-              <Route
-                path="/admin/bulk-import"
-                element={
-                  <MenuProtectedRoute menuKey="admin">
-                    <BulkImportPage />
-                  </MenuProtectedRoute>
-                }
-              />
               {/* Legacy redirects */}
               <Route
                 path="/system-monitor"
