@@ -1,1 +1,13 @@
 project_id = "bcltzwpnhfpbfiuhfkxi"
+
+[functions.ai-chat]
+verify_jwt = false
+
+[functions.export-trainee-pdf]
+verify_jwt = false
+
+[functions.export-rirekisho]
+verify_jwt = false
+
+[functions.weekly-backup]
+verify_jwt = false

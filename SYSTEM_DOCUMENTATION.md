@@ -87,7 +87,7 @@ Mekong Labour ERP là hệ thống quản lý toàn diện cho công ty xuất k
 ```typescript
 // src/integrations/supabase/client.ts
 const SUPABASE_URL = "https://bcltzwpnhfpbfiuhfkxi.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIs...";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_nQkq...";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {

@@ -1,30 +1,31 @@
 
+Mục tiêu: chấm dứt lỗi `Legacy API keys are disabled` mà không thay đổi logic nghiệp vụ nào khác.
 
-## Kết quả rà soát toàn bộ hệ thống
+1) Kết quả khám phá (đã xác nhận)
+- `src/integrations/supabase/client.ts` hiện đang dùng:
+  - `SUPABASE_URL = https://bcltzwpnhfpbfiuhfkxi.supabase.co`
+  - `SUPABASE_PUBLISHABLE_KEY = eyJ...` (legacy anon JWT key)
+- Network logs cho thấy mọi request đều gửi header `apikey: eyJ...` và bị 401 với thông báo:
+  - `"Legacy API keys are disabled"`
+- Toàn bộ app dùng chung client này, nên khi key sai thì tất cả auth/rpc/rest đều fail đồng loạt (đúng như ảnh bạn gửi).
 
-### Tình trạng hiện tại: Hầu hết đã sạch
+2) Nguyên nhân gốc (vì sao “lại bị nữa”)
+- File `client.ts` là file “automatically generated”, nên nếu nguồn cấu hình integration vẫn giữ key cũ thì file sẽ tiếp tục được regenerate về `eyJ...`.
+- Vì legacy key đã bị tắt trong Supabase, app sẽ lặp lại lỗi ngay cả khi UI/logic không đổi.
 
-**Frontend** (`src/integrations/supabase/client.ts`):
-- Đã dùng `sb_publishable_...` key mới. Không còn legacy `eyJ...`. OK.
+3) Kế hoạch xử lý (chỉ xử lý key, KHÔNG đụng phần khác)
+- Bước 1: Cập nhật Supabase integration settings của project để dùng **publishable key mới đang active** (dạng Supabase hiện hành), không dùng legacy `eyJ...`.
+- Bước 2: Regenerate lại `src/integrations/supabase/client.ts` từ integration (không chỉnh tay các module khác).
+- Bước 3: Xác nhận sau regenerate:
+  - `SUPABASE_PUBLISHABLE_KEY` trong `client.ts` đã đổi khỏi `eyJ...`
+  - Không còn chuỗi legacy key trong codebase.
+- Bước 4: Hard refresh preview + đăng nhập lại để đảm bảo bundle mới được nạp.
 
-**Edge Functions** (4 functions):
-- `ai-chat`, `export-trainee-pdf`, `export-rirekisho`, `weekly-backup`: Tất cả đều dùng `Deno.env.get("SUPABASE_URL")` và `Deno.env.get("SUPABASE_ANON_KEY")` — không hardcode key. OK.
-- Tất cả đều validate JWT trong code. OK.
+4) Tiêu chí hoàn tất
+- Network request tới `auth/v1`, `rest/v1`, `rpc/*` không còn gửi `apikey: eyJ...`.
+- Không còn lỗi toast `Legacy API keys are disabled`.
+- Login hoạt động bình thường, các truy vấn role/session/rpc trả về 200 thay vì 401.
 
-### Vấn đề cần sửa
-
-**1. `SYSTEM_DOCUMENTATION.md` dòng 90** — vẫn ghi `eyJhbGciOiJIUzI1NiIs...` làm ví dụ cho publishable key. Mặc dù chỉ là tài liệu, nhưng gây nhầm lẫn và vi phạm nguyên tắc không lưu legacy key trong repo.
-- **Sửa**: Thay bằng `sb_publishable_...` (dạng mới, truncated).
-
-**2. `supabase/config.toml`** — hiện chỉ có 1 dòng `project_id`. Không khai báo `verify_jwt = false` cho các Edge Functions. Theo tiêu chuẩn signing-keys mới, `verify_jwt = true` (default) không hoạt động đúng. Các function đã validate JWT trong code nên cần set explicit `verify_jwt = false`.
-- **Sửa**: Thêm khai báo cho 4 functions: `ai-chat`, `export-trainee-pdf`, `export-rirekisho`, `weekly-backup`.
-
-### Kế hoạch thực hiện
-
-| # | File | Thay đổi |
-|---|------|----------|
-| 1 | `SYSTEM_DOCUMENTATION.md` | Dòng 90: đổi `eyJhbGciOiJIUzI1NiIs...` → `sb_publishable_nQkq...` |
-| 2 | `supabase/config.toml` | Thêm `[functions.*]` blocks với `verify_jwt = false` cho 4 functions |
-
-Không cần sửa bất kỳ Edge Function code hay frontend code nào khác — tất cả đã đúng chuẩn.
-
+5) Chi tiết kỹ thuật (để đối chiếu nhanh)
+- Điểm nghẽn hiện tại nằm ở đúng 1 chỗ nguồn: `src/integrations/supabase/client.ts` (key cũ).
+- Các file như `useAuth.ts`, `Login.tsx`, `useSessionHeartbeat.ts`, `AIChatWidget.tsx`, `ReportsPage.tsx`, `TraineeDetail.tsx` đều phụ thuộc key này nên không cần sửa riêng từng file nếu regenerate đúng client.
