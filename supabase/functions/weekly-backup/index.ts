@@ -148,13 +148,63 @@ function getWeekNumber(date: Date): number {
   return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
 }
 
-function convertToCSV(data: any[]): string {
+// PII fields to mask in CSV exports (defense-in-depth)
+const PII_FIELDS: Record<string, string[]> = {
+  trainees: [
+    'phone', 'zalo', 'email', 'facebook',
+    'parent_phone_1', 'parent_phone_2', 'parent_phone_3',
+    'cccd_number', 'cccd_date', 'cccd_place',
+    'passport_number', 'passport_date', 'passport_place',
+    'guarantor_phone',
+  ],
+};
+
+function maskPiiValue(fieldName: string, value: any): string {
+  if (value === null || value === undefined || String(value).trim() === '') return '';
+  const s = String(value);
+  if (fieldName.includes('phone')) {
+    // 0912345678 -> 091****78
+    return s.length >= 5 ? s.slice(0, 3) + '****' + s.slice(-2) : '***';
+  }
+  if (fieldName === 'cccd_number') {
+    // 079123456789 -> 079******789
+    return s.length >= 6 ? s.slice(0, 3) + '******' + s.slice(-3) : '***';
+  }
+  if (fieldName === 'passport_number') {
+    // B12345678 -> B1*****78
+    return s.length >= 4 ? s.slice(0, 2) + '*****' + s.slice(-2) : '***';
+  }
+  if (fieldName === 'email') {
+    const atIdx = s.indexOf('@');
+    if (atIdx > 2) return s.slice(0, 2) + '****' + s.slice(atIdx);
+    return '****' + s.slice(atIdx >= 0 ? atIdx : 0);
+  }
+  // Dates and places: redact entirely
+  return '***';
+}
+
+function maskPiiInRow(tableName: string, row: Record<string, any>): Record<string, any> {
+  const piiFields = PII_FIELDS[tableName];
+  if (!piiFields) return row;
+  const masked = { ...row };
+  for (const field of piiFields) {
+    if (field in masked && masked[field] != null) {
+      masked[field] = maskPiiValue(field, masked[field]);
+    }
+  }
+  return masked;
+}
+
+function convertToCSV(data: any[], tableName?: string): string {
   if (data.length === 0) return '';
   
-  const headers = Object.keys(data[0]);
+  // Mask PII fields for sensitive tables
+  const processedData = tableName ? data.map(row => maskPiiInRow(tableName, row)) : data;
+  
+  const headers = Object.keys(processedData[0]);
   const csvRows = [headers.join(',')];
   
-  for (const row of data) {
+  for (const row of processedData) {
     const values = headers.map(header => {
       const value = row[header];
       if (value === null || value === undefined) return '';
@@ -387,7 +437,7 @@ serve(async (req) => {
           continue;
         }
 
-        const csvContent = convertToCSV(allData);
+        const csvContent = convertToCSV(allData, table.name);
         const fileName = `${year}-${month}-${day}_${table.name}.csv`;
 
         const uploadResult = await uploadToGoogleDrive(
