@@ -81,7 +81,7 @@ export function PhotoUpload({ currentPhotoUrl, onPhotoChange, traineeCode, previ
         description: error.message,
         variant: "destructive",
       });
-      setPreviewUrl(currentPhotoUrl || null);
+      setPreviewUrl(resolvedUrl || null);
       setPendingFile(null);
     } finally {
       setIsUploading(false);
