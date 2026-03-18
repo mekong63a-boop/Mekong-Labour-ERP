@@ -893,9 +893,8 @@ export default function DormitoryPage() {
                         <TableCell>
                           <div className="flex items-center gap-3">
                             {res.trainee?.photo_url ? (
-                              <img
-                                src={res.trainee.photo_url}
-                                alt=""
+                              <SecureImage
+                                storagePath={res.trainee.photo_url}
                                 className="h-8 w-8 rounded-full object-cover"
                               />
                             ) : (

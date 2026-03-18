@@ -149,8 +149,8 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
             {profile.photo_url ? (
-              <img
-                src={profile.photo_url}
+              <SecureImage
+                storagePath={profile.photo_url}
                 alt={profile.full_name}
                 className="h-16 w-16 rounded-lg object-cover border"
               />
