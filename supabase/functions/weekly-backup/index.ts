@@ -437,7 +437,7 @@ serve(async (req) => {
           continue;
         }
 
-        const csvContent = convertToCSV(allData);
+        const csvContent = convertToCSV(allData, table.name);
         const fileName = `${year}-${month}-${day}_${table.name}.csv`;
 
         const uploadResult = await uploadToGoogleDrive(
