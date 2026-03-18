@@ -26,8 +26,9 @@ import {
   Order,
 } from "@/hooks/useOrders";
 import { Upload, X, ZoomIn } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { uploadToStorage } from "@/lib/storage-utils";
+import { useSignedUrl } from "@/hooks/useSignedUrl";
 
 interface OrderFormProps {
   open: boolean;
@@ -60,6 +61,7 @@ export function OrderForm({ open, onOpenChange, order }: OrderFormProps) {
   const { data: jobCategories } = useJobCategories();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const resolvedOrderImage = useSignedUrl(order?.image_url);
   
   const [formData, setFormData] = useState<OrderFormData>({
     code: "",
@@ -96,7 +98,7 @@ export function OrderForm({ open, onOpenChange, order }: OrderFormProps) {
         image_url: order.image_url,
         notes: order.notes || "",
       });
-      setPreviewImage(order.image_url || null);
+      // previewImage will be set by useSignedUrl hook below
     } else {
       // Generate order code
       const now = new Date();
@@ -105,6 +107,13 @@ export function OrderForm({ open, onOpenChange, order }: OrderFormProps) {
       setPreviewImage(null);
     }
   }, [order, open]);
+
+  // Resolve signed URL for existing order image
+  useEffect(() => {
+    if (resolvedOrderImage) {
+      setPreviewImage(resolvedOrderImage);
+    }
+  }, [resolvedOrderImage]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -124,22 +133,10 @@ export function OrderForm({ open, onOpenChange, order }: OrderFormProps) {
 
     setIsUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `order_${formData.code}_${Date.now()}.${fileExt}`;
-      const filePath = `orders/${fileName}`;
+      const storagePath = await uploadToStorage(file, "orders", `order_${formData.code}`);
 
-      const { error: uploadError } = await supabase.storage
-        .from('trainee-photos')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('trainee-photos')
-        .getPublicUrl(filePath);
-
-      setPreviewImage(publicUrl);
-      setFormData((prev) => ({ ...prev, image_url: publicUrl }));
+      setPreviewImage(URL.createObjectURL(file));
+      setFormData((prev) => ({ ...prev, image_url: storagePath }));
       toast({ title: "Tải ảnh thành công" });
     } catch (error: any) {
       toast({ title: "Lỗi khi tải ảnh", description: error.message, variant: "destructive" });

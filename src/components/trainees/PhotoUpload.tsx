@@ -2,8 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { Camera, Upload, X, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useSignedUrl } from "@/hooks/useSignedUrl";
+import { uploadToStorage } from "@/lib/storage-utils";
 
 interface PhotoUploadProps {
   currentPhotoUrl?: string;
@@ -21,12 +22,15 @@ export function PhotoUpload({ currentPhotoUrl, onPhotoChange, traineeCode, previ
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Update preview when currentPhotoUrl changes (e.g., when loading existing trainee)
+  // Resolve stored path to signed URL
+  const resolvedUrl = useSignedUrl(currentPhotoUrl);
+
+  // Update preview when resolved URL changes
   useEffect(() => {
-    if (currentPhotoUrl && !pendingFile) {
-      setPreviewUrl(currentPhotoUrl);
+    if (resolvedUrl && !pendingFile) {
+      setPreviewUrl(resolvedUrl);
     }
-  }, [currentPhotoUrl, pendingFile]);
+  }, [resolvedUrl, pendingFile]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -64,21 +68,10 @@ export function PhotoUpload({ currentPhotoUrl, onPhotoChange, traineeCode, previ
     // Upload immediately (for edit mode)
     setIsUploading(true);
     try {
-      const fileName = `${traineeCode || "new"}_${Date.now()}.${file.name.split(".").pop()}`;
-      const filePath = `photos/${fileName}`;
+      const storagePath = await uploadToStorage(file, "photos", traineeCode || "new");
 
-      const { error: uploadError } = await supabase.storage
-        .from("trainee-photos")
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("trainee-photos")
-        .getPublicUrl(filePath);
-
-      onPhotoChange(publicUrl);
-      setPreviewUrl(publicUrl);
+      onPhotoChange(storagePath);
+      // Keep the blob preview until next load
       setPendingFile(null);
       toast({ title: "Tải ảnh thành công" });
     } catch (error: any) {
@@ -88,7 +81,7 @@ export function PhotoUpload({ currentPhotoUrl, onPhotoChange, traineeCode, previ
         description: error.message,
         variant: "destructive",
       });
-      setPreviewUrl(currentPhotoUrl || null);
+      setPreviewUrl(resolvedUrl || null);
       setPendingFile(null);
     } finally {
       setIsUploading(false);
@@ -200,20 +193,7 @@ export function PhotoUpload({ currentPhotoUrl, onPhotoChange, traineeCode, previ
   );
 }
 
-// Helper function to upload a pending photo file
+// Helper function to upload a pending photo file — returns storage PATH
 export async function uploadPhoto(file: File, traineeCode: string): Promise<string> {
-  const fileName = `${traineeCode}_${Date.now()}.${file.name.split(".").pop()}`;
-  const filePath = `photos/${fileName}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("trainee-photos")
-    .upload(filePath, file, { upsert: true });
-
-  if (uploadError) throw uploadError;
-
-  const { data: { publicUrl } } = supabase.storage
-    .from("trainee-photos")
-    .getPublicUrl(filePath);
-
-  return publicUrl;
+  return uploadToStorage(file, "photos", traineeCode);
 }

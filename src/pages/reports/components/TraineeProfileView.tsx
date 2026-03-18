@@ -1,5 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SecureImage } from "@/components/ui/secure-image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -149,8 +150,8 @@ export function TraineeProfileView({ profile, onClose }: TraineeProfileViewProps
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
             {profile.photo_url ? (
-              <img
-                src={profile.photo_url}
+              <SecureImage
+                storagePath={profile.photo_url}
                 alt={profile.full_name}
                 className="h-16 w-16 rounded-lg object-cover border"
               />

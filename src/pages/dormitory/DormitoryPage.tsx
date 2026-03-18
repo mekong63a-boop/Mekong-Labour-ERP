@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { SecureImage } from "@/components/ui/secure-image";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -359,9 +360,8 @@ export default function DormitoryPage() {
                       >
                         <div className="flex items-start gap-4">
                           {result.trainee.photo_url ? (
-                            <img
-                              src={result.trainee.photo_url}
-                              alt=""
+                            <SecureImage
+                              storagePath={result.trainee.photo_url}
                               className="h-12 w-12 rounded-full object-cover"
                             />
                           ) : (
@@ -894,9 +894,8 @@ export default function DormitoryPage() {
                         <TableCell>
                           <div className="flex items-center gap-3">
                             {res.trainee?.photo_url ? (
-                              <img
-                                src={res.trainee.photo_url}
-                                alt=""
+                              <SecureImage
+                                storagePath={res.trainee.photo_url}
                                 className="h-8 w-8 rounded-full object-cover"
                               />
                             ) : (
