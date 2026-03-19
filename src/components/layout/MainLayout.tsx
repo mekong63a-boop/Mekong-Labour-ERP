@@ -26,6 +26,7 @@ const pageTitles: Record<string, string> = {
 
 export function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
 
