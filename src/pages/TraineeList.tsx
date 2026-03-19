@@ -53,6 +53,22 @@ export default function TraineeList() {
   const deleteTrainee = useDeleteTrainee();
   const toggleLockMutation = useToggleTraineeLock();
   const { isAdmin } = useUserRole();
+
+  // Query trainees who are "Đang học" but have no class assigned
+  const { data: traineesNoClass } = useQuery({
+    queryKey: ["trainees-no-class"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trainees")
+        .select("id, trainee_code, full_name, entry_date")
+        .eq("simple_status", "DangHoc")
+        .is("class_id", null)
+        .is("deleted_at", null)
+        .order("entry_date", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
   
   // Debounce search query (300ms delay)
   const debouncedSearch = useDebounce(searchQuery, 300);
