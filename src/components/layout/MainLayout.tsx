@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { PendingRegistrationsNotification } from "@/components/admin/PendingRegistrationsNotification";
 import { AIChatWidget } from "@/components/ai/AIChatWidget";
+import { cn } from "@/lib/utils";
 
 // Page title mapping
 const pageTitles: Record<string, string> = {
@@ -25,6 +26,7 @@ const pageTitles: Record<string, string> = {
 
 export function MainLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
 
@@ -89,13 +91,19 @@ export function MainLayout() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => {
-                refreshAll();
-                toast.success("Đã làm mới dữ liệu");
+              disabled={isRefreshing}
+              onClick={async () => {
+                setIsRefreshing(true);
+                try {
+                  await refreshAll();
+                  toast.success("Đã làm mới dữ liệu");
+                } finally {
+                  setIsRefreshing(false);
+                }
               }}
               className="text-muted-foreground hover:text-foreground"
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
             </Button>
             
             {/* Thông báo đăng ký mới - CHỈ Primary Admin thấy */}
