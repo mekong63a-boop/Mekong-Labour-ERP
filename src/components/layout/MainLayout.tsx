@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { PendingRegistrationsNotification } from "@/components/admin/PendingRegistrationsNotification";
 import { AIChatWidget } from "@/components/ai/AIChatWidget";
+import { cn } from "@/lib/utils";
 
 // Page title mapping
 const pageTitles: Record<string, string> = {
