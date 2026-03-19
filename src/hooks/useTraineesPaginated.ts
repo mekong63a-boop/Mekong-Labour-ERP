@@ -118,7 +118,8 @@ export function useTraineesPaginated({
       
       let query = supabase
         .from('trainees')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .is('deleted_at', null);
 
       // Apply progression stage filter
       if (progressionStage && progressionStage !== 'all' && 
