@@ -25,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Eye, RefreshCw, Trash2, Lock, LockOpen } from "lucide-react";
+import { Plus, Search, Eye, RefreshCw, Trash2, Lock, LockOpen, AlertCircle } from "lucide-react";
 import { addYears } from "date-fns";
 import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 import { getStageLabel, getStatusLabel } from "@/lib/enum-labels";
