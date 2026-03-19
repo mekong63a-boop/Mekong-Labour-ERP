@@ -2012,16 +2012,6 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   </div>
                 )}
 
-                {formData.simple_status === "Huy" && (
-                  <div className="space-y-2">
-                    <Label>Ngày hủy</Label>
-                    <Input
-                      type="date"
-                      value={formData.cancel_date}
-                      onChange={(e) => updateField("cancel_date", e.target.value)}
-                    />
-                  </div>
-                )}
               </CardContent>
             </Card>
 
