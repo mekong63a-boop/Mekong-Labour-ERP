@@ -1,0 +1,1 @@
+ALTER VIEW public.trainee_stage_counts SET (security_invoker = on);

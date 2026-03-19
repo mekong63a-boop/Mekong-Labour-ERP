@@ -17,6 +17,7 @@ export function useTrainee(id: string) {
         .from("trainees")
         .select("*")
         .eq("id", id)
+        .is("deleted_at", null)
         .single();
 
       if (error) throw error;
