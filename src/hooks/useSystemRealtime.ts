@@ -361,86 +361,16 @@ export function useManualRefresh() {
     queryClient.refetchQueries({ queryKey: ["teachers"], type: "active" });
   };
 
-  const refreshAll = () => {
-    console.log('[ManualRefresh] Refreshing all data...');
-    refreshTrainees();
-    refreshDashboard();
-    refreshOrders();
-    refreshPartners();
-    refreshEducation();
+  const refreshAll = async () => {
+    console.log('[ManualRefresh] Refreshing ALL data (full cache reset)...');
     
-    // Internal Union
-    queryClient.invalidateQueries({ queryKey: ["union-members"] });
-    queryClient.invalidateQueries({ queryKey: ["union-transactions"] });
+    // Clear entire query cache and force refetch all active queries
+    await queryClient.invalidateQueries();
     
-    // Glossary
-    queryClient.invalidateQueries({ queryKey: ["vocabulary"] });
-    queryClient.invalidateQueries({ queryKey: ["katakana-names"] });
-    queryClient.invalidateQueries({ queryKey: ["religions"] });
-    queryClient.invalidateQueries({ queryKey: ["referral-sources"] });
-    queryClient.invalidateQueries({ queryKey: ["policy-categories"] });
+    // Force refetch ALL currently active (mounted) queries
+    await queryClient.refetchQueries({ type: "active" });
     
-    // Dormitory - với force refetch
-    queryClient.invalidateQueries({ queryKey: ["dormitories"] });
-    queryClient.invalidateQueries({ queryKey: ["dormitories-with-count"] });
-    queryClient.invalidateQueries({ queryKey: ["dormitory-residents"] });
-    queryClient.invalidateQueries({ queryKey: ["dormitory-gender-stats"] });
-    queryClient.invalidateQueries({ queryKey: ["available-trainees-for-dormitory"] });
-    queryClient.invalidateQueries({ queryKey: ["trainees-in-other-dormitories"] });
-    queryClient.refetchQueries({ queryKey: ["dormitories-with-count"], type: "active" });
-    queryClient.refetchQueries({ queryKey: ["dormitory-residents"], type: "active" });
-    queryClient.refetchQueries({ queryKey: ["dormitory-gender-stats"], type: "active" });
-    
-    // Handbook
-    queryClient.invalidateQueries({ queryKey: ["handbook-entries"] });
-
-    // Post-departure & Contract Settlement
-    queryClient.invalidateQueries({ queryKey: ["post-departure-trainees"] });
-    queryClient.invalidateQueries({ queryKey: ["post-departure-stats-by-year"] });
-    queryClient.invalidateQueries({ queryKey: ["post-departure-chart-data"] });
-    queryClient.invalidateQueries({ queryKey: ["post-departure-by-type"] });
-    queryClient.invalidateQueries({ queryKey: ["post-departure-kpi-cards"] });
-    queryClient.invalidateQueries({ queryKey: ["contract-settlement-trainees"] });
-    queryClient.refetchQueries({ queryKey: ["post-departure-trainees"], type: "active" });
-    queryClient.refetchQueries({ queryKey: ["contract-settlement-trainees"], type: "active" });
-    queryClient.refetchQueries({ queryKey: ["post-departure-chart-data"], type: "active" });
-
-    // Legal
-    queryClient.invalidateQueries({ queryKey: ["legal-company-stats"] });
-    queryClient.invalidateQueries({ queryKey: ["legal-summary-stats"] });
-    queryClient.invalidateQueries({ queryKey: ["legal-trainee-type-stats"] });
-    queryClient.invalidateQueries({ queryKey: ["legal-dkhd-stats"] });
-    queryClient.invalidateQueries({ queryKey: ["legal-tpc-stats"] });
-    queryClient.invalidateQueries({ queryKey: ["legal-trainees-by-type"] });
-    queryClient.invalidateQueries({ queryKey: ["legal-company-trainees"] });
-
-    // Violations/Blacklist
-    queryClient.invalidateQueries({ queryKey: ["blacklist-entries"] });
-    queryClient.invalidateQueries({ queryKey: ["blacklist"] });
-    queryClient.invalidateQueries({ queryKey: ["trainee-reviews"] });
-    
-    // Permissions & Roles
-    queryClient.invalidateQueries({ queryKey: ["menus"] });
-    queryClient.invalidateQueries({ queryKey: ["menus-full"] });
-    queryClient.invalidateQueries({ queryKey: ["user-role"] });
-    queryClient.invalidateQueries({ queryKey: ["user-menu-permissions-direct"] });
-    queryClient.invalidateQueries({ queryKey: ["user-access-version"] });
-    queryClient.invalidateQueries({ queryKey: ["is-primary-admin"] });
-    queryClient.invalidateQueries({ queryKey: ["effective-permissions"] });
-    queryClient.invalidateQueries({ queryKey: ["menu-permissions"] });
-    queryClient.invalidateQueries({ queryKey: ["all-users-with-roles"] });
-    queryClient.invalidateQueries({ queryKey: ["department-permissions"] });
-    queryClient.invalidateQueries({ queryKey: ["department-members"] });
-    
-    // Departments
-    queryClient.invalidateQueries({ queryKey: ["departments"] });
-    
-    // Audit logs
-    queryClient.invalidateQueries({ queryKey: ["audit-logs"] });
-    
-    // System monitoring
-    queryClient.invalidateQueries({ queryKey: ["user-sessions"] });
-    queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    console.log('[ManualRefresh] All active queries refetched.');
   };
 
   return {
