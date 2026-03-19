@@ -25,11 +25,10 @@ export const PROGRESSION_STAGE_LABELS: Record<string, string> = {
 export const SIMPLE_STATUS_LABELS: Record<string, string> = {
   DangKyMoi: 'Đăng ký mới',
   DangHoc: 'Đang học',
-  DaDau: 'Đã đậu',
+  HocOnline: 'Học online',
   BaoLuu: 'Bảo lưu',
   DungChuongTrinh: 'Dừng chương trình',
   KhongHoc: 'Không học',
-  Huy: 'Hủy',
   DangONhat: 'Đang ở Nhật',
   RoiCongTy: 'Rời công ty',
 };
