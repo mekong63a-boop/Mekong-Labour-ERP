@@ -3289,6 +3289,10 @@ export type Database = {
         Args: { _department: string; _user_id: string }
         Returns: boolean
       }
+      can_modify_trainee_record: {
+        Args: { _trainee_id: string }
+        Returns: boolean
+      }
       can_staff_edit: {
         Args: {
           _record_created_at: string
@@ -3302,6 +3306,10 @@ export type Database = {
       can_view: { Args: { _menu_key: string }; Returns: boolean }
       can_view_sensitive_data: { Args: { _user_id: string }; Returns: boolean }
       can_view_trainee_pii: { Args: never; Returns: boolean }
+      can_view_trainee_record: {
+        Args: { _trainee_id: string }
+        Returns: boolean
+      }
       check_login_rate_limit: {
         Args: { _identifier: string; _ip_address?: string }
         Returns: Json
