@@ -20,8 +20,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart3, TrendingUp, TrendingDown, Minus, UserPlus, Calendar } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
-import { vi } from "date-fns/locale";
 
 const currentYear = new Date().getFullYear();
 const months = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -31,13 +29,14 @@ function useAvailableYearsEnrollment() {
     queryKey: ["enrollment-available-years"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("enrollment_history")
-        .select("action_date")
-        .eq("action_type", "enroll");
+        .from("trainees")
+        .select("entry_date")
+        .not("entry_date", "is", null)
+        .is("deleted_at", null);
       if (error) throw error;
       const yearSet = new Set<number>();
       (data || []).forEach((r) => {
-        if (r.action_date) yearSet.add(new Date(r.action_date).getFullYear());
+        if (r.entry_date) yearSet.add(new Date(r.entry_date).getFullYear());
       });
       if (yearSet.size === 0) yearSet.add(currentYear);
       return Array.from(yearSet).sort((a, b) => b - a);
@@ -53,18 +52,19 @@ function useEnrollmentMonthlyStats(year: number) {
       const endDate = `${year}-12-31`;
 
       const { data, error } = await supabase
-        .from("enrollment_history")
-        .select("id, action_date, action_type, trainee_id")
-        .eq("action_type", "enroll")
-        .gte("action_date", startDate)
-        .lte("action_date", endDate);
+        .from("trainees")
+        .select("id, entry_date")
+        .not("entry_date", "is", null)
+        .is("deleted_at", null)
+        .gte("entry_date", startDate)
+        .lte("entry_date", endDate);
 
       if (error) throw error;
 
       const stats = months.map((m) => {
         const monthStr = String(m).padStart(2, "0");
         const count = (data || []).filter(
-          (r) => r.action_date?.startsWith(`${year}-${monthStr}`)
+          (r) => r.entry_date?.startsWith(`${year}-${monthStr}`)
         ).length;
         return { month: m, count };
       });
@@ -83,16 +83,16 @@ function useEnrollmentMonthlyTrainees(year: number, month: number) {
       const endDate = `${year}-${monthStr}-31`;
 
       const { data, error } = await supabase
-        .from("enrollment_history")
+        .from("trainees")
         .select(`
-          id, action_date, action_type, notes,
-          trainee:trainees(id, trainee_code, full_name),
-          class:classes!enrollment_history_class_id_fkey(id, name, code)
+          id, trainee_code, full_name, entry_date,
+          class:classes!fk_trainees_class(id, name, code)
         `)
-        .eq("action_type", "enroll")
-        .gte("action_date", startDate)
-        .lte("action_date", endDate)
-        .order("action_date", { ascending: false });
+        .not("entry_date", "is", null)
+        .is("deleted_at", null)
+        .gte("entry_date", startDate)
+        .lte("entry_date", endDate)
+        .order("entry_date", { ascending: false });
 
       if (error) throw error;
       return data || [];
@@ -236,17 +236,15 @@ export default function EnrollmentMonthlyStats() {
                       <TableHead>Họ tên</TableHead>
                       <TableHead>Lớp</TableHead>
                       <TableHead>Ngày nhập học</TableHead>
-                      <TableHead>Ghi chú</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {detailTrainees.map((r: any) => (
                       <TableRow key={r.id}>
-                        <TableCell className="font-mono text-xs">{r.trainee?.trainee_code || "—"}</TableCell>
-                        <TableCell className="font-medium">{r.trainee?.full_name || "—"}</TableCell>
+                        <TableCell className="font-mono text-xs">{r.trainee_code || "—"}</TableCell>
+                        <TableCell className="font-medium">{r.full_name || "—"}</TableCell>
                         <TableCell>{r.class?.name || "—"}</TableCell>
-                        <TableCell className="text-sm">{r.action_date}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{r.notes || "—"}</TableCell>
+                        <TableCell className="text-sm">{r.entry_date || "—"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
