@@ -184,7 +184,8 @@ export function useTraineesPaginated({
           receiving_company_id,
           union_id,
           job_category_id
-        `);
+        `)
+        .is('deleted_at', null);
 
       // Apply progression stage filter
       if (progressionStage && progressionStage !== 'all' &&
