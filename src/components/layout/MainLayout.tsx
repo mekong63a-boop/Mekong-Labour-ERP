@@ -88,7 +88,23 @@ export function MainLayout() {
 
           {/* Right: Actions + User */}
           <div className="flex items-center gap-3">
-            <RefreshButton refreshAll={refreshAll} />
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={isRefreshing}
+              onClick={async () => {
+                setIsRefreshing(true);
+                try {
+                  await refreshAll();
+                  toast.success("Đã làm mới dữ liệu");
+                } finally {
+                  setIsRefreshing(false);
+                }
+              }}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+            </Button>
             
             {/* Thông báo đăng ký mới - CHỈ Primary Admin thấy */}
             <PendingRegistrationsNotification />
