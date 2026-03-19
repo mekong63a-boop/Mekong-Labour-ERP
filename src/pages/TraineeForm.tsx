@@ -586,7 +586,6 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       // Nếu chuyển sang "Hủy" hoặc "Dừng chương trình" hoặc trạng thái terminal khác
       if (field === "simple_status") {
         if (
-          value === "Huy" ||
           value === "DungChuongTrinh" ||
           value === "KhongHoc" ||
           value === "RoiCongTy"
@@ -598,9 +597,6 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         // Đảm bảo dữ liệu sạch - không giữ date của trạng thái cũ
         if (value !== "BaoLuu") {
           newData.reserve_date = "";
-        }
-        if (value !== "Huy") {
-          newData.cancel_date = "";
         }
         if (value !== "DungChuongTrinh") {
           newData.stop_date = "";
@@ -2012,16 +2008,6 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   </div>
                 )}
 
-                {formData.simple_status === "Huy" && (
-                  <div className="space-y-2">
-                    <Label>Ngày hủy</Label>
-                    <Input
-                      type="date"
-                      value={formData.cancel_date}
-                      onChange={(e) => updateField("cancel_date", e.target.value)}
-                    />
-                  </div>
-                )}
               </CardContent>
             </Card>
 
