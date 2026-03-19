@@ -1,0 +1,1 @@
+ALTER VIEW public.education_interview_stats SET (security_invoker = on);
