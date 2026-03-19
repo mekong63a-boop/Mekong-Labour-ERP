@@ -314,12 +314,14 @@ export default function TeacherList() {
                     <TableCell>
                       <Badge
                         className={
-                          teacher.status === "active"
+                          teacher.status === "Đang làm việc"
                             ? "bg-green-100 text-green-800"
+                            : teacher.status === "Nghỉ phép"
+                            ? "bg-yellow-100 text-yellow-800"
                             : "bg-muted text-muted-foreground"
                         }
                       >
-                        {teacher.status === "active" || !teacher.status ? "Đang làm việc" : "Ngừng"}
+                        {teacher.status || "Đang làm việc"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-center">
