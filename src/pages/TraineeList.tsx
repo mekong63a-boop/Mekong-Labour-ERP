@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -22,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Eye, RefreshCw, Trash2, Lock, LockOpen } from "lucide-react";
+import { Plus, Search, Eye, RefreshCw, Trash2, Lock, LockOpen, AlertCircle } from "lucide-react";
 import { addYears } from "date-fns";
 import { formatVietnameseDate } from "@/lib/vietnamese-utils";
 import { getStageLabel, getStatusLabel } from "@/lib/enum-labels";
@@ -50,6 +53,22 @@ export default function TraineeList() {
   const deleteTrainee = useDeleteTrainee();
   const toggleLockMutation = useToggleTraineeLock();
   const { isAdmin } = useUserRole();
+
+  // Query trainees who are "Đang học" but have no class assigned
+  const { data: traineesNoClass } = useQuery({
+    queryKey: ["trainees-no-class"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trainees")
+        .select("id, trainee_code, full_name, entry_date")
+        .eq("simple_status", "DangHoc")
+        .is("class_id", null)
+        .is("deleted_at", null)
+        .order("entry_date", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
   
   // Debounce search query (300ms delay)
   const debouncedSearch = useDebounce(searchQuery, 300);
@@ -587,6 +606,39 @@ export default function TraineeList() {
           </Button>
         </div>
       </div>
+
+      {/* Alert: Trainees studying but without class */}
+      {traineesNoClass && traineesNoClass.length > 0 && (
+        <Alert variant="destructive" className="border-orange-300 bg-orange-50 text-orange-900 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-200">
+          <AlertCircle className="h-4 w-4 !text-orange-600" />
+          <AlertTitle className="text-orange-800 dark:text-orange-300">
+            {traineesNoClass.length} học viên đang học nhưng chưa có lớp
+          </AlertTitle>
+          <AlertDescription>
+            <div className="mt-2 space-y-1">
+              {traineesNoClass.map((t) => (
+                <div key={t.id} className="flex items-center gap-2 text-sm">
+                  <span className="font-mono text-xs bg-orange-100 dark:bg-orange-900 px-1.5 py-0.5 rounded">{t.trainee_code}</span>
+                  <span 
+                    className="font-medium hover:underline cursor-pointer" 
+                    onClick={() => navigate(`/trainees/${t.id}`)}
+                  >
+                    {t.full_name}
+                  </span>
+                  {t.entry_date && (
+                    <span className="text-orange-600 dark:text-orange-400 text-xs">
+                      (Nhập học: {formatVietnameseDate(t.entry_date)})
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-orange-600 dark:text-orange-400">
+              Vui lòng vào menu Đào tạo → Lớp học để gán lớp cho các học viên trên.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Tabs - HARDCODED, không sinh từ ENUM */}
       <StageTabsGrid
