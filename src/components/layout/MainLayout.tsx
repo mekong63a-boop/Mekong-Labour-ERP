@@ -87,17 +87,7 @@ export function MainLayout() {
 
           {/* Right: Actions + User */}
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                refreshAll();
-                toast.success("Đã làm mới dữ liệu");
-              }}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
+            <RefreshButton refreshAll={refreshAll} />
             
             {/* Thông báo đăng ký mới - CHỈ Primary Admin thấy */}
             <PendingRegistrationsNotification />
