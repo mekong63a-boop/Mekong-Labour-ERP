@@ -545,12 +545,23 @@ export default function PostDeparturePage() {
         </button>
 
         {/* Tổng xuất cảnh */}
-        <div
-          className="p-4 rounded-lg border text-left bg-muted/30"
+        <button
+          onClick={() => {
+            if (selectedYear && selectedYear !== "all") {
+              setSelectedStatus(selectedStatus === "DepartedInYear" ? null : "DepartedInYear");
+            } else {
+              setSelectedStatus(null);
+            }
+          }}
+          className={`p-4 rounded-lg border text-left transition-colors ${
+            selectedStatus === "DepartedInYear"
+              ? "ring-2 ring-primary bg-primary/10"
+              : "bg-muted/30 hover:bg-muted/50"
+          }`}
         >
           <p className="text-sm font-medium text-primary">Tổng xuất cảnh</p>
           <p className="text-3xl font-bold text-primary mt-1">{stats.departedInYear}</p>
-        </div>
+        </button>
       </div>
 
       {/* KPI Cards by Trainee Type */}
