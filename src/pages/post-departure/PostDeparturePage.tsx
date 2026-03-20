@@ -247,14 +247,14 @@ export default function PostDeparturePage() {
       return dateStr <= yearEnd;
     };
 
-    // Ưu tiên: Bỏ trốn > Về trước hạn > Hoàn thành HĐ > Đang làm việc
+    // Ưu tiên: Bỏ trốn > Về trước hạn > Hoàn thành HĐ > Đang làm việc (Xuất cảnh)
     if (stage === "BoTron" && eventInOrBefore(trainee.absconded_date)) return "BoTron";
     if (stage === "VeNuocSom" && eventInOrBefore(trainee.early_return_date)) return "VeNuocSom";
     if (stage === "HoanThanhHD" && eventInOrBefore(trainee.return_date)) return "HoanThanhHD";
     
-    // Sự kiện chưa xảy ra tại năm đó → vẫn đang làm việc
-    if (["BoTron", "VeNuocSom", "HoanThanhHD"].includes(stage)) return "DangLamViec";
-    if (stage === "DangLamViec" || stage === "DaXuatCanh") return "DangLamViec";
+    // Sự kiện biến động chưa xảy ra tại năm đó → HV vẫn đang ở Nhật, hiển thị "Xuất cảnh"
+    if (["BoTron", "VeNuocSom", "HoanThanhHD"].includes(stage)) return "DaXuatCanh";
+    if (stage === "DangLamViec" || stage === "DaXuatCanh") return "DaXuatCanh";
     return stage;
   };
 
@@ -277,7 +277,7 @@ export default function PostDeparturePage() {
     let working = 0, earlyReturn = 0, absconded = 0, completed = 0;
     filtered.forEach(t => {
       const status = getDisplayStatusForYear(t, yearFilter);
-      if (status === "DangLamViec") working++;
+      if (status === "DangLamViec" || status === "DaXuatCanh") working++;
       else if (status === "VeNuocSom") earlyReturn++;
       else if (status === "BoTron") absconded++;
       else if (status === "HoanThanhHD") completed++;
@@ -308,7 +308,7 @@ export default function PostDeparturePage() {
       if (selectedStatus === "DangLamViec") {
         result = result.filter(t => {
           const s = getDisplayStatus(t);
-          return s === "DangLamViec";
+          return s === "DangLamViec" || s === "DaXuatCanh";
         });
       } else {
         result = result.filter(t => getDisplayStatus(t) === selectedStatus);
