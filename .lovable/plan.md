@@ -1,31 +1,33 @@
 
-Mục tiêu: chấm dứt lỗi `Legacy API keys are disabled` mà không thay đổi logic nghiệp vụ nào khác.
 
-1) Kết quả khám phá (đã xác nhận)
-- `src/integrations/supabase/client.ts` hiện đang dùng:
-  - `SUPABASE_URL = https://bcltzwpnhfpbfiuhfkxi.supabase.co`
-  - `SUPABASE_PUBLISHABLE_KEY = eyJ...` (legacy anon JWT key)
-- Network logs cho thấy mọi request đều gửi header `apikey: eyJ...` và bị 401 với thông báo:
-  - `"Legacy API keys are disabled"`
-- Toàn bộ app dùng chung client này, nên khi key sai thì tất cả auth/rpc/rest đều fail đồng loạt (đúng như ảnh bạn gửi).
+## Sửa logic lọc năm "TTS đang ở Nhật" — KPI tính đúng học viên từ năm trước
 
-2) Nguyên nhân gốc (vì sao “lại bị nữa”)
-- File `client.ts` là file “automatically generated”, nên nếu nguồn cấu hình integration vẫn giữ key cũ thì file sẽ tiếp tục được regenerate về `eyJ...`.
-- Vì legacy key đã bị tắt trong Supabase, app sẽ lặp lại lỗi ngay cả khi UI/logic không đổi.
+### Vấn đề
+`isTraineeRelevantToYear` chỉ check `startsWith(year)` → bỏ sót HV xuất cảnh năm trước nhưng vẫn đang ở Nhật.
 
-3) Kế hoạch xử lý (chỉ xử lý key, KHÔNG đụng phần khác)
-- Bước 1: Cập nhật Supabase integration settings của project để dùng **publishable key mới đang active** (dạng Supabase hiện hành), không dùng legacy `eyJ...`.
-- Bước 2: Regenerate lại `src/integrations/supabase/client.ts` từ integration (không chỉnh tay các module khác).
-- Bước 3: Xác nhận sau regenerate:
-  - `SUPABASE_PUBLISHABLE_KEY` trong `client.ts` đã đổi khỏi `eyJ...`
-  - Không còn chuỗi legacy key trong codebase.
-- Bước 4: Hard refresh preview + đăng nhập lại để đảm bảo bundle mới được nạp.
+### Thay đổi — 1 file duy nhất: `src/pages/post-departure/PostDeparturePage.tsx`
 
-4) Tiêu chí hoàn tất
-- Network request tới `auth/v1`, `rest/v1`, `rpc/*` không còn gửi `apikey: eyJ...`.
-- Không còn lỗi toast `Legacy API keys are disabled`.
-- Login hoạt động bình thường, các truy vấn role/session/rpc trả về 200 thay vì 401.
+**1. Sửa `isTraineeRelevantToYear` (dòng 235-242)**
+```typescript
+// HV liên quan đến năm Y nếu:
+// - Đã xuất cảnh trước hoặc trong năm Y (departure_date <= Y-12-31)
+// - VÀ chưa rời Nhật trước năm Y (exit_date >= Y-01-01 hoặc chưa có exit)
+const yearStart = `${year}-01-01`;
+const yearEnd = `${year}-12-31`;
+if (!trainee.departure_date || trainee.departure_date > yearEnd) return false;
+const exitDate = trainee.absconded_date || trainee.early_return_date || trainee.return_date;
+if (exitDate && exitDate < yearStart) return false;
+return true;
+```
 
-5) Chi tiết kỹ thuật (để đối chiếu nhanh)
-- Điểm nghẽn hiện tại nằm ở đúng 1 chỗ nguồn: `src/integrations/supabase/client.ts` (key cũ).
-- Các file như `useAuth.ts`, `Login.tsx`, `useSessionHeartbeat.ts`, `AIChatWidget.tsx`, `ReportsPage.tsx`, `TraineeDetail.tsx` đều phụ thuộc key này nên không cần sửa riêng từng file nếu regenerate đúng client.
+**2. Sửa `getYearOptionsFromData` (dòng 111-122)**
+Thêm tất cả năm từ năm xuất cảnh đến năm hiện tại (hoặc năm rời Nhật) để dropdown đầy đủ.
+
+**3. Sửa `typeStats` (dòng 158-159)**
+Thay `startsWith(selectedYear)` bằng `isTraineeRelevantToYear` để đồng bộ với KPI.
+
+### Không ảnh hưởng
+- Không thay đổi database, migration, hay API
+- Logic `getDisplayStatusForYear` giữ nguyên (đã đúng)
+- Chỉ thay đổi cách lọc danh sách, không ảnh hưởng hiệu năng
+
