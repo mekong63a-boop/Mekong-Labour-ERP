@@ -543,7 +543,7 @@ export default function PostDeparturePage() {
           className="p-4 rounded-lg border text-left bg-muted/30"
         >
           <p className="text-sm font-medium text-primary">Tổng xuất cảnh</p>
-          <p className="text-3xl font-bold text-primary mt-1">{stats.total}</p>
+          <p className="text-3xl font-bold text-primary mt-1">{stats.departedInYear}</p>
         </div>
       </div>
 
