@@ -164,7 +164,7 @@ export default function PostDeparturePage() {
     if (!trainees) return result;
 
     const filtered = selectedYear && selectedYear !== "all"
-      ? trainees.filter(t => t.departure_date?.startsWith(selectedYear))
+      ? trainees.filter(t => isTraineeRelevantToYear(t, selectedYear))
       : trainees;
 
     filtered.forEach((t: any) => {
