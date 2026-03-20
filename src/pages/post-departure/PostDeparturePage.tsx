@@ -277,7 +277,7 @@ export default function PostDeparturePage() {
     let working = 0, earlyReturn = 0, absconded = 0, completed = 0;
     filtered.forEach(t => {
       const status = getDisplayStatusForYear(t, yearFilter);
-      if (status === "DangLamViec") working++;
+      if (status === "DangLamViec" || status === "DaXuatCanh") working++;
       else if (status === "VeNuocSom") earlyReturn++;
       else if (status === "BoTron") absconded++;
       else if (status === "HoanThanhHD") completed++;
