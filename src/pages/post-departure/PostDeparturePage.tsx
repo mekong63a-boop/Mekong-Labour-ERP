@@ -107,14 +107,22 @@ function usePostDepartureTrainees() {
   });
 }
 
-// Generate year options from departure_date (năm xuất cảnh)
+// Generate year options: include all years from departure to exit (or current year)
 function getYearOptionsFromData(trainees: any[] | undefined) {
   if (!trainees) return [];
   
   const years = new Set<string>();
+  const currentYear = new Date().getFullYear();
+  
   trainees.forEach(t => {
     if (t.departure_date) {
-      years.add(t.departure_date.substring(0, 4));
+      const departYear = parseInt(t.departure_date.substring(0, 4));
+      const exitDate = t.absconded_date || t.early_return_date || t.return_date;
+      const endYear = exitDate ? parseInt(exitDate.substring(0, 4)) : currentYear;
+      
+      for (let y = departYear; y <= endYear; y++) {
+        years.add(String(y));
+      }
     }
   });
   
