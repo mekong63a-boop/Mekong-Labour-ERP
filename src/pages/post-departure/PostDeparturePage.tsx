@@ -308,7 +308,7 @@ export default function PostDeparturePage() {
       if (selectedStatus === "DangLamViec") {
         result = result.filter(t => {
           const s = getDisplayStatus(t);
-          return s === "DangLamViec";
+          return s === "DangLamViec" || s === "DaXuatCanh";
         });
       } else {
         result = result.filter(t => getDisplayStatus(t) === selectedStatus);
