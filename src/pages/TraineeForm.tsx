@@ -992,37 +992,25 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         // Capture old data for audit before update
         const oldDataForAudit = trainee ? { ...trainee } : null;
 
-        // Update existing trainee
+        // MERGE project data into the main update so onSuccess cache has correct values
+        const currentProjectData = projectDataRef.current;
+        const mergedTraineeData = {
+          ...traineeData,
+          receiving_company_id: currentProjectData.receiving_company_id || null,
+          union_id: currentProjectData.union_id || null,
+          job_category_id: currentProjectData.job_category_id || null,
+          expected_entry_month: currentProjectData.expected_entry_month || null,
+          contract_term: currentProjectData.contract_term
+            ? parseFloat(currentProjectData.contract_term)
+            : null,
+        };
+
+        // Update existing trainee (includes project fields to avoid stale cache)
         await updateTraineeMutation.mutateAsync({
           id: traineeId,
-          updates: traineeData,
+          updates: mergedTraineeData,
         });
 
-        // Audit log: UPDATE
-        logAudit(
-          "UPDATE",
-          "trainees",
-          traineeId,
-          oldDataForAudit,
-          traineeData,
-          generateAuditDescription("UPDATE", "trainees", currentData.full_name)
-        );
-
-        // Upload photos if pending
-        if (pendingPhotoFile) {
-          const photoUrl = await uploadPhoto(pendingPhotoFile, traineeId);
-          if (photoUrl) {
-            await supabase.from("trainees").update({ photo_url: photoUrl }).eq("id", traineeId);
-          }
-        }
-        if (pendingLineQRFile) {
-          const lineQRUrl = await uploadLineQR(pendingLineQRFile, traineeId);
-          if (lineQRUrl) {
-            await supabase.from("trainees").update({ line_qr_url: lineQRUrl }).eq("id", traineeId);
-          }
-        }
-
-        await saveHistoryItems(traineeId);
       } else {
         // Create new trainee - MERGE project data into initial INSERT
         // so all fields are saved in a single operation
