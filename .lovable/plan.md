@@ -1,33 +1,38 @@
 
 
-## Sửa logic lọc năm "TTS đang ở Nhật" — KPI tính đúng học viên từ năm trước
+## Sửa KPI "Tổng xuất cảnh" — hiển thị đúng theo bộ lọc năm
 
-### Vấn đề
-`isTraineeRelevantToYear` chỉ check `startsWith(year)` → bỏ sót HV xuất cảnh năm trước nhưng vẫn đang ở Nhật.
+### Yêu cầu
+- Lọc "Tất cả" → hiển thị tổng tất cả HV đã xuất cảnh
+- Lọc năm cụ thể → hiển thị số HV **xuất cảnh trong năm đó** (departure_date thuộc năm đó)
 
-### Thay đổi — 1 file duy nhất: `src/pages/post-departure/PostDeparturePage.tsx`
+### Thay đổi — 1 file: `src/pages/post-departure/PostDeparturePage.tsx`
 
-**1. Sửa `isTraineeRelevantToYear` (dòng 235-242)**
+**1. Thêm `departedInYear` vào `stats` (dòng 269-293)**
+
+Trong vòng lặp `forEach`, đếm thêm số HV có `departure_date` bắt đầu bằng `selectedYear`:
+
 ```typescript
-// HV liên quan đến năm Y nếu:
-// - Đã xuất cảnh trước hoặc trong năm Y (departure_date <= Y-12-31)
-// - VÀ chưa rời Nhật trước năm Y (exit_date >= Y-01-01 hoặc chưa có exit)
-const yearStart = `${year}-01-01`;
-const yearEnd = `${year}-12-31`;
-if (!trainee.departure_date || trainee.departure_date > yearEnd) return false;
-const exitDate = trainee.absconded_date || trainee.early_return_date || trainee.return_date;
-if (exitDate && exitDate < yearStart) return false;
-return true;
+let departedInYear = 0;
+filtered.forEach(t => {
+  // ... logic hiện tại ...
+  if (!yearFilter || (t.departure_date && t.departure_date.startsWith(yearFilter))) {
+    departedInYear++;
+  }
+});
 ```
 
-**2. Sửa `getYearOptionsFromData` (dòng 111-122)**
-Thêm tất cả năm từ năm xuất cảnh đến năm hiện tại (hoặc năm rời Nhật) để dropdown đầy đủ.
+- Khi lọc "Tất cả": `departedInYear` = tổng tất cả HV (vì `!yearFilter` = true)
+- Khi lọc năm cụ thể: `departedInYear` = chỉ HV xuất cảnh đúng năm đó
 
-**3. Sửa `typeStats` (dòng 158-159)**
-Thay `startsWith(selectedYear)` bằng `isTraineeRelevantToYear` để đồng bộ với KPI.
+**2. Hiển thị `stats.departedInYear` thay vì `stats.total` (dòng 539-540)**
+
+```tsx
+<p className="text-3xl font-bold text-primary mt-1">{stats.departedInYear}</p>
+```
 
 ### Không ảnh hưởng
-- Không thay đổi database, migration, hay API
-- Logic `getDisplayStatusForYear` giữ nguyên (đã đúng)
-- Chỉ thay đổi cách lọc danh sách, không ảnh hưởng hiệu năng
+- Các KPI trạng thái (Đang ở Nhật, Bỏ trốn...) vẫn tính theo logic liên quan đến năm
+- Danh sách bảng vẫn hiển thị tất cả HV liên quan đến năm
+- Thẻ "Tổng xuất cảnh" luôn hiển thị, chỉ thay đổi con số
 
