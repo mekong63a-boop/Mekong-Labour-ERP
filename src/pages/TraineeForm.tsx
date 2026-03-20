@@ -2126,6 +2126,24 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                     />
                   </div>
                 )}
+
+                <div className="space-y-2">
+                  <Label>Ngày hoàn thành hợp đồng</Label>
+                  <Input
+                    type="date"
+                    value={formData.contract_end_date}
+                    onChange={(e) => updateField("contract_end_date", e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Ngày thanh lý hợp đồng</Label>
+                  <Input
+                    type="date"
+                    value={formData.settlement_date}
+                    onChange={(e) => updateField("settlement_date", e.target.value)}
+                  />
+                </div>
               </CardContent>
             </Card>
           )}
