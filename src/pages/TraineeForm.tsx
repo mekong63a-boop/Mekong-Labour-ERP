@@ -840,25 +840,9 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       }
     }
 
-    // Project/Interview: Always update trainee's draft fields
-    // NOTE: interview_date does NOT exist in trainees table - it's only in interview_history
-    // Use ref to guarantee latest data (prevents closure staleness - same pattern as formDataRef)
+    // Project/Interview: project fields are now merged into the main update in handleSubmit
+    // Only auto-finalize interview history here
     const currentProjectData = projectDataRef.current;
-    {
-      const { error: updErr } = await supabase
-        .from("trainees")
-        .update({
-          receiving_company_id: currentProjectData.receiving_company_id || null,
-          union_id: currentProjectData.union_id || null,
-          job_category_id: currentProjectData.job_category_id || null,
-          expected_entry_month: currentProjectData.expected_entry_month || null,
-          contract_term: currentProjectData.contract_term
-            ? parseFloat(currentProjectData.contract_term)
-            : null,
-        })
-        .eq("id", traineeId);
-      if (updErr) throw updErr;
-    }
 
     // Auto-finalize interview history when interview_date is present
     // This eliminates the need for users to click a separate "Lưu lịch sử phỏng vấn" button
