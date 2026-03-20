@@ -274,13 +274,18 @@ export default function PostDeparturePage() {
       ? trainees.filter(t => isTraineeRelevantToYear(t, yearFilter))
       : trainees;
 
-    let working = 0, earlyReturn = 0, absconded = 0, completed = 0;
+    let working = 0, earlyReturn = 0, absconded = 0, completed = 0, departedInYear = 0;
     filtered.forEach(t => {
       const status = getDisplayStatusForYear(t, yearFilter);
       if (status === "DangLamViec" || status === "DaXuatCanh") working++;
       else if (status === "VeNuocSom") earlyReturn++;
       else if (status === "BoTron") absconded++;
       else if (status === "HoanThanhHD") completed++;
+
+      // Đếm HV xuất cảnh đúng năm được chọn
+      if (!yearFilter || (t.departure_date && t.departure_date.startsWith(yearFilter))) {
+        departedInYear++;
+      }
     });
 
     return {
@@ -289,6 +294,7 @@ export default function PostDeparturePage() {
       absconded,
       completed,
       total: filtered.length,
+      departedInYear,
     };
   }, [selectedYear, trainees]);
 
@@ -537,7 +543,7 @@ export default function PostDeparturePage() {
           className="p-4 rounded-lg border text-left bg-muted/30"
         >
           <p className="text-sm font-medium text-primary">Tổng xuất cảnh</p>
-          <p className="text-3xl font-bold text-primary mt-1">{stats.total}</p>
+          <p className="text-3xl font-bold text-primary mt-1">{stats.departedInYear}</p>
         </div>
       </div>
 
