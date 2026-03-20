@@ -148,6 +148,26 @@ export default function PostDeparturePage() {
   // Get year options from actual data
   const yearOptions = useMemo(() => getYearOptionsFromData(trainees), [trainees]);
 
+  // Helper: kiểm tra HV có liên quan đến năm được chọn không
+  // HV liên quan đến năm Y nếu:
+  // - Đã xuất cảnh trước hoặc trong năm Y (departure_date <= Y-12-31)
+  // - VÀ chưa rời Nhật trước năm Y (exit_date >= Y-01-01 hoặc chưa có exit)
+  const isTraineeRelevantToYear = (trainee: any, year: string | null) => {
+    if (!year || year === "all") return true;
+    
+    const yearStart = `${year}-01-01`;
+    const yearEnd = `${year}-12-31`;
+    
+    // Must have departed on or before end of selected year
+    if (!trainee.departure_date || trainee.departure_date > yearEnd) return false;
+    
+    // If already left Japan before selected year started → not relevant
+    const exitDate = trainee.absconded_date || trainee.early_return_date || trainee.return_date;
+    if (exitDate && exitDate < yearStart) return false;
+    
+    return true;
+  };
+
   // Type stats và KPI stats được tính trực tiếp từ trainees list (SSOT)
 
   // Calculate type stats từ danh sách trainees đã lọc theo năm
