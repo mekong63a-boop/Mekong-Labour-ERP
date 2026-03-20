@@ -166,6 +166,7 @@ interface FormData {
   nyukan_entry_date: string;
   coe_date: string;
   departure_date: string;
+  contract_end_date: string;
   settlement_date: string;
   absconded_date: string;
   early_return_date: string;
@@ -353,6 +354,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
     nyukan_entry_date: "",
     coe_date: "",
     departure_date: "",
+    contract_end_date: "",
     settlement_date: "",
     absconded_date: "",
     early_return_date: "",
@@ -458,6 +460,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
         nyukan_entry_date: trainee.nyukan_entry_date || "",
         coe_date: trainee.coe_date || "",
         departure_date: trainee.departure_date || "",
+        contract_end_date: trainee.contract_end_date || "",
         settlement_date: (trainee as any).settlement_date || "",
         absconded_date: trainee.absconded_date || "",
         early_return_date: trainee.early_return_date || "",
@@ -727,6 +730,7 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       nyukan_entry_date: currentFormData.nyukan_entry_date || null,
       coe_date: currentFormData.coe_date || null,
       departure_date: currentFormData.departure_date || null,
+      contract_end_date: currentFormData.contract_end_date || null,
       settlement_date: currentFormData.settlement_date || null,
       absconded_date: currentFormData.absconded_date || null,
       early_return_date: currentFormData.early_return_date || null,
@@ -2067,14 +2071,6 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Ngày thanh lý hợp đồng</Label>
-                  <Input
-                    type="date"
-                    value={formData.settlement_date}
-                    onChange={(e) => updateField("settlement_date", e.target.value)}
-                  />
-                </div>
               </CardContent>
             </Card>
           </div>
@@ -2130,6 +2126,24 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
                     />
                   </div>
                 )}
+
+                <div className="space-y-2">
+                  <Label>Ngày hoàn thành hợp đồng</Label>
+                  <Input
+                    type="date"
+                    value={formData.contract_end_date}
+                    onChange={(e) => updateField("contract_end_date", e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Ngày thanh lý hợp đồng</Label>
+                  <Input
+                    type="date"
+                    value={formData.settlement_date}
+                    onChange={(e) => updateField("settlement_date", e.target.value)}
+                  />
+                </div>
               </CardContent>
             </Card>
           )}
