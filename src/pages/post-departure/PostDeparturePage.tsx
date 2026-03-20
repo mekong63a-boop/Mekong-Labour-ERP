@@ -311,7 +311,13 @@ export default function PostDeparturePage() {
 
     // Filter by status (dùng trạng thái hiện tại)
     if (selectedStatus) {
-      if (selectedStatus === "DangLamViec") {
+      if (selectedStatus === "DepartedInYear") {
+        // Lọc HV xuất cảnh đúng năm được chọn
+        const yearFilter = selectedYear && selectedYear !== "all" ? selectedYear : null;
+        if (yearFilter) {
+          result = result.filter(t => t.departure_date && t.departure_date.startsWith(yearFilter));
+        }
+      } else if (selectedStatus === "DangLamViec") {
         result = result.filter(t => {
           const s = getDisplayStatus(t);
           return s === "DangLamViec" || s === "DaXuatCanh";
