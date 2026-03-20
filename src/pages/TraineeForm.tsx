@@ -1011,6 +1011,31 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
           updates: mergedTraineeData,
         });
 
+        // Audit log: UPDATE
+        logAudit(
+          "UPDATE",
+          "trainees",
+          traineeId,
+          oldDataForAudit,
+          mergedTraineeData,
+          generateAuditDescription("UPDATE", "trainees", currentData.full_name)
+        );
+
+        // Upload photos if pending
+        if (pendingPhotoFile) {
+          const photoUrl = await uploadPhoto(pendingPhotoFile, traineeId);
+          if (photoUrl) {
+            await supabase.from("trainees").update({ photo_url: photoUrl }).eq("id", traineeId);
+          }
+        }
+        if (pendingLineQRFile) {
+          const lineQRUrl = await uploadLineQR(pendingLineQRFile, traineeId);
+          if (lineQRUrl) {
+            await supabase.from("trainees").update({ line_qr_url: lineQRUrl }).eq("id", traineeId);
+          }
+        }
+
+        await saveHistoryItems(traineeId);
       } else {
         // Create new trainee - MERGE project data into initial INSERT
         // so all fields are saved in a single operation
