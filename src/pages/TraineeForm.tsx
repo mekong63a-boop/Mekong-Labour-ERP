@@ -1079,8 +1079,8 @@ function TraineeFormContent({ isEditMode, traineeId }: TraineeFormContentProps) 
       
       // 1. Core trainee data - invalidate and refetch immediately
       await queryClient.invalidateQueries({ queryKey: ["trainees"] });
-      // Don't refetch ["trainee", traineeId] here - formLoaded guard prevents re-render overwrite
-      // and we navigate away immediately after save anyway
+      // Invalidate individual trainee cache to ensure fresh data on next view
+      await queryClient.invalidateQueries({ queryKey: ["trainee", traineeId || finalTraineeId] });
       
       // 2. CRITICAL: Trainee List uses these queries - must refetch immediately to avoid 10-20s delay
       await queryClient.invalidateQueries({ queryKey: ["trainees-paginated"] });
