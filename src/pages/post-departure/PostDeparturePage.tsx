@@ -247,14 +247,14 @@ export default function PostDeparturePage() {
       return dateStr <= yearEnd;
     };
 
-    // Ưu tiên: Bỏ trốn > Về trước hạn > Hoàn thành HĐ > Đang làm việc
+    // Ưu tiên: Bỏ trốn > Về trước hạn > Hoàn thành HĐ > Đang làm việc (Xuất cảnh)
     if (stage === "BoTron" && eventInOrBefore(trainee.absconded_date)) return "BoTron";
     if (stage === "VeNuocSom" && eventInOrBefore(trainee.early_return_date)) return "VeNuocSom";
     if (stage === "HoanThanhHD" && eventInOrBefore(trainee.return_date)) return "HoanThanhHD";
     
-    // Sự kiện chưa xảy ra tại năm đó → vẫn đang làm việc
-    if (["BoTron", "VeNuocSom", "HoanThanhHD"].includes(stage)) return "DangLamViec";
-    if (stage === "DangLamViec" || stage === "DaXuatCanh") return "DangLamViec";
+    // Sự kiện biến động chưa xảy ra tại năm đó → HV vẫn đang ở Nhật, hiển thị "Xuất cảnh"
+    if (["BoTron", "VeNuocSom", "HoanThanhHD"].includes(stage)) return "DaXuatCanh";
+    if (stage === "DangLamViec" || stage === "DaXuatCanh") return "DaXuatCanh";
     return stage;
   };
 
