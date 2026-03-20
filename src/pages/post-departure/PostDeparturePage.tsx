@@ -311,7 +311,13 @@ export default function PostDeparturePage() {
 
     // Filter by status (dùng trạng thái hiện tại)
     if (selectedStatus) {
-      if (selectedStatus === "DangLamViec") {
+      if (selectedStatus === "DepartedInYear") {
+        // Lọc HV xuất cảnh đúng năm được chọn
+        const yearFilter = selectedYear && selectedYear !== "all" ? selectedYear : null;
+        if (yearFilter) {
+          result = result.filter(t => t.departure_date && t.departure_date.startsWith(yearFilter));
+        }
+      } else if (selectedStatus === "DangLamViec") {
         result = result.filter(t => {
           const s = getDisplayStatus(t);
           return s === "DangLamViec" || s === "DaXuatCanh";
@@ -539,12 +545,23 @@ export default function PostDeparturePage() {
         </button>
 
         {/* Tổng xuất cảnh */}
-        <div
-          className="p-4 rounded-lg border text-left bg-muted/30"
+        <button
+          onClick={() => {
+            if (selectedYear && selectedYear !== "all") {
+              setSelectedStatus(selectedStatus === "DepartedInYear" ? null : "DepartedInYear");
+            } else {
+              setSelectedStatus(null);
+            }
+          }}
+          className={`p-4 rounded-lg border text-left transition-colors ${
+            selectedStatus === "DepartedInYear"
+              ? "ring-2 ring-primary bg-primary/10"
+              : "bg-muted/30 hover:bg-muted/50"
+          }`}
         >
           <p className="text-sm font-medium text-primary">Tổng xuất cảnh</p>
           <p className="text-3xl font-bold text-primary mt-1">{stats.departedInYear}</p>
-        </div>
+        </button>
       </div>
 
       {/* KPI Cards by Trainee Type */}
